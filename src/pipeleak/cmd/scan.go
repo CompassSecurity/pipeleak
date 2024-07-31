@@ -30,7 +30,7 @@ func NewScanCmd() *cobra.Command {
 	}
 
 	scanCmd.Flags().StringVarP(&gitlabApiToken, "token", "t", "", "GitLab API Token")
-	scanCmd.MarkFlagRequired("token")
+	err = scanCmd.MarkFlagRequired("token")
 	if err != nil {
 		log.Error().Msg("Unable to require token flag: " + err.Error())
 	}
