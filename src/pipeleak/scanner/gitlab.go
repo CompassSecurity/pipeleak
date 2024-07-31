@@ -10,7 +10,7 @@ import (
 )
 
 func ScanGitLabPipelines(gitlabUrl string, apiToken string) {
-	log.Info().Msg("Gathering all projects")
+	log.Info().Msg("Fetching projects")
 	git, err := gitlab.NewClient(apiToken, gitlab.WithBaseURL(gitlabUrl))
 	if err != nil {
 		log.Fatal().Msg(err.Error())
@@ -23,17 +23,16 @@ func ScanGitLabPipelines(gitlabUrl string, apiToken string) {
 		},
 	}
 
-	allProjects := make(map[int]*gitlab.Project)
-
+	log.Info().Msg("Start scanning pipeline jobs")
 	for {
 		projects, resp, err := git.Projects.ListProjects(projectOpts)
+		log.Info().Msg("Scanned projects: " + strconv.Itoa(projectOpts.Page*projectOpts.PerPage))
 
 		if err != nil {
 			log.Fatal().Msg(err.Error())
 		}
 
 		for _, project := range projects {
-			allProjects[project.ID] = project
 			log.Debug().Msg("Scan Project jobs: " + project.Name)
 			getAllJobs(git, project)
 		}
@@ -41,12 +40,8 @@ func ScanGitLabPipelines(gitlabUrl string, apiToken string) {
 		if resp.NextPage == 0 {
 			break
 		}
-
 		projectOpts.Page = resp.NextPage
 	}
-
-	log.Info().Msg("Enumerated " + strconv.Itoa(len(allProjects)) + " projects to be scanned")
-
 }
 
 func getAllJobs(git *gitlab.Client, project *gitlab.Project) {
@@ -62,7 +57,7 @@ func getAllJobs(git *gitlab.Client, project *gitlab.Project) {
 		jobs, resp, err := git.Jobs.ListProjectJobs(project.ID, opts)
 
 		if err != nil {
-			log.Error().Msg("Failed fetching project jobs " + err.Error())
+			log.Debug().Msg("Failed fetching project jobs " + err.Error())
 		}
 
 		for _, job := range jobs {
@@ -87,9 +82,12 @@ func getJobTrace(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job) {
 	findings := DetectHits(trace)
 
 	for _, finding := range findings {
-		log.Warn().Msg("HIT Confidence: " + finding.Pattern.Pattern.Confidence + " Name:" + finding.Pattern.Pattern.Name + " Value: " + finding.Text)
-		log.Warn().Msg("HIT URL: " + git.BaseURL().Host + "/" + project.PathWithNamespace + "/-/jobs/" + strconv.Itoa(job.ID))
+		log.Warn().Msg("HIT Confidence: " + finding.Pattern.Pattern.Confidence + " Name:" + finding.Pattern.Pattern.Name + " Value: " + finding.Text + " URL: " + getJobUrl(git, project, job))
 	}
+}
+
+func getJobUrl(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job) string {
+	return git.BaseURL().Host + "/" + project.PathWithNamespace + "/-/jobs/" + strconv.Itoa(job.ID)
 }
 
 func StreamToString(stream io.Reader) string {
