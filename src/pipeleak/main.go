@@ -1,7 +1,14 @@
 package main
 
-import "github.com/CompassSecurity/pipeleak/cmd"
+import (
+	"os"
+
+	"github.com/CompassSecurity/pipeleak/cmd"
+)
 
 func main() {
-	cmd.Execute()
+	err := cmd.Execute()
+	if err != nil {
+		os.Exit(1)
+	}
 }

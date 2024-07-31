@@ -94,6 +94,9 @@ func getJobTrace(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job) {
 
 func StreamToString(stream io.Reader) string {
 	buf := new(bytes.Buffer)
-	buf.ReadFrom(stream)
+	_, err := buf.ReadFrom(stream)
+	if err != nil {
+		log.Error().Msg("Unable to read job trace buffer: " + err.Error())
+	}
 	return buf.String()
 }
