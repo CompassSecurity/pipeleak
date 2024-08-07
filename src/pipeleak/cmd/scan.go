@@ -13,6 +13,9 @@ import (
 var (
 	gitlabUrl      string
 	gitlabApiToken string
+	gitlabCookie   string
+	artifacts      bool
+	owned          bool
 	verbose        bool
 )
 
@@ -22,7 +25,7 @@ func NewScanCmd() *cobra.Command {
 		Short: "Scan a GitLab instance",
 		Run:   Scan,
 	}
-
+	//
 	scanCmd.Flags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
 	err := scanCmd.MarkFlagRequired("gitlab")
 	if err != nil {
@@ -35,6 +38,11 @@ func NewScanCmd() *cobra.Command {
 		log.Error().Msg("Unable to require token flag: " + err.Error())
 	}
 	scanCmd.MarkFlagsRequiredTogether("gitlab", "token")
+
+	scanCmd.Flags().StringVarP(&gitlabCookie, "cookie", "c", "", "GitLab Cookie _gitlab_session (must be extracted from your browser, use remember me)")
+
+	scanCmd.PersistentFlags().BoolVarP(&artifacts, "artifacts", "a", false, "Scan Job Artifacts")
+	scanCmd.PersistentFlags().BoolVarP(&owned, "owned", "o", false, "Scan Onwed Projects Only")
 
 	scanCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose Logging")
 
@@ -50,7 +58,7 @@ func Scan(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	scanner.ScanGitLabPipelines(gitlabUrl, gitlabApiToken)
+	scanner.ScanGitLabPipelines(gitlabUrl, gitlabApiToken, gitlabCookie, artifacts, owned)
 }
 
 func setLogLevel() {
