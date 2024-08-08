@@ -34,6 +34,9 @@ type Finding struct {
 	Text    string
 }
 
+// hold patterns in memory during runtime
+var secretsPatterns = SecretsPatterns{}
+
 func DownloadRules() {
 	if _, err := os.Stat(ruleFileName); errors.Is(err, os.ErrNotExist) {
 		log.Debug().Msg("No rules file found, downloading")
@@ -67,18 +70,18 @@ func downloadFile(url string, filepath string) error {
 }
 
 func GetRules() []PatternElement {
-	// download rules if needed implicitly
 	DownloadRules()
 
-	secretsPatterns := SecretsPatterns{}
-
-	yamlFile, err := os.ReadFile(ruleFileName)
-	if err != nil {
-		log.Fatal().Msg("Failed opening rules file: " + err.Error())
-	}
-	err = yaml.Unmarshal(yamlFile, &secretsPatterns)
-	if err != nil {
-		log.Fatal().Msg("Failed unmarshalling rules file: " + err.Error())
+	if len(secretsPatterns.Patterns) == 0 {
+		log.Debug().Msg("Loading rules.yml from filesystem")
+		yamlFile, err := os.ReadFile(ruleFileName)
+		if err != nil {
+			log.Fatal().Msg("Failed opening rules file: " + err.Error())
+		}
+		err = yaml.Unmarshal(yamlFile, &secretsPatterns)
+		if err != nil {
+			log.Fatal().Msg("Failed unmarshalling rules file: " + err.Error())
+		}
 	}
 
 	return secretsPatterns.Patterns

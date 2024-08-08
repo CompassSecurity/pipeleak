@@ -3,7 +3,8 @@ package main
 import (
 	"os"
 
-	"github.com/CompassSecurity/pipeleak/cmd"
+	"github.com/CompassSecurity/pipeleak/cmd
+	_ "net/http/pprof"
 )
 
 func main() {

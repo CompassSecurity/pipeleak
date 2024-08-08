@@ -11,8 +11,8 @@ import (
 var (
 	rootCmd = &cobra.Command{
 		Use:   "pipeleak",
-		Short: "💎💎 A GitLab Pipeline Output Secret Scanner 💎💎",
-		Long:  "Pipeleak scan the output of GitLab pipelines for secrets. Thus detecting what treasures turn up on runtime 💎💎",
+		Short: "💎💎 Scan GitLab job logs and artifacts for secrets 💎💎",
+		Long:  "Pipeleak is a tool designed to scan GitLab job output logs and artifacts for potential secrets. 💎💎",
 	}
 )
 

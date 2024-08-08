@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"unicode/utf8"
 
@@ -37,10 +36,8 @@ func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanA
 		Owned: owned,
 	}
 
-	log.Info().Msg("Start scanning pipeline jobs")
 	for {
 		projects, resp, err := git.Projects.ListProjects(projectOpts)
-		log.Info().Msg("Scanned projects: " + strconv.Itoa(projectOpts.Page*projectOpts.PerPage))
 
 		if err != nil {
 			log.Error().Msg(err.Error())
@@ -55,6 +52,7 @@ func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanA
 			break
 		}
 		projectOpts.Page = resp.NextPage
+		log.Info().Msg("Scanned projects: " + strconv.Itoa(projectOpts.Page*projectOpts.PerPage))
 	}
 }
 
@@ -112,14 +110,7 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 		return
 	}
 
-	dir, err := os.MkdirTemp("", "pipeleak")
-	if err != nil {
-		log.Error().Msg(err.Error())
-	}
-	defer os.RemoveAll(dir)
-
 	log.Debug().Msg("extracting artifacts")
-
 	zipListing, err := zip.NewReader(artifactsReader, artifactsReader.Size())
 	if err != nil {
 		log.Warn().Msg("Unable to unzip artifacts for proj " + strconv.Itoa(project.ID) + " job " + strconv.Itoa(job.ID))
@@ -133,7 +124,7 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 		}
 
 		if isFileTextBased(fc) {
-			content := readZipFile(file)
+			content := readZipFile(fc)
 			if err != nil {
 				log.Error().Msg(err.Error())
 			}
@@ -145,6 +136,7 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 		} else {
 			log.Debug().Msg("Skipping non-text artifact file scan for " + file.Name)
 		}
+		fc.Close()
 	}
 
 	if len(cookie) > 1 {
@@ -186,12 +178,7 @@ func StreamToString(stream io.Reader) string {
 	return buf.String()
 }
 
-func readZipFile(file *zip.File) []byte {
-	fc, err := file.Open()
-	if err != nil {
-		log.Error().Msg("Unable to open artifact zip file: " + err.Error())
-	}
-
+func readZipFile(fc io.ReadCloser) []byte {
 	content, err := io.ReadAll(fc)
 	if err != nil {
 		log.Error().Msg("Unable to readAll artifact zip file: " + err.Error())
@@ -222,13 +209,14 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 	if err != nil {
 		log.Debug().Msg(err.Error())
 	}
-	defer resp.Body.Close()
+	resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		return ""
 	}
 
 	body, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
 
 	reader := bytes.NewReader(body)
 	gzreader, e1 := gzip.NewReader(reader)
