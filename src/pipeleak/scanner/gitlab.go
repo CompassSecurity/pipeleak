@@ -2,14 +2,12 @@ package scanner
 
 import (
 	"archive/zip"
-	"bufio"
 	"bytes"
 	"compress/gzip"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
-	"unicode/utf8"
 
 	"github.com/h2non/filetype"
 	"github.com/rs/zerolog/log"
@@ -137,7 +135,7 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 		} else {
 			log.Debug().Msg("Skipping non-text artifact file scan for " + file.Name)
 		}
-		content = nil
+		content = []byte{}
 		fc.Close()
 	}
 
@@ -157,13 +155,6 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 		log.Debug().Msg("No cookie provided skipping .env.gz artifact")
 	}
 
-}
-
-func isFileTextBased(file io.Reader) bool {
-	fileScanner := bufio.NewScanner(file)
-	fileScanner.Split(bufio.ScanLines)
-	fileScanner.Scan()
-	return utf8.ValidString(string(fileScanner.Text()))
 }
 
 func getJobUrl(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job) string {
