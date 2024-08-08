@@ -142,7 +142,6 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 	artifactsReader = &bytes.Reader{}
 
 	if len(cookie) > 1 {
-		log.Debug().Msg("Checking .env.gz artifact")
 		envTxt := DownloadEnvArtifact(cookie, gitlabUrl, project.PathWithNamespace, job.ID)
 		findings := DetectHits(envTxt)
 		artifactsBaseUrl, _ := url.JoinPath(project.WebURL, "/-/artifacts")
@@ -203,6 +202,8 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 	if statCode != 200 {
 		log.Error().Msg("Invalid _gitlab_session detected, HTTP " + strconv.Itoa(statCode))
 		return ""
+	} else {
+		log.Debug().Msg("Checking .env.gz artifact")
 	}
 
 	body, err := io.ReadAll(resp.Body)
