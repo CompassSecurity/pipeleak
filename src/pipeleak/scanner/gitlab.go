@@ -11,21 +11,20 @@ import (
 	"strconv"
 	"unicode/utf8"
 
+	"github.com/h2non/filetype"
 	"github.com/rs/zerolog/log"
 	"github.com/xanzy/go-gitlab"
 )
 
-func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanArtifacts bool, scanOwnedOnly bool) {
+func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanArtifacts bool, scanOwnedOnly bool, query string) {
 	log.Info().Msg("Fetching projects")
 	git, err := gitlab.NewClient(apiToken, gitlab.WithBaseURL(gitlabUrl))
 	if err != nil {
 		log.Fatal().Msg(err.Error())
 	}
 
-	owned := &[]bool{false}[0]
-	if scanOwnedOnly {
-		log.Info().Msg("Scanning only owend projects")
-		owned = &[]bool{true}[0]
+	if len(query) > 0 {
+		log.Info().Msg("Filtering scanned projects by query: " + query)
 	}
 
 	projectOpts := &gitlab.ListProjectsOptions{
@@ -33,7 +32,8 @@ func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanA
 			PerPage: 100,
 			Page:    1,
 		},
-		Owned: owned,
+		Owned:  gitlab.Ptr(scanOwnedOnly),
+		Search: gitlab.Ptr(query),
 	}
 
 	for {
@@ -110,7 +110,6 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 		return
 	}
 
-	log.Debug().Msg("extracting artifacts")
 	zipListing, err := zip.NewReader(artifactsReader, artifactsReader.Size())
 	if err != nil {
 		log.Warn().Msg("Unable to unzip artifacts for proj " + strconv.Itoa(project.ID) + " job " + strconv.Itoa(job.ID))
@@ -123,12 +122,14 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 			log.Error().Msg("Unable to openRaw artifact zip file: " + err.Error())
 		}
 
-		if isFileTextBased(fc) {
-			content := readZipFile(fc)
-			if err != nil {
-				log.Error().Msg(err.Error())
-			}
+		content, err := io.ReadAll(fc)
+		if err != nil {
+			log.Error().Msg("Unable to readAll artifact zip file: " + err.Error())
+		}
 
+		kind, _ := filetype.Match(content)
+		// do not scan https://pkg.go.dev/github.com/h2non/filetype#readme-supported-types
+		if kind == filetype.Unknown {
 			findings := DetectHits(string(content))
 			for _, finding := range findings {
 				log.Warn().Msg("HIT Artifact Confidence: " + finding.Pattern.Pattern.Confidence + " Name:" + finding.Pattern.Pattern.Name + " Value: " + finding.Text + " " + job.WebURL + " in file: " + file.Name)
@@ -136,16 +137,16 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 		} else {
 			log.Debug().Msg("Skipping non-text artifact file scan for " + file.Name)
 		}
+		content = nil
 		fc.Close()
 	}
+
+	zipListing = &zip.Reader{}
+	artifactsReader = &bytes.Reader{}
 
 	if len(cookie) > 1 {
 		log.Debug().Msg("Checking .env.gz artifact")
 		envTxt := DownloadEnvArtifact(cookie, gitlabUrl, project.PathWithNamespace, job.ID)
-		if err != nil {
-			log.Error().Msg(err.Error())
-		}
-
 		findings := DetectHits(envTxt)
 		artifactsBaseUrl, _ := url.JoinPath(project.WebURL, "/-/artifacts")
 		for _, finding := range findings {
@@ -178,15 +179,6 @@ func StreamToString(stream io.Reader) string {
 	return buf.String()
 }
 
-func readZipFile(fc io.ReadCloser) []byte {
-	content, err := io.ReadAll(fc)
-	if err != nil {
-		log.Error().Msg("Unable to readAll artifact zip file: " + err.Error())
-	}
-
-	return content
-}
-
 // .env artifacts are not accessible over the API thus we must use session cookie and use the UI path
 // however this is where the treasure is - my precious
 func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, jobId int) string {
@@ -207,11 +199,19 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Debug().Msg(err.Error())
+		log.Debug().Msg("Failed requesting dotenv artifact with: " + err.Error())
 	}
-	resp.Body.Close()
+	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	statCode := resp.StatusCode
+
+	// means no dotenv exists
+	if statCode == 404 {
+		return ""
+	}
+
+	if statCode != 200 {
+		log.Error().Msg("Invalid _gitlab_session detected, HTTP " + strconv.Itoa(statCode))
 		return ""
 	}
 

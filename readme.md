@@ -30,6 +30,12 @@ pipeleak scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com -a -c
 pipeleak scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com -v -a -c [value-of-valid-_gitlab_session]
 ```
 
+### Additional Features
+
+Filter the scanned projects by using the `--search` flag and provide a search query string.
+
+Filter the scanned projects by using the `--owned` flag to only process projects owned by you.
+
 ## Customizing Scan Rules
 
 When you run Pipeleak for the first time, it generates a `rules.yml` file based on [this repository](https://github.com/mazen160/secrets-patterns-db/blob/master/db/rules-stable.yml). You can customize your scan rules by modifying this file as needed.

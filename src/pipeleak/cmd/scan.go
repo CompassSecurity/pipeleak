@@ -11,12 +11,13 @@ import (
 )
 
 var (
-	gitlabUrl      string
-	gitlabApiToken string
-	gitlabCookie   string
-	artifacts      bool
-	owned          bool
-	verbose        bool
+	gitlabUrl          string
+	gitlabApiToken     string
+	gitlabCookie       string
+	projectSearchQuery string
+	artifacts          bool
+	owned              bool
+	verbose            bool
 )
 
 func NewScanCmd() *cobra.Command {
@@ -40,6 +41,7 @@ func NewScanCmd() *cobra.Command {
 	scanCmd.MarkFlagsRequiredTogether("gitlab", "token")
 
 	scanCmd.Flags().StringVarP(&gitlabCookie, "cookie", "c", "", "GitLab Cookie _gitlab_session (must be extracted from your browser, use remember me)")
+	scanCmd.Flags().StringVarP(&projectSearchQuery, "search", "s", "", "Query string for searching projects")
 
 	scanCmd.PersistentFlags().BoolVarP(&artifacts, "artifacts", "a", false, "Scan Job Artifacts")
 	scanCmd.PersistentFlags().BoolVarP(&owned, "owned", "o", false, "Scan Onwed Projects Only")
@@ -58,7 +60,7 @@ func Scan(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	scanner.ScanGitLabPipelines(gitlabUrl, gitlabApiToken, gitlabCookie, artifacts, owned)
+	scanner.ScanGitLabPipelines(gitlabUrl, gitlabApiToken, gitlabCookie, artifacts, owned, projectSearchQuery)
 }
 
 func setLogLevel() {
