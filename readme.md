@@ -1,6 +1,6 @@
 # Pipeleak
 
-Scan GitLab job output logs for secrets
+Scan GitLab job output logs and artifacts for secrets
 
 # Get Started
 

@@ -1,7 +1,6 @@
 package scanner
 
 import (
-	"archive/tar"
 	"archive/zip"
 	"bufio"
 	"bytes"
@@ -128,8 +127,6 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 	}
 
 	for _, file := range zipListing.File {
-		log.Debug().Msg(file.Name)
-
 		fc, err := file.Open()
 		if err != nil {
 			log.Error().Msg("Unable to openRaw artifact zip file: " + err.Error())
@@ -137,15 +134,13 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 
 		if isFileTextBased(fc) {
 			content := readZipFile(file)
-			log.Debug().Msg(string(content))
-
 			if err != nil {
 				log.Error().Msg(err.Error())
 			}
 
 			findings := DetectHits(string(content))
 			for _, finding := range findings {
-				log.Warn().Msg("HIT Artifact Confidence: " + finding.Pattern.Pattern.Confidence + " Name:" + finding.Pattern.Pattern.Name + " Value: " + finding.Text + " TODOD")
+				log.Warn().Msg("HIT Artifact Confidence: " + finding.Pattern.Pattern.Confidence + " Name:" + finding.Pattern.Pattern.Name + " Value: " + finding.Text + " " + job.WebURL)
 			}
 		} else {
 			log.Debug().Msg("Skipping non-text artifact file scan for " + file.Name)
@@ -160,8 +155,9 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 		}
 
 		findings := DetectHits(envTxt)
+		artifactsBaseUrl, _ := url.JoinPath(project.WebURL, "/-/artifacts")
 		for _, finding := range findings {
-			log.Warn().Msg("HIT .ENV Confidence: " + finding.Pattern.Pattern.Confidence + " Name:" + finding.Pattern.Pattern.Name + " Value: " + finding.Text + " TODOD")
+			log.Warn().Msg("HIT .ENV Confidence: " + finding.Pattern.Pattern.Confidence + " Name:" + finding.Pattern.Pattern.Name + " Value: " + finding.Text + " Check artifacts page which is the only place to download the dotenv file jobId: " + strconv.Itoa(job.ID) + ": " + artifactsBaseUrl)
 		}
 
 	} else {
@@ -202,47 +198,6 @@ func readZipFile(file *zip.File) []byte {
 	}
 
 	return content
-}
-
-func ExtractTarGz(gzipStream io.Reader) {
-	uncompressedStream, err := gzip.NewReader(gzipStream)
-	if err != nil {
-		log.Debug().Msg("ExtractTarGz: NewReader failed")
-	}
-
-	tarReader := tar.NewReader(uncompressedStream)
-
-	for true {
-		header, err := tarReader.Next()
-
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			log.Debug().Msg("ExtractTarGz: Next() failed")
-		}
-
-		switch header.Typeflag {
-		case tar.TypeDir:
-			if err := os.Mkdir(header.Name, 0755); err != nil {
-				log.Debug().Msg("ExtractTarGz: Mkdir() failed")
-			}
-		case tar.TypeReg:
-			outFile, err := os.Create(header.Name)
-			if err != nil {
-				log.Debug().Msg("ExtractTarGz: Create() failed")
-			}
-			if _, err := io.Copy(outFile, tarReader); err != nil {
-				log.Debug().Msg("ExtractTarGz: Copy() failed")
-			}
-			outFile.Close()
-
-		default:
-			log.Debug().Msg("ExtractTarGz: uknown type")
-		}
-
-	}
 }
 
 // .env artifacts are not accessible over the API thus we must use session cookie and use the UI path
