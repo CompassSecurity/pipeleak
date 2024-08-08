@@ -135,7 +135,6 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 		} else {
 			log.Debug().Msg("Skipping non-text artifact file scan for " + file.Name)
 		}
-		content = []byte{}
 		fc.Close()
 	}
 
