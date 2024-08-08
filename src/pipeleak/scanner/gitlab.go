@@ -140,7 +140,7 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 
 			findings := DetectHits(string(content))
 			for _, finding := range findings {
-				log.Warn().Msg("HIT Artifact Confidence: " + finding.Pattern.Pattern.Confidence + " Name:" + finding.Pattern.Pattern.Name + " Value: " + finding.Text + " " + job.WebURL + "in file: " + file.Name)
+				log.Warn().Msg("HIT Artifact Confidence: " + finding.Pattern.Pattern.Confidence + " Name:" + finding.Pattern.Pattern.Name + " Value: " + finding.Text + " " + job.WebURL + " in file: " + file.Name)
 			}
 		} else {
 			log.Debug().Msg("Skipping non-text artifact file scan for " + file.Name)
