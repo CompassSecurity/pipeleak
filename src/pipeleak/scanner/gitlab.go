@@ -105,9 +105,14 @@ jobOut:
 func getJobTrace(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job) {
 	reader, _, err := git.Jobs.GetTraceFile(project.ID, job.ID)
 	if err != nil {
-		log.Error().Msg(err.Error())
+		log.Error().Msg("Failed fetching job trace with: " + err.Error())
+		return
 	}
-	trace := StreamToString(reader)
+	trace, err := io.ReadAll(reader)
+	if err != nil {
+		log.Error().Msg("Failed reading trace reader into byte array: " + err.Error())
+		return
+	}
 	findings := DetectHits(trace)
 
 	for _, finding := range findings {
@@ -126,24 +131,26 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 	zipListing, err := zip.NewReader(artifactsReader, artifactsReader.Size())
 	if err != nil {
 		log.Warn().Msg("Unable to unzip artifacts for proj " + strconv.Itoa(project.ID) + " job " + strconv.Itoa(job.ID))
-
+		return
 	}
 
 	for _, file := range zipListing.File {
 		fc, err := file.Open()
 		if err != nil {
 			log.Error().Msg("Unable to openRaw artifact zip file: " + err.Error())
+			break
 		}
 
 		content, err := io.ReadAll(fc)
 		if err != nil {
 			log.Error().Msg("Unable to readAll artifact zip file: " + err.Error())
+			break
 		}
 
 		kind, _ := filetype.Match(content)
 		// do not scan https://pkg.go.dev/github.com/h2non/filetype#readme-supported-types
 		if kind == filetype.Unknown {
-			findings := DetectHits(string(content))
+			findings := DetectHits(content)
 			for _, finding := range findings {
 				log.Warn().Msg("HIT Artifact Confidence: " + finding.Pattern.Pattern.Confidence + " Name:" + finding.Pattern.Pattern.Name + " Value: " + finding.Text + " " + job.WebURL + " in file: " + file.Name)
 			}
@@ -179,20 +186,21 @@ func StreamToString(stream io.Reader) string {
 	_, err := buf.ReadFrom(stream)
 	if err != nil {
 		log.Error().Msg("Unable to read job trace buffer: " + err.Error())
+		return ""
 	}
 	return buf.String()
 }
 
 // .env artifacts are not accessible over the API thus we must use session cookie and use the UI path
 // however this is where the treasure is - my precious
-func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, jobId int) string {
+func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, jobId int) []byte {
 
 	dotenvUrl, _ := url.JoinPath(gitlabUrl, prjectPath, "/-/jobs/", strconv.Itoa(jobId), "/artifacts/download")
 
 	req, err := http.NewRequest("GET", dotenvUrl, nil)
 	if err != nil {
 		log.Debug().Msg(err.Error())
-		return ""
+		return []byte{}
 	}
 
 	q := req.URL.Query()
@@ -205,7 +213,7 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Debug().Msg("Failed requesting dotenv artifact with: " + err.Error())
-		return ""
+		return []byte{}
 	}
 	defer resp.Body.Close()
 
@@ -213,12 +221,12 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 
 	// means no dotenv exists
 	if statCode == 404 {
-		return ""
+		return []byte{}
 	}
 
 	if statCode != 200 {
 		log.Error().Msg("Invalid _gitlab_session detected, HTTP " + strconv.Itoa(statCode))
-		return ""
+		return []byte{}
 	} else {
 		log.Debug().Msg("Checking .env.gz artifact")
 	}
@@ -229,16 +237,16 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 	gzreader, e1 := gzip.NewReader(reader)
 	if e1 != nil {
 		log.Debug().Msg(err.Error())
-		return ""
+		return []byte{}
 	}
 
 	envText, err := io.ReadAll(gzreader)
 	if err != nil {
 		log.Debug().Msg(err.Error())
-		return ""
+		return []byte{}
 	}
 
-	return string(envText)
+	return envText
 }
 
 func SessionValid(gitlabUrl string, cookieVal string) {
@@ -247,6 +255,7 @@ func SessionValid(gitlabUrl string, cookieVal string) {
 	req, err := http.NewRequest("GET", gitlabSessionsUrl, nil)
 	if err != nil {
 		log.Fatal().Msg("Failed GitLab sessions request with: " + err.Error())
+		return
 	}
 	req.AddCookie(&http.Cookie{Name: "_gitlab_session", Value: cookieVal})
 	client := &http.Client{}

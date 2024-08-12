@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 
+	"github.com/acarl005/stripansi"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v3"
 )
@@ -87,21 +89,51 @@ func GetRules() []PatternElement {
 	return secretsPatterns.Patterns
 }
 
-func DetectHits(target string) []Finding {
+func DetectHits(text []byte) []Finding {
 	findings := []Finding{}
 	for _, pattern := range GetRules() {
 		m := regexp.MustCompile(pattern.Pattern.Regex)
-		res := m.FindString(target)
+		hits := m.FindAllIndex(text, -1)
 
-		// truncate output to max 1024 chars for output readability
-		if len(res) > 1024 {
-			res = res[0:1024]
-		}
+		for _, hit := range hits {
+			// truncate output to max 1024 chars for output readability
+			hitStr := extractHitWithSurroundingText(text, hit, 50)
+			hitStr = cleanHitLine(hitStr)
+			if len(hitStr) > 1024 {
+				hitStr = hitStr[0:1024]
+			}
 
-		if res != "" {
-			findings = append(findings, Finding{Pattern: pattern, Text: res})
+			if hitStr != "" {
+				findings = append(findings, Finding{Pattern: pattern, Text: hitStr})
+			}
 		}
 	}
 
 	return findings
+}
+
+func extractHitWithSurroundingText(text []byte, hitIndex []int, additionalBytes int) string {
+	startIndex := hitIndex[0]
+	endIndex := hitIndex[1]
+
+	extendedStartIndex := startIndex - additionalBytes
+	if extendedStartIndex < 0 {
+		startIndex = 0
+	} else {
+		startIndex = extendedStartIndex
+	}
+
+	extendedEndIndex := endIndex + additionalBytes
+	if extendedEndIndex > len(text) {
+		endIndex = len(text)
+	} else {
+		endIndex = extendedEndIndex
+	}
+
+	return string(text[startIndex:endIndex])
+}
+
+func cleanHitLine(text string) string {
+	text = strings.ReplaceAll(text, "\n", " ")
+	return stripansi.Strip(text)
 }
