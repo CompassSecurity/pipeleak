@@ -14,7 +14,7 @@ import (
 	"github.com/xanzy/go-gitlab"
 )
 
-func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanArtifacts bool, scanOwnedOnly bool, query string, jobLimit int) {
+func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanArtifacts bool, scanOwnedOnly bool, query string, jobLimit int, member bool) {
 	log.Info().Msg("Fetching projects")
 	git, err := gitlab.NewClient(apiToken, gitlab.WithBaseURL(gitlabUrl))
 	if err != nil {
@@ -30,9 +30,10 @@ func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanA
 			PerPage: 100,
 			Page:    1,
 		},
-		Owned:   gitlab.Ptr(scanOwnedOnly),
-		Search:  gitlab.Ptr(query),
-		OrderBy: gitlab.Ptr("last_activity_at"),
+		Owned:      gitlab.Ptr(scanOwnedOnly),
+		Membership: gitlab.Ptr(member),
+		Search:     gitlab.Ptr(query),
+		OrderBy:    gitlab.Ptr("last_activity_at"),
 	}
 
 	for {

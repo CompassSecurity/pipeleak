@@ -36,6 +36,8 @@ Filter the scanned projects by using the `--search` flag and provide a search qu
 
 Filter the scanned projects by using the `--owned` flag to only process projects owned by you.
 
+Filter the scanned projects by using the `--member` flag to only process projects you are a member of.
+
 Limit the scanned nr of jobs by using the `--job-limit` flag.
 
 ## Customizing Scan Rules

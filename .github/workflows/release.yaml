@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   release-platforms:
-    name: release linux/amd64
+    name: release builds
     runs-on: ubuntu-latest
     strategy:
       matrix:
