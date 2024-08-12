@@ -30,12 +30,18 @@ func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanA
 			PerPage: 100,
 			Page:    1,
 		},
-		Owned:  gitlab.Ptr(scanOwnedOnly),
-		Search: gitlab.Ptr(query),
+		Owned:   gitlab.Ptr(scanOwnedOnly),
+		Search:  gitlab.Ptr(query),
+		OrderBy: gitlab.Ptr("last_activity_at"),
 	}
 
 	for {
 		projects, resp, err := git.Projects.ListProjects(projectOpts)
+
+		// regularily test cookie liveness
+		if len(cookie) > 0 {
+			SessionValid(gitlabUrl, cookie)
+		}
 
 		if err != nil {
 			log.Error().Msg(err.Error())
@@ -146,7 +152,7 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 		findings := DetectHits(envTxt)
 		artifactsBaseUrl, _ := url.JoinPath(project.WebURL, "/-/artifacts")
 		for _, finding := range findings {
-			log.Warn().Msg("HIT .ENV Confidence: " + finding.Pattern.Pattern.Confidence + " Name:" + finding.Pattern.Pattern.Name + " Value: " + finding.Text + " Check artifacts page which is the only place to download the dotenv file jobId: " + strconv.Itoa(job.ID) + ": " + artifactsBaseUrl)
+			log.Warn().Msg("HIT DOTENV Confidence: " + finding.Pattern.Pattern.Confidence + " Name:" + finding.Pattern.Pattern.Name + " Value: " + finding.Text + " Check artifacts page which is the only place to download the dotenv file jobId: " + strconv.Itoa(job.ID) + ": " + artifactsBaseUrl)
 		}
 
 	} else {
@@ -177,6 +183,7 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 	req, err := http.NewRequest("GET", dotenvUrl, nil)
 	if err != nil {
 		log.Debug().Msg(err.Error())
+		return ""
 	}
 
 	q := req.URL.Query()
@@ -189,6 +196,7 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Debug().Msg("Failed requesting dotenv artifact with: " + err.Error())
+		return ""
 	}
 	defer resp.Body.Close()
 
@@ -207,7 +215,6 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 	}
 
 	body, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
 
 	reader := bytes.NewReader(body)
 	gzreader, e1 := gzip.NewReader(reader)
@@ -223,4 +230,28 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 	}
 
 	return string(envText)
+}
+
+func SessionValid(gitlabUrl string, cookieVal string) {
+	gitlabSessionsUrl, _ := url.JoinPath(gitlabUrl, "-/user_settings/active_sessions")
+
+	req, err := http.NewRequest("GET", gitlabSessionsUrl, nil)
+	if err != nil {
+		log.Fatal().Msg("Failed GitLab sessions request with: " + err.Error())
+	}
+	req.AddCookie(&http.Cookie{Name: "_gitlab_session", Value: cookieVal})
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal().Msg("Failed GitLab session test with: " + err.Error())
+	}
+	defer resp.Body.Close()
+
+	statCode := resp.StatusCode
+
+	if statCode != 200 {
+		log.Fatal().Msg("Negative _gitlab_session test, HTTP " + strconv.Itoa(statCode))
+	} else {
+		log.Info().Msg("Provided GitLab Session is valid")
+	}
 }

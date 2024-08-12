@@ -93,6 +93,11 @@ func DetectHits(target string) []Finding {
 		m := regexp.MustCompile(pattern.Pattern.Regex)
 		res := m.FindString(target)
 
+		// truncate output to max 1024 chars for output readability
+		if len(res) > 1024 {
+			res = res[0:1024]
+		}
+
 		if res != "" {
 			findings = append(findings, Finding{Pattern: pattern, Text: res})
 		}

@@ -24,7 +24,7 @@ pipeleak scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com -a -c
 
 **Pro tip:**
 
-> Note: [Dotenv artifacts](https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsdotenv) are not accessible through the GitLab API. To scan these, you need to manually provide your session cookie after logging in via a web browser. The session cookie name is `_gitlab_session`.
+> Note: [Dotenv artifacts](https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsdotenv) are not accessible through the GitLab API. To scan these, you need to manually provide your session cookie after logging in via a web browser. The session cookie name is `_gitlab_session`. The cookie should be valid for [two weeks](https://gitlab.com/gitlab-org/gitlab/-/issues/395038).
 
 ```bash
 pipeleak scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com -v -a -c [value-of-valid-_gitlab_session]
