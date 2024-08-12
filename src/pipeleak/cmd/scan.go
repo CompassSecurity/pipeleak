@@ -17,6 +17,7 @@ var (
 	projectSearchQuery string
 	artifacts          bool
 	owned              bool
+	jobLimit           int
 	verbose            bool
 )
 
@@ -45,6 +46,7 @@ func NewScanCmd() *cobra.Command {
 
 	scanCmd.PersistentFlags().BoolVarP(&artifacts, "artifacts", "a", false, "Scan Job Artifacts")
 	scanCmd.PersistentFlags().BoolVarP(&owned, "owned", "o", false, "Scan Onwed Projects Only")
+	scanCmd.PersistentFlags().IntVarP(&jobLimit, "job-limit", "j", 0, "Scan a max number of pipeline jobs - trade speed vs coverage. 0 scans all and is the default.")
 
 	scanCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose Logging")
 
@@ -60,7 +62,7 @@ func Scan(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	scanner.ScanGitLabPipelines(gitlabUrl, gitlabApiToken, gitlabCookie, artifacts, owned, projectSearchQuery)
+	scanner.ScanGitLabPipelines(gitlabUrl, gitlabApiToken, gitlabCookie, artifacts, owned, projectSearchQuery, jobLimit)
 }
 
 func setLogLevel() {

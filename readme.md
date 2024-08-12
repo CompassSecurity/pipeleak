@@ -36,6 +36,8 @@ Filter the scanned projects by using the `--search` flag and provide a search qu
 
 Filter the scanned projects by using the `--owned` flag to only process projects owned by you.
 
+Limit the scanned nr of jobs by using the `--job-limit` flag.
+
 ## Customizing Scan Rules
 
 When you run Pipeleak for the first time, it generates a `rules.yml` file based on [this repository](https://github.com/mazen160/secrets-patterns-db/blob/master/db/rules-stable.yml). You can customize your scan rules by modifying this file as needed.

@@ -14,7 +14,7 @@ import (
 	"github.com/xanzy/go-gitlab"
 )
 
-func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanArtifacts bool, scanOwnedOnly bool, query string) {
+func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanArtifacts bool, scanOwnedOnly bool, query string, jobLimit int) {
 	log.Info().Msg("Fetching projects")
 	git, err := gitlab.NewClient(apiToken, gitlab.WithBaseURL(gitlabUrl))
 	if err != nil {
@@ -49,7 +49,7 @@ func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanA
 
 		for _, project := range projects {
 			log.Debug().Msg("Scan Project jobs: " + project.Name)
-			getAllJobs(git, project, scanArtifacts, cookie, gitlabUrl)
+			getAllJobs(git, project, scanArtifacts, cookie, gitlabUrl, jobLimit)
 		}
 
 		if resp.NextPage == 0 {
@@ -60,7 +60,7 @@ func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanA
 	}
 }
 
-func getAllJobs(git *gitlab.Client, project *gitlab.Project, scanArtifacts bool, cookie string, gitlabUrl string) {
+func getAllJobs(git *gitlab.Client, project *gitlab.Project, scanArtifacts bool, cookie string, gitlabUrl string, jobLimit int) {
 
 	opts := &gitlab.ListJobsOptions{
 		ListOptions: gitlab.ListOptions{
@@ -69,6 +69,9 @@ func getAllJobs(git *gitlab.Client, project *gitlab.Project, scanArtifacts bool,
 		},
 	}
 
+	currentJobCtr := 0
+
+jobOut:
 	for {
 		jobs, resp, err := git.Jobs.ListProjectJobs(project.ID, opts)
 
@@ -77,10 +80,16 @@ func getAllJobs(git *gitlab.Client, project *gitlab.Project, scanArtifacts bool,
 		}
 
 		for _, job := range jobs {
+			currentJobCtr += 1
 			getJobTrace(git, project, job)
 
 			if scanArtifacts {
 				getJobArtifacts(git, project, job, cookie, gitlabUrl)
+			}
+
+			if jobLimit > 0 && currentJobCtr >= jobLimit {
+				log.Debug().Msg("Skipping jobs as job-limit is reached")
+				break jobOut
 			}
 		}
 
@@ -252,6 +261,6 @@ func SessionValid(gitlabUrl string, cookieVal string) {
 	if statCode != 200 {
 		log.Fatal().Msg("Negative _gitlab_session test, HTTP " + strconv.Itoa(statCode))
 	} else {
-		log.Info().Msg("Provided GitLab Session is valid")
+		log.Info().Msg("Provided GitLab session cookie is valid")
 	}
 }
