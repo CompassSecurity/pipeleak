@@ -65,6 +65,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	}
 
 	scanner.ScanGitLabPipelines(gitlabUrl, gitlabApiToken, gitlabCookie, artifacts, owned, projectSearchQuery, jobLimit, member)
+	log.Debug().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
 }
 
 func setLogLevel() {

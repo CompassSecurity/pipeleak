@@ -57,7 +57,7 @@ func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanA
 			break
 		}
 		projectOpts.Page = resp.NextPage
-		log.Info().Msg("Scanned projects: " + strconv.Itoa(projectOpts.Page*projectOpts.PerPage))
+		log.Info().Msg("Scanned projects: " + strconv.Itoa(projectOpts.Page*projectOpts.PerPage) + " of total: " + strconv.Itoa(resp.TotalPages*projectOpts.PerPage))
 	}
 }
 
