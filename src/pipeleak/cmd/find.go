@@ -27,9 +27,6 @@ type result struct {
 	Port      int      `json:"port"`
 }
 
-type publicProjects []struct {
-	Id int `json:"id"`
-}
 
 func NewFindCmd() *cobra.Command {
 	scanCmd := &cobra.Command{
@@ -66,7 +63,7 @@ func Find(cmd *cobra.Command, args []string) {
 			log.Error().Msg(err.Error())
 		} else {
 			for _, hostname := range d.Hostnames {
-				url := hostname
+				var url string
 				if d.Port == 443 {
 					url = "https://" + hostname
 				} else {
