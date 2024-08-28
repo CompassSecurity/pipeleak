@@ -40,6 +40,8 @@ Filter the scanned projects by using the `--member` flag to only process project
 
 Limit the scanned nr of jobs by using the `--job-limit` flag.
 
+`find` command: use the find command to identify gitlab instances that might allow for anyone to register. this command assumes a JSON file from a Shodan export. example query: `title:"Sign in GitLab"`
+
 ## Customizing Scan Rules
 
 When you run Pipeleak for the first time, it generates a `rules.yml` file based on [this repository](https://github.com/mazen160/secrets-patterns-db/blob/master/db/rules-stable.yml). You can customize your scan rules by modifying this file as needed.

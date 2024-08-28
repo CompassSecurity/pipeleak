@@ -23,6 +23,7 @@ func Execute() error {
 
 func init() {
 	rootCmd.AddCommand(NewScanCmd())
+	rootCmd.AddCommand(NewFindCmd())
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 }
