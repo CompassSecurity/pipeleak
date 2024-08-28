@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
@@ -24,6 +25,10 @@ var (
 type result struct {
 	Hostnames []string `json:"hostnames"`
 	Port      int      `json:"port"`
+}
+
+type publicProjects []struct {
+	Id int `json:"id"`
 }
 
 func NewFindCmd() *cobra.Command {
@@ -67,9 +72,9 @@ func Find(cmd *cobra.Command, args []string) {
 				} else {
 					url = "http://" + hostname
 				}
-				enabled := isRegistrationEnabled(url)
+				enabled, nrOfProjects := isRegistrationEnabled(url)
 				if enabled {
-					log.Info().Msg(url)
+					log.Info().Msg("public projects: " + strconv.Itoa(nrOfProjects) + " | " + url + "/explore")
 				}
 			}
 		}
@@ -79,10 +84,11 @@ func Find(cmd *cobra.Command, args []string) {
 	log.Info().Msg("Done, Bye Bye 🏳️‍🌈🔥")
 }
 
-func isRegistrationEnabled(base string) bool {
+func isRegistrationEnabled(base string) (bool, int) {
 	u, err := url.Parse(base)
 	if err != nil {
-		log.Error().Msg(err.Error())
+		log.Debug().Msg(err.Error())
+		return false, 0
 	}
 
 	u.Path = path.Join(u.Path, "/users/somenotexistigusr/exists")
@@ -96,25 +102,52 @@ func isRegistrationEnabled(base string) bool {
 
 	if err != nil {
 		log.Debug().Msg(err.Error())
-		return false
+		return false, 0
 	}
 
 	if res.StatusCode == 200 {
 		resData, err := io.ReadAll(res.Body)
 		if err != nil {
 			log.Debug().Msg(err.Error())
-			return false
+			return false, 0
 		}
 
 		// sanity check to avoid false positives
 		if strings.Contains(string(resData), "{\"exists\":false}") {
-			return true
+			nr := checkNrPublicRepos(client, u)
+			return true, nr
 		}
 
 		log.Debug().Msg("Missed sanity check")
-		return false
+		return false, 0
 	} else {
 		log.Debug().Msg("resp: " + strconv.Itoa(res.StatusCode))
-		return false
+		return false, 0
 	}
+}
+
+func checkNrPublicRepos(client *http.Client, u *url.URL) int {
+	u.Path = "/api/v4/projects"
+	s := u.String()
+	res, err := client.Get(s + "?per_page=100")
+	if err != nil {
+		log.Debug().Msg(err.Error())
+		return 0
+	}
+
+	if res.StatusCode == 200 {
+		resData, err := io.ReadAll(res.Body)
+		if err != nil {
+			log.Debug().Msg(err.Error())
+			return 0
+		}
+		var val []map[string]interface{}
+		if err := json.Unmarshal(resData, &val); err != nil {
+			log.Debug().Msg(err.Error())
+			return 0
+		}
+		return len(val)
+	}
+
+	return 0
 }
