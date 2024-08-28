@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"io"
@@ -16,6 +17,7 @@ import (
 	"github.com/perimeterx/marshmallow"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"github.com/wandb/parallel"
 )
 
 var (
@@ -26,7 +28,6 @@ type result struct {
 	Hostnames []string `json:"hostnames"`
 	Port      int      `json:"port"`
 }
-
 
 func NewFindCmd() *cobra.Command {
 	scanCmd := &cobra.Command{
@@ -55,6 +56,8 @@ func Find(cmd *cobra.Command, args []string) {
 	defer jsonFile.Close()
 
 	data, _ := io.ReadAll(jsonFile)
+	ctx := context.Background()
+	group := parallel.Limited(ctx, 300)
 	for _, line := range bytes.Split(data, []byte{'\n'}) {
 
 		d := result{}
@@ -63,22 +66,29 @@ func Find(cmd *cobra.Command, args []string) {
 			log.Error().Msg(err.Error())
 		} else {
 			for _, hostname := range d.Hostnames {
-				var url string
-				if d.Port == 443 {
-					url = "https://" + hostname
-				} else {
-					url = "http://" + hostname
-				}
-				enabled, nrOfProjects := isRegistrationEnabled(url)
-				if enabled {
-					log.Info().Msg("public projects: " + strconv.Itoa(nrOfProjects) + " | " + url + "/explore")
-				}
+				group.Go(func(ctx context.Context) {
+					testHostname(hostname, d.Port)
+				})
 			}
 		}
 
 	}
 
+	group.Wait()
 	log.Info().Msg("Done, Bye Bye 🏳️‍🌈🔥")
+}
+
+func testHostname(hostname string, port int) {
+	var url string
+	if port == 443 {
+		url = "https://" + hostname
+	} else {
+		url = "http://" + hostname
+	}
+	enabled, nrOfProjects := isRegistrationEnabled(url)
+	if enabled {
+		log.Info().Msg("public projects: " + strconv.Itoa(nrOfProjects) + " | " + url + "/explore")
+	}
 }
 
 func isRegistrationEnabled(base string) (bool, int) {
