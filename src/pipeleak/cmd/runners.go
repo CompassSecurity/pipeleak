@@ -6,11 +6,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type runnersResult struct {
-	Hostnames []string `json:"hostnames"`
-	Port      int      `json:"port"`
-}
-
 func NewRunnersCmd() *cobra.Command {
 	runnersCmd := &cobra.Command{
 		Use:   "runners [no options!]",
