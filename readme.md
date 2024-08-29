@@ -44,6 +44,8 @@ Limit the scanned nr of jobs by using the `--job-limit` flag.
 
 `runners` command: Identify all (shared) runners which are available globally or through a group where the user has at least developer access.
 
+`register` command: Best effort automation to register a new user on an instance.
+
 ## Customizing Scan Rules
 
 When you run Pipeleak for the first time, it generates a `rules.yml` file based on [this repository](https://github.com/mazen160/secrets-patterns-db/blob/master/db/rules-stable.yml). You can customize your scan rules by modifying this file as needed.
