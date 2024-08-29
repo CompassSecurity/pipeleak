@@ -30,10 +30,11 @@ func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanA
 			PerPage: 100,
 			Page:    1,
 		},
-		Owned:      gitlab.Ptr(scanOwnedOnly),
-		Membership: gitlab.Ptr(member),
-		Search:     gitlab.Ptr(query),
-		OrderBy:    gitlab.Ptr("last_activity_at"),
+		Owned:            gitlab.Ptr(scanOwnedOnly),
+		Membership:       gitlab.Ptr(member),
+		Search:           gitlab.Ptr(query),
+		OrderBy:          gitlab.Ptr("last_activity_at"),
+		SearchNamespaces: gitlab.Ptr(true),
 	}
 
 	for {
@@ -272,5 +273,66 @@ func SessionValid(gitlabUrl string, cookieVal string) {
 		log.Fatal().Msg("Negative _gitlab_session test, HTTP " + strconv.Itoa(statCode))
 	} else {
 		log.Info().Msg("Provided GitLab session cookie is valid")
+	}
+}
+
+func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
+	git, err := gitlab.NewClient(apiToken, gitlab.WithBaseURL(gitlabUrl))
+	if err != nil {
+		log.Fatal().Msg(err.Error())
+	}
+
+	log.Info().Msg("Logging available groups with at least developer access")
+
+	listGroupsOpts := &gitlab.ListGroupsOptions{
+		ListOptions: gitlab.ListOptions{
+			PerPage: 100,
+			Page:    1,
+		},
+		AllAvailable:   gitlab.Ptr(true),
+		MinAccessLevel: gitlab.Ptr(gitlab.DeveloperPermissions),
+	}
+
+	var availableGroups []*gitlab.Group
+
+	for {
+		groups, resp, err := git.Groups.ListGroups(listGroupsOpts)
+		if err != nil {
+			log.Error().Msg(err.Error())
+		}
+
+		for _, group := range groups {
+			log.Info().Msg("Group name: " + group.Name + " | full name: " + group.FullName + " | group id: " + strconv.Itoa(group.ID) + " | web url: " + group.WebURL)
+			availableGroups = append(availableGroups, group)
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		listGroupsOpts.Page = resp.NextPage
+	}
+
+	listRunnerOpts := &gitlab.ListGroupsRunnersOptions{
+		ListOptions: gitlab.ListOptions{
+			PerPage: 100,
+			Page:    1,
+		},
+	}
+
+	for _, group := range availableGroups {
+		for {
+			runners, resp, err := git.Runners.ListGroupsRunners(group.ID, listRunnerOpts)
+			if err != nil {
+				log.Error().Msg(err.Error())
+			}
+			for _, runner := range runners {
+				log.Info().Msg("Group " + group.Name + " Runner name: " + runner.Name + " | description: " + runner.Description + " | type: " + runner.RunnerType)
+			}
+
+			if resp.NextPage == 0 {
+				break
+			}
+			listRunnerOpts.Page = resp.NextPage
+		}
 	}
 }

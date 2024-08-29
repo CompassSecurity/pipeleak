@@ -24,6 +24,7 @@ func Execute() error {
 func init() {
 	rootCmd.AddCommand(NewScanCmd())
 	rootCmd.AddCommand(NewShodanCmd())
+	rootCmd.AddCommand(NewRunnersCmd())
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 }
