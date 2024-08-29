@@ -40,7 +40,7 @@ Filter the scanned projects by using the `--member` flag to only process project
 
 Limit the scanned nr of jobs by using the `--job-limit` flag.
 
-`find` command: use the find command to identify gitlab instances that might allow for anyone to register. this command assumes a JSON file from a Shodan export. example query: `title:"Sign in GitLab"`
+`shodan` command: use the Shodan command to identify gitlab instances that might allow for anyone to register. this command assumes a JSON file from a Shodan export. example query: `title:"Sign in GitLab"`
 
 ## Customizing Scan Rules
 

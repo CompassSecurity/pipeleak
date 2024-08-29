@@ -29,11 +29,11 @@ type result struct {
 	Port      int      `json:"port"`
 }
 
-func NewFindCmd() *cobra.Command {
+func NewShodanCmd() *cobra.Command {
 	scanCmd := &cobra.Command{
-		Use:   "find [no options!]",
+		Use:   "shodan [no options!]",
 		Short: "Find self-registerable gitlab instances from shodan output",
-		Run:   Find,
+		Run:   Shodan,
 	}
 
 	scanCmd.Flags().StringVarP(&shodanJson, "json", "j", "", "Shodan search export JSON file path")
@@ -46,7 +46,7 @@ func NewFindCmd() *cobra.Command {
 	return scanCmd
 }
 
-func Find(cmd *cobra.Command, args []string) {
+func Shodan(cmd *cobra.Command, args []string) {
 	setLogLevel()
 
 	jsonFile, err := os.Open(shodanJson)
@@ -57,7 +57,7 @@ func Find(cmd *cobra.Command, args []string) {
 
 	data, _ := io.ReadAll(jsonFile)
 	ctx := context.Background()
-	group := parallel.Limited(ctx, 300)
+	group := parallel.Limited(ctx, 50)
 	for _, line := range bytes.Split(data, []byte{'\n'}) {
 
 		d := result{}
@@ -104,7 +104,7 @@ func isRegistrationEnabled(base string) (bool, int) {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-	client := &http.Client{Transport: tr, Timeout: 2 * time.Second}
+	client := &http.Client{Transport: tr, Timeout: 15 * time.Second}
 	res, err := client.Get(s)
 
 	if err != nil {
