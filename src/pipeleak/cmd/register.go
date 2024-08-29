@@ -6,6 +6,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	username string
+	password string
+	email    string
+)
+
 func NewRegisterCmd() *cobra.Command {
 	registerCmd := &cobra.Command{
 		Use:   "register [no options!]",
@@ -18,12 +24,29 @@ func NewRegisterCmd() *cobra.Command {
 		log.Error().Msg("Unable to require gitlab flag: " + err.Error())
 	}
 
+	registerCmd.Flags().StringVarP(&username, "username", "u", "", "Username")
+	err = registerCmd.MarkFlagRequired("username")
+	if err != nil {
+		log.Error().Msg("Unable to require username flag: " + err.Error())
+	}
+
+	registerCmd.Flags().StringVarP(&password, "password", "p", "", "Password")
+	err = registerCmd.MarkFlagRequired("password")
+	if err != nil {
+		log.Error().Msg("Unable to require password flag: " + err.Error())
+	}
+
+	registerCmd.Flags().StringVarP(&email, "email", "e", "", "Email Address")
+	err = registerCmd.MarkFlagRequired("email")
+	if err != nil {
+		log.Error().Msg("Unable to require email flag: " + err.Error())
+	}
+
 	registerCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 	return registerCmd
 }
 
 func Register(cmd *cobra.Command, args []string) {
 	setLogLevel()
-	helper.RegisterNewAccount(gitlabUrl)
-	log.Info().Msg("Registered, Bye Bye 🏳️‍🌈🔥")
+	helper.RegisterNewAccount(gitlabUrl, username, password, email)
 }
