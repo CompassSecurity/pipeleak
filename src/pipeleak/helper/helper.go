@@ -34,13 +34,13 @@ func RegisterNewAccount(targetUrl string, username string, password string, emai
 		log.Fatal().Msg("Failed parsing sign-up form: " + err.Error())
 	}
 
-	fm.Input("new_user[name]", "Pipeleak Full Name")
-	fm.Input("new_user[first_name]", "Pipeleak First Name")
-	fm.Input("new_user[last_name]", "Automated Signup")
-	fm.Input("new_user[username]", username)
-	fm.Input("new_user[email]", email)
-	fm.Input("new_user[email_confirmation]", email)
-	fm.Input("new_user[password]", password)
+	_ = fm.Input("new_user[name]", "Pipeleak Full Name")
+	_ = fm.Input("new_user[first_name]", "Pipeleak First Name")
+	_ = fm.Input("new_user[last_name]", "Automated Signup")
+	_ = fm.Input("new_user[username]", username)
+	_ = fm.Input("new_user[email]", email)
+	_ = fm.Input("new_user[email_confirmation]", email)
+	_ = fm.Input("new_user[password]", password)
 
 	if fm.Submit() != nil {
 		log.Error().Msg("Registration failed 🙀 do it manually or try with the -v flag")
