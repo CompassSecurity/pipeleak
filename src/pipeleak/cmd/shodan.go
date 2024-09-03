@@ -24,9 +24,15 @@ var (
 	shodanJson string
 )
 
+type shodan struct {
+	Module string `json:"module"`
+}
+
 type result struct {
 	Hostnames []string `json:"hostnames"`
 	Port      int      `json:"port"`
+	IPString  string   `json:"ip_string"`
+	Shodan    shodan   `json:"shodan"`
 }
 
 func NewShodanCmd() *cobra.Command {
@@ -58,6 +64,7 @@ func Shodan(cmd *cobra.Command, args []string) {
 	data, _ := io.ReadAll(jsonFile)
 	ctx := context.Background()
 	group := parallel.Limited(ctx, 50)
+
 	for _, line := range bytes.Split(data, []byte{'\n'}) {
 
 		d := result{}
@@ -65,10 +72,22 @@ func Shodan(cmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Error().Msg(err.Error())
 		} else {
-			for _, hostname := range d.Hostnames {
+
+			isHttps := true
+			if strings.EqualFold("http", d.Shodan.Module) {
+				isHttps = false
+			}
+
+			if len(d.Hostnames) == 0 {
 				group.Go(func(ctx context.Context) {
-					testHostname(hostname, d.Port)
+					testHost(d.IPString, d.Port, isHttps)
 				})
+			} else {
+				for _, hostname := range d.Hostnames {
+					group.Go(func(ctx context.Context) {
+						testHost(hostname, d.Port, isHttps)
+					})
+				}
 			}
 		}
 
@@ -78,12 +97,12 @@ func Shodan(cmd *cobra.Command, args []string) {
 	log.Info().Msg("Done, Bye Bye 🏳️‍🌈🔥")
 }
 
-func testHostname(hostname string, port int) {
+func testHost(hostname string, port int, https bool) {
 	var url string
-	if port == 443 {
-		url = "https://" + hostname
+	if https {
+		url = "https://" + hostname + ":" + strconv.Itoa(port)
 	} else {
-		url = "http://" + hostname
+		url = "http://" + hostname + ":" + strconv.Itoa(port)
 	}
 	enabled, nrOfProjects := isRegistrationEnabled(url)
 	if enabled {
