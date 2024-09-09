@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/h2non/filetype"
 	"github.com/rs/zerolog/log"
@@ -327,7 +328,12 @@ func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
 			}
 			for _, runner := range runners {
 				if runner.Active {
-					log.Info().Msg("Group " + group.Name + " Runner name: " + runner.Name + " | description: " + runner.Description + " | type: " + runner.RunnerType + " | status: " + runner.Status)
+					details, _, err := git.Runners.GetRunnerDetails(runner.ID)
+					if err != nil {
+						log.Error().Msg(err.Error())
+						continue
+					}
+					log.Info().Msg("Group " + group.Name + " Runner name: " + details.Name + " | description: " + details.Description + " | type: " + details.RunnerType + " | paused: " + strconv.FormatBool(details.Paused) + " tags: " + strings.Join(details.TagList, ","))
 				}
 			}
 
