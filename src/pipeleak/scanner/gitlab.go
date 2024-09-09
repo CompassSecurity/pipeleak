@@ -326,7 +326,9 @@ func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
 				log.Error().Msg(err.Error())
 			}
 			for _, runner := range runners {
-				log.Info().Msg("Group " + group.Name + " Runner name: " + runner.Name + " | description: " + runner.Description + " | type: " + runner.RunnerType)
+				if runner.Active {
+					log.Info().Msg("Group " + group.Name + " Runner name: " + runner.Name + " | description: " + runner.Description + " | type: " + runner.RunnerType + " | status: " + runner.Status)
+				}
 			}
 
 			if resp.NextPage == 0 {
