@@ -35,7 +35,6 @@ func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanA
 		Membership:       gitlab.Ptr(member),
 		Search:           gitlab.Ptr(query),
 		OrderBy:          gitlab.Ptr("last_activity_at"),
-		SearchNamespaces: gitlab.Ptr(true),
 	}
 
 	for {
