@@ -48,7 +48,6 @@ func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanA
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("Failed fetching projects")
 		}
-		log.Debug().Msg("asdfasdfasdf")
 
 		for _, project := range projects {
 			log.Debug().Str("name", project.Name).Msg("Scan Project jobs for")
