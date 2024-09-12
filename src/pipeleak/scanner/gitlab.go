@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"io"
 	"net/http"
 	"net/url"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/h2non/filetype"
 	"github.com/rs/zerolog/log"
+	"github.com/wandb/parallel"
 	"github.com/xanzy/go-gitlab"
 )
 
@@ -137,29 +139,33 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 	}
 
 	for _, file := range zipListing.File {
-		fc, err := file.Open()
-		if err != nil {
-			log.Error().Stack().Err(err).Msg("Unable to open raw artifact zip file")
-			break
-		}
-
-		content, err := io.ReadAll(fc)
-		if err != nil {
-			log.Error().Stack().Err(err).Msg("Unable to readAll artifact zip file")
-			break
-		}
-
-		kind, _ := filetype.Match(content)
-		// do not scan https://pkg.go.dev/github.com/h2non/filetype#readme-supported-types
-		if kind == filetype.Unknown {
-			findings := DetectHits(content)
-			for _, finding := range findings {
-				log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", job.WebURL).Str("file", file.Name).Msg("HIT Artifact")
+		ctx := context.Background()
+		group := parallel.Unlimited(ctx)
+		group.Go(func(ctx context.Context) {
+			fc, err := file.Open()
+			if err != nil {
+				log.Error().Stack().Err(err).Msg("Unable to open raw artifact zip file")
+				return
 			}
-		} else {
-			log.Debug().Str("file", file.Name).Msg("Skipping non-text artifact")
-		}
-		fc.Close()
+
+			content, err := io.ReadAll(fc)
+			if err != nil {
+				log.Error().Stack().Err(err).Msg("Unable to readAll artifact zip file")
+				return
+			}
+
+			kind, _ := filetype.Match(content)
+			// do not scan https://pkg.go.dev/github.com/h2non/filetype#readme-supported-types
+			if kind == filetype.Unknown {
+				findings := DetectHits(content)
+				for _, finding := range findings {
+					log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", job.WebURL).Str("file", file.Name).Msg("HIT Artifact")
+				}
+			} else {
+				log.Debug().Str("file", file.Name).Msg("Skipping non-text artifact")
+			}
+			fc.Close()
+		})
 	}
 
 	zipListing = &zip.Reader{}

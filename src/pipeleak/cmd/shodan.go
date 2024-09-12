@@ -63,7 +63,7 @@ func Shodan(cmd *cobra.Command, args []string) {
 
 	data, _ := io.ReadAll(jsonFile)
 	ctx := context.Background()
-	group := parallel.Limited(ctx, 50)
+	group := parallel.Unlimited(ctx)
 
 	for _, line := range bytes.Split(data, []byte{'\n'}) {
 
