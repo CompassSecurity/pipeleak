@@ -44,7 +44,7 @@ func DownloadRules() {
 		log.Debug().Msg("No rules file found, downloading")
 		err := downloadFile(ruleFile, ruleFileName)
 		if err != nil {
-			log.Fatal().Msg("Failed downloading rules file: " + err.Error())
+			log.Fatal().Stack().Err(err).Msg("Failed downloading rules file")
 			os.Exit(1)
 		}
 	}
@@ -78,11 +78,11 @@ func GetRules() []PatternElement {
 		log.Debug().Msg("Loading rules.yml from filesystem")
 		yamlFile, err := os.ReadFile(ruleFileName)
 		if err != nil {
-			log.Fatal().Msg("Failed opening rules file: " + err.Error())
+			log.Fatal().Stack().Err(err).Msg("Failed opening rules file")
 		}
 		err = yaml.Unmarshal(yamlFile, &secretsPatterns)
 		if err != nil {
-			log.Fatal().Msg("Failed unmarshalling rules file: " + err.Error())
+			log.Fatal().Stack().Err(err).Msg("Failed unmarshalling rules file")
 		}
 	}
 

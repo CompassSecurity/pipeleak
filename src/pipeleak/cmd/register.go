@@ -21,25 +21,25 @@ func NewRegisterCmd() *cobra.Command {
 	registerCmd.Flags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
 	err := registerCmd.MarkFlagRequired("gitlab")
 	if err != nil {
-		log.Error().Msg("Unable to require gitlab flag: " + err.Error())
+		log.Fatal().Stack().Err(err).Msg("Unable to require gitlab flag")
 	}
 
 	registerCmd.Flags().StringVarP(&username, "username", "u", "", "Username")
 	err = registerCmd.MarkFlagRequired("username")
 	if err != nil {
-		log.Error().Msg("Unable to require username flag: " + err.Error())
+		log.Fatal().Stack().Err(err).Msg("Unable to require username flag")
 	}
 
 	registerCmd.Flags().StringVarP(&password, "password", "p", "", "Password")
 	err = registerCmd.MarkFlagRequired("password")
 	if err != nil {
-		log.Error().Msg("Unable to require password flag: " + err.Error())
+		log.Fatal().Stack().Err(err).Msg("Unable to require password flag")
 	}
 
 	registerCmd.Flags().StringVarP(&email, "email", "e", "", "Email Address")
 	err = registerCmd.MarkFlagRequired("email")
 	if err != nil {
-		log.Error().Msg("Unable to require email flag: " + err.Error())
+		log.Fatal().Stack().Err(err).Msg("Unable to require email flag")
 	}
 
 	registerCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")

@@ -19,11 +19,11 @@ func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanA
 	log.Info().Msg("Fetching projects")
 	git, err := gitlab.NewClient(apiToken, gitlab.WithBaseURL(gitlabUrl))
 	if err != nil {
-		log.Fatal().Msg(err.Error())
+		log.Fatal().Stack().Err(err)
 	}
 
 	if len(query) > 0 {
-		log.Info().Msg("Filtering scanned projects by query: " + query)
+		log.Info().Str("query", query).Msg("Filtering scanned projects by")
 	}
 
 	projectOpts := &gitlab.ListProjectsOptions{
@@ -46,11 +46,11 @@ func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanA
 		}
 
 		if err != nil {
-			log.Error().Msg(err.Error())
+			log.Error().Stack().Err(err).Msg("Failed fetching projects")
 		}
 
 		for _, project := range projects {
-			log.Debug().Msg("Scan Project jobs: " + project.Name)
+			log.Debug().Str("name", project.Name).Msg("Scan Project jobs for")
 			getAllJobs(git, project, scanArtifacts, cookie, gitlabUrl, jobLimit)
 		}
 
@@ -58,7 +58,7 @@ func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanA
 			break
 		}
 		projectOpts.Page = resp.NextPage
-		log.Info().Msg("Scanned projects: " + strconv.Itoa(projectOpts.Page*projectOpts.PerPage) + " of total: " + strconv.Itoa(resp.TotalPages*projectOpts.PerPage))
+		log.Info().Int("total", projectOpts.Page*projectOpts.PerPage).Msg("Scanned projects")
 	}
 }
 
@@ -78,7 +78,7 @@ jobOut:
 		jobs, resp, err := git.Jobs.ListProjectJobs(project.ID, opts)
 
 		if err != nil {
-			log.Debug().Msg("Failed fetching project jobs " + err.Error())
+			log.Debug().Stack().Err(err).Msg("Failed fetching project jobs")
 		}
 
 		for _, job := range jobs {
@@ -107,12 +107,12 @@ jobOut:
 func getJobTrace(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job) {
 	reader, _, err := git.Jobs.GetTraceFile(project.ID, job.ID)
 	if err != nil {
-		log.Error().Msg("Failed fetching job trace with: " + err.Error())
+		log.Error().Stack().Err(err).Msg("Failed fetching job trace")
 		return
 	}
 	trace, err := io.ReadAll(reader)
 	if err != nil {
-		log.Error().Msg("Failed reading trace reader into byte array: " + err.Error())
+		log.Error().Stack().Err(err).Msg("Failed reading trace reader into byte array")
 		return
 	}
 	findings := DetectHits(trace)
@@ -132,20 +132,20 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 
 	zipListing, err := zip.NewReader(artifactsReader, artifactsReader.Size())
 	if err != nil {
-		log.Warn().Msg("Unable to unzip artifacts for proj " + strconv.Itoa(project.ID) + " job " + strconv.Itoa(job.ID))
+		log.Warn().Int("project", project.ID).Int("job", job.ID).Msg("Unable to unzip artifacts for")
 		return
 	}
 
 	for _, file := range zipListing.File {
 		fc, err := file.Open()
 		if err != nil {
-			log.Error().Msg("Unable to openRaw artifact zip file: " + err.Error())
+			log.Error().Stack().Err(err).Msg("Unable to open raw artifact zip file")
 			break
 		}
 
 		content, err := io.ReadAll(fc)
 		if err != nil {
-			log.Error().Msg("Unable to readAll artifact zip file: " + err.Error())
+			log.Error().Stack().Err(err).Msg("Unable to readAll artifact zip file")
 			break
 		}
 
@@ -187,7 +187,7 @@ func StreamToString(stream io.Reader) string {
 	buf := new(bytes.Buffer)
 	_, err := buf.ReadFrom(stream)
 	if err != nil {
-		log.Error().Msg("Unable to read job trace buffer: " + err.Error())
+		log.Error().Stack().Err(err).Msg("Unable to read job trace buffer")
 		return ""
 	}
 	return buf.String()
@@ -201,7 +201,7 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 
 	req, err := http.NewRequest("GET", dotenvUrl, nil)
 	if err != nil {
-		log.Debug().Msg(err.Error())
+		log.Debug().Stack().Err(err)
 		return []byte{}
 	}
 
@@ -214,7 +214,7 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Debug().Msg("Failed requesting dotenv artifact with: " + err.Error())
+		log.Debug().Stack().Err(err).Msg("Failed requesting dotenv artifact")
 		return []byte{}
 	}
 	defer resp.Body.Close()
@@ -227,7 +227,7 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 	}
 
 	if statCode != 200 {
-		log.Error().Msg("Invalid _gitlab_session detected, HTTP " + strconv.Itoa(statCode))
+		log.Error().Stack().Err(err).Int("HTTP", statCode).Msg("Invalid _gitlab_session detected")
 		return []byte{}
 	} else {
 		log.Debug().Msg("Checking .env.gz artifact")
@@ -244,7 +244,7 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 
 	envText, err := io.ReadAll(gzreader)
 	if err != nil {
-		log.Debug().Msg(err.Error())
+		log.Debug().Stack().Err(err)
 		return []byte{}
 	}
 
@@ -256,14 +256,14 @@ func SessionValid(gitlabUrl string, cookieVal string) {
 
 	req, err := http.NewRequest("GET", gitlabSessionsUrl, nil)
 	if err != nil {
-		log.Fatal().Msg("Failed GitLab sessions request with: " + err.Error())
+		log.Fatal().Stack().Err(err).Msg("Failed GitLab sessions request")
 		return
 	}
 	req.AddCookie(&http.Cookie{Name: "_gitlab_session", Value: cookieVal})
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatal().Msg("Failed GitLab session test with: " + err.Error())
+		log.Fatal().Stack().Err(err).Msg("Failed GitLab session test")
 	}
 	defer resp.Body.Close()
 
@@ -279,7 +279,7 @@ func SessionValid(gitlabUrl string, cookieVal string) {
 func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
 	git, err := gitlab.NewClient(apiToken, gitlab.WithBaseURL(gitlabUrl))
 	if err != nil {
-		log.Fatal().Msg(err.Error())
+		log.Fatal().Stack().Err(err)
 	}
 
 	log.Info().Msg("Logging available groups with at least developer access")
@@ -298,7 +298,7 @@ func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
 	for {
 		groups, resp, err := git.Groups.ListGroups(listGroupsOpts)
 		if err != nil {
-			log.Error().Msg(err.Error())
+			log.Error().Stack().Err(err)
 		}
 
 		for _, group := range groups {
@@ -323,13 +323,13 @@ func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
 		for {
 			runners, resp, err := git.Runners.ListGroupsRunners(group.ID, listRunnerOpts)
 			if err != nil {
-				log.Error().Msg(err.Error())
+				log.Error().Stack().Err(err)
 			}
 			for _, runner := range runners {
 				if runner.Active {
 					details, _, err := git.Runners.GetRunnerDetails(runner.ID)
 					if err != nil {
-						log.Error().Msg(err.Error())
+						log.Error().Stack().Err(err)
 						continue
 					}
 					log.Info().Msg("Group " + group.Name + " Runner name: " + details.Name + " | description: " + details.Description + " | type: " + details.RunnerType + " | paused: " + strconv.FormatBool(details.Paused) + " tags: " + strings.Join(details.TagList, ","))

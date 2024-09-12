@@ -15,13 +15,13 @@ func NewRunnersCmd() *cobra.Command {
 	runnersCmd.Flags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
 	err := runnersCmd.MarkFlagRequired("gitlab")
 	if err != nil {
-		log.Error().Msg("Unable to require gitlab flag: " + err.Error())
+		log.Fatal().Stack().Err(err).Msg("Unable to require gitlab flag")
 	}
 
 	runnersCmd.Flags().StringVarP(&gitlabApiToken, "token", "t", "", "GitLab API Token")
 	err = runnersCmd.MarkFlagRequired("token")
 	if err != nil {
-		log.Error().Msg("Unable to require token flag: " + err.Error())
+		log.Error().Stack().Err(err).Msg("Unable to require token flag")
 	}
 	runnersCmd.MarkFlagsRequiredTogether("gitlab", "token")
 

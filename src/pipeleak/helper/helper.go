@@ -31,7 +31,7 @@ func RegisterNewAccount(targetUrl string, username string, password string, emai
 	fm, err := bow.Form("#new_new_user")
 
 	if err != nil {
-		log.Fatal().Msg("Failed parsing sign-up form: " + err.Error())
+		log.Fatal().Stack().Err(err).Msg("Failed parsing sign-up form")
 	}
 
 	_ = fm.Input("new_user[name]", "Pipeleak Full Name")

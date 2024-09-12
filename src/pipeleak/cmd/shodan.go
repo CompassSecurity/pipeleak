@@ -45,7 +45,7 @@ func NewShodanCmd() *cobra.Command {
 	scanCmd.Flags().StringVarP(&shodanJson, "json", "j", "", "Shodan search export JSON file path")
 	err := scanCmd.MarkFlagRequired("json")
 	if err != nil {
-		log.Error().Msg("Unable to parse shodan json flag: " + err.Error())
+		log.Fatal().Stack().Err(err).Msg("Unable to parse shodan json flag")
 	}
 
 	scanCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
@@ -57,7 +57,7 @@ func Shodan(cmd *cobra.Command, args []string) {
 
 	jsonFile, err := os.Open(shodanJson)
 	if err != nil {
-		log.Fatal().Msg(err.Error())
+		log.Fatal().Stack().Err(err)
 	}
 	defer jsonFile.Close()
 
@@ -70,7 +70,7 @@ func Shodan(cmd *cobra.Command, args []string) {
 		d := result{}
 		_, err := marshmallow.Unmarshal(line, &d)
 		if err != nil {
-			log.Error().Msg(err.Error())
+			log.Error().Stack().Err(err)
 		} else {
 
 			isHttps := true
@@ -113,7 +113,7 @@ func testHost(hostname string, port int, https bool) {
 func isRegistrationEnabled(base string) (bool, int) {
 	u, err := url.Parse(base)
 	if err != nil {
-		log.Debug().Msg(err.Error())
+		log.Debug().Stack().Err(err)
 		return false, 0
 	}
 
@@ -127,14 +127,14 @@ func isRegistrationEnabled(base string) (bool, int) {
 	res, err := client.Get(s)
 
 	if err != nil {
-		log.Debug().Msg(err.Error())
+		log.Debug().Stack().Err(err)
 		return false, 0
 	}
 
 	if res.StatusCode == 200 {
 		resData, err := io.ReadAll(res.Body)
 		if err != nil {
-			log.Debug().Msg(err.Error())
+			log.Debug().Stack().Err(err)
 			return false, 0
 		}
 
@@ -157,19 +157,19 @@ func checkNrPublicRepos(client *http.Client, u *url.URL) int {
 	s := u.String()
 	res, err := client.Get(s + "?per_page=100")
 	if err != nil {
-		log.Debug().Msg(err.Error())
+		log.Debug().Stack().Err(err)
 		return 0
 	}
 
 	if res.StatusCode == 200 {
 		resData, err := io.ReadAll(res.Body)
 		if err != nil {
-			log.Debug().Msg(err.Error())
+			log.Debug().Stack().Err(err)
 			return 0
 		}
 		var val []map[string]interface{}
 		if err := json.Unmarshal(resData, &val); err != nil {
-			log.Debug().Msg(err.Error())
+			log.Debug().Stack().Err(err)
 			return 0
 		}
 		return len(val)
