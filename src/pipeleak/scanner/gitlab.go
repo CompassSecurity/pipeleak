@@ -48,6 +48,7 @@ func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanA
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("Failed fetching projects")
 		}
+		log.Debug().Msg("asdfasdfasdf")
 
 		for _, project := range projects {
 			log.Debug().Str("name", project.Name).Msg("Scan Project jobs for")
@@ -118,12 +119,12 @@ func getJobTrace(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job) {
 	findings := DetectHits(trace)
 
 	for _, finding := range findings {
-		log.Warn().Msg("HIT Confidence: " + finding.Pattern.Pattern.Confidence + " Name:" + finding.Pattern.Pattern.Name + " Value: " + finding.Text + " URL: " + getJobUrl(git, project, job))
+		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", getJobUrl(git, project, job)).Msg("HIT")
 	}
 }
 
 func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job, cookie string, gitlabUrl string) {
-	log.Debug().Msg("extract artifacts for proj " + strconv.Itoa(project.ID) + " job " + strconv.Itoa(job.ID))
+	log.Debug().Int("projectId", project.ID).Int("jobId", job.ID).Msg("extract artifacts")
 
 	artifactsReader, _, err := git.Jobs.GetJobArtifacts(project.ID, job.ID)
 	if err != nil {
@@ -154,10 +155,10 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 		if kind == filetype.Unknown {
 			findings := DetectHits(content)
 			for _, finding := range findings {
-				log.Warn().Msg("HIT Artifact Confidence: " + finding.Pattern.Pattern.Confidence + " Name:" + finding.Pattern.Pattern.Name + " Value: " + finding.Text + " " + job.WebURL + " in file: " + file.Name)
+				log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", job.WebURL).Str("file", file.Name).Msg("HIT Artifact")
 			}
 		} else {
-			log.Debug().Msg("Skipping non-text artifact file scan for " + file.Name)
+			log.Debug().Str("file", file.Name).Msg("Skipping non-text artifact")
 		}
 		fc.Close()
 	}
@@ -170,7 +171,7 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 		findings := DetectHits(envTxt)
 		artifactsBaseUrl, _ := url.JoinPath(project.WebURL, "/-/artifacts")
 		for _, finding := range findings {
-			log.Warn().Msg("HIT DOTENV Confidence: " + finding.Pattern.Pattern.Confidence + " Name:" + finding.Pattern.Pattern.Name + " Value: " + finding.Text + " Check artifacts page which is the only place to download the dotenv file jobId: " + strconv.Itoa(job.ID) + ": " + artifactsBaseUrl)
+			log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("artifactUrl", artifactsBaseUrl).Int("jobId", job.ID).Msg("HIT DOTENV: Check artifacts page which is the only place to download the dotenv file")
 		}
 
 	} else {
@@ -270,7 +271,7 @@ func SessionValid(gitlabUrl string, cookieVal string) {
 	statCode := resp.StatusCode
 
 	if statCode != 200 {
-		log.Fatal().Msg("Negative _gitlab_session test, HTTP " + strconv.Itoa(statCode))
+		log.Fatal().Int("http", statCode).Msg("Negative _gitlab_session test")
 	} else {
 		log.Info().Msg("Provided GitLab session cookie is valid")
 	}
@@ -302,7 +303,7 @@ func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
 		}
 
 		for _, group := range groups {
-			log.Info().Msg("Group name: " + group.Name + " | full name: " + group.FullName + " | group id: " + strconv.Itoa(group.ID) + " | web url: " + group.WebURL)
+			log.Info().Str("name", group.Name).Str("fullName", group.FullName).Int("groupId", group.ID).Str("url", group.WebURL)
 			availableGroups = append(availableGroups, group)
 		}
 
@@ -332,7 +333,7 @@ func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
 						log.Error().Stack().Err(err)
 						continue
 					}
-					log.Info().Msg("Group " + group.Name + " Runner name: " + details.Name + " | description: " + details.Description + " | type: " + details.RunnerType + " | paused: " + strconv.FormatBool(details.Paused) + " tags: " + strings.Join(details.TagList, ","))
+					log.Info().Str("name", group.Name).Str("runner", details.Name).Str("description", details.Description).Str("type", details.RunnerType).Bool("paused", details.Paused).Str("tags", strings.Join(details.TagList, ","))
 				}
 			}
 

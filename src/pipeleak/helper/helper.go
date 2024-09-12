@@ -66,6 +66,6 @@ func RegisterNewAccount(targetUrl string, username string, password string, emai
 		log.Error().Msg("Failed registration. Check output above or try with -v")
 	} else {
 		gitlabUrl.Path = "/users/sign_in"
-		log.Info().Msg("Done! Check your inbox to confirm the account if needed or login directly at " + gitlabUrl.String())
+		log.Info().Str("url", gitlabUrl.String()).Msg("Done! Check your inbox to confirm the account if needed or login directly")
 	}
 }

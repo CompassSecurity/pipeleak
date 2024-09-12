@@ -106,7 +106,7 @@ func testHost(hostname string, port int, https bool) {
 	}
 	enabled, nrOfProjects := isRegistrationEnabled(url)
 	if enabled {
-		log.Info().Msg("public projects: " + strconv.Itoa(nrOfProjects) + " | " + url + "/explore")
+		log.Info().Int("nrProjects", nrOfProjects).Str("url", url+"/explore").Msg("public projects")
 	}
 }
 
@@ -147,7 +147,7 @@ func isRegistrationEnabled(base string) (bool, int) {
 		log.Debug().Msg("Missed sanity check")
 		return false, 0
 	} else {
-		log.Debug().Msg("resp: " + strconv.Itoa(res.StatusCode))
+		log.Debug().Int("http", res.StatusCode).Msg("Registration username test request")
 		return false, 0
 	}
 }
