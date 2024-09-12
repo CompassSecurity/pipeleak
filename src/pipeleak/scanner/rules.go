@@ -1,15 +1,18 @@
 package scanner
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/acarl005/stripansi"
 	"github.com/rs/zerolog/log"
+	"github.com/wandb/parallel"
 	"gopkg.in/yaml.v3"
 )
 
@@ -90,26 +93,38 @@ func GetRules() []PatternElement {
 }
 
 func DetectHits(text []byte) []Finding {
-	findings := []Finding{}
+
+	ctx := context.Background()
+	group := parallel.Collect[[]Finding](parallel.Unlimited(ctx))
+
 	for _, pattern := range GetRules() {
-		m := regexp.MustCompile(pattern.Pattern.Regex)
-		hits := m.FindAllIndex(text, -1)
+		group.Go(func(ctx context.Context) ([]Finding, error) {
+			findings := []Finding{}
+			m := regexp.MustCompile(pattern.Pattern.Regex)
+			hits := m.FindAllIndex(text, -1)
 
-		for _, hit := range hits {
-			// truncate output to max 1024 chars for output readability
-			hitStr := extractHitWithSurroundingText(text, hit, 50)
-			hitStr = cleanHitLine(hitStr)
-			if len(hitStr) > 1024 {
-				hitStr = hitStr[0:1024]
+			for _, hit := range hits {
+				// truncate output to max 1024 chars for output readability
+				hitStr := extractHitWithSurroundingText(text, hit, 50)
+				hitStr = cleanHitLine(hitStr)
+				if len(hitStr) > 1024 {
+					hitStr = hitStr[0:1024]
+				}
+
+				if hitStr != "" {
+					findings = append(findings, Finding{Pattern: pattern, Text: hitStr})
+				}
 			}
 
-			if hitStr != "" {
-				findings = append(findings, Finding{Pattern: pattern, Text: hitStr})
-			}
-		}
+			return findings, nil
+		})
 	}
 
-	return findings
+	results, err := group.Wait()
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Failed waiting for parallel hit detection")
+	}
+	return slices.Concat(results...)
 }
 
 func extractHitWithSurroundingText(text []byte, hitIndex []int, additionalBytes int) string {
