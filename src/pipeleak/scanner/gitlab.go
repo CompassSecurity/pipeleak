@@ -31,10 +31,10 @@ func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanA
 			PerPage: 100,
 			Page:    1,
 		},
-		Owned:            gitlab.Ptr(scanOwnedOnly),
-		Membership:       gitlab.Ptr(member),
-		Search:           gitlab.Ptr(query),
-		OrderBy:          gitlab.Ptr("last_activity_at"),
+		Owned:      gitlab.Ptr(scanOwnedOnly),
+		Membership: gitlab.Ptr(member),
+		Search:     gitlab.Ptr(query),
+		OrderBy:    gitlab.Ptr("last_activity_at"),
 	}
 
 	for {

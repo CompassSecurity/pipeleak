@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"os"
+	"time"
 )
 
 var (
@@ -26,6 +26,8 @@ func init() {
 	rootCmd.AddCommand(NewShodanCmd())
 	rootCmd.AddCommand(NewRunnersCmd())
 	rootCmd.AddCommand(NewRegisterCmd())
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+
+	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
+	log.Logger = zerolog.New(output).With().Timestamp().Logger()
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 }
