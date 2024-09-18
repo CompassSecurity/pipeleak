@@ -185,7 +185,16 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 
 }
 
+var skippableDirectoryNames = []string{"node_modules", ".yarn", ".npm"}
+
 func handleArchiveArtifact(archivefileName string, content []byte, job *gitlab.Job) {
+	for _, skipKeyword := range skippableDirectoryNames {
+		if strings.Contains(archivefileName, skipKeyword) {
+			log.Debug().Str("file", archivefileName).Str("keyword", skipKeyword).Msg("Skipped archive due to blocklist entry")
+			return
+		}
+	}
+
 	fileType, err := filetype.Get(content)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("Cannot determine file type")
@@ -219,9 +228,10 @@ func handleArchiveArtifact(archivefileName string, content []byte, job *gitlab.J
 		DirMode:   0o700,
 	}
 
-	_, files, _, err := xtractr.ExtractFile(x)
+	size, files, _, err := xtractr.ExtractFile(x)
+	log.Debug().Int64("size", size).Str("files", (strings.Join(files, ","))).Str("filename", archivefileName).Msg("extracted archive")
 	if err != nil || files == nil {
-		log.Error().Stack().Err(err).Msg("Unable to handle archive in artifacts")
+		log.Debug().Stack().Err(err).Msg("Unable to handle archive in artifacts")
 		return
 	}
 
