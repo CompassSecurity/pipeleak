@@ -6,7 +6,6 @@ import (
 	"compress/gzip"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -166,7 +165,6 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 				log.Debug().Str("file", file.Name).Msg("Archive in artifact Zip Detected")
 				handleArchiveArtifact(file.Name, content, job)
 			} else {
-
 				log.Debug().Str("file", file.Name).Msg("Skipping non-text artifact")
 			}
 			fc.Close()
@@ -203,7 +201,7 @@ func handleArchiveArtifact(archivefileName string, content []byte, job *gitlab.J
 		return
 	}
 
-	err = ioutil.WriteFile(tmpArchiveFile.Name(), content, 0666)
+	err = os.WriteFile(tmpArchiveFile.Name(), content, 0666)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("Failed writing archive to disk")
 		return
@@ -232,7 +230,6 @@ func handleArchiveArtifact(archivefileName string, content []byte, job *gitlab.J
 
 	for _, fPath := range files {
 		if !isDirectory(fPath) {
-			log.Debug().Str("file", fPath).Msg("Scanning archive in artifact file")
 			fileBytes, err := os.ReadFile(fPath)
 			if err != nil {
 				log.Error().Str("file", fPath).Stack().Err(err).Msg("Cannot read temp artifact archive file content")
