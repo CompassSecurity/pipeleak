@@ -162,10 +162,7 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 			if kind == filetype.Unknown {
 				detectFileHits(content, job, file.Name, "")
 			} else if filetype.IsArchive(content) {
-				log.Debug().Str("file", file.Name).Msg("Archive in artifact Zip Detected")
 				handleArchiveArtifact(file.Name, content, job)
-			} else {
-				log.Debug().Str("file", file.Name).Msg("Skipping non-text artifact")
 			}
 			fc.Close()
 		})
