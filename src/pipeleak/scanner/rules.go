@@ -89,7 +89,16 @@ func GetRules() []PatternElement {
 		}
 	}
 
-	return secretsPatterns.Patterns
+	return AppendPipeleakRules(secretsPatterns.Patterns)
+}
+
+// manually maintained builtin pipeleak rules
+func AppendPipeleakRules(rules []PatternElement) []PatternElement {
+	customRules := []PatternElement{}
+	customRules = append(customRules, PatternElement{Pattern: PatternPattern{Name: "Gitlab - Predefined Environment Variable", Regex: `(GITLAB_USER_ID|KUBECONFIG|CI_SERVER_TLS_KEY_FILE|CI_REPOSITORY_URL|CI_REGISTRY_PASSWORD|DOCKER_AUTH_CONFIG)=.*`, Confidence: "medium"}})
+	customRules = append(customRules, PatternElement{Pattern: PatternPattern{Name: "Docker Registry Auth JSON", Regex: `{[\S\s]*"auths":.*"(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{4}|[A-Za-z0-9+\/]{3}=|[A-Za-z0-9+\/]{2}={2})`, Confidence: "medium"}})
+
+	return slices.Concat(rules, customRules)
 }
 
 func DetectHits(text []byte) []Finding {
