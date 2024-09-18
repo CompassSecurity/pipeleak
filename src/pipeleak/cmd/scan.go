@@ -45,7 +45,7 @@ func NewScanCmd() *cobra.Command {
 	scanCmd.Flags().StringVarP(&gitlabCookie, "cookie", "c", "", "GitLab Cookie _gitlab_session (must be extracted from your browser, use remember me)")
 	scanCmd.Flags().StringVarP(&projectSearchQuery, "search", "s", "", "Query string for searching projects")
 
-	scanCmd.PersistentFlags().BoolVarP(&artifacts, "artifacts", "a", false, "Scan job artifacts")
+	scanCmd.PersistentFlags().BoolVarP(&artifacts, "artifacts", "a", true, "Scan job artifacts")
 	scanCmd.PersistentFlags().BoolVarP(&owned, "owned", "o", false, "Scan user onwed projects only")
 	scanCmd.PersistentFlags().BoolVarP(&member, "member", "m", false, "Scan projects the user is member of")
 	scanCmd.PersistentFlags().IntVarP(&jobLimit, "job-limit", "j", 0, "Scan a max number of pipeline jobs - trade speed vs coverage. 0 scans all and is the default.")

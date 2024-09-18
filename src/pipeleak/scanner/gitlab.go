@@ -6,8 +6,11 @@ import (
 	"compress/gzip"
 	"context"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
+	"path"
 	"strconv"
 	"strings"
 
@@ -15,6 +18,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/wandb/parallel"
 	"github.com/xanzy/go-gitlab"
+	"golift.io/xtractr"
 )
 
 func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanArtifacts bool, scanOwnedOnly bool, query string, jobLimit int, member bool) {
@@ -157,11 +161,12 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 			kind, _ := filetype.Match(content)
 			// do not scan https://pkg.go.dev/github.com/h2non/filetype#readme-supported-types
 			if kind == filetype.Unknown {
-				findings := DetectHits(content)
-				for _, finding := range findings {
-					log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", job.WebURL).Str("file", file.Name).Msg("HIT Artifact")
-				}
+				detectFileHits(content, job, file.Name, "")
+			} else if filetype.IsArchive(content) {
+				log.Debug().Str("file", file.Name).Msg("Archive in artifact Zip Detected")
+				handleArchiveArtifact(file.Name, content, job)
 			} else {
+
 				log.Debug().Str("file", file.Name).Msg("Skipping non-text artifact")
 			}
 			fc.Close()
@@ -183,6 +188,83 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 		log.Debug().Msg("No cookie provided skipping .env.gz artifact")
 	}
 
+}
+
+func handleArchiveArtifact(archivefileName string, content []byte, job *gitlab.Job) {
+	fileType, err := filetype.Get(content)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Cannot determine file type")
+		return
+	}
+
+	tmpArchiveFile, err := os.CreateTemp("", "pipeleak-artifact-archive-*."+fileType.Extension)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Cannot create artifact archive temp file")
+		return
+	}
+
+	err = ioutil.WriteFile(tmpArchiveFile.Name(), content, 0666)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Failed writing archive to disk")
+		return
+	}
+	defer os.Remove(tmpArchiveFile.Name())
+
+	tmpArchiveFilesDirectory, err := os.MkdirTemp("", "pipeleak-artifact-archive-out-")
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Cannot create artifact archive temp directory")
+		return
+	}
+	defer os.RemoveAll(tmpArchiveFilesDirectory)
+
+	x := &xtractr.XFile{
+		FilePath:  tmpArchiveFile.Name(),
+		OutputDir: tmpArchiveFilesDirectory,
+		FileMode:  0o600,
+		DirMode:   0o700,
+	}
+
+	_, files, _, err := xtractr.ExtractFile(x)
+	if err != nil || files == nil {
+		log.Error().Stack().Err(err).Msg("Unable to handle archive in artifacts")
+		return
+	}
+
+	for _, fPath := range files {
+		if !isDirectory(fPath) {
+			log.Debug().Str("file", fPath).Msg("Scanning archive in artifact file")
+			fileBytes, err := os.ReadFile(fPath)
+			if err != nil {
+				log.Error().Str("file", fPath).Stack().Err(err).Msg("Cannot read temp artifact archive file content")
+			}
+
+			kind, _ := filetype.Match(fileBytes)
+			if kind == filetype.Unknown {
+				detectFileHits(fileBytes, job, path.Base(fPath), archivefileName)
+			}
+		}
+	}
+}
+
+func isDirectory(path string) bool {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return true
+	}
+
+	return fileInfo.IsDir()
+}
+
+func detectFileHits(content []byte, job *gitlab.Job, fileName string, archiveName string) {
+	findings := DetectHits(content)
+	for _, finding := range findings {
+		baseLog := log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", job.WebURL).Str("file", fileName)
+		if len(archiveName) > 0 {
+			baseLog.Str("archive", archiveName).Msg("HIT Artifact (in archive)")
+		} else {
+			baseLog.Msg("HIT Artifact")
+		}
+	}
 }
 
 func getJobUrl(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job) string {
