@@ -166,8 +166,6 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 				for _, finding := range findings {
 					log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", job.WebURL).Str("file", file.Name).Msg("HIT Artifact")
 				}
-			} else {
-				log.Debug().Str("file", file.Name).Msg("Skipping non-text artifact")
 			}
 			fc.Close()
 		})

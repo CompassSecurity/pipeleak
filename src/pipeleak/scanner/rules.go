@@ -100,7 +100,13 @@ func GetRules(confidenceFilter []string) []PatternElement {
 				}
 			}
 			secretsPatterns.Patterns = filterdPatterns
-			log.Debug().Int("count", len(secretsPatterns.Patterns)).Msg("Loaded filtered rules")
+
+			totalRules := len(secretsPatterns.Patterns)
+			if totalRules == 0 {
+				log.Warn().Int("count", totalRules).Msg("Your confidence filter removed all rules, are you sure? TruffleHog Rules will still detect secrets")
+			}
+
+			log.Debug().Int("count", totalRules).Msg("Loaded filtered rules")
 		} else {
 			secretsPatterns.Patterns = patterns
 			log.Debug().Int("count", len(secretsPatterns.Patterns)).Msg("Loaded rules")
