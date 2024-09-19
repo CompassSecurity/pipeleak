@@ -75,7 +75,7 @@ func downloadFile(url string, filepath string) error {
 	return nil
 }
 
-func GetRules() []PatternElement {
+func GetRules(confidenceFilter []string) []PatternElement {
 	DownloadRules()
 
 	if len(secretsPatterns.Patterns) == 0 {
@@ -89,8 +89,22 @@ func GetRules() []PatternElement {
 			log.Fatal().Stack().Err(err).Msg("Failed unmarshalling rules file")
 		}
 
-		secretsPatterns.Patterns = AppendPipeleakRules(secretsPatterns.Patterns)
-		log.Debug().Int("count", len(secretsPatterns.Patterns)).Msg("Loaded rules")
+		patterns := AppendPipeleakRules(secretsPatterns.Patterns)
+
+		if len(confidenceFilter) > 0 {
+			log.Debug().Str("filter", strings.Join(confidenceFilter, ",")).Msg("Applying confidence filter")
+			filterdPatterns := []PatternElement{}
+			for _, pattern := range patterns {
+				if slices.Contains(confidenceFilter, pattern.Pattern.Confidence) {
+					filterdPatterns = append(filterdPatterns, pattern)
+				}
+			}
+			secretsPatterns.Patterns = filterdPatterns
+			log.Debug().Int("count", len(secretsPatterns.Patterns)).Msg("Loaded filtered rules")
+		} else {
+			secretsPatterns.Patterns = patterns
+			log.Debug().Int("count", len(secretsPatterns.Patterns)).Msg("Loaded rules")
+		}
 	}
 
 	return secretsPatterns.Patterns
@@ -110,7 +124,7 @@ func DetectHits(text []byte) []Finding {
 	ctx := context.Background()
 	group := parallel.Collect[[]Finding](parallel.Unlimited(ctx))
 
-	for _, pattern := range GetRules() {
+	for _, pattern := range GetRules(nil) {
 		group.Go(func(ctx context.Context) ([]Finding, error) {
 			findingsYml := []Finding{}
 			m := regexp.MustCompile(pattern.Pattern.Regex)

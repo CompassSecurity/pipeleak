@@ -21,7 +21,8 @@ import (
 	"github.com/xanzy/go-gitlab"
 )
 
-func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanArtifacts bool, scanOwnedOnly bool, query string, jobLimit int, member bool) {
+func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanArtifacts bool, scanOwnedOnly bool, query string, jobLimit int, member bool, confidenceFilter []string) {
+	GetRules(confidenceFilter)
 	log.Info().Msg("Fetching projects")
 	git, err := gitlab.NewClient(apiToken, gitlab.WithBaseURL(gitlabUrl))
 	if err != nil {
@@ -354,7 +355,7 @@ func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
 	}
 }
 
-func DetermineVersion(gitlabUrl string, apiToken string) (*gitlab.Version) {
+func DetermineVersion(gitlabUrl string, apiToken string) *gitlab.Version {
 	if len(apiToken) > 0 {
 		git, err := gitlab.NewClient(apiToken, gitlab.WithBaseURL(gitlabUrl))
 		if err != nil {

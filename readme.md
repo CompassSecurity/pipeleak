@@ -30,6 +30,18 @@ pipeleak scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com -a -c
 pipeleak scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com -v -a -c [value-of-valid-_gitlab_session]
 ```
 
+### Confidence
+
+The following confidence levels for scans are used by default:
+* `low`
+* `medium`
+* `high`
+* `high-verified` these are validated by the corresponding TruffleHog validator.
+
+However if you want to add custom ones, you can define any value in the `rules.yml` file
+To scan only for a specific level, you can specify it via CLI flag e.g `--confidence=high,medium`. Define multiple by comma separating the values.
+Note: `high-verified` cannot be removed.
+
 ### Additional Features
 
 Filter the scanned projects by using the `--search` flag and provide a search query string.
