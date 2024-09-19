@@ -63,7 +63,8 @@ func Scan(cmd *cobra.Command, args []string) {
 		log.Fatal().Msg("The provided GitLab URL is not a valid URL")
 		os.Exit(1)
 	}
-
+	version := scanner.DetermineVersion(gitlabUrl, gitlabApiToken)
+	log.Info().Str("version", version.Version).Str("revision", version.Revision).Msg("Gitlab Version Check")
 	scanner.ScanGitLabPipelines(gitlabUrl, gitlabApiToken, gitlabCookie, artifacts, owned, projectSearchQuery, jobLimit, member)
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
 }

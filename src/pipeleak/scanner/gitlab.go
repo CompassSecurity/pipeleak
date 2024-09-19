@@ -5,11 +5,15 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/tls"
 	"io"
 	"net/http"
 	"net/url"
+	"path"
+	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/h2non/filetype"
 	"github.com/rs/zerolog/log"
@@ -347,5 +351,52 @@ func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
 			}
 			listRunnerOpts.Page = resp.NextPage
 		}
+	}
+}
+
+func DetermineVersion(gitlabUrl string, apiToken string) (*gitlab.Version) {
+	if len(apiToken) > 0 {
+		git, err := gitlab.NewClient(apiToken, gitlab.WithBaseURL(gitlabUrl))
+		if err != nil {
+			return &gitlab.Version{Version: "none", Revision: "none"}
+		}
+
+		version, _, err := git.Version.GetVersion()
+		if err != nil {
+			return &gitlab.Version{Version: "none", Revision: "none"}
+		}
+		return version
+	} else {
+		u, err := url.Parse(gitlabUrl)
+		if err != nil {
+			return &gitlab.Version{Version: "none", Revision: "none"}
+		}
+		u.Path = path.Join(u.Path, "/help")
+
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		client := &http.Client{Transport: tr, Timeout: 15 * time.Second}
+		response, err := client.Get(u.String())
+
+		if err != nil {
+			log.Warn().Msg(gitlabUrl)
+			return &gitlab.Version{Version: "none", Revision: "none"}
+		}
+
+		responseData, err := io.ReadAll(response.Body)
+		if err != nil {
+			return &gitlab.Version{Version: "none", Revision: "none"}
+		}
+
+		extractLineR := regexp.MustCompile(`instance_version":"\d*.\d*.\d*"`)
+		fullLine := extractLineR.Find(responseData)
+		versionR := regexp.MustCompile(`\d+.\d+.\d+`)
+		versionNumber := versionR.Find(fullLine)
+
+		if len(versionNumber) > 3 {
+			return &gitlab.Version{Version: string(versionNumber), Revision: "none"}
+		}
+		return &gitlab.Version{Version: "none", Revision: "none"}
 	}
 }

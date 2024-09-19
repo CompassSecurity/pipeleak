@@ -104,6 +104,7 @@ func testHost(hostname string, port int, https bool) {
 	} else {
 		url = "http://" + hostname + ":" + strconv.Itoa(port)
 	}
+
 	enabled, nrOfProjects := isRegistrationEnabled(url)
 	if enabled {
 		log.Info().Int("nrProjects", nrOfProjects).Str("url", url+"/explore").Msg("public projects")
