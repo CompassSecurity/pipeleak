@@ -75,7 +75,7 @@ func downloadFile(url string, filepath string) error {
 	return nil
 }
 
-func GetRules(confidenceFilter []string) []PatternElement {
+func InitRules(confidenceFilter []string) {
 	DownloadRules()
 
 	if len(secretsPatterns.Patterns) == 0 {
@@ -103,7 +103,7 @@ func GetRules(confidenceFilter []string) []PatternElement {
 
 			totalRules := len(secretsPatterns.Patterns)
 			if totalRules == 0 {
-				log.Warn().Int("count", totalRules).Msg("Your confidence filter removed all rules, are you sure? TruffleHog Rules will still detect secrets")
+				log.Warn().Int("count", totalRules).Msg("Your confidence filter removed all rules, are you sure? TruffleHog Rules will still detect secrets. This equals --confidence high-verified")
 			}
 
 			log.Debug().Int("count", totalRules).Msg("Loaded filtered rules")
@@ -113,7 +113,6 @@ func GetRules(confidenceFilter []string) []PatternElement {
 		}
 	}
 
-	return secretsPatterns.Patterns
 }
 
 // manually maintained builtin pipeleak rules
@@ -130,7 +129,7 @@ func DetectHits(text []byte) []Finding {
 	ctx := context.Background()
 	group := parallel.Collect[[]Finding](parallel.Unlimited(ctx))
 
-	for _, pattern := range GetRules(nil) {
+	for _, pattern := range secretsPatterns.Patterns {
 		group.Go(func(ctx context.Context) ([]Finding, error) {
 			findingsYml := []Finding{}
 			m := regexp.MustCompile(pattern.Pattern.Regex)

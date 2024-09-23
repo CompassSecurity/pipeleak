@@ -22,7 +22,7 @@ import (
 )
 
 func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanArtifacts bool, scanOwnedOnly bool, query string, jobLimit int, member bool, confidenceFilter []string) {
-	GetRules(confidenceFilter)
+	InitRules(confidenceFilter)
 	log.Info().Msg("Fetching projects")
 	git, err := gitlab.NewClient(apiToken, gitlab.WithBaseURL(gitlabUrl))
 	if err != nil {
