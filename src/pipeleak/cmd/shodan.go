@@ -64,9 +64,10 @@ func Shodan(cmd *cobra.Command, args []string) {
 	data, _ := io.ReadAll(jsonFile)
 	ctx := context.Background()
 	group := parallel.Unlimited(ctx)
+	ctr := 0
 
 	for _, line := range bytes.Split(data, []byte{'\n'}) {
-
+		ctr = ctr + 1
 		d := result{}
 		_, err := marshmallow.Unmarshal(line, &d)
 		if err != nil {
@@ -94,6 +95,7 @@ func Shodan(cmd *cobra.Command, args []string) {
 	}
 
 	group.Wait()
+	log.Info().Int("nr", ctr).Msg("Tested number of Gitlab instances")
 	log.Info().Msg("Done, Bye Bye 🏳️‍🌈🔥")
 }
 
