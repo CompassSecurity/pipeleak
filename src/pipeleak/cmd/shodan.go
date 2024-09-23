@@ -31,7 +31,7 @@ type shodan struct {
 type result struct {
 	Hostnames []string `json:"hostnames"`
 	Port      int      `json:"port"`
-	IPString  string   `json:"ip_string"`
+	IPString  string   `json:"ip_str"`
 	Shodan    shodan   `json:"shodan"`
 }
 
@@ -64,9 +64,10 @@ func Shodan(cmd *cobra.Command, args []string) {
 	data, _ := io.ReadAll(jsonFile)
 	ctx := context.Background()
 	group := parallel.Unlimited(ctx)
+	ctr := 0
 
 	for _, line := range bytes.Split(data, []byte{'\n'}) {
-
+		ctr = ctr + 1
 		d := result{}
 		_, err := marshmallow.Unmarshal(line, &d)
 		if err != nil {
@@ -94,6 +95,7 @@ func Shodan(cmd *cobra.Command, args []string) {
 	}
 
 	group.Wait()
+	log.Info().Int("nr", ctr).Msg("Tested number of Gitlab instances")
 	log.Info().Msg("Done, Bye Bye 🏳️‍🌈🔥")
 }
 
@@ -104,18 +106,19 @@ func testHost(hostname string, port int, https bool) {
 	} else {
 		url = "http://" + hostname + ":" + strconv.Itoa(port)
 	}
-
-	enabled, nrOfProjects := isRegistrationEnabled(url)
-	if enabled {
-		log.Info().Int("nrProjects", nrOfProjects).Str("url", url+"/explore").Msg("public projects")
+	registration, err := isRegistrationEnabled(url)
+	nrOfProjects, err := checkNrPublicRepos(url)
+	if err != nil {
+		log.Error().Stack().Err(err)
+	} else {
+		log.Info().Bool("registration", registration).Int("nrProjects", nrOfProjects).Str("url", url+"/explore").Msg("")
 	}
 }
 
-func isRegistrationEnabled(base string) (bool, int) {
+func isRegistrationEnabled(base string) (bool, error) {
 	u, err := url.Parse(base)
 	if err != nil {
-		log.Debug().Stack().Err(err)
-		return false, 0
+		return false, err
 	}
 
 	u.Path = path.Join(u.Path, "/users/somenotexistigusr/exists")
@@ -128,53 +131,55 @@ func isRegistrationEnabled(base string) (bool, int) {
 	res, err := client.Get(s)
 
 	if err != nil {
-		log.Debug().Stack().Err(err)
-		return false, 0
+		return false, err
 	}
 
 	if res.StatusCode == 200 {
 		resData, err := io.ReadAll(res.Body)
 		if err != nil {
-			log.Debug().Stack().Err(err)
-			return false, 0
+			return false, err
 		}
 
 		// sanity check to avoid false positives
 		if strings.Contains(string(resData), "{\"exists\":false}") {
-			nr := checkNrPublicRepos(client, u)
-			return true, nr
+			return true, nil
 		}
 
 		log.Debug().Msg("Missed sanity check")
-		return false, 0
+		return false, err
 	} else {
 		log.Debug().Int("http", res.StatusCode).Msg("Registration username test request")
-		return false, 0
+		return false, nil
 	}
 }
 
-func checkNrPublicRepos(client *http.Client, u *url.URL) int {
+func checkNrPublicRepos(base string) (int, error) {
+	u, err := url.Parse(base)
+	if err != nil {
+		return 0, err
+	}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr, Timeout: 15 * time.Second}
 	u.Path = "/api/v4/projects"
 	s := u.String()
 	res, err := client.Get(s + "?per_page=100")
 	if err != nil {
-		log.Debug().Stack().Err(err)
-		return 0
+		return 0, err
 	}
 
 	if res.StatusCode == 200 {
 		resData, err := io.ReadAll(res.Body)
 		if err != nil {
-			log.Debug().Stack().Err(err)
-			return 0
+			return 0, err
 		}
 		var val []map[string]interface{}
 		if err := json.Unmarshal(resData, &val); err != nil {
-			log.Debug().Stack().Err(err)
-			return 0
+			return 0, err
 		}
-		return len(val)
+		return len(val), nil
 	}
 
-	return 0
+	return 0, err
 }
