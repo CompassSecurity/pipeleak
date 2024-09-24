@@ -6,9 +6,11 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/tls"
+	"database/sql"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"regexp"
 	"strconv"
@@ -16,21 +18,91 @@ import (
 	"time"
 
 	"github.com/h2non/filetype"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/rs/zerolog/log"
 	"github.com/wandb/parallel"
 	"github.com/xanzy/go-gitlab"
+
+	"github.com/maragudk/goqite"
+	"github.com/maragudk/goqite/jobs"
 )
 
-func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanArtifacts bool, scanOwnedOnly bool, query string, jobLimit int, member bool, confidenceFilter []string) {
-	InitRules(confidenceFilter)
+var queue *goqite.Queue
+var queueCancelFn context.CancelFunc
+
+type ScanOptions struct {
+	GitlabUrl          string
+	GitlabApiToken     string
+	GitlabCookie       string
+	ProjectSearchQuery string
+	Artifacts          bool
+	Owned              bool
+	Member             bool
+	JobLimit           int
+	Verbose            bool
+	ConfidenceFilter   []string
+}
+
+func ScanGitLabPipelines(options *ScanOptions) {
+	log.Debug().Msg("Setting up queue on disk")
+	tmpfile, err := os.CreateTemp("", "pipeleak-queue-db")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Creating Temp DB file failed")
+	}
+	defer os.Remove(tmpfile.Name())
+
+	setupQueue(tmpfile.Name())
+
+	// Make a job runner with a job limit of 1 and a short message poll interval.
+	r := jobs.NewRunner(jobs.NewRunnerOpts{
+		Limit:        1,
+		Log:          nil,
+		PollInterval: 10 * time.Millisecond,
+		Queue:        queue,
+	})
+
+	InitRules(options.ConfidenceFilter)
+
+	go fetchProjects(options)
+
+	r.Register("pipeleak-job", func(ctx context.Context, m []byte) error {
+		log.Debug().Msg("analyze job")
+		analyzeQueueItem(m)
+		return nil
+	})
+
+	queueCtx, cancelFunc := context.WithCancel(context.Background())
+	queueCancelFn = cancelFunc
+	r.Start(queueCtx)
+}
+
+func setupQueue(fileName string) {
+	db, err := sql.Open("sqlite3", ":memory:?_journal=WAL&_timeout=5000&_fk=true")
+	if err != nil {
+		log.Fatal().Err(err).Str("file", fileName).Msg("Opening Temp DB file failed")
+	}
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
+
+	if err := goqite.Setup(context.Background(), db); err != nil {
+		log.Fatal().Err(err).Msg("Goqite setup failed")
+	}
+
+	queue = goqite.New(goqite.NewOpts{
+		DB:   db,
+		Name: "jobs",
+	})
+}
+
+func fetchProjects(options *ScanOptions) {
 	log.Info().Msg("Fetching projects")
-	git, err := gitlab.NewClient(apiToken, gitlab.WithBaseURL(gitlabUrl))
+	git, err := gitlab.NewClient(options.GitlabApiToken, gitlab.WithBaseURL(options.GitlabUrl))
 	if err != nil {
 		log.Fatal().Stack().Err(err)
 	}
 
-	if len(query) > 0 {
-		log.Info().Str("query", query).Msg("Filtering scanned projects by")
+	if len(options.ProjectSearchQuery) > 0 {
+		log.Info().Str("query", options.ProjectSearchQuery).Msg("Filtering scanned projects by")
 	}
 
 	projectOpts := &gitlab.ListProjectsOptions{
@@ -38,9 +110,9 @@ func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanA
 			PerPage: 100,
 			Page:    1,
 		},
-		Owned:      gitlab.Ptr(scanOwnedOnly),
-		Membership: gitlab.Ptr(member),
-		Search:     gitlab.Ptr(query),
+		Owned:      gitlab.Ptr(options.Owned),
+		Membership: gitlab.Ptr(options.Member),
+		Search:     gitlab.Ptr(options.ProjectSearchQuery),
 		OrderBy:    gitlab.Ptr("last_activity_at"),
 	}
 
@@ -48,8 +120,8 @@ func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanA
 		projects, resp, err := git.Projects.ListProjects(projectOpts)
 
 		// regularily test cookie liveness
-		if len(cookie) > 0 {
-			SessionValid(gitlabUrl, cookie)
+		if len(options.GitlabCookie) > 0 {
+			SessionValid(options.GitlabUrl, options.GitlabCookie)
 		}
 
 		if err != nil {
@@ -57,19 +129,20 @@ func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanA
 		}
 
 		for _, project := range projects {
-			log.Debug().Str("name", project.Name).Msg("Scan Project jobs for")
-			getAllJobs(git, project, scanArtifacts, cookie, gitlabUrl, jobLimit)
+			log.Debug().Str("name", project.Name).Msg("Fetch Project jobs for")
+			getAllJobs(git, project, options)
 		}
 
 		if resp.NextPage == 0 {
 			break
 		}
 		projectOpts.Page = resp.NextPage
-		log.Info().Int("total", projectOpts.Page*projectOpts.PerPage).Msg("Scanned projects")
+		log.Info().Int("total", projectOpts.Page*projectOpts.PerPage).Msg("Fetched projects")
 	}
+	queueCancelFn()
 }
 
-func getAllJobs(git *gitlab.Client, project *gitlab.Project, scanArtifacts bool, cookie string, gitlabUrl string, jobLimit int) {
+func getAllJobs(git *gitlab.Client, project *gitlab.Project, options *ScanOptions) {
 
 	opts := &gitlab.ListJobsOptions{
 		ListOptions: gitlab.ListOptions{
@@ -92,11 +165,11 @@ jobOut:
 			currentJobCtr += 1
 			getJobTrace(git, project, job)
 
-			if scanArtifacts {
-				getJobArtifacts(git, project, job, cookie, gitlabUrl)
+			if options.Artifacts {
+				getJobArtifacts(git, project, job, options.GitlabCookie, options.GitlabUrl)
 			}
 
-			if jobLimit > 0 && currentJobCtr >= jobLimit {
+			if options.JobLimit > 0 && currentJobCtr >= options.JobLimit {
 				log.Debug().Msg("Skipping jobs as job-limit is reached")
 				break jobOut
 			}
@@ -122,11 +195,7 @@ func getJobTrace(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job) {
 		log.Error().Stack().Err(err).Msg("Failed reading trace reader into byte array")
 		return
 	}
-	findings := DetectHits(trace)
-
-	for _, finding := range findings {
-		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", getJobUrl(git, project, job)).Msg("HIT")
-	}
+	enqueueItem(trace, queue, QueueItemJobTrace)
 }
 
 func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job, cookie string, gitlabUrl string) {
@@ -190,16 +259,6 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 
 func getJobUrl(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job) string {
 	return git.BaseURL().Host + "/" + project.PathWithNamespace + "/-/jobs/" + strconv.Itoa(job.ID)
-}
-
-func StreamToString(stream io.Reader) string {
-	buf := new(bytes.Buffer)
-	_, err := buf.ReadFrom(stream)
-	if err != nil {
-		log.Error().Stack().Err(err).Msg("Unable to read job trace buffer")
-		return ""
-	}
-	return buf.String()
 }
 
 // .env artifacts are not accessible over the API thus we must use session cookie and use the UI path

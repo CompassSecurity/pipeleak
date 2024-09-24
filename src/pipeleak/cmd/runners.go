@@ -6,6 +6,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	gitlabApiToken string
+)
+
 func NewRunnersCmd() *cobra.Command {
 	runnersCmd := &cobra.Command{
 		Use:   "runners [no options!]",

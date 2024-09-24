@@ -7,9 +7,11 @@ import (
 )
 
 var (
-	username string
-	password string
-	email    string
+	gitlabUrl string
+	username  string
+	password  string
+	email     string
+	verbose   bool
 )
 
 func NewRegisterCmd() *cobra.Command {
