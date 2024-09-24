@@ -107,12 +107,14 @@ func testHost(hostname string, port int, https bool) {
 		url = "http://" + hostname + ":" + strconv.Itoa(port)
 	}
 	registration, err := isRegistrationEnabled(url)
+	if err != nil {
+		log.Error().Stack().Err(err)
+	}
 	nrOfProjects, err := checkNrPublicRepos(url)
 	if err != nil {
 		log.Error().Stack().Err(err)
-	} else {
-		log.Info().Bool("registration", registration).Int("nrProjects", nrOfProjects).Str("url", url+"/explore").Msg("")
 	}
+	log.Info().Bool("registration", registration).Int("nrProjects", nrOfProjects).Str("url", url+"/explore").Msg("")
 }
 
 func isRegistrationEnabled(base string) (bool, error) {

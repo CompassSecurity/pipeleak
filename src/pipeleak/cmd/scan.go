@@ -20,6 +20,7 @@ var (
 	member             bool
 	jobLimit           int
 	verbose            bool
+	confidenceFilter   []string
 )
 
 func NewScanCmd() *cobra.Command {
@@ -44,6 +45,7 @@ func NewScanCmd() *cobra.Command {
 
 	scanCmd.Flags().StringVarP(&gitlabCookie, "cookie", "c", "", "GitLab Cookie _gitlab_session (must be extracted from your browser, use remember me)")
 	scanCmd.Flags().StringVarP(&projectSearchQuery, "search", "s", "", "Query string for searching projects")
+	scanCmd.Flags().StringSliceVarP(&confidenceFilter, "confidence", "", []string{}, "Filter for confidence level, separate by comma if multiple. See readme for more info.")
 
 	scanCmd.PersistentFlags().BoolVarP(&artifacts, "artifacts", "a", false, "Scan job artifacts")
 	scanCmd.PersistentFlags().BoolVarP(&owned, "owned", "o", false, "Scan user onwed projects only")
@@ -63,8 +65,9 @@ func Scan(cmd *cobra.Command, args []string) {
 		log.Fatal().Msg("The provided GitLab URL is not a valid URL")
 		os.Exit(1)
 	}
-
-	scanner.ScanGitLabPipelines(gitlabUrl, gitlabApiToken, gitlabCookie, artifacts, owned, projectSearchQuery, jobLimit, member)
+	version := scanner.DetermineVersion(gitlabUrl, gitlabApiToken)
+	log.Info().Str("version", version.Version).Str("revision", version.Revision).Msg("Gitlab Version Check")
+	scanner.ScanGitLabPipelines(gitlabUrl, gitlabApiToken, gitlabCookie, artifacts, owned, projectSearchQuery, jobLimit, member, confidenceFilter)
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
 }
 
