@@ -76,12 +76,13 @@ func RegisterNewAccount(targetUrl string, username string, password string, emai
 type ShutdownHandler func()
 
 func RegisterGracefulShutdownHandler(handler ShutdownHandler) {
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
-		<-c
+		sig := <-sigs
 		handler()
-		log.Fatal().Msg("Pipeleak has been terminated")
+		log.Warn().Str("signal", sig.String()).Msg("Pipeleak has been terminated")
+		os.Exit(1)
 	}()
 
 }
