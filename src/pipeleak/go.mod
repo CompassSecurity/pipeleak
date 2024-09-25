@@ -6,6 +6,7 @@ toolchain go1.23.1
 
 require (
 	github.com/PuerkitoBio/goquery v1.10.0
+	github.com/docker/go-units v0.5.0
 	github.com/maragudk/goqite v0.2.3
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/cobra v1.8.1

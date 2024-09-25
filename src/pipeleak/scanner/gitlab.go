@@ -40,6 +40,8 @@ type ScanOptions struct {
 	JobLimit           int
 	Verbose            bool
 	ConfidenceFilter   []string
+	MaxArtifactSize    int64
+	MaxScanGoRoutines  int
 }
 
 func ScanGitLabPipelines(options *ScanOptions) {
@@ -66,7 +68,7 @@ func ScanGitLabPipelines(options *ScanOptions) {
 	go fetchProjects(options)
 
 	r.Register("pipeleak-job", func(ctx context.Context, m []byte) error {
-		analyzeQueueItem(m)
+		analyzeQueueItem(m, options.MaxScanGoRoutines)
 		return nil
 	})
 
@@ -135,7 +137,7 @@ func fetchProjects(options *ScanOptions) {
 		}
 
 		for _, project := range projects {
-			log.Debug().Str("name", project.Name).Msg("Fetch Project jobs for")
+			log.Debug().Str("url", project.WebURL).Msg("Fetch Project jobs for")
 			getAllJobs(git, project, options)
 		}
 
@@ -176,11 +178,10 @@ jobOut:
 			getJobTrace(git, project, job, hitMeta)
 
 			if options.Artifacts {
-				getJobArtifacts(git, project, job, options.GitlabCookie, options.GitlabUrl, hitMeta)
+				getJobArtifacts(git, project, job, options, hitMeta)
 			}
 
 			if options.JobLimit > 0 && currentJobCtr >= options.JobLimit {
-				log.Debug().Msg("Skipping jobs as job-limit is reached")
 				break jobOut
 			}
 		}
@@ -208,17 +209,16 @@ func getJobTrace(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job, h
 	enqueueItem(trace, queue, QueueItemJobTrace, hitMeta)
 }
 
-func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job, cookie string, gitlabUrl string, hitMeta HitMetaInfo) {
-	log.Debug().Int("projectId", project.ID).Int("jobId", job.ID).Msg("Fetch artifacts")
+func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job, options *ScanOptions, hitMeta HitMetaInfo) {
+	log.Debug().Str("url", getJobUrl(git, project, job)).Msg("Check for artifacts")
 
 	artifactsReader, _, err := git.Jobs.GetJobArtifacts(project.ID, job.ID)
 	if err != nil {
 		return
 	}
 
-	// do not scan files greater than 200Mb
-	if artifactsReader.Size() > 2*1024*1024 {
-		log.Error().Int("projectId", project.ID).Int("jobId", job.ID).Msg("Skipped artifact Zip to do size greater than 200Mb")
+	if artifactsReader.Size() > options.MaxArtifactSize {
+		log.Debug().Str("url", getJobUrl(git, project, job)).Int64("bytes", artifactsReader.Size()).Int64("maxBytes", options.MaxArtifactSize).Msg("Skipped large artifact Zip")
 		return
 	}
 
@@ -230,8 +230,8 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 
 	enqueueItem(data, queue, QueueItemArtifact, hitMeta)
 
-	if len(cookie) > 1 {
-		envTxt := DownloadEnvArtifact(cookie, gitlabUrl, project.PathWithNamespace, job.ID)
+	if len(options.GitlabCookie) > 1 {
+		envTxt := DownloadEnvArtifact(options.GitlabCookie, options.GitlabUrl, project.PathWithNamespace, job.ID)
 		enqueueItem(envTxt, queue, QueueItemDotenv, hitMeta)
 	} else {
 		log.Debug().Msg("No cookie provided skipping .env.gz artifact")

@@ -36,7 +36,7 @@ type QueueItem struct {
 	HitMetaInfo HitMetaInfo   `json:"hitMetaInfo"`
 }
 
-func analyzeQueueItem(serializeditem []byte) {
+func analyzeQueueItem(serializeditem []byte, maxThreads int) {
 	var item QueueItem
 	err := json.Unmarshal(serializeditem, &item)
 	if err != nil {
@@ -44,15 +44,15 @@ func analyzeQueueItem(serializeditem []byte) {
 	}
 
 	if item.Type == QueueItemJobTrace {
-		analyzeJobTrace(item)
+		analyzeJobTrace(item, maxThreads)
 	}
 
 	if item.Type == QueueItemArtifact {
-		analyzeJobArtifact(item)
+		analyzeJobArtifact(item, maxThreads)
 	}
 
 	if item.Type == QueueItemDotenv {
-		analyzeDotenvArtifact(item)
+		analyzeDotenvArtifact(item, maxThreads)
 	}
 
 }
@@ -71,14 +71,14 @@ func enqueueItem(trace []byte, queue *goqite.Queue, qType QueueItemType, hitMeta
 	}
 }
 
-func analyzeJobTrace(item QueueItem) {
-	findings := DetectHits(item.Data)
+func analyzeJobTrace(item QueueItem, maxThreads int) {
+	findings := DetectHits(item.Data, maxThreads)
 	for _, finding := range findings {
 		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", item.HitMetaInfo.JobWebUrl).Msg("HIT")
 	}
 }
 
-func analyzeJobArtifact(item QueueItem) {
+func analyzeJobArtifact(item QueueItem, maxThreads int) {
 	reader := bytes.NewReader(item.Data)
 	zipListing, err := zip.NewReader(reader, int64(len(item.Data)))
 	if err != nil {
@@ -105,7 +105,7 @@ func analyzeJobArtifact(item QueueItem) {
 			kind, _ := filetype.Match(content)
 			// do not scan https://pkg.go.dev/github.com/h2non/filetype#readme-supported-types
 			if kind == filetype.Unknown {
-				findings := DetectHits(content)
+				findings := DetectHits(content, maxThreads)
 				for _, finding := range findings {
 					log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", item.HitMetaInfo.JobWebUrl).Str("file", file.Name).Msg("HIT Artifact")
 				}
@@ -115,8 +115,8 @@ func analyzeJobArtifact(item QueueItem) {
 	}
 }
 
-func analyzeDotenvArtifact(item QueueItem) {
-	findings := DetectHits(item.Data)
+func analyzeDotenvArtifact(item QueueItem, maxThreads int) {
+	findings := DetectHits(item.Data, maxThreads)
 	for _, finding := range findings {
 		artifactsBaseUrl, _ := url.JoinPath(item.HitMetaInfo.JobWebUrl, "/-/artifacts")
 		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("artifactUrl", artifactsBaseUrl).Int("jobId", item.HitMetaInfo.JobId).Msg("HIT DOTENV: Check artifacts page which is the only place to download the dotenv file")
