@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -100,7 +101,18 @@ func setupQueue(fileName string, maxReceive int) {
 }
 
 func cleanUp() {
-	log.Debug().Str("file", queueFileName).Msg("Graceful Shutdown, removing queue database")
+	log.Info().Msg("Graceful Shutdown, cleaning up")
+	files, err := filepath.Glob(queueFileName + "*")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error removing database files")
+	}
+	for _, f := range files {
+		err := os.Remove(f)
+		if err != nil {
+			log.Fatal().Err(err).Str("file", f).Msg("Error deleting database file")
+		}
+		log.Debug().Str("file", f).Msg("Deleted")
+	}
 	os.Remove(queueFileName)
 }
 

@@ -81,7 +81,7 @@ func RegisterGracefulShutdownHandler(handler ShutdownHandler) {
 	go func() {
 		sig := <-sigs
 		handler()
-		log.Warn().Str("signal", sig.String()).Msg("Pipeleak has been terminated")
+		log.Info().Str("signal", sig.String()).Msg("Pipeleak has been terminated")
 		os.Exit(1)
 	}()
 
