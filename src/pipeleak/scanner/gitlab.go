@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/CompassSecurity/pipeleak/helper"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/rs/zerolog/log"
 	"github.com/xanzy/go-gitlab"
@@ -26,6 +27,7 @@ import (
 
 var queue *goqite.Queue
 var queueCancelFn context.CancelFunc
+var queueFileName string
 
 type ScanOptions struct {
 	GitlabUrl          string
@@ -47,8 +49,10 @@ func ScanGitLabPipelines(options *ScanOptions) {
 		log.Fatal().Err(err).Msg("Creating Temp DB file failed")
 	}
 	defer os.Remove(tmpfile.Name())
+	queueFileName = tmpfile.Name()
 
 	setupQueue(tmpfile.Name())
+	helper.RegisterGracefulShutdownHandler(cleanUp)
 
 	r := jobs.NewRunner(jobs.NewRunnerOpts{
 		Limit:        4,
@@ -90,6 +94,11 @@ func setupQueue(fileName string) {
 		Name:       "jobs",
 		MaxReceive: 100,
 	})
+}
+
+func cleanUp() {
+	log.Debug().Str("file", queueFileName).Msg("Graceful Shutdown, removing queue database")
+	os.Remove(queueFileName)
 }
 
 func fetchProjects(options *ScanOptions) {
@@ -214,6 +223,11 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 	}
 
 	data, err := io.ReadAll(artifactsReader)
+	if err != nil {
+		log.Error().Int("projectId", project.ID).Int("jobId", job.ID).Msg("Failed reading artifacts stream")
+		return
+	}
+
 	enqueueItem(data, queue, QueueItemArtifact, hitMeta)
 
 	if len(cookie) > 1 {

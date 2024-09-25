@@ -2,7 +2,10 @@ package helper
 
 import (
 	"net/url"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/rs/zerolog/log"
@@ -68,4 +71,17 @@ func RegisterNewAccount(targetUrl string, username string, password string, emai
 		gitlabUrl.Path = "/users/sign_in"
 		log.Info().Str("url", gitlabUrl.String()).Msg("Done! Check your inbox to confirm the account if needed or login directly")
 	}
+}
+
+type ShutdownHandler func()
+
+func RegisterGracefulShutdownHandler(handler ShutdownHandler) {
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		handler()
+		log.Fatal().Msg("Pipeleak has been terminated")
+	}()
+
 }
