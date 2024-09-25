@@ -1,6 +1,7 @@
 package scanner
 
 import (
+	"archive/zip"
 	"bytes"
 	"compress/gzip"
 	"context"
@@ -228,6 +229,12 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 		return
 	}
 
+	extractedZipSize := calculateZipFileSize(data)
+	if extractedZipSize > uint64(options.MaxArtifactSize) {
+		log.Debug().Str("url", getJobUrl(git, project, job)).Int64("zipBytes", artifactsReader.Size()).Uint64("bytesExtracted", extractedZipSize).Int64("maxBytes", options.MaxArtifactSize).Msg("Skipped large extracted Zip artifact")
+		return
+	}
+
 	if len(data) > 1 {
 		enqueueItem(data, queue, QueueItemArtifact, hitMeta)
 	}
@@ -241,6 +248,21 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 		log.Debug().Msg("No cookie provided skipping .env.gz artifact")
 	}
 
+}
+
+func calculateZipFileSize(data []byte) uint64 {
+	reader := bytes.NewReader(data)
+	zipListing, err := zip.NewReader(reader, int64(len(data)))
+	if err != nil {
+		log.Error().Msg("Failed calculcatingZipFileSize")
+		return 0
+	}
+	totalSize := uint64(0)
+	for _, file := range zipListing.File {
+		totalSize = totalSize + file.UncompressedSize64
+	}
+
+	return totalSize
 }
 
 func getJobUrl(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job) string {
