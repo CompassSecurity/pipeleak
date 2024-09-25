@@ -45,15 +45,18 @@ func analyzeQueueItem(serializeditem []byte, maxThreads int) {
 	}
 
 	if item.Type == QueueItemJobTrace {
+		log.Debug().Str("url", item.HitMetaInfo.JobWebUrl).Msg("Scanning Job Trace")
 		analyzeJobTrace(item, maxThreads)
 	}
 
 	if item.Type == QueueItemArtifact {
+		log.Debug().Str("url", item.HitMetaInfo.JobWebUrl).Msg("Scanning artifact")
 		analyzeJobArtifact(item, maxThreads)
 		runtime.GC()
 	}
 
 	if item.Type == QueueItemDotenv {
+		log.Debug().Str("url", item.HitMetaInfo.JobWebUrl).Msg("Scanning Dotenv")
 		analyzeDotenvArtifact(item, maxThreads)
 	}
 

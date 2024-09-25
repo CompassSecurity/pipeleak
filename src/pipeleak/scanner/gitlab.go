@@ -228,11 +228,15 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 		return
 	}
 
-	enqueueItem(data, queue, QueueItemArtifact, hitMeta)
+	if len(data) > 1 {
+		enqueueItem(data, queue, QueueItemArtifact, hitMeta)
+	}
 
 	if len(options.GitlabCookie) > 1 {
 		envTxt := DownloadEnvArtifact(options.GitlabCookie, options.GitlabUrl, project.PathWithNamespace, job.ID)
-		enqueueItem(envTxt, queue, QueueItemDotenv, hitMeta)
+		if len(envTxt) > 1 {
+			enqueueItem(envTxt, queue, QueueItemDotenv, hitMeta)
+		}
 	} else {
 		log.Debug().Msg("No cookie provided skipping .env.gz artifact")
 	}
