@@ -59,7 +59,7 @@ func ScanGitLabPipelines(options *ScanOptions) {
 	helper.RegisterGracefulShutdownHandler(cleanUp)
 
 	r := jobs.NewRunner(jobs.NewRunnerOpts{
-		Limit:        4,
+		Limit:        options.MaxScanGoRoutines,
 		Log:          nil,
 		PollInterval: 10 * time.Millisecond,
 		Queue:        queue,
