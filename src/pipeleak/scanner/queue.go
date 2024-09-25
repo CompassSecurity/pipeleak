@@ -92,7 +92,6 @@ func analyzeJobArtifact(item QueueItem, maxThreads int) {
 	}
 
 	for _, file := range zipListing.File {
-		log.Debug().Str("file", file.Name).Uint64("size", file.UncompressedSize64).Msg("artifact file")
 		fc, err := file.Open()
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("Unable to open raw artifact zip file")
