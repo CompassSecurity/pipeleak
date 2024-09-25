@@ -13,7 +13,7 @@ import (
 	"github.com/maragudk/goqite"
 	"github.com/maragudk/goqite/jobs"
 	"github.com/rs/zerolog/log"
-	"github.com/wandb/parallel"
+	//"github.com/wandb/parallel"
 )
 
 type QueueItemType string
@@ -92,31 +92,28 @@ func analyzeJobArtifact(item QueueItem, maxThreads int) {
 	}
 
 	for _, file := range zipListing.File {
-		ctx := context.Background()
-		group := parallel.Unlimited(ctx)
-		group.Go(func(ctx context.Context) {
-			fc, err := file.Open()
-			if err != nil {
-				log.Error().Stack().Err(err).Msg("Unable to open raw artifact zip file")
-				return
-			}
+		log.Debug().Str("file", file.Name).Uint64("size", file.UncompressedSize64).Msg("artifact file")
+		fc, err := file.Open()
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("Unable to open raw artifact zip file")
+			return
+		}
 
-			content, err := io.ReadAll(fc)
-			if err != nil {
-				log.Error().Stack().Err(err).Msg("Unable to readAll artifact zip file")
-				return
-			}
+		content, err := io.ReadAll(fc)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("Unable to readAll artifact zip file")
+			return
+		}
 
-			kind, _ := filetype.Match(content)
-			// do not scan https://pkg.go.dev/github.com/h2non/filetype#readme-supported-types
-			if kind == filetype.Unknown {
-				findings := DetectHits(content, maxThreads)
-				for _, finding := range findings {
-					log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", item.HitMetaInfo.JobWebUrl).Str("file", file.Name).Msg("HIT Artifact")
-				}
+		kind, _ := filetype.Match(content)
+		// do not scan https://pkg.go.dev/github.com/h2non/filetype#readme-supported-types
+		if kind == filetype.Unknown {
+			findings := DetectHits(content, maxThreads)
+			for _, finding := range findings {
+				log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", item.HitMetaInfo.JobWebUrl).Str("file", file.Name).Msg("HIT Artifact")
 			}
-			fc.Close()
-		})
+		}
+		fc.Close()
 	}
 }
 
