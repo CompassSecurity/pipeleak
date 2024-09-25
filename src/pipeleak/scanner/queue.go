@@ -122,7 +122,6 @@ func analyzeJobArtifact(item QueueItem, maxThreads int) {
 	}
 
 	group.Wait()
-	log.Debug().Msg("artifact DOOOONE")
 }
 
 func analyzeDotenvArtifact(item QueueItem, maxThreads int) {
