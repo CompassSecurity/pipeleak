@@ -73,7 +73,7 @@ func enqueueItem(trace []byte, queue *goqite.Queue, qType QueueItemType, hitMeta
 
 	err = jobs.Create(context.Background(), queue, "pipeleak-job", itemBytes)
 	if err != nil {
-		log.Error().Str("type", string(qType)).Err(err).Msg("Failed queuing jpb")
+		log.Error().Str("type", string(qType)).Err(err).Msg("Failed queuing job")
 	}
 }
 
