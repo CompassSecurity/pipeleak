@@ -41,7 +41,13 @@ The following confidence levels for scans are used by default:
 
 However if you want to add custom ones, you can define any value in the `rules.yml` file
 To scan only for a specific level, you can specify it via CLI flag e.g `--confidence=high,medium`. Define multiple by comma separating the values.
+
 Note: `high-verified` cannot be removed.
+
+### Memory Usage
+
+As the scanner processes a lot of resoures (especially when using  `--artifacts`) memory, CPU and disk usage can become hard to manage. 
+You can tweak `--threads`, `--max-artifact-size` and `--job-limit` to obtain a customized performance and achieve stable processing.
 
 ### Additional Features
 

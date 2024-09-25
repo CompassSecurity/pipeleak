@@ -54,7 +54,7 @@ func ScanGitLabPipelines(options *ScanOptions) {
 	defer os.Remove(tmpfile.Name())
 	queueFileName = tmpfile.Name()
 
-	setupQueue(tmpfile.Name())
+	setupQueue(tmpfile.Name(), options.MaxScanGoRoutines)
 	helper.RegisterGracefulShutdownHandler(cleanUp)
 
 	r := jobs.NewRunner(jobs.NewRunnerOpts{
@@ -78,7 +78,7 @@ func ScanGitLabPipelines(options *ScanOptions) {
 	r.Start(queueCtx)
 }
 
-func setupQueue(fileName string) {
+func setupQueue(fileName string, maxReceive int) {
 	sqlUri := `file://` + fileName + `:?_journal=WAL&_timeout=5000&_fk=true`
 	db, err := sql.Open("sqlite3", sqlUri)
 	log.Debug().Str("file", sqlUri).Msg("Using DB file")
@@ -95,7 +95,7 @@ func setupQueue(fileName string) {
 	queue = goqite.New(goqite.NewOpts{
 		DB:         db,
 		Name:       "jobs",
-		MaxReceive: 100,
+		MaxReceive: maxReceive,
 	})
 }
 
