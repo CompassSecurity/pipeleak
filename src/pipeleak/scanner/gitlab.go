@@ -51,7 +51,7 @@ func ScanGitLabPipelines(options *ScanOptions) {
 	setupQueue(tmpfile.Name())
 
 	r := jobs.NewRunner(jobs.NewRunnerOpts{
-		Limit:        1,
+		Limit:        4,
 		Log:          nil,
 		PollInterval: 10 * time.Millisecond,
 		Queue:        queue,
@@ -72,7 +72,9 @@ func ScanGitLabPipelines(options *ScanOptions) {
 }
 
 func setupQueue(fileName string) {
-	db, err := sql.Open("sqlite3", ":memory:?_journal=WAL&_timeout=5000&_fk=true")
+	sqlUri := `file://` + fileName + `:?_journal=WAL&_timeout=5000&_fk=true`
+	db, err := sql.Open("sqlite3", sqlUri)
+	log.Debug().Str("file", sqlUri).Msg("Using DB file")
 	if err != nil {
 		log.Fatal().Err(err).Str("file", fileName).Msg("Opening Temp DB file failed")
 	}
@@ -84,13 +86,15 @@ func setupQueue(fileName string) {
 	}
 
 	queue = goqite.New(goqite.NewOpts{
-		DB:   db,
-		Name: "jobs",
+		DB:         db,
+		Name:       "jobs",
+		MaxReceive: 100,
 	})
 }
 
 func fetchProjects(options *ScanOptions) {
 	log.Info().Msg("Fetching projects")
+
 	git, err := gitlab.NewClient(options.GitlabApiToken, gitlab.WithBaseURL(options.GitlabUrl))
 	if err != nil {
 		log.Fatal().Stack().Err(err)
@@ -106,7 +110,7 @@ func fetchProjects(options *ScanOptions) {
 
 	projectOpts := &gitlab.ListProjectsOptions{
 		ListOptions: gitlab.ListOptions{
-			PerPage: 1,
+			PerPage: 100,
 			Page:    1,
 		},
 		Owned:      gitlab.Ptr(options.Owned),
@@ -131,6 +135,7 @@ func fetchProjects(options *ScanOptions) {
 		}
 		projectOpts.Page = resp.NextPage
 		log.Info().Int("total", projectOpts.Page*projectOpts.PerPage).Msg("Fetched projects")
+
 	}
 	queueCancelFn()
 }
@@ -139,7 +144,7 @@ func getAllJobs(git *gitlab.Client, project *gitlab.Project, options *ScanOption
 
 	opts := &gitlab.ListJobsOptions{
 		ListOptions: gitlab.ListOptions{
-			PerPage: 1,
+			PerPage: 100,
 			Page:    1,
 		},
 	}
@@ -157,6 +162,8 @@ jobOut:
 		for _, job := range jobs {
 			currentJobCtr += 1
 			hitMeta := HitMetaInfo{JobId: job.ID, ProjectId: project.ID, JobWebUrl: getJobUrl(git, project, job)}
+			enqueueItem(nil, queue, QueueItemJobTrace, hitMeta)
+
 			getJobTrace(git, project, job, hitMeta)
 
 			if options.Artifacts {
@@ -201,7 +208,7 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 	}
 
 	// do not scan files greater than 200Mb
-	if artifactsReader.Size() > 200*1024*1024 {
+	if artifactsReader.Size() > 2*1024*1024 {
 		log.Error().Int("projectId", project.ID).Int("jobId", job.ID).Msg("Skipped artifact Zip to do size greater than 200Mb")
 		return
 	}

@@ -125,9 +125,8 @@ func AppendPipeleakRules(rules []PatternElement) []PatternElement {
 }
 
 func DetectHits(text []byte) []Finding {
-
 	ctx := context.Background()
-	group := parallel.Collect[[]Finding](parallel.Unlimited(ctx))
+	group := parallel.Collect[[]Finding](parallel.Limited(ctx, 4))
 
 	for _, pattern := range secretsPatterns.Patterns {
 		group.Go(func(ctx context.Context) ([]Finding, error) {
@@ -159,7 +158,7 @@ func DetectHits(text []byte) []Finding {
 
 	findingsCombined := slices.Concat(resultsYml...)
 
-	trGroup := parallel.Collect[[]Finding](parallel.Unlimited(ctx))
+	trGroup := parallel.Collect[[]Finding](parallel.Limited(ctx, 4))
 	for _, detector := range engine.DefaultDetectors() {
 		trGroup.Go(func(ctx context.Context) ([]Finding, error) {
 			findingsTr := []Finding{}
