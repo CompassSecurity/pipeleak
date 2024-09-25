@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/url"
+	"runtime"
 
 	"github.com/h2non/filetype"
 	"github.com/maragudk/goqite"
@@ -49,6 +50,7 @@ func analyzeQueueItem(serializeditem []byte, maxThreads int) {
 
 	if item.Type == QueueItemArtifact {
 		analyzeJobArtifact(item, maxThreads)
+		runtime.GC()
 	}
 
 	if item.Type == QueueItemDotenv {
