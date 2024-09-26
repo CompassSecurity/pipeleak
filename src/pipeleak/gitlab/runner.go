@@ -24,8 +24,13 @@ func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
 
 	log.Info().Msg("Listing avaialable runenrs: Runners are only shown once, even when available by multiple source e,g, group or project")
 
+	runnerTags := make(map[string]bool)
 	for _, entry := range runnerMap {
 		details, _, err := git.Runners.GetRunnerDetails(entry.runner.ID)
+		for _, tag := range details.TagList {
+			runnerTags[tag] = true
+		}
+
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("failed getting runner details")
 			continue
@@ -38,8 +43,14 @@ func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
 		if entry.group != nil {
 			log.Info().Str("name", entry.group.Name).Str("runner", details.Name).Str("description", details.Description).Str("type", details.RunnerType).Bool("paused", details.Paused).Str("tags", strings.Join(details.TagList, ",")).Msg("group runner")
 		}
-
 	}
+
+	keys := make([]string, 0, len(runnerTags))
+	for k := range runnerTags {
+		keys = append(keys, k)
+	}
+
+	log.Info().Str("tags", strings.Join(keys, ",")).Msg("Unique runner tags")
 }
 
 func listProjectRunners(git *gitlab.Client, runnerMap map[int]runnerResult) map[int]runnerResult {
