@@ -116,7 +116,7 @@ func fetchProjects(options *ScanOptions) {
 
 	git, err := gitlab.NewClient(options.GitlabApiToken, gitlab.WithBaseURL(options.GitlabUrl))
 	if err != nil {
-		log.Fatal().Stack().Err(err)
+		log.Fatal().Stack().Err(err).Msg("failed creating gitlab client")
 	}
 
 	if len(options.GitlabCookie) > 0 {
@@ -267,7 +267,7 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 
 	req, err := http.NewRequest("GET", dotenvUrl, nil)
 	if err != nil {
-		log.Debug().Stack().Err(err)
+		log.Debug().Stack().Err(err).Msg("Failed dotenv GET request")
 		return []byte{}
 	}
 
@@ -310,7 +310,7 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 
 	envText, err := io.ReadAll(gzreader)
 	if err != nil {
-		log.Debug().Stack().Err(err)
+		log.Debug().Stack().Err(err).Msg("failed uncompressing dotenv archive")
 		return []byte{}
 	}
 

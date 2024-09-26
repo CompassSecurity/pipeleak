@@ -16,10 +16,18 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/xanzy/go-gitlab"
 	"gopkg.in/headzoo/surf.v1"
 )
+
+func SetLogLevel(verbose bool) {
+	if verbose {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		log.Debug().Msg("Verbose log output enabled")
+	}
+}
 
 func CalculateZipFileSize(data []byte) uint64 {
 	reader := bytes.NewReader(data)

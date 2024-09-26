@@ -57,7 +57,7 @@ func Shodan(cmd *cobra.Command, args []string) {
 
 	jsonFile, err := os.Open(shodanJson)
 	if err != nil {
-		log.Fatal().Stack().Err(err)
+		log.Fatal().Stack().Err(err).Msg("failed opening file")
 	}
 	defer jsonFile.Close()
 
@@ -71,7 +71,7 @@ func Shodan(cmd *cobra.Command, args []string) {
 		d := result{}
 		_, err := marshmallow.Unmarshal(line, &d)
 		if err != nil {
-			log.Error().Stack().Err(err)
+			log.Error().Stack().Err(err).Msg("failed unmarshalling jsonl line")
 		} else {
 
 			isHttps := true
@@ -108,11 +108,11 @@ func testHost(hostname string, port int, https bool) {
 	}
 	registration, err := isRegistrationEnabled(url)
 	if err != nil {
-		log.Error().Stack().Err(err)
+		log.Error().Stack().Err(err).Msg("regisration check failed")
 	}
 	nrOfProjects, err := checkNrPublicRepos(url)
 	if err != nil {
-		log.Error().Stack().Err(err)
+		log.Error().Stack().Err(err).Msg("check nr public repos failed")
 	}
 	log.Info().Bool("registration", registration).Int("nrProjects", nrOfProjects).Str("url", url+"/explore").Msg("")
 }

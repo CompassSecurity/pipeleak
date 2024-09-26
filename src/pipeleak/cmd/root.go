@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"os"
+	"time"
+
+	"github.com/CompassSecurity/pipeleak/cmd/runners"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"os"
-	"time"
 )
 
 var (
@@ -24,7 +26,7 @@ func Execute() error {
 func init() {
 	rootCmd.AddCommand(NewScanCmd())
 	rootCmd.AddCommand(NewShodanCmd())
-	rootCmd.AddCommand(NewRunnersCmd())
+	rootCmd.AddCommand(cmd.NewRunnersRootCmd())
 	rootCmd.AddCommand(NewRegisterCmd())
 
 	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
