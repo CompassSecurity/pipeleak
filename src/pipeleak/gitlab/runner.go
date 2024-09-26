@@ -1,4 +1,4 @@
-package scanner
+package gitlab
 
 import (
 	"strings"
@@ -16,7 +16,7 @@ type runnerResult struct {
 func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
 	git, err := gitlab.NewClient(apiToken, gitlab.WithBaseURL(gitlabUrl))
 	if err != nil {
-		log.Fatal().Stack().Err(err)
+		log.Fatal().Stack().Err(err).Msg("failed creating gitlab client")
 	}
 	runnerMap := make(map[int]runnerResult)
 	runnerMap = listProjectRunners(git, runnerMap)
@@ -27,7 +27,7 @@ func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
 	for _, entry := range runnerMap {
 		details, _, err := git.Runners.GetRunnerDetails(entry.runner.ID)
 		if err != nil {
-			log.Error().Stack().Err(err)
+			log.Error().Stack().Err(err).Msg("failed getting runner details")
 			continue
 		}
 
@@ -98,7 +98,7 @@ func listGroupRunners(git *gitlab.Client, runnerMap map[int]runnerResult) map[in
 	for {
 		groups, resp, err := git.Groups.ListGroups(listGroupsOpts)
 		if err != nil {
-			log.Error().Stack().Err(err)
+			log.Error().Stack().Err(err).Msg("failed listing groups")
 		}
 
 		for _, group := range groups {
@@ -123,7 +123,7 @@ func listGroupRunners(git *gitlab.Client, runnerMap map[int]runnerResult) map[in
 		for {
 			runners, resp, err := git.Runners.ListGroupsRunners(group.ID, listRunnerOpts)
 			if err != nil {
-				log.Error().Stack().Err(err)
+				log.Error().Stack().Err(err).Msg("failed listing group runners")
 			}
 			for _, runner := range runners {
 				runnerMap[runner.ID] = runnerResult{runner: runner, project: nil, group: group}

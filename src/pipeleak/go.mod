@@ -12,6 +12,7 @@ require (
 	github.com/spf13/cobra v1.8.1
 	github.com/trufflesecurity/trufflehog/v3 v3.82.2
 	github.com/xanzy/go-gitlab v0.109.0
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
@@ -195,6 +196,7 @@ require (
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
+	gitlab.com/mitchenielsen/gitlab-ci-go v0.0.4 // indirect
 	go.einride.tech/aip v0.60.0 // indirect
 	go.mongodb.org/mongo-driver v1.16.1 // indirect
 	go.opencensus.io v0.24.0 // indirect
