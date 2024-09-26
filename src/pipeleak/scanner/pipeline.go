@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -39,18 +40,11 @@ type ScanOptions struct {
 	ConfidenceFilter   []string
 	MaxArtifactSize    int64
 	MaxScanGoRoutines  int
+	QueueFolder        string
 }
 
 func ScanGitLabPipelines(options *ScanOptions) {
-	log.Debug().Msg("Setting up queue on disk")
-	tmpfile, err := os.CreateTemp("", "pipeleak-queue-db")
-	if err != nil {
-		log.Fatal().Err(err).Msg("Creating Temp DB file failed")
-	}
-	defer os.Remove(tmpfile.Name())
-	queueFileName = tmpfile.Name()
-
-	setupQueue(tmpfile.Name(), options.MaxScanGoRoutines)
+	setupQueue(options)
 	helper.RegisterGracefulShutdownHandler(cleanUp)
 
 	r := jobs.NewRunner(jobs.NewRunnerOpts{
@@ -74,12 +68,35 @@ func ScanGitLabPipelines(options *ScanOptions) {
 	r.Start(queueCtx)
 }
 
-func setupQueue(fileName string, maxReceive int) {
-	sqlUri := `file://` + fileName + `:?_journal=WAL&_timeout=5000&_fk=true`
+func setupQueue(options *ScanOptions) {
+	log.Debug().Msg("Setting up queue on disk")
+
+	queueDirectory := options.QueueFolder
+	if len(options.QueueFolder) > 0 {
+		cwd, err := os.Getwd()
+		if err != nil {
+			log.Fatal().Err(err).Msg("Could not determine CWD")
+		}
+		relative := path.Join(cwd, queueDirectory)
+		absPath, err := filepath.Abs(relative)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed parsing absolute path")
+		}
+		queueDirectory = absPath
+	}
+
+	tmpfile, err := os.CreateTemp(queueDirectory, "pipeleak-queue-db-")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Creating Temp DB file failed")
+	}
+	defer os.Remove(tmpfile.Name())
+	queueFileName = tmpfile.Name()
+
+	sqlUri := `file://` + queueFileName + `:?_journal=WAL&_timeout=5000&_fk=true`
 	db, err := sql.Open("sqlite3", sqlUri)
 	log.Debug().Str("file", sqlUri).Msg("Using DB file")
 	if err != nil {
-		log.Fatal().Err(err).Str("file", fileName).Msg("Opening Temp DB file failed")
+		log.Fatal().Err(err).Str("file", queueFileName).Msg("Opening Temp DB file failed")
 	}
 	db.SetMaxOpenConns(1)
 	db.SetMaxIdleConns(1)
@@ -91,7 +108,7 @@ func setupQueue(fileName string, maxReceive int) {
 	queue = goqite.New(goqite.NewOpts{
 		DB:         db,
 		Name:       "jobs",
-		MaxReceive: maxReceive,
+		MaxReceive: options.MaxScanGoRoutines,
 	})
 }
 
