@@ -41,21 +41,19 @@ The following confidence levels for scans are used by default:
 
 However if you want to add custom ones, you can define any value in the `rules.yml` file
 To scan only for a specific level, you can specify it via CLI flag e.g `--confidence=high,medium`. Define multiple by comma separating the values.
+
 Note: `high-verified` cannot be removed.
+
+### Memory Usage
+
+As the scanner processes a lot of resoures (especially when using  `--artifacts`) memory, CPU and disk usage can become hard to manage. 
+You can tweak `--threads`, `--max-artifact-size` and `--job-limit` to obtain a customized performance and achieve stable processing.
 
 ### Additional Features
 
-Filter the scanned projects by using the `--search` flag and provide a search query string.
-
-Filter the scanned projects by using the `--owned` flag to only process projects owned by you.
-
-Filter the scanned projects by using the `--member` flag to only process projects you are a member of.
-
-Limit the scanned nr of jobs by using the `--job-limit` flag.
-
 `shodan` command: use the Shodan command to identify gitlab instances that might allow for anyone to register. this command assumes a JSON file from a Shodan export. example query: `product:"GitLab Self-Managed"`
 
-`runners` command: Identify all (shared) runners which are available globally or through a group where the user has at least developer access.
+`runners` command: Identify (shared) runners which are available globally or through a group where the user has at least developer access.
 
 `register` command: Best effort automation to register a new user on an instance.
 

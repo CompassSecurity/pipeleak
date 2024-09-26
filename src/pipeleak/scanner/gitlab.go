@@ -6,31 +6,130 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/tls"
+	"database/sql"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/h2non/filetype"
+	"github.com/CompassSecurity/pipeleak/helper"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/rs/zerolog/log"
-	"github.com/wandb/parallel"
 	"github.com/xanzy/go-gitlab"
+
+	"github.com/maragudk/goqite"
+	"github.com/maragudk/goqite/jobs"
 )
 
-func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanArtifacts bool, scanOwnedOnly bool, query string, jobLimit int, member bool, confidenceFilter []string) {
-	InitRules(confidenceFilter)
+var queue *goqite.Queue
+var queueCancelFn context.CancelFunc
+var queueFileName string
+
+type ScanOptions struct {
+	GitlabUrl          string
+	GitlabApiToken     string
+	GitlabCookie       string
+	ProjectSearchQuery string
+	Artifacts          bool
+	Owned              bool
+	Member             bool
+	JobLimit           int
+	Verbose            bool
+	ConfidenceFilter   []string
+	MaxArtifactSize    int64
+	MaxScanGoRoutines  int
+}
+
+func ScanGitLabPipelines(options *ScanOptions) {
+	log.Debug().Msg("Setting up queue on disk")
+	tmpfile, err := os.CreateTemp("", "pipeleak-queue-db")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Creating Temp DB file failed")
+	}
+	defer os.Remove(tmpfile.Name())
+	queueFileName = tmpfile.Name()
+
+	setupQueue(tmpfile.Name(), options.MaxScanGoRoutines)
+	helper.RegisterGracefulShutdownHandler(cleanUp)
+
+	r := jobs.NewRunner(jobs.NewRunnerOpts{
+		Limit:        options.MaxScanGoRoutines,
+		Log:          nil,
+		PollInterval: 10 * time.Millisecond,
+		Queue:        queue,
+	})
+
+	InitRules(options.ConfidenceFilter)
+
+	go fetchProjects(options)
+
+	r.Register("pipeleak-job", func(ctx context.Context, m []byte) error {
+		analyzeQueueItem(m, options.MaxScanGoRoutines)
+		return nil
+	})
+
+	queueCtx, cancelFunc := context.WithCancel(context.Background())
+	queueCancelFn = cancelFunc
+	r.Start(queueCtx)
+}
+
+func setupQueue(fileName string, maxReceive int) {
+	sqlUri := `file://` + fileName + `:?_journal=WAL&_timeout=5000&_fk=true`
+	db, err := sql.Open("sqlite3", sqlUri)
+	log.Debug().Str("file", sqlUri).Msg("Using DB file")
+	if err != nil {
+		log.Fatal().Err(err).Str("file", fileName).Msg("Opening Temp DB file failed")
+	}
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
+
+	if err := goqite.Setup(context.Background(), db); err != nil {
+		log.Fatal().Err(err).Msg("Goqite setup failed")
+	}
+
+	queue = goqite.New(goqite.NewOpts{
+		DB:         db,
+		Name:       "jobs",
+		MaxReceive: maxReceive,
+	})
+}
+
+func cleanUp() {
+	log.Info().Msg("Graceful Shutdown, cleaning up")
+	files, err := filepath.Glob(queueFileName + "*")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error removing database files")
+	}
+	for _, f := range files {
+		err := os.Remove(f)
+		if err != nil {
+			log.Fatal().Err(err).Str("file", f).Msg("Error deleting database file")
+		}
+		log.Debug().Str("file", f).Msg("Deleted")
+	}
+	os.Remove(queueFileName)
+}
+
+func fetchProjects(options *ScanOptions) {
 	log.Info().Msg("Fetching projects")
-	git, err := gitlab.NewClient(apiToken, gitlab.WithBaseURL(gitlabUrl))
+
+	git, err := gitlab.NewClient(options.GitlabApiToken, gitlab.WithBaseURL(options.GitlabUrl))
 	if err != nil {
 		log.Fatal().Stack().Err(err)
 	}
 
-	if len(query) > 0 {
-		log.Info().Str("query", query).Msg("Filtering scanned projects by")
+	if len(options.GitlabCookie) > 0 {
+		SessionValid(options.GitlabUrl, options.GitlabCookie)
+	}
+
+	if len(options.ProjectSearchQuery) > 0 {
+		log.Info().Str("query", options.ProjectSearchQuery).Msg("Filtering scanned projects by")
 	}
 
 	projectOpts := &gitlab.ListProjectsOptions{
@@ -38,38 +137,34 @@ func ScanGitLabPipelines(gitlabUrl string, apiToken string, cookie string, scanA
 			PerPage: 100,
 			Page:    1,
 		},
-		Owned:      gitlab.Ptr(scanOwnedOnly),
-		Membership: gitlab.Ptr(member),
-		Search:     gitlab.Ptr(query),
+		Owned:      gitlab.Ptr(options.Owned),
+		Membership: gitlab.Ptr(options.Member),
+		Search:     gitlab.Ptr(options.ProjectSearchQuery),
 		OrderBy:    gitlab.Ptr("last_activity_at"),
 	}
 
 	for {
 		projects, resp, err := git.Projects.ListProjects(projectOpts)
-
-		// regularily test cookie liveness
-		if len(cookie) > 0 {
-			SessionValid(gitlabUrl, cookie)
-		}
-
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("Failed fetching projects")
 		}
 
 		for _, project := range projects {
-			log.Debug().Str("name", project.Name).Msg("Scan Project jobs for")
-			getAllJobs(git, project, scanArtifacts, cookie, gitlabUrl, jobLimit)
+			log.Debug().Str("url", project.WebURL).Msg("Fetch Project jobs for")
+			getAllJobs(git, project, options)
 		}
 
 		if resp.NextPage == 0 {
 			break
 		}
 		projectOpts.Page = resp.NextPage
-		log.Info().Int("total", projectOpts.Page*projectOpts.PerPage).Msg("Scanned projects")
+		log.Info().Int("total", projectOpts.Page*projectOpts.PerPage).Msg("Fetched projects")
+
 	}
+	queueCancelFn()
 }
 
-func getAllJobs(git *gitlab.Client, project *gitlab.Project, scanArtifacts bool, cookie string, gitlabUrl string, jobLimit int) {
+func getAllJobs(git *gitlab.Client, project *gitlab.Project, options *ScanOptions) {
 
 	opts := &gitlab.ListJobsOptions{
 		ListOptions: gitlab.ListOptions{
@@ -90,14 +185,16 @@ jobOut:
 
 		for _, job := range jobs {
 			currentJobCtr += 1
-			getJobTrace(git, project, job)
+			hitMeta := HitMetaInfo{JobId: job.ID, ProjectId: project.ID, JobWebUrl: getJobUrl(git, project, job)}
+			enqueueItem(nil, queue, QueueItemJobTrace, hitMeta)
 
-			if scanArtifacts {
-				getJobArtifacts(git, project, job, cookie, gitlabUrl)
+			getJobTrace(git, project, job, hitMeta)
+
+			if options.Artifacts {
+				getJobArtifacts(git, project, job, options, hitMeta)
 			}
 
-			if jobLimit > 0 && currentJobCtr >= jobLimit {
-				log.Debug().Msg("Skipping jobs as job-limit is reached")
+			if options.JobLimit > 0 && currentJobCtr >= options.JobLimit {
 				break jobOut
 			}
 		}
@@ -111,7 +208,7 @@ jobOut:
 
 }
 
-func getJobTrace(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job) {
+func getJobTrace(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job, hitMeta HitMetaInfo) {
 	reader, _, err := git.Jobs.GetTraceFile(project.ID, job.ID)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("Failed fetching job trace")
@@ -122,84 +219,66 @@ func getJobTrace(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job) {
 		log.Error().Stack().Err(err).Msg("Failed reading trace reader into byte array")
 		return
 	}
-	findings := DetectHits(trace)
-
-	for _, finding := range findings {
-		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", getJobUrl(git, project, job)).Msg("HIT")
-	}
+	enqueueItem(trace, queue, QueueItemJobTrace, hitMeta)
 }
 
-func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job, cookie string, gitlabUrl string) {
-	log.Debug().Int("projectId", project.ID).Int("jobId", job.ID).Msg("extract artifacts")
+func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job, options *ScanOptions, hitMeta HitMetaInfo) {
+	log.Debug().Str("url", getJobUrl(git, project, job)).Msg("Check for artifacts")
 
 	artifactsReader, _, err := git.Jobs.GetJobArtifacts(project.ID, job.ID)
 	if err != nil {
 		return
 	}
 
-	zipListing, err := zip.NewReader(artifactsReader, artifactsReader.Size())
-	if err != nil {
-		log.Warn().Int("project", project.ID).Int("job", job.ID).Msg("Unable to unzip artifacts for")
+	if artifactsReader.Size() > options.MaxArtifactSize {
+		log.Debug().Str("url", getJobUrl(git, project, job)).Int64("bytes", artifactsReader.Size()).Int64("maxBytes", options.MaxArtifactSize).Msg("Skipped large artifact Zip")
 		return
 	}
 
-	for _, file := range zipListing.File {
-		ctx := context.Background()
-		group := parallel.Unlimited(ctx)
-		group.Go(func(ctx context.Context) {
-			fc, err := file.Open()
-			if err != nil {
-				log.Error().Stack().Err(err).Msg("Unable to open raw artifact zip file")
-				return
-			}
-
-			content, err := io.ReadAll(fc)
-			if err != nil {
-				log.Error().Stack().Err(err).Msg("Unable to readAll artifact zip file")
-				return
-			}
-
-			kind, _ := filetype.Match(content)
-			// do not scan https://pkg.go.dev/github.com/h2non/filetype#readme-supported-types
-			if kind == filetype.Unknown {
-				findings := DetectHits(content)
-				for _, finding := range findings {
-					log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", job.WebURL).Str("file", file.Name).Msg("HIT Artifact")
-				}
-			}
-			fc.Close()
-		})
+	data, err := io.ReadAll(artifactsReader)
+	if err != nil {
+		log.Error().Int("projectId", project.ID).Int("jobId", job.ID).Msg("Failed reading artifacts stream")
+		return
 	}
 
-	zipListing = &zip.Reader{}
-	artifactsReader = &bytes.Reader{}
+	extractedZipSize := calculateZipFileSize(data)
+	if extractedZipSize > uint64(options.MaxArtifactSize) {
+		log.Debug().Str("url", getJobUrl(git, project, job)).Int64("zipBytes", artifactsReader.Size()).Uint64("bytesExtracted", extractedZipSize).Int64("maxBytes", options.MaxArtifactSize).Msg("Skipped large extracted Zip artifact")
+		return
+	}
 
-	if len(cookie) > 1 {
-		envTxt := DownloadEnvArtifact(cookie, gitlabUrl, project.PathWithNamespace, job.ID)
-		findings := DetectHits(envTxt)
-		artifactsBaseUrl, _ := url.JoinPath(project.WebURL, "/-/artifacts")
-		for _, finding := range findings {
-			log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("artifactUrl", artifactsBaseUrl).Int("jobId", job.ID).Msg("HIT DOTENV: Check artifacts page which is the only place to download the dotenv file")
+	if len(data) > 1 {
+		enqueueItem(data, queue, QueueItemArtifact, hitMeta)
+	}
+
+	if len(options.GitlabCookie) > 1 {
+		envTxt := DownloadEnvArtifact(options.GitlabCookie, options.GitlabUrl, project.PathWithNamespace, job.ID)
+		if len(envTxt) > 1 {
+			enqueueItem(envTxt, queue, QueueItemDotenv, hitMeta)
 		}
-
 	} else {
 		log.Debug().Msg("No cookie provided skipping .env.gz artifact")
 	}
 
 }
 
-func getJobUrl(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job) string {
-	return git.BaseURL().Host + "/" + project.PathWithNamespace + "/-/jobs/" + strconv.Itoa(job.ID)
+func calculateZipFileSize(data []byte) uint64 {
+	reader := bytes.NewReader(data)
+	zipListing, err := zip.NewReader(reader, int64(len(data)))
+	if err != nil {
+		log.Error().Msg("Failed calculcatingZipFileSize")
+		return 0
+	}
+	totalSize := uint64(0)
+	for _, file := range zipListing.File {
+		totalSize = totalSize + file.UncompressedSize64
+	}
+
+	return totalSize
 }
 
-func StreamToString(stream io.Reader) string {
-	buf := new(bytes.Buffer)
-	_, err := buf.ReadFrom(stream)
-	if err != nil {
-		log.Error().Stack().Err(err).Msg("Unable to read job trace buffer")
-		return ""
-	}
-	return buf.String()
+func getJobUrl(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job) string {
+	return git.BaseURL().Host + "/" + project.PathWithNamespace + "/-/jobs/" + strconv.Itoa(job.ID)
 }
 
 // .env artifacts are not accessible over the API thus we must use session cookie and use the UI path

@@ -103,7 +103,7 @@ func InitRules(confidenceFilter []string) {
 
 			totalRules := len(secretsPatterns.Patterns)
 			if totalRules == 0 {
-				log.Warn().Int("count", totalRules).Msg("Your confidence filter removed all rules, are you sure? TruffleHog Rules will still detect secrets. This equals --confidence high-verified")
+				log.Info().Int("count", totalRules).Msg("Your confidence filter removed all rules, are you sure? TruffleHog Rules will still detect secrets. This equals --confidence high-verified")
 			}
 
 			log.Debug().Int("count", totalRules).Msg("Loaded filtered rules")
@@ -124,10 +124,9 @@ func AppendPipeleakRules(rules []PatternElement) []PatternElement {
 	return slices.Concat(rules, customRules)
 }
 
-func DetectHits(text []byte) []Finding {
-
+func DetectHits(text []byte, maxThreads int) []Finding {
 	ctx := context.Background()
-	group := parallel.Collect[[]Finding](parallel.Unlimited(ctx))
+	group := parallel.Collect[[]Finding](parallel.Limited(ctx, maxThreads))
 
 	for _, pattern := range secretsPatterns.Patterns {
 		group.Go(func(ctx context.Context) ([]Finding, error) {
@@ -159,7 +158,7 @@ func DetectHits(text []byte) []Finding {
 
 	findingsCombined := slices.Concat(resultsYml...)
 
-	trGroup := parallel.Collect[[]Finding](parallel.Unlimited(ctx))
+	trGroup := parallel.Collect[[]Finding](parallel.Limited(ctx, maxThreads))
 	for _, detector := range engine.DefaultDetectors() {
 		trGroup.Go(func(ctx context.Context) ([]Finding, error) {
 			findingsTr := []Finding{}
