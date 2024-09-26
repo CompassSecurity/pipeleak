@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/CompassSecurity/pipeleak/scanner"
 	gounits "github.com/docker/go-units"
 	"github.com/rs/zerolog"
@@ -62,7 +63,7 @@ func Scan(cmd *cobra.Command, args []string) {
 
 	options.MaxArtifactSize = parseFileSize(maxArtifactSize)
 
-	version := scanner.DetermineVersion(options.GitlabUrl, options.GitlabApiToken)
+	version := helper.DetermineVersion(options.GitlabUrl, options.GitlabApiToken)
 	log.Info().Str("version", version.Version).Str("revision", version.Revision).Msg("Gitlab Version Check")
 	scanner.ScanGitLabPipelines(&options)
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")

@@ -1,21 +1,16 @@
 package scanner
 
 import (
-	"archive/zip"
 	"bytes"
 	"compress/gzip"
 	"context"
-	"crypto/tls"
 	"database/sql"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
-	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/CompassSecurity/pipeleak/helper"
@@ -125,7 +120,7 @@ func fetchProjects(options *ScanOptions) {
 	}
 
 	if len(options.GitlabCookie) > 0 {
-		SessionValid(options.GitlabUrl, options.GitlabCookie)
+		helper.CookieSessionValid(options.GitlabUrl, options.GitlabCookie)
 	}
 
 	if len(options.ProjectSearchQuery) > 0 {
@@ -240,7 +235,7 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 		return
 	}
 
-	extractedZipSize := calculateZipFileSize(data)
+	extractedZipSize := helper.CalculateZipFileSize(data)
 	if extractedZipSize > uint64(options.MaxArtifactSize) {
 		log.Debug().Str("url", getJobUrl(git, project, job)).Int64("zipBytes", artifactsReader.Size()).Uint64("bytesExtracted", extractedZipSize).Int64("maxBytes", options.MaxArtifactSize).Msg("Skipped large extracted Zip artifact")
 		return
@@ -259,21 +254,6 @@ func getDotenvArtifact(git *gitlab.Client, project *gitlab.Project, job *gitlab.
 			enqueueItem(envTxt, queue, QueueItemDotenv, hitMeta)
 		}
 	}
-}
-
-func calculateZipFileSize(data []byte) uint64 {
-	reader := bytes.NewReader(data)
-	zipListing, err := zip.NewReader(reader, int64(len(data)))
-	if err != nil {
-		log.Error().Msg("Failed calculcatingZipFileSize")
-		return 0
-	}
-	totalSize := uint64(0)
-	for _, file := range zipListing.File {
-		totalSize = totalSize + file.UncompressedSize64
-	}
-
-	return totalSize
 }
 
 func getJobUrl(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job) string {
@@ -335,208 +315,4 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 	}
 
 	return envText
-}
-
-func SessionValid(gitlabUrl string, cookieVal string) {
-	gitlabSessionsUrl, _ := url.JoinPath(gitlabUrl, "-/user_settings/active_sessions")
-
-	req, err := http.NewRequest("GET", gitlabSessionsUrl, nil)
-	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("Failed GitLab sessions request")
-		return
-	}
-	req.AddCookie(&http.Cookie{Name: "_gitlab_session", Value: cookieVal})
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("Failed GitLab session test")
-	}
-	defer resp.Body.Close()
-
-	statCode := resp.StatusCode
-
-	if statCode != 200 {
-		log.Fatal().Int("http", statCode).Msg("Negative _gitlab_session test")
-	} else {
-		log.Info().Msg("Provided GitLab session cookie is valid")
-	}
-}
-
-type runnerResult struct {
-	runner  *gitlab.Runner
-	project *gitlab.Project
-	group   *gitlab.Group
-}
-
-func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
-	git, err := gitlab.NewClient(apiToken, gitlab.WithBaseURL(gitlabUrl))
-	if err != nil {
-		log.Fatal().Stack().Err(err)
-	}
-	runnerMap := make(map[int]runnerResult)
-	runnerMap = listProjectRunners(git, runnerMap)
-	runnerMap = listGroupRunners(git, runnerMap)
-
-	log.Info().Msg("Listing avaialable runenrs: Runners are only shown once, even when available by multiple source e,g, group or project")
-
-	for _, entry := range runnerMap {
-		details, _, err := git.Runners.GetRunnerDetails(entry.runner.ID)
-		if err != nil {
-			log.Error().Stack().Err(err)
-			continue
-		}
-
-		if entry.project != nil {
-			log.Info().Str("project", entry.project.Name).Str("runner", details.Name).Str("description", details.Description).Str("type", details.RunnerType).Bool("paused", details.Paused).Str("tags", strings.Join(details.TagList, ",")).Msg("project runner")
-		}
-
-		if entry.group != nil {
-			log.Info().Str("name", entry.group.Name).Str("runner", details.Name).Str("description", details.Description).Str("type", details.RunnerType).Bool("paused", details.Paused).Str("tags", strings.Join(details.TagList, ",")).Msg("group runner")
-		}
-
-	}
-}
-
-func listProjectRunners(git *gitlab.Client, runnerMap map[int]runnerResult) map[int]runnerResult {
-	projectOpts := &gitlab.ListProjectsOptions{
-		ListOptions: gitlab.ListOptions{
-			PerPage: 100,
-			Page:    1,
-		},
-		MinAccessLevel: gitlab.Ptr(gitlab.MaintainerPermissions),
-	}
-
-	for {
-		projects, resp, err := git.Projects.ListProjects(projectOpts)
-		if err != nil {
-			log.Error().Stack().Err(err).Msg("Failed fetching projects")
-		}
-
-		for _, project := range projects {
-			log.Debug().Str("name", project.Name).Int("id", project.ID).Msg("List runners for")
-			runnerOpts := &gitlab.ListProjectRunnersOptions{
-				ListOptions: gitlab.ListOptions{
-					PerPage: 100,
-					Page:    1,
-				},
-			}
-			runners, _, _ := git.Runners.ListProjectRunners(project.ID, runnerOpts)
-			for _, runner := range runners {
-				runnerMap[runner.ID] = runnerResult{runner: runner, project: project, group: nil}
-			}
-		}
-
-		if resp.NextPage == 0 {
-			break
-		}
-		projectOpts.Page = resp.NextPage
-	}
-
-	return runnerMap
-
-}
-
-func listGroupRunners(git *gitlab.Client, runnerMap map[int]runnerResult) map[int]runnerResult {
-	log.Debug().Msg("Logging available groups with at least developer access")
-
-	listGroupsOpts := &gitlab.ListGroupsOptions{
-		ListOptions: gitlab.ListOptions{
-			PerPage: 100,
-			Page:    1,
-		},
-		AllAvailable:   gitlab.Ptr(true),
-		MinAccessLevel: gitlab.Ptr(gitlab.DeveloperPermissions),
-	}
-
-	var availableGroups []*gitlab.Group
-
-	for {
-		groups, resp, err := git.Groups.ListGroups(listGroupsOpts)
-		if err != nil {
-			log.Error().Stack().Err(err)
-		}
-
-		for _, group := range groups {
-			log.Debug().Str("name", group.Name).Msg("List runners for")
-			availableGroups = append(availableGroups, group)
-		}
-
-		if resp.NextPage == 0 {
-			break
-		}
-		listGroupsOpts.Page = resp.NextPage
-	}
-
-	listRunnerOpts := &gitlab.ListGroupsRunnersOptions{
-		ListOptions: gitlab.ListOptions{
-			PerPage: 100,
-			Page:    1,
-		},
-	}
-
-	for _, group := range availableGroups {
-		for {
-			runners, resp, err := git.Runners.ListGroupsRunners(group.ID, listRunnerOpts)
-			if err != nil {
-				log.Error().Stack().Err(err)
-			}
-			for _, runner := range runners {
-				runnerMap[runner.ID] = runnerResult{runner: runner, project: nil, group: group}
-			}
-
-			if resp.NextPage == 0 {
-				break
-			}
-			listRunnerOpts.Page = resp.NextPage
-		}
-	}
-
-	return runnerMap
-}
-
-func DetermineVersion(gitlabUrl string, apiToken string) *gitlab.Version {
-	if len(apiToken) > 0 {
-		git, err := gitlab.NewClient(apiToken, gitlab.WithBaseURL(gitlabUrl))
-		if err != nil {
-			return &gitlab.Version{Version: "none", Revision: "none"}
-		}
-
-		version, _, err := git.Version.GetVersion()
-		if err != nil {
-			return &gitlab.Version{Version: "none", Revision: "none"}
-		}
-		return version
-	} else {
-		u, err := url.Parse(gitlabUrl)
-		if err != nil {
-			return &gitlab.Version{Version: "none", Revision: "none"}
-		}
-		u.Path = path.Join(u.Path, "/help")
-
-		tr := &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
-		client := &http.Client{Transport: tr, Timeout: 15 * time.Second}
-		response, err := client.Get(u.String())
-
-		if err != nil {
-			log.Warn().Msg(gitlabUrl)
-			return &gitlab.Version{Version: "none", Revision: "none"}
-		}
-
-		responseData, err := io.ReadAll(response.Body)
-		if err != nil {
-			return &gitlab.Version{Version: "none", Revision: "none"}
-		}
-
-		extractLineR := regexp.MustCompile(`instance_version":"\d*.\d*.\d*"`)
-		fullLine := extractLineR.Find(responseData)
-		versionR := regexp.MustCompile(`\d+.\d+.\d+`)
-		versionNumber := versionR.Find(fullLine)
-
-		if len(versionNumber) > 3 {
-			return &gitlab.Version{Version: string(versionNumber), Revision: "none"}
-		}
-		return &gitlab.Version{Version: "none", Revision: "none"}
-	}
 }

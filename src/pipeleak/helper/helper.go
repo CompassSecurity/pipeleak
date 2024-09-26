@@ -1,16 +1,112 @@
 package helper
 
 import (
+	"archive/zip"
+	"bytes"
+	"crypto/tls"
+	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
+	"path"
+	"regexp"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/rs/zerolog/log"
+	"github.com/xanzy/go-gitlab"
 	"gopkg.in/headzoo/surf.v1"
 )
+
+func CalculateZipFileSize(data []byte) uint64 {
+	reader := bytes.NewReader(data)
+	zipListing, err := zip.NewReader(reader, int64(len(data)))
+	if err != nil {
+		log.Error().Msg("Failed calculcatingZipFileSize")
+		return 0
+	}
+	totalSize := uint64(0)
+	for _, file := range zipListing.File {
+		totalSize = totalSize + file.UncompressedSize64
+	}
+
+	return totalSize
+}
+
+func CookieSessionValid(gitlabUrl string, cookieVal string) {
+	gitlabSessionsUrl, _ := url.JoinPath(gitlabUrl, "-/user_settings/active_sessions")
+
+	req, err := http.NewRequest("GET", gitlabSessionsUrl, nil)
+	if err != nil {
+		log.Fatal().Stack().Err(err).Msg("Failed GitLab sessions request")
+		return
+	}
+	req.AddCookie(&http.Cookie{Name: "_gitlab_session", Value: cookieVal})
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatal().Stack().Err(err).Msg("Failed GitLab session test")
+	}
+	defer resp.Body.Close()
+
+	statCode := resp.StatusCode
+
+	if statCode != 200 {
+		log.Fatal().Int("http", statCode).Msg("Negative _gitlab_session test")
+	} else {
+		log.Info().Msg("Provided GitLab session cookie is valid")
+	}
+}
+
+func DetermineVersion(gitlabUrl string, apiToken string) *gitlab.Version {
+	if len(apiToken) > 0 {
+		git, err := gitlab.NewClient(apiToken, gitlab.WithBaseURL(gitlabUrl))
+		if err != nil {
+			return &gitlab.Version{Version: "none", Revision: "none"}
+		}
+
+		version, _, err := git.Version.GetVersion()
+		if err != nil {
+			return &gitlab.Version{Version: "none", Revision: "none"}
+		}
+		return version
+	} else {
+		u, err := url.Parse(gitlabUrl)
+		if err != nil {
+			return &gitlab.Version{Version: "none", Revision: "none"}
+		}
+		u.Path = path.Join(u.Path, "/help")
+
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		client := &http.Client{Transport: tr, Timeout: 15 * time.Second}
+		response, err := client.Get(u.String())
+
+		if err != nil {
+			log.Warn().Msg(gitlabUrl)
+			return &gitlab.Version{Version: "none", Revision: "none"}
+		}
+
+		responseData, err := io.ReadAll(response.Body)
+		if err != nil {
+			return &gitlab.Version{Version: "none", Revision: "none"}
+		}
+
+		extractLineR := regexp.MustCompile(`instance_version":"\d*.\d*.\d*"`)
+		fullLine := extractLineR.Find(responseData)
+		versionR := regexp.MustCompile(`\d+.\d+.\d+`)
+		versionNumber := versionR.Find(fullLine)
+
+		if len(versionNumber) > 3 {
+			return &gitlab.Version{Version: string(versionNumber), Revision: "none"}
+		}
+		return &gitlab.Version{Version: "none", Revision: "none"}
+	}
+}
 
 func RegisterNewAccount(targetUrl string, username string, password string, email string) {
 
