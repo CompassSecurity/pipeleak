@@ -53,7 +53,7 @@ You can tweak `--threads`, `--max-artifact-size` and `--job-limit` to obtain a c
 
 `shodan` command: use the Shodan command to identify gitlab instances that might allow for anyone to register. this command assumes a JSON file from a Shodan export. example query: `product:"GitLab Self-Managed"`
 
-`runners` command: Identify (shared) runners which are available globally or through a group where the user has at least developer access.
+`runners` command: Identify (shared) runners which are available globally or through a group where the user has at least developer access. Create projects with a default exploitation `.gitlab-ci.yml` file.
 
 `register` command: Best effort automation to register a new user on an instance.
 
