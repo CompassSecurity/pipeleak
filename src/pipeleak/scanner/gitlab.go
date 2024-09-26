@@ -192,6 +192,7 @@ jobOut:
 
 			if options.Artifacts {
 				getJobArtifacts(git, project, job, options, hitMeta)
+				getDotenvArtifact(git, project, job, options, hitMeta)
 			}
 
 			if options.JobLimit > 0 && currentJobCtr >= options.JobLimit {
@@ -223,8 +224,6 @@ func getJobTrace(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job, h
 }
 
 func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job, options *ScanOptions, hitMeta HitMetaInfo) {
-	log.Debug().Str("url", getJobUrl(git, project, job)).Msg("Check for artifacts")
-
 	artifactsReader, _, err := git.Jobs.GetJobArtifacts(project.ID, job.ID)
 	if err != nil {
 		return
@@ -250,16 +249,16 @@ func getJobArtifacts(git *gitlab.Client, project *gitlab.Project, job *gitlab.Jo
 	if len(data) > 1 {
 		enqueueItem(data, queue, QueueItemArtifact, hitMeta)
 	}
+}
 
+// dotenv artifacts are not listed in the API thus a request must always be made
+func getDotenvArtifact(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job, options *ScanOptions, hitMeta HitMetaInfo) {
 	if len(options.GitlabCookie) > 1 {
 		envTxt := DownloadEnvArtifact(options.GitlabCookie, options.GitlabUrl, project.PathWithNamespace, job.ID)
 		if len(envTxt) > 1 {
 			enqueueItem(envTxt, queue, QueueItemDotenv, hitMeta)
 		}
-	} else {
-		log.Debug().Msg("No cookie provided skipping .env.gz artifact")
 	}
-
 }
 
 func calculateZipFileSize(data []byte) uint64 {
@@ -282,7 +281,6 @@ func getJobUrl(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job) str
 }
 
 // .env artifacts are not accessible over the API thus we must use session cookie and use the UI path
-// however this is where the treasure is - my precious
 func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, jobId int) []byte {
 
 	dotenvUrl, _ := url.JoinPath(gitlabUrl, prjectPath, "/-/jobs/", strconv.Itoa(jobId), "/artifacts/download")
