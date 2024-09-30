@@ -30,7 +30,7 @@ type result struct {
 	Hostnames []string `json:"hostnames"`
 	Port      int      `json:"port"`
 	IPString  string   `json:"ip_str"`
-	Shodan    shodan   `json:"shodan"`
+	Shodan    shodan   `json:"_shodan"`
 }
 
 func NewShodanCmd() *cobra.Command {
@@ -61,7 +61,7 @@ func Shodan(cmd *cobra.Command, args []string) {
 
 	data, _ := io.ReadAll(jsonFile)
 	ctx := context.Background()
-	group := parallel.Unlimited(ctx)
+	group := parallel.Limited(ctx, 4)
 	ctr := 0
 
 	for _, line := range bytes.Split(data, []byte{'\n'}) {
@@ -72,9 +72,9 @@ func Shodan(cmd *cobra.Command, args []string) {
 			log.Error().Stack().Err(err).Msg("failed unmarshalling jsonl line")
 		} else {
 
-			isHttps := true
-			if strings.EqualFold("http", d.Shodan.Module) {
-				isHttps = false
+			isHttps := false
+			if strings.EqualFold("https", d.Shodan.Module) {
+				isHttps = true
 			}
 
 			if len(d.Hostnames) == 0 {
