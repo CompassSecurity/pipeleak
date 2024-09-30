@@ -3,6 +3,7 @@ package gitlab
 import (
 	"strings"
 
+	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/rs/zerolog/log"
 	"github.com/xanzy/go-gitlab"
 )
@@ -14,7 +15,7 @@ type runnerResult struct {
 }
 
 func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
-	git, err := gitlab.NewClient(apiToken, gitlab.WithBaseURL(gitlabUrl))
+	git, err := helper.GetGitlabClient(apiToken, gitlabUrl)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("failed creating gitlab client")
 	}

@@ -28,7 +28,6 @@ func NewScanCmd() *cobra.Command {
 		log.Fatal().Stack().Err(err).Msg("Unable to require gitlab flag")
 	}
 
-	//@todo test null vs empty string when no account
 	scanCmd.Flags().StringVarP(&options.GitlabApiToken, "token", "t", "", "GitLab API Token")
 	err = scanCmd.MarkFlagRequired("token")
 	if err != nil {

@@ -3,17 +3,15 @@ package cmd
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"io"
-	"net/http"
 	"net/url"
 	"os"
 	"path"
 	"strconv"
 	"strings"
-	"time"
 
+	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/perimeterx/marshmallow"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -32,7 +30,7 @@ type result struct {
 	Hostnames []string `json:"hostnames"`
 	Port      int      `json:"port"`
 	IPString  string   `json:"ip_str"`
-	Shodan    shodan   `json:"shodan"`
+	Shodan    shodan   `json:"_shodan"`
 }
 
 func NewShodanCmd() *cobra.Command {
@@ -63,7 +61,7 @@ func Shodan(cmd *cobra.Command, args []string) {
 
 	data, _ := io.ReadAll(jsonFile)
 	ctx := context.Background()
-	group := parallel.Unlimited(ctx)
+	group := parallel.Limited(ctx, 4)
 	ctr := 0
 
 	for _, line := range bytes.Split(data, []byte{'\n'}) {
@@ -74,9 +72,9 @@ func Shodan(cmd *cobra.Command, args []string) {
 			log.Error().Stack().Err(err).Msg("failed unmarshalling jsonl line")
 		} else {
 
-			isHttps := true
-			if strings.EqualFold("http", d.Shodan.Module) {
-				isHttps = false
+			isHttps := false
+			if strings.EqualFold("https", d.Shodan.Module) {
+				isHttps = true
 			}
 
 			if len(d.Hostnames) == 0 {
@@ -126,10 +124,7 @@ func isRegistrationEnabled(base string) (bool, error) {
 	u.Path = path.Join(u.Path, "/users/somenotexistigusr/exists")
 	s := u.String()
 
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{Transport: tr, Timeout: 15 * time.Second}
+	client := helper.GetNonVerifyingHTTPClient()
 	res, err := client.Get(s)
 
 	if err != nil {
@@ -160,10 +155,8 @@ func checkNrPublicRepos(base string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{Transport: tr, Timeout: 15 * time.Second}
+
+	client := helper.GetNonVerifyingHTTPClient()
 	u.Path = "/api/v4/projects"
 	s := u.String()
 	res, err := client.Get(s + "?per_page=100")

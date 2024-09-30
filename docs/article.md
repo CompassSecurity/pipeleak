@@ -19,6 +19,8 @@ Sweet now you have access to the GitLab instance with an account.
 The first thing to look out for: What projects do I have access to? Is it more than unauthenticated? 
 Some companies grant their developers `developer` access to each repository, this might become interesting.
 
+The main question: Is the access concept based on the least privilege principle?
+
 # Misconfigurations And Mishandling
 
 ## Secret Detection in Source Code
