@@ -53,7 +53,7 @@ func CookieSessionValid(gitlabUrl string, cookieVal string) {
 		return
 	}
 	req.AddCookie(&http.Cookie{Name: "_gitlab_session", Value: cookieVal})
-	client := &http.Client{}
+	client := GetNonVerifyingHTTPClient()
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed GitLab session test")
@@ -71,7 +71,7 @@ func CookieSessionValid(gitlabUrl string, cookieVal string) {
 
 func DetermineVersion(gitlabUrl string, apiToken string) *gitlab.Version {
 	if len(apiToken) > 0 {
-		git, err := gitlab.NewClient(apiToken, gitlab.WithBaseURL(gitlabUrl))
+		git, err := GetGitlabClient(apiToken, gitlabUrl)
 		if err != nil {
 			return &gitlab.Version{Version: "none", Revision: "none"}
 		}
@@ -88,10 +88,7 @@ func DetermineVersion(gitlabUrl string, apiToken string) *gitlab.Version {
 		}
 		u.Path = path.Join(u.Path, "/help")
 
-		tr := &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
-		client := &http.Client{Transport: tr, Timeout: 15 * time.Second}
+		client := GetNonVerifyingHTTPClient()
 		response, err := client.Get(u.String())
 
 		if err != nil {
@@ -189,4 +186,16 @@ func RegisterGracefulShutdownHandler(handler ShutdownHandler) {
 		os.Exit(1)
 	}()
 
+}
+
+func GetNonVerifyingHTTPClient() *http.Client {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	return &http.Client{Transport: tr, Timeout: 15 * time.Second}
+}
+
+func GetGitlabClient(token string, url string) (*gitlab.Client, error) {
+	client, err := gitlab.NewClient(token, gitlab.WithBaseURL(url), gitlab.WithHTTPClient(GetNonVerifyingHTTPClient()))
+	return client, err
 }

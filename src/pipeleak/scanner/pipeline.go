@@ -131,7 +131,7 @@ func cleanUp() {
 func fetchProjects(options *ScanOptions) {
 	log.Info().Msg("Fetching projects")
 
-	git, err := gitlab.NewClient(options.GitlabApiToken, gitlab.WithBaseURL(options.GitlabUrl))
+	git, err := helper.GetGitlabClient(options.GitlabApiToken, options.GitlabUrl)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("failed creating gitlab client")
 	}
@@ -294,7 +294,7 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 
 	req.AddCookie(&http.Cookie{Name: "_gitlab_session", Value: cookieVal})
 
-	client := &http.Client{}
+	client := helper.GetNonVerifyingHTTPClient()
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Debug().Stack().Err(err).Msg("Failed requesting dotenv artifact")
