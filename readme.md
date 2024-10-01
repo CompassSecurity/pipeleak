@@ -57,6 +57,12 @@ You can tweak `--threads`, `--max-artifact-size` and `--job-limit` to obtain a c
 
 `register` command: Best effort automation to register a new user on an instance.
 
+
+Setting an HTTP proxy is possible by setting the environment variable `HTTP_PROXY` e.g. to route through Burp:
+```bash
+HTTP_PROXY=http://127.0.0.1:8080 pipeleak scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com
+```
+
 ## Customizing Scan Rules
 
 When you run Pipeleak for the first time, it generates a `rules.yml` file based on [this repository](https://github.com/mazen160/secrets-patterns-db/blob/master/db/rules-stable.yml). You can customize your scan rules by modifying this file as needed.

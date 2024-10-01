@@ -189,9 +189,21 @@ func RegisterGracefulShutdownHandler(handler ShutdownHandler) {
 }
 
 func GetNonVerifyingHTTPClient() *http.Client {
+	proxyServer, isSet := os.LookupEnv("HTTP_PROXY")
+
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
+
+	if isSet {
+		proxyUrl, err := url.Parse(proxyServer)
+		if err != nil {
+			log.Fatal().Err(err).Str("HTTP_PROXY", proxyServer).Msg("Invalid Proxy URL in HTTP_PROXY environment variable")
+		}
+		log.Debug().Str("proxy", proxyUrl.String()).Msg("Auto detected proxy")
+		tr.Proxy = http.ProxyURL(proxyUrl)
+	}
+
 	return &http.Client{Transport: tr, Timeout: 15 * time.Second}
 }
 
