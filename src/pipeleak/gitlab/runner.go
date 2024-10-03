@@ -28,13 +28,14 @@ func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
 	runnerTags := make(map[string]bool)
 	for _, entry := range runnerMap {
 		details, _, err := git.Runners.GetRunnerDetails(entry.runner.ID)
-		for _, tag := range details.TagList {
-			runnerTags[tag] = true
-		}
 
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("failed getting runner details")
 			continue
+		}
+
+		for _, tag := range details.TagList {
+			runnerTags[tag] = true
 		}
 
 		if entry.project != nil {
