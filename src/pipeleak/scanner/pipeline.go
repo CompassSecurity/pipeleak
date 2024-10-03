@@ -159,6 +159,7 @@ func fetchProjects(options *ScanOptions) {
 		projects, resp, err := git.Projects.ListProjects(projectOpts)
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("Failed fetching projects")
+			break
 		}
 
 		for _, project := range projects {
@@ -193,6 +194,7 @@ jobOut:
 
 		if err != nil {
 			log.Debug().Stack().Err(err).Msg("Failed fetching project jobs")
+			break
 		}
 
 		for _, job := range jobs {
