@@ -204,7 +204,7 @@ func GetNonVerifyingHTTPClient() *http.Client {
 		tr.Proxy = http.ProxyURL(proxyUrl)
 	}
 
-	return &http.Client{Transport: tr, Timeout: 15 * time.Second}
+	return &http.Client{Transport: tr, Timeout: 60 * time.Second}
 }
 
 func GetGitlabClient(token string, url string) (*gitlab.Client, error) {
