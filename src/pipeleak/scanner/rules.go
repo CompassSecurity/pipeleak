@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"io"
-	"net/http"
 	"os"
 	"regexp"
 	"slices"
 	"strings"
 
+	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/acarl005/stripansi"
 	"github.com/rs/zerolog/log"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/engine"
@@ -61,7 +61,8 @@ func downloadFile(url string, filepath string) error {
 	}
 	defer out.Close()
 
-	resp, err := http.Get(url)
+	client := helper.GetNonVerifyingHTTPClient()
+	resp, err := client.Get(url)
 	if err != nil {
 		return err
 	}
