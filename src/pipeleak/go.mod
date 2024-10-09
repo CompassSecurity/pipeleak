@@ -16,6 +16,7 @@ require (
 )
 
 require (
+	atomicgo.dev/keyboard v0.2.9 // indirect
 	cloud.google.com/go v0.115.1 // indirect
 	cloud.google.com/go/auth v0.9.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.4 // indirect
@@ -76,6 +77,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.3.8 // indirect
 	github.com/coinbase/waas-client-library-go v1.0.8 // indirect
+	github.com/containerd/console v1.0.3 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.14.3 // indirect
 	github.com/couchbase/gocb/v2 v2.9.1 // indirect
 	github.com/couchbase/gocbcore/v10 v10.5.1 // indirect
