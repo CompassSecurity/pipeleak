@@ -63,6 +63,10 @@ Setting an HTTP proxy is possible by setting the environment variable `HTTP_PROX
 HTTP_PROXY=http://127.0.0.1:8080 pipeleak scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com
 ```
 
+### Keybindings
+
+In the `scan` mode you can change interactively between log levels by pressing `t`: Trace, `d`: Debug, `i`: Info, `w`: Warn, `e`: Error
+
 ## Customizing Scan Rules
 
 When you run Pipeleak for the first time, it generates a `rules.yml` file based on [this repository](https://github.com/mazen160/secrets-patterns-db/blob/master/db/rules-stable.yml). You can customize your scan rules by modifying this file as needed.
