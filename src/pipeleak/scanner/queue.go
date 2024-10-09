@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"runtime"
 	"strconv"
+	"sync"
 
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/h2non/filetype"
@@ -42,7 +43,16 @@ type QueueItem struct {
 	Meta        QueueMeta     `json:"meta"`
 }
 
-func analyzeQueueItem(serializeditem []byte, git *gitlab.Client, options *ScanOptions) {
+type QueueLogger struct {
+}
+
+func (re QueueLogger) Info(text string, queueMeta ...any) {
+	log.Debug().Any("queue", queueMeta).Msg("Queue: " + text)
+}
+
+func analyzeQueueItem(serializeditem []byte, git *gitlab.Client, options *ScanOptions, wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	var item QueueItem
 	err := json.Unmarshal(serializeditem, &item)
 	if err != nil {
@@ -50,24 +60,21 @@ func analyzeQueueItem(serializeditem []byte, git *gitlab.Client, options *ScanOp
 	}
 
 	if item.Type == QueueItemJobTrace {
-		log.Debug().Str("url", item.Meta.JobWebUrl).Msg("Scanning Job Trace")
 		analyzeJobTrace(git, item, options)
 	}
 
 	if item.Type == QueueItemArtifact {
-		log.Debug().Str("url", item.Meta.JobWebUrl).Msg("Scanning artifact")
 		analyzeJobArtifact(git, item, options)
 		runtime.GC()
 	}
 
 	if item.Type == QueueItemDotenv {
-		log.Debug().Str("url", item.Meta.JobWebUrl).Msg("Scanning Dotenv")
 		analyzeDotenvArtifact(git, item, options)
 	}
 
 }
 
-func enqueueItem(queue *goqite.Queue, qType QueueItemType, meta QueueMeta) {
+func enqueueItem(queue *goqite.Queue, qType QueueItemType, meta QueueMeta, wg *sync.WaitGroup) {
 	item := &QueueItem{Type: qType, Meta: meta}
 	itemBytes, err := json.Marshal(item)
 	if err != nil {
@@ -78,7 +85,10 @@ func enqueueItem(queue *goqite.Queue, qType QueueItemType, meta QueueMeta) {
 	err = jobs.Create(context.Background(), queue, "pipeleak-job", itemBytes)
 	if err != nil {
 		log.Error().Str("type", string(qType)).Err(err).Msg("Failed queuing job")
+		return
 	}
+
+	wg.Add(1)
 }
 
 func analyzeJobTrace(git *gitlab.Client, item QueueItem, options *ScanOptions) {

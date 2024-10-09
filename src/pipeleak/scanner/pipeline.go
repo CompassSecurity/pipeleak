@@ -3,22 +3,23 @@ package scanner
 import (
 	"context"
 	"database/sql"
-	"os"
-	"path"
-	"path/filepath"
-	"strconv"
-	"time"
-
 	"github.com/CompassSecurity/pipeleak/helper"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/rs/zerolog/log"
 	"github.com/xanzy/go-gitlab"
+	"os"
+	"path"
+	"path/filepath"
+	"strconv"
+	"sync"
+	"time"
 
 	"github.com/maragudk/goqite"
 	"github.com/maragudk/goqite/jobs"
 )
 
 var queue *goqite.Queue
+var waitGroup *sync.WaitGroup
 var queueFileName string
 
 type ScanOptions struct {
@@ -40,13 +41,11 @@ type ScanOptions struct {
 func ScanGitLabPipelines(options *ScanOptions) {
 	setupQueue(options)
 	helper.RegisterGracefulShutdownHandler(cleanUp)
-
 	r := jobs.NewRunner(jobs.NewRunnerOpts{
 		Limit:        options.MaxScanGoRoutines,
-		Log:          nil,
+		Log:          QueueLogger{},
 		PollInterval: 10 * time.Millisecond,
 		Queue:        queue,
-		Extend:       30 * time.Second,
 	})
 
 	InitRules(options.ConfidenceFilter)
@@ -56,17 +55,22 @@ func ScanGitLabPipelines(options *ScanOptions) {
 		log.Fatal().Stack().Err(err).Msg("failed creating gitlab client")
 	}
 
-	go fetchProjects(git, options)
+	// waitgroup is used to coordinate termination
+	// dont kill the queue before the jobs have been fetched
+	waitGroup = new(sync.WaitGroup)
+	waitGroup.Add(1)
+	go fetchProjects(git, options, waitGroup)
 
 	r.Register("pipeleak-job", func(ctx context.Context, m []byte) error {
-		analyzeQueueItem(m, git, options)
+		analyzeQueueItem(m, git, options, waitGroup)
 		return nil
 	})
 
-	// the time the queue waits without any items
-	ctx, cancel := context.WithTimeout(context.Background(), 80*time.Second)
-	defer cancel()
-	r.Start(ctx)
+	queueCtx, cancel := context.WithCancel(context.Background())
+	go r.Start(queueCtx)
+
+	waitGroup.Wait()
+	cancel()
 }
 
 func setupQueue(options *ScanOptions) {
@@ -129,7 +133,9 @@ func cleanUp() {
 	os.Remove(queueFileName)
 }
 
-func fetchProjects(git *gitlab.Client, options *ScanOptions) {
+func fetchProjects(git *gitlab.Client, options *ScanOptions, wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	log.Info().Msg("Fetching projects")
 
 	if len(options.GitlabCookie) > 0 {
@@ -159,7 +165,7 @@ func fetchProjects(git *gitlab.Client, options *ScanOptions) {
 		}
 
 		for _, project := range projects {
-			log.Debug().Str("url", project.WebURL).Msg("Fetch Project jobs for")
+			log.Debug().Str("url", project.WebURL).Msg("Fetch project jobs")
 			getAllJobs(git, project, options)
 		}
 
@@ -199,12 +205,12 @@ jobOut:
 		for _, job := range jobs {
 			currentJobCtr += 1
 			meta := QueueMeta{JobId: job.ID, ProjectId: project.ID, JobWebUrl: getJobUrl(git, project, job), ProjectPathWithNamespace: project.PathWithNamespace}
-			enqueueItem(queue, QueueItemJobTrace, meta)
+			enqueueItem(queue, QueueItemJobTrace, meta, waitGroup)
 
 			if options.Artifacts {
-				enqueueItem(queue, QueueItemArtifact, meta)
+				enqueueItem(queue, QueueItemArtifact, meta, waitGroup)
 				if len(options.GitlabCookie) > 1 {
-					enqueueItem(queue, QueueItemDotenv, meta)
+					enqueueItem(queue, QueueItemDotenv, meta, waitGroup)
 				}
 			}
 
