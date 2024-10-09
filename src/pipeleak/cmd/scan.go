@@ -89,7 +89,7 @@ func setLogLevel() {
 }
 
 func logLevelListener() {
-	keyboard.Listen(func(key keys.Key) (stop bool, err error) {
+	err := keyboard.Listen(func(key keys.Key) (stop bool, err error) {
 		switch key.Code {
 		case keys.CtrlC, keys.Escape:
 			return true, nil
@@ -122,4 +122,8 @@ func logLevelListener() {
 
 		return false, nil
 	})
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed hooking keyboard bindings")
+	}
 }
