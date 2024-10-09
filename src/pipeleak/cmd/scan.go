@@ -4,6 +4,8 @@ import (
 	"net/url"
 	"os"
 
+	"atomicgo.dev/keyboard"
+	"atomicgo.dev/keyboard/keys"
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/CompassSecurity/pipeleak/scanner"
 	gounits "github.com/docker/go-units"
@@ -54,6 +56,7 @@ func NewScanCmd() *cobra.Command {
 
 func Scan(cmd *cobra.Command, args []string) {
 	setLogLevel()
+	go logLevelListener()
 
 	_, err := url.ParseRequestURI(options.GitlabUrl)
 	if err != nil {
@@ -83,4 +86,40 @@ func setLogLevel() {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		log.Debug().Msg("Verbose log output enabled")
 	}
+}
+
+func logLevelListener() {
+	keyboard.Listen(func(key keys.Key) (stop bool, err error) {
+		switch key.Code {
+		case keys.CtrlC, keys.Escape:
+			return true, nil
+		case keys.RuneKey:
+			if key.String() == "t" {
+				zerolog.SetGlobalLevel(zerolog.TraceLevel)
+				log.Info().Msg("Loglevel Trace")
+			}
+
+			if key.String() == "d" {
+				zerolog.SetGlobalLevel(zerolog.DebugLevel)
+				log.Info().Msg("Loglevel Debug")
+			}
+
+			if key.String() == "i" {
+				zerolog.SetGlobalLevel(zerolog.InfoLevel)
+				log.Info().Msg("Loglevel Info")
+			}
+
+			if key.String() == "w" {
+				zerolog.SetGlobalLevel(zerolog.WarnLevel)
+				log.Warn().Msg("Loglevel Warn")
+			}
+
+			if key.String() == "e" {
+				zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+				log.Error().Msg("Loglevel Error")
+			}
+		}
+
+		return false, nil
+	})
 }
