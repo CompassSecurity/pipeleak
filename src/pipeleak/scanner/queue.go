@@ -183,7 +183,7 @@ func getJobArtifacts(git *gitlab.Client, projectId int, jobId int, options *Scan
 	}
 
 	if err != nil {
-		log.Error().Err(err).Int("project", projectId).Int("job", jobId).Msg("Failed donloading job artifacts zip")
+		log.Error().Err(err).Int("project", projectId).Int("job", jobId).Msg("Failed downloading job artifacts zip")
 		return nil
 	}
 
