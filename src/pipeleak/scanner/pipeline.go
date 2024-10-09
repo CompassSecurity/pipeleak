@@ -7,7 +7,6 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/CompassSecurity/pipeleak/helper"
@@ -47,7 +46,7 @@ func ScanGitLabPipelines(options *ScanOptions) {
 		Log:          nil,
 		PollInterval: 10 * time.Millisecond,
 		Queue:        queue,
-		Extend:       5 * time.Second,
+		Extend:       30 * time.Second,
 	})
 
 	InitRules(options.ConfidenceFilter)
@@ -57,19 +56,17 @@ func ScanGitLabPipelines(options *ScanOptions) {
 		log.Fatal().Stack().Err(err).Msg("failed creating gitlab client")
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go fetchProjects(git, options, &wg)
+	go fetchProjects(git, options)
 
 	r.Register("pipeleak-job", func(ctx context.Context, m []byte) error {
 		analyzeQueueItem(m, git, options)
 		return nil
 	})
 
-	ctx, cancel := context.WithCancel(context.Background())
+	// the time the queue waits without any items
+	ctx, cancel := context.WithTimeout(context.Background(), 80*time.Second)
 	defer cancel()
 	r.Start(ctx)
-	wg.Wait()
 }
 
 func setupQueue(options *ScanOptions) {
@@ -132,9 +129,7 @@ func cleanUp() {
 	os.Remove(queueFileName)
 }
 
-func fetchProjects(git *gitlab.Client, options *ScanOptions, wg *sync.WaitGroup) {
-	defer wg.Done()
-
+func fetchProjects(git *gitlab.Client, options *ScanOptions) {
 	log.Info().Msg("Fetching projects")
 
 	if len(options.GitlabCookie) > 0 {
@@ -174,6 +169,8 @@ func fetchProjects(git *gitlab.Client, options *ScanOptions, wg *sync.WaitGroup)
 		projectOpts.Page = resp.NextPage
 		log.Info().Int("total", projectOpts.Page*projectOpts.PerPage).Msg("Fetched projects")
 	}
+
+	log.Info().Msg("Fetched all projects")
 }
 
 func getAllJobs(git *gitlab.Client, project *gitlab.Project, options *ScanOptions) {
