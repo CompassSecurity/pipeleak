@@ -5,6 +5,7 @@ go 1.23
 toolchain go1.23.1
 
 require (
+	atomicgo.dev/keyboard v0.2.9
 	github.com/PuerkitoBio/goquery v1.10.0
 	github.com/docker/go-units v0.5.0
 	github.com/maragudk/goqite v0.2.3
@@ -12,11 +13,11 @@ require (
 	github.com/spf13/cobra v1.8.1
 	github.com/trufflesecurity/trufflehog/v3 v3.82.2
 	github.com/xanzy/go-gitlab v0.109.0
-	gopkg.in/yaml.v2 v2.4.0
+	gitlab.com/mitchenielsen/gitlab-ci-go v0.0.4
+	golift.io/xtractr v0.2.2
 )
 
 require (
-	atomicgo.dev/keyboard v0.2.9 // indirect
 	cloud.google.com/go v0.115.1 // indirect
 	cloud.google.com/go/auth v0.9.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.4 // indirect
@@ -200,7 +201,6 @@ require (
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
-	gitlab.com/mitchenielsen/gitlab-ci-go v0.0.4 // indirect
 	go.einride.tech/aip v0.60.0 // indirect
 	go.mongodb.org/mongo-driver v1.16.1 // indirect
 	go.opencensus.io v0.24.0 // indirect
@@ -221,7 +221,6 @@ require (
 	golang.org/x/text v0.18.0 // indirect
 	golang.org/x/tools v0.24.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
-	golift.io/xtractr v0.2.2 // indirect
 	google.golang.org/api v0.193.0 // indirect
 	google.golang.org/genproto v0.0.0-20240814211410-ddb44dafa142 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240814211410-ddb44dafa142 // indirect
@@ -249,7 +248,7 @@ require (
 	github.com/perimeterx/marshmallow v1.1.5
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/wandb/parallel v0.1.1
+	github.com/wandb/parallel v0.2.2
 	golang.org/x/oauth2 v0.23.0 // indirect
 	golang.org/x/sys v0.25.0 // indirect
 	golang.org/x/time v0.6.0 // indirect
