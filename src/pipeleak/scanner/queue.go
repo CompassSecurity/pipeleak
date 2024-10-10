@@ -9,8 +9,11 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/CompassSecurity/pipeleak/helper"
@@ -20,6 +23,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/wandb/parallel"
 	"github.com/xanzy/go-gitlab"
+	"golift.io/xtractr"
 )
 
 type QueueItemType string
@@ -135,11 +139,9 @@ func analyzeJobArtifact(git *gitlab.Client, item QueueItem, options *ScanOptions
 			kind, _ := filetype.Match(content)
 			// do not scan https://pkg.go.dev/github.com/h2non/filetype#readme-supported-types
 			if kind == filetype.Unknown {
-				// use one to prevent maxThreads^2 which trashes memory
-				findings := DetectHits(content, 1)
-				for _, finding := range findings {
-					log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", item.Meta.JobWebUrl).Str("file", file.Name).Msg("HIT Artifact")
-				}
+				detectFileHits(content, item.Meta.JobWebUrl, file.Name, "")
+			} else if filetype.IsArchive(content) {
+				handleArchiveArtifact(file.Name, content, item.Meta.JobWebUrl)
 			}
 			fc.Close()
 		})
@@ -278,4 +280,91 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 	}
 
 	return envText
+}
+
+var skippableDirectoryNames = []string{"node_modules", ".yarn", ".npm"}
+
+func handleArchiveArtifact(archivefileName string, content []byte, jobWebUrl string) {
+	for _, skipKeyword := range skippableDirectoryNames {
+		if strings.Contains(archivefileName, skipKeyword) {
+			log.Debug().Str("file", archivefileName).Str("keyword", skipKeyword).Msg("Skipped archive due to blocklist entry")
+			return
+		}
+	}
+
+	fileType, err := filetype.Get(content)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Cannot determine file type")
+		return
+	}
+
+	tmpArchiveFile, err := os.CreateTemp("", "pipeleak-artifact-archive-*."+fileType.Extension)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Cannot create artifact archive temp file")
+		return
+	}
+
+	err = os.WriteFile(tmpArchiveFile.Name(), content, 0666)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Failed writing archive to disk")
+		return
+	}
+	defer os.Remove(tmpArchiveFile.Name())
+
+	tmpArchiveFilesDirectory, err := os.MkdirTemp("", "pipeleak-artifact-archive-out-")
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Cannot create artifact archive temp directory")
+		return
+	}
+	defer os.RemoveAll(tmpArchiveFilesDirectory)
+
+	x := &xtractr.XFile{
+		FilePath:  tmpArchiveFile.Name(),
+		OutputDir: tmpArchiveFilesDirectory,
+		FileMode:  0o600,
+		DirMode:   0o700,
+	}
+
+	size, files, _, err := xtractr.ExtractFile(x)
+	log.Debug().Int64("size", size).Str("files", (strings.Join(files, ","))).Str("filename", archivefileName).Msg("extracted archive")
+	if err != nil || files == nil {
+		log.Debug().Stack().Err(err).Msg("Unable to handle archive in artifacts")
+		return
+	}
+
+	for _, fPath := range files {
+		if !isDirectory(fPath) {
+			fileBytes, err := os.ReadFile(fPath)
+			if err != nil {
+				log.Error().Str("file", fPath).Stack().Err(err).Msg("Cannot read temp artifact archive file content")
+			}
+
+			kind, _ := filetype.Match(fileBytes)
+			if kind == filetype.Unknown {
+				detectFileHits(fileBytes, jobWebUrl, path.Base(fPath), archivefileName)
+			}
+		}
+	}
+}
+
+func isDirectory(path string) bool {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return true
+	}
+
+	return fileInfo.IsDir()
+}
+
+func detectFileHits(content []byte, jobWebUrl string, fileName string, archiveName string) {
+	// 1 goroutine to prevent maxThreads^2 which trashes memory
+	findings := DetectHits(content, 1)
+	for _, finding := range findings {
+		baseLog := log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", jobWebUrl).Str("file", fileName)
+		if len(archiveName) > 0 {
+			baseLog.Str("archive", archiveName).Msg("HIT Artifact (in archive)")
+		} else {
+			baseLog.Msg("HIT Artifact")
+		}
+	}
 }
