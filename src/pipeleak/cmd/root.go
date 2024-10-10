@@ -35,6 +35,7 @@ func init() {
 }
 
 func initLogger() {
+	log.Logger = zerolog.New(os.Stdout).With().Timestamp().Logger()
 	if !JsonLogoutput {
 		output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
 		log.Logger = zerolog.New(output).With().Timestamp().Logger()
