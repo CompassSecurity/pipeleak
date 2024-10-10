@@ -325,8 +325,7 @@ func handleArchiveArtifact(archivefileName string, content []byte, jobWebUrl str
 		DirMode:   0o700,
 	}
 
-	size, files, _, err := xtractr.ExtractFile(x)
-	log.Debug().Int64("size", size).Str("files", (strings.Join(files, ","))).Str("filename", archivefileName).Msg("extracted archive")
+	_, files, _, err := xtractr.ExtractFile(x)
 	if err != nil || files == nil {
 		log.Debug().Str("err", err.Error()).Msg("Unable to handle archive in artifacts")
 		return
@@ -336,7 +335,7 @@ func handleArchiveArtifact(archivefileName string, content []byte, jobWebUrl str
 		if !helper.IsDirectory(fPath) {
 			fileBytes, err := os.ReadFile(fPath)
 			if err != nil {
-				log.Error().Str("file", fPath).Stack().Err(err).Msg("Cannot read temp artifact archive file content")
+				log.Debug().Str("file", fPath).Stack().Str("err", err.Error()).Msg("Cannot read temp artifact archive file content")
 			}
 
 			kind, _ := filetype.Match(fileBytes)
