@@ -282,7 +282,7 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 	return envText
 }
 
-var skippableDirectoryNames = []string{"node_modules", ".yarn", ".npm"}
+var skippableDirectoryNames = []string{"node_modules", ".yarn", ".npm", "venv"}
 
 func handleArchiveArtifact(archivefileName string, content []byte, jobWebUrl string) {
 	for _, skipKeyword := range skippableDirectoryNames {
