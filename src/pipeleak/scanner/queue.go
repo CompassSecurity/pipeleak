@@ -283,7 +283,7 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 }
 
 // https://docs.gitlab.com/ee/ci/caching/#common-use-cases-for-caches
-var skippableDirectoryNames = []string{"node_modules", ".yarn", ".yarn-cache" ".npm", "venv", "vendor", ".go/pkg/mod/"}
+var skippableDirectoryNames = []string{"node_modules", ".yarn", ".yarn-cache", ".npm", "venv", "vendor", ".go/pkg/mod/"}
 
 func handleArchiveArtifact(archivefileName string, content []byte, jobWebUrl string) {
 	for _, skipKeyword := range skippableDirectoryNames {
