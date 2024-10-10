@@ -67,6 +67,23 @@ HTTP_PROXY=http://127.0.0.1:8080 pipeleak scan --token glpat-xxxxxxxxxxx --gitla
 
 In the `scan` mode you can change interactively between log levels by pressing `t`: Trace, `d`: Debug, `i`: Info, `w`: Warn, `e`: Error
 
+## ELK Integration
+
+To easily analyze the results you can [redirect the pipeleak](https://github.com/deviantony/docker-elk?tab=readme-ov-file#injecting-data) output using `nc` into Logstash.
+
+Setup a local ELK stack using https://github.com/deviantony/docker-elk. 
+
+Then you can start a scan:
+```bash
+pipeleak scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com  --json | nc -q0 localhost 50000
+```
+
+Using Kibana you can filter for interesting messages, based on the JSON attributes of the output.
+
+e.g. `message.level=warn and message.confidence=verified` to find verified results.
+
+![Kiabana Search](docs/kibana.png)
+
 ## Customizing Scan Rules
 
 When you run Pipeleak for the first time, it generates a `rules.yml` file based on [this repository](https://github.com/mazen160/secrets-patterns-db/blob/master/db/rules-stable.yml). You can customize your scan rules by modifying this file as needed.
