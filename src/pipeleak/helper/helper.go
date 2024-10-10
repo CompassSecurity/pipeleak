@@ -211,3 +211,12 @@ func GetGitlabClient(token string, url string) (*gitlab.Client, error) {
 	client, err := gitlab.NewClient(token, gitlab.WithBaseURL(url), gitlab.WithHTTPClient(GetNonVerifyingHTTPClient()))
 	return client, err
 }
+
+func IsDirectory(path string) bool {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return true
+	}
+
+	return fileInfo.IsDir()
+}

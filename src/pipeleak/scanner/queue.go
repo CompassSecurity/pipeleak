@@ -9,8 +9,11 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/CompassSecurity/pipeleak/helper"
@@ -20,6 +23,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/wandb/parallel"
 	"github.com/xanzy/go-gitlab"
+	"golift.io/xtractr"
 )
 
 type QueueItemType string
@@ -104,7 +108,7 @@ func analyzeJobTrace(git *gitlab.Client, item QueueItem, options *ScanOptions) {
 }
 
 func analyzeJobArtifact(git *gitlab.Client, item QueueItem, options *ScanOptions) {
-	data := getJobArtifacts(git, item.Meta.ProjectId, item.Meta.JobId, options)
+	data := getJobArtifacts(git, item.Meta.ProjectId, item.Meta.JobId, item.Meta.JobWebUrl, options)
 	if data == nil {
 		return
 	}
@@ -135,11 +139,9 @@ func analyzeJobArtifact(git *gitlab.Client, item QueueItem, options *ScanOptions
 			kind, _ := filetype.Match(content)
 			// do not scan https://pkg.go.dev/github.com/h2non/filetype#readme-supported-types
 			if kind == filetype.Unknown {
-				// use one to prevent maxThreads^2 which trashes memory
-				findings := DetectHits(content, 1)
-				for _, finding := range findings {
-					log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", item.Meta.JobWebUrl).Str("file", file.Name).Msg("HIT Artifact")
-				}
+				DetectFileHits(content, item.Meta.JobWebUrl, file.Name, "")
+			} else if filetype.IsArchive(content) {
+				handleArchiveArtifact(file.Name, content, item.Meta.JobWebUrl)
 			}
 			fc.Close()
 		})
@@ -176,31 +178,31 @@ func getJobTrace(git *gitlab.Client, projectId int, jobId int) []byte {
 	return trace
 }
 
-func getJobArtifacts(git *gitlab.Client, projectId int, jobId int, options *ScanOptions) []byte {
+func getJobArtifacts(git *gitlab.Client, projectId int, jobId int, jobWebUrl string, options *ScanOptions) []byte {
 	artifactsReader, resp, err := git.Jobs.GetJobArtifacts(projectId, jobId)
 	if resp.StatusCode == 404 {
 		return nil
 	}
 
 	if err != nil {
-		log.Error().Err(err).Int("project", projectId).Int("job", jobId).Msg("Failed downloading job artifacts zip")
+		log.Error().Err(err).Str("url", jobWebUrl).Msg("Failed downloading job artifacts zip")
 		return nil
 	}
 
 	if artifactsReader.Size() > options.MaxArtifactSize {
-		log.Debug().Int("project", projectId).Int("job", jobId).Int64("bytes", artifactsReader.Size()).Int64("maxBytes", options.MaxArtifactSize).Msg("Skipped large artifact Zip")
+		log.Debug().Int64("bytes", artifactsReader.Size()).Int64("maxBytes", options.MaxArtifactSize).Str("url", jobWebUrl).Msg("Skipped large artifact Zip")
 		return nil
 	}
 
 	data, err := io.ReadAll(artifactsReader)
 	if err != nil {
-		log.Error().Err(err).Int("project", projectId).Int("job", jobId).Msg("Failed reading artifacts stream")
+		log.Error().Err(err).Str("url", jobWebUrl).Msg("Failed reading artifacts stream")
 		return nil
 	}
 
 	extractedZipSize := helper.CalculateZipFileSize(data)
 	if extractedZipSize > uint64(options.MaxArtifactSize) {
-		log.Debug().Int("project", projectId).Int("job", jobId).Int64("zipBytes", artifactsReader.Size()).Uint64("bytesExtracted", extractedZipSize).Int64("maxBytes", options.MaxArtifactSize).Msg("Skipped large extracted Zip artifact")
+		log.Debug().Str("url", jobWebUrl).Int64("zipBytes", artifactsReader.Size()).Uint64("bytesExtracted", extractedZipSize).Int64("maxBytes", options.MaxArtifactSize).Msg("Skipped large extracted Zip artifact")
 		return nil
 	}
 
@@ -278,4 +280,69 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 	}
 
 	return envText
+}
+
+// https://docs.gitlab.com/ee/ci/caching/#common-use-cases-for-caches
+var skippableDirectoryNames = []string{"node_modules", ".yarn", ".yarn-cache", ".npm", "venv", "vendor", ".go/pkg/mod/"}
+
+func handleArchiveArtifact(archivefileName string, content []byte, jobWebUrl string) {
+	for _, skipKeyword := range skippableDirectoryNames {
+		if strings.Contains(archivefileName, skipKeyword) {
+			log.Debug().Str("file", archivefileName).Str("keyword", skipKeyword).Msg("Skipped archive due to blocklist entry")
+			return
+		}
+	}
+
+	fileType, err := filetype.Get(content)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Cannot determine file type")
+		return
+	}
+
+	tmpArchiveFile, err := os.CreateTemp("", "pipeleak-artifact-archive-*."+fileType.Extension)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Cannot create artifact archive temp file")
+		return
+	}
+
+	err = os.WriteFile(tmpArchiveFile.Name(), content, 0666)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Failed writing archive to disk")
+		return
+	}
+	defer os.Remove(tmpArchiveFile.Name())
+
+	tmpArchiveFilesDirectory, err := os.MkdirTemp("", "pipeleak-artifact-archive-out-")
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Cannot create artifact archive temp directory")
+		return
+	}
+	defer os.RemoveAll(tmpArchiveFilesDirectory)
+
+	x := &xtractr.XFile{
+		FilePath:  tmpArchiveFile.Name(),
+		OutputDir: tmpArchiveFilesDirectory,
+		FileMode:  0o600,
+		DirMode:   0o700,
+	}
+
+	_, files, _, err := xtractr.ExtractFile(x)
+	if err != nil || files == nil {
+		log.Debug().Str("err", err.Error()).Msg("Unable to handle archive in artifacts")
+		return
+	}
+
+	for _, fPath := range files {
+		if !helper.IsDirectory(fPath) {
+			fileBytes, err := os.ReadFile(fPath)
+			if err != nil {
+				log.Debug().Str("file", fPath).Stack().Str("err", err.Error()).Msg("Cannot read temp artifact archive file content")
+			}
+
+			kind, _ := filetype.Match(fileBytes)
+			if kind == filetype.Unknown {
+				DetectFileHits(fileBytes, jobWebUrl, path.Base(fPath), archivefileName)
+			}
+		}
+	}
 }
