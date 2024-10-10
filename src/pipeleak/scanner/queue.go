@@ -108,7 +108,7 @@ func analyzeJobTrace(git *gitlab.Client, item QueueItem, options *ScanOptions) {
 }
 
 func analyzeJobArtifact(git *gitlab.Client, item QueueItem, options *ScanOptions) {
-	data := getJobArtifacts(git, item.Meta.ProjectId, item.Meta.JobId, options)
+	data := getJobArtifacts(git, item.Meta.ProjectId, item.Meta.JobId, item.Meta.JobWebUrl, options)
 	if data == nil {
 		return
 	}
@@ -139,7 +139,7 @@ func analyzeJobArtifact(git *gitlab.Client, item QueueItem, options *ScanOptions
 			kind, _ := filetype.Match(content)
 			// do not scan https://pkg.go.dev/github.com/h2non/filetype#readme-supported-types
 			if kind == filetype.Unknown {
-				detectFileHits(content, item.Meta.JobWebUrl, file.Name, "")
+				DetectFileHits(content, item.Meta.JobWebUrl, file.Name, "")
 			} else if filetype.IsArchive(content) {
 				handleArchiveArtifact(file.Name, content, item.Meta.JobWebUrl)
 			}
@@ -178,31 +178,31 @@ func getJobTrace(git *gitlab.Client, projectId int, jobId int) []byte {
 	return trace
 }
 
-func getJobArtifacts(git *gitlab.Client, projectId int, jobId int, options *ScanOptions) []byte {
+func getJobArtifacts(git *gitlab.Client, projectId int, jobId int, jobWebUrl string, options *ScanOptions) []byte {
 	artifactsReader, resp, err := git.Jobs.GetJobArtifacts(projectId, jobId)
 	if resp.StatusCode == 404 {
 		return nil
 	}
 
 	if err != nil {
-		log.Error().Err(err).Int("project", projectId).Int("job", jobId).Msg("Failed downloading job artifacts zip")
+		log.Error().Err(err).Str("url", jobWebUrl).Msg("Failed downloading job artifacts zip")
 		return nil
 	}
 
 	if artifactsReader.Size() > options.MaxArtifactSize {
-		log.Debug().Int("project", projectId).Int("job", jobId).Int64("bytes", artifactsReader.Size()).Int64("maxBytes", options.MaxArtifactSize).Msg("Skipped large artifact Zip")
+		log.Debug().Int64("bytes", artifactsReader.Size()).Int64("maxBytes", options.MaxArtifactSize).Str("url", jobWebUrl).Msg("Skipped large artifact Zip")
 		return nil
 	}
 
 	data, err := io.ReadAll(artifactsReader)
 	if err != nil {
-		log.Error().Err(err).Int("project", projectId).Int("job", jobId).Msg("Failed reading artifacts stream")
+		log.Error().Err(err).Str("url", jobWebUrl).Msg("Failed reading artifacts stream")
 		return nil
 	}
 
 	extractedZipSize := helper.CalculateZipFileSize(data)
 	if extractedZipSize > uint64(options.MaxArtifactSize) {
-		log.Debug().Int("project", projectId).Int("job", jobId).Int64("zipBytes", artifactsReader.Size()).Uint64("bytesExtracted", extractedZipSize).Int64("maxBytes", options.MaxArtifactSize).Msg("Skipped large extracted Zip artifact")
+		log.Debug().Str("url", jobWebUrl).Int64("zipBytes", artifactsReader.Size()).Uint64("bytesExtracted", extractedZipSize).Int64("maxBytes", options.MaxArtifactSize).Msg("Skipped large extracted Zip artifact")
 		return nil
 	}
 
@@ -328,12 +328,12 @@ func handleArchiveArtifact(archivefileName string, content []byte, jobWebUrl str
 	size, files, _, err := xtractr.ExtractFile(x)
 	log.Debug().Int64("size", size).Str("files", (strings.Join(files, ","))).Str("filename", archivefileName).Msg("extracted archive")
 	if err != nil || files == nil {
-		log.Debug().Stack().Err(err).Msg("Unable to handle archive in artifacts")
+		log.Debug().Str("err", err.Error()).Msg("Unable to handle archive in artifacts")
 		return
 	}
 
 	for _, fPath := range files {
-		if !isDirectory(fPath) {
+		if !helper.IsDirectory(fPath) {
 			fileBytes, err := os.ReadFile(fPath)
 			if err != nil {
 				log.Error().Str("file", fPath).Stack().Err(err).Msg("Cannot read temp artifact archive file content")
@@ -341,30 +341,8 @@ func handleArchiveArtifact(archivefileName string, content []byte, jobWebUrl str
 
 			kind, _ := filetype.Match(fileBytes)
 			if kind == filetype.Unknown {
-				detectFileHits(fileBytes, jobWebUrl, path.Base(fPath), archivefileName)
+				DetectFileHits(fileBytes, jobWebUrl, path.Base(fPath), archivefileName)
 			}
-		}
-	}
-}
-
-func isDirectory(path string) bool {
-	fileInfo, err := os.Stat(path)
-	if err != nil {
-		return true
-	}
-
-	return fileInfo.IsDir()
-}
-
-func detectFileHits(content []byte, jobWebUrl string, fileName string, archiveName string) {
-	// 1 goroutine to prevent maxThreads^2 which trashes memory
-	findings := DetectHits(content, 1)
-	for _, finding := range findings {
-		baseLog := log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", jobWebUrl).Str("file", fileName)
-		if len(archiveName) > 0 {
-			baseLog.Str("archive", archiveName).Msg("HIT Artifact (in archive)")
-		} else {
-			baseLog.Msg("HIT Artifact")
 		}
 	}
 }
