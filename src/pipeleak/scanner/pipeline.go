@@ -193,12 +193,13 @@ func getAllJobs(git *gitlab.Client, project *gitlab.Project, options *ScanOption
 jobOut:
 	for {
 		jobs, resp, err := git.Jobs.ListProjectJobs(project.ID, opts)
-		if resp.StatusCode == 403 {
-			break
-		}
 
 		if err != nil {
 			log.Debug().Stack().Err(err).Msg("Failed fetching project jobs")
+			break
+		}
+
+		if resp.StatusCode == 403 {
 			break
 		}
 
