@@ -11,6 +11,7 @@ require (
 	github.com/maragudk/goqite v0.2.3
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/cobra v1.8.1
+	github.com/tidwall/gjson v1.18.0
 	github.com/trufflesecurity/trufflehog/v3 v3.82.2
 	github.com/xanzy/go-gitlab v0.110.0
 	gitlab.com/mitchenielsen/gitlab-ci-go v0.0.4
@@ -46,7 +47,6 @@ require (
 	github.com/BobuSumisu/aho-corasick v1.0.3 // indirect
 	github.com/DataDog/zstd v1.5.5 // indirect
 	github.com/JohnCGriffin/overflow v0.0.0-20211019200055-46fa312c352c // indirect
-	github.com/Masterminds/semver/v3 v3.3.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
 	github.com/STARRY-S/zip v0.1.0 // indirect
@@ -189,11 +189,9 @@ require (
 	github.com/skeema/knownhosts v1.2.2 // indirect
 	github.com/snowflakedb/gosnowflake v1.10.1 // indirect
 	github.com/sorairolake/lzip-go v0.3.1 // indirect
-	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/tailscale/depaware v0.0.0-20240804103531-585336c3e1b3 // indirect
 	github.com/tetratelabs/wazero v1.7.2 // indirect
 	github.com/therootcompany/xz v1.0.1 // indirect
-	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/ulikunitz/xz v0.5.12 // indirect
