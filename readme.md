@@ -57,6 +57,8 @@ You can tweak `--threads`, `--max-artifact-size` and `--job-limit` to obtain a c
 
 `register` command: Best effort automation to register a new user on an instance.
 
+`vuln` command: Check the installed version for CVEs in the NIST Vulnerability database
+
 
 Setting an HTTP proxy is possible by setting the environment variable `HTTP_PROXY` e.g. to route through Burp:
 ```bash
