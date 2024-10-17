@@ -1,4 +1,4 @@
-package circl
+package nist
 
 import (
 	"github.com/CompassSecurity/pipeleak/helper"
@@ -6,9 +6,9 @@ import (
 	"io"
 )
 
-func FetchVulns() (string, error) {
+func FetchVulns(version string) (string, error) {
 	client := helper.GetNonVerifyingHTTPClient()
-	res, err := client.Get("https://vulnerability.circl.lu/api/search/gitlab/gitlab")
+	res, err := client.Get("https://services.nvd.nist.gov/rest/json/cves/2.0?cpeName=cpe:2.3:a:gitlab:gitlab:" + version + ":*:*:*:*:*:*:*")
 	defer res.Body.Close()
 	if err != nil {
 		return "{}", err

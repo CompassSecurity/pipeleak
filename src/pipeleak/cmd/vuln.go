@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"github.com/CompassSecurity/pipeleak/circl"
 	"github.com/CompassSecurity/pipeleak/helper"
-	"github.com/Masterminds/semver/v3"
+	"github.com/CompassSecurity/pipeleak/nist"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -45,44 +44,18 @@ func CheckVulns(cmd *cobra.Command, args []string) {
 
 	installedVersion := helper.DetermineVersion(gitlabUrl, gitlabApiToken)
 	log.Info().Str("version", installedVersion.Version).Msg("GitLab")
-	installedVersionSemVer, err := semver.NewVersion(installedVersion.Version)
+
+	log.Info().Str("version", installedVersion.Version).Msg("Fetching CVEs for this version")
+	vulnsJsonStr, err := nist.FetchVulns(installedVersion.Version)
 	if err != nil {
-		log.Fatal().Str("version", installedVersion.Version).Msg("Cannot parse installed gitlab version")
+		log.Fatal().Msg("Unable fetch vulnerabilities from NIST")
 	}
 
-	log.Info().Msg("Fetching cve list")
-	vulnsJsonStr, err := circl.FetchVulns()
-	if err != nil {
-		log.Fatal().Msg("Unable fetch vulnerabilities from circl")
-	}
-
-	result := gjson.Get(vulnsJsonStr, "cvelistv5")
+	result := gjson.Get(vulnsJsonStr, "vulnerabilities")
 	result.ForEach(func(key, value gjson.Result) bool {
-		cve := value.Get("0").String()
-		value.Get("1.containers.cna.affected").ForEach(func(key, affectedEntry gjson.Result) bool {
-			affectedEntry.Get("versions").ForEach(func(key, versionEntry gjson.Result) bool {
-				if versionEntry.Get("status").String() == "affected" {
-					versionContstraint := versionEntry.Get("version").String()
-
-					if "" == versionContstraint {
-						log.Debug().Str("semver", versionContstraint).Msg("Empty version constraint, skip")
-						return true
-					}
-
-					c, err := semver.NewConstraint(versionContstraint)
-					if err != nil {
-						log.Debug().Str("semver", versionContstraint).Msg("Unable to parse semver constraint")
-						return true
-					}
-
-					if c.Check(installedVersionSemVer) {
-						log.Info().Str("constraint", versionContstraint).Str("cve", cve).Msg("Vulnerable")
-					}
-				}
-				return true
-			})
-			return true
-		})
+		cve := value.Get("cve.id").String()
+		description := value.Get("cve.descriptions.0.value").String()
+		log.Info().Str("cve", cve).Str("description", description).Msg("Vulnerable")
 		return true
 	})
 
