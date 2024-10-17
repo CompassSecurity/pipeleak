@@ -31,6 +31,7 @@ func init() {
 	rootCmd.AddCommand(NewShodanCmd())
 	rootCmd.AddCommand(cmd.NewRunnersRootCmd())
 	rootCmd.AddCommand(NewRegisterCmd())
+	rootCmd.AddCommand(NewVulnCmd())
 	rootCmd.PersistentFlags().BoolVarP(&JsonLogoutput, "json", "", false, "Use JSON as log output format")
 }
 

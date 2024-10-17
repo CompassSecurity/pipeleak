@@ -11,6 +11,7 @@ require (
 	github.com/maragudk/goqite v0.2.3
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/cobra v1.8.1
+	github.com/tidwall/gjson v1.18.0
 	github.com/trufflesecurity/trufflehog/v3 v3.82.9
 	github.com/xanzy/go-gitlab v0.112.0
 	gitlab.com/mitchenielsen/gitlab-ci-go v0.0.4
@@ -200,6 +201,8 @@ require (
 	github.com/tailscale/depaware v0.0.0-20240804103531-585336c3e1b3 // indirect
 	github.com/tetratelabs/wazero v1.8.0 // indirect
 	github.com/therootcompany/xz v1.0.1 // indirect
+	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/ulikunitz/xz v0.5.12 // indirect
 	github.com/vbatts/tar-split v0.11.3 // indirect
 	github.com/wasilibs/go-re2 v1.7.0 // indirect
