@@ -38,6 +38,7 @@ type QueueMeta struct {
 	ProjectId                int
 	JobId                    int
 	JobWebUrl                string
+	JobName					string
 	ProjectPathWithNamespace string
 }
 
@@ -103,7 +104,7 @@ func analyzeJobTrace(git *gitlab.Client, item QueueItem, options *ScanOptions) {
 
 	findings := DetectHits(trace, options.MaxScanGoRoutines)
 	for _, finding := range findings {
-		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", item.Meta.JobWebUrl).Msg("HIT")
+		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", item.Meta.JobWebUrl).Str("jobName",item.Meta.JobName).Msg("HIT")
 	}
 }
 
@@ -116,7 +117,7 @@ func analyzeJobArtifact(git *gitlab.Client, item QueueItem, options *ScanOptions
 	reader := bytes.NewReader(data)
 	zipListing, err := zip.NewReader(reader, int64(len(data)))
 	if err != nil {
-		log.Warn().Int("project", item.Meta.ProjectId).Int("job", item.Meta.JobId).Msg("Unable to unzip artifacts for")
+		log.Debug().Int("project", item.Meta.ProjectId).Int("job", item.Meta.JobId).Msg("Unable to unzip artifacts for")
 		return
 	}
 
@@ -139,9 +140,9 @@ func analyzeJobArtifact(git *gitlab.Client, item QueueItem, options *ScanOptions
 			kind, _ := filetype.Match(content)
 			// do not scan https://pkg.go.dev/github.com/h2non/filetype#readme-supported-types
 			if kind == filetype.Unknown {
-				DetectFileHits(content, item.Meta.JobWebUrl, file.Name, "")
+				DetectFileHits(content, item.Meta.JobWebUrl, item.Meta.JobName, file.Name, "")
 			} else if filetype.IsArchive(content) {
-				handleArchiveArtifact(file.Name, content, item.Meta.JobWebUrl)
+				handleArchiveArtifact(file.Name, content, item.Meta.JobWebUrl, item.Meta.JobName)
 			}
 			fc.Close()
 		})
@@ -159,7 +160,7 @@ func analyzeDotenvArtifact(git *gitlab.Client, item QueueItem, options *ScanOpti
 	findings := DetectHits(dotenvText, options.MaxScanGoRoutines)
 	for _, finding := range findings {
 		artifactsBaseUrl, _ := url.JoinPath(item.Meta.JobWebUrl, "/-/artifacts")
-		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("artifactUrl", artifactsBaseUrl).Int("jobId", item.Meta.JobId).Msg("HIT DOTENV: Check artifacts page which is the only place to download the dotenv file")
+		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("artifactUrl", artifactsBaseUrl).Int("jobId", item.Meta.JobId).Str("jobName",item.Meta.JobName).Msg("HIT DOTENV: Check artifacts page which is the only place to download the dotenv file")
 	}
 }
 
@@ -285,7 +286,7 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 // https://docs.gitlab.com/ee/ci/caching/#common-use-cases-for-caches
 var skippableDirectoryNames = []string{"node_modules", ".yarn", ".yarn-cache", ".npm", "venv", "vendor", ".go/pkg/mod/"}
 
-func handleArchiveArtifact(archivefileName string, content []byte, jobWebUrl string) {
+func handleArchiveArtifact(archivefileName string, content []byte, jobWebUrl string, jobName string) {
 	for _, skipKeyword := range skippableDirectoryNames {
 		if strings.Contains(archivefileName, skipKeyword) {
 			log.Debug().Str("file", archivefileName).Str("keyword", skipKeyword).Msg("Skipped archive due to blocklist entry")
@@ -341,7 +342,7 @@ func handleArchiveArtifact(archivefileName string, content []byte, jobWebUrl str
 
 			kind, _ := filetype.Match(fileBytes)
 			if kind == filetype.Unknown {
-				DetectFileHits(fileBytes, jobWebUrl, path.Base(fPath), archivefileName)
+				DetectFileHits(fileBytes, jobWebUrl, jobName, path.Base(fPath), archivefileName)
 			}
 		}
 	}

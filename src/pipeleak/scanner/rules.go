@@ -193,11 +193,11 @@ func DetectHits(text []byte, maxThreads int) []Finding {
 	return slices.Concat(findingsCombined, findingsTr)
 }
 
-func DetectFileHits(content []byte, jobWebUrl string, fileName string, archiveName string) {
+func DetectFileHits(content []byte, jobWebUrl string, jobName string, fileName string, archiveName string) {
 	// 1 goroutine to prevent maxThreads^2 which trashes memory
 	findings := DetectHits(content, 1)
 	for _, finding := range findings {
-		baseLog := log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", jobWebUrl).Str("file", fileName)
+		baseLog := log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", jobWebUrl).Str("jobName", jobName).Str("file", fileName)
 		if len(archiveName) > 0 {
 			baseLog.Str("archive", archiveName).Msg("HIT Artifact (in archive)")
 		} else {
