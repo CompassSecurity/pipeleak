@@ -190,6 +190,7 @@ require (
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/rabbitmq/amqp091-go v1.10.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
+	github.com/rxwycdh/rxhash v0.0.0-20230131062142-10b7a38b400d // indirect
 	github.com/sassoftware/go-rpmutils v0.4.0 // indirect
 	github.com/schollz/progressbar/v3 v3.16.1 // indirect
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3 // indirect
