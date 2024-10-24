@@ -54,7 +54,6 @@ func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
 
 	if len(keys) > 0 {
 		log.Info().Str("tags", strings.Join(keys, ",")).Msg("Unique runner tags")
-
 	}
 }
 
