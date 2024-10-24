@@ -212,7 +212,7 @@ func deduplicateFindings(totalFindings []Finding) []Finding {
 		}
 
 		// keep the last 500 findings and check dupes against this list.
-		if len(findingsDeduplicationList) > 5 {
+		if len(findingsDeduplicationList) > 500 {
 			findingsDeduplicationList[0] = ""
 			findingsDeduplicationList = findingsDeduplicationList[1:]
 		}
