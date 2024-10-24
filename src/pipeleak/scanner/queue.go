@@ -38,7 +38,7 @@ type QueueMeta struct {
 	ProjectId                int
 	JobId                    int
 	JobWebUrl                string
-	JobName					string
+	JobName                  string
 	ProjectPathWithNamespace string
 }
 
@@ -104,7 +104,7 @@ func analyzeJobTrace(git *gitlab.Client, item QueueItem, options *ScanOptions) {
 
 	findings := DetectHits(trace, options.MaxScanGoRoutines)
 	for _, finding := range findings {
-		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", item.Meta.JobWebUrl).Str("jobName",item.Meta.JobName).Msg("HIT")
+		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", item.Meta.JobWebUrl).Str("jobName", item.Meta.JobName).Msg("HIT")
 	}
 }
 
@@ -160,7 +160,7 @@ func analyzeDotenvArtifact(git *gitlab.Client, item QueueItem, options *ScanOpti
 	findings := DetectHits(dotenvText, options.MaxScanGoRoutines)
 	for _, finding := range findings {
 		artifactsBaseUrl, _ := url.JoinPath(item.Meta.JobWebUrl, "/-/artifacts")
-		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("artifactUrl", artifactsBaseUrl).Int("jobId", item.Meta.JobId).Str("jobName",item.Meta.JobName).Msg("HIT DOTENV: Check artifacts page which is the only place to download the dotenv file")
+		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("artifactUrl", artifactsBaseUrl).Int("jobId", item.Meta.JobId).Str("jobName", item.Meta.JobName).Msg("HIT DOTENV: Check artifacts page which is the only place to download the dotenv file")
 	}
 }
 

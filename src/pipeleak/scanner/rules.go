@@ -8,10 +8,12 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/acarl005/stripansi"
 	"github.com/rs/zerolog/log"
+	"github.com/rxwycdh/rxhash"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/engine"
 	"github.com/wandb/parallel"
 	"gopkg.in/yaml.v3"
@@ -42,6 +44,11 @@ type Finding struct {
 
 // hold patterns in memory during runtime
 var secretsPatterns = SecretsPatterns{}
+
+// keep a nr findings in memory to check for duplicates
+// prevent printing the same finding e.g. 10 times just because the same job was run several times
+var findingsDeduplicationList []string
+var deduplicationMutex sync.Mutex
 
 func DownloadRules() {
 	if _, err := os.Stat(ruleFileName); errors.Is(err, os.ErrNotExist) {
@@ -190,14 +197,36 @@ func DetectHits(text []byte, maxThreads int) []Finding {
 	}
 
 	findingsTr := slices.Concat(resultsTr...)
-	return slices.Concat(findingsCombined, findingsTr)
+	totalFindings := slices.Concat(findingsCombined, findingsTr)
+	return deduplicateFindings(totalFindings)
+}
+
+func deduplicateFindings(totalFindings []Finding) []Finding {
+	dedupedFindings := []Finding{}
+	for _, finding := range totalFindings {
+		hash, _ := rxhash.HashStruct(finding)
+		deduplicationMutex.Lock()
+		if !slices.Contains(findingsDeduplicationList, hash) {
+			dedupedFindings = append(dedupedFindings, finding)
+			findingsDeduplicationList = append(findingsDeduplicationList, hash)
+		}
+
+		// keep the last 500 findings and check dupes against this list.
+		if len(findingsDeduplicationList) > 500 {
+			findingsDeduplicationList[0] = ""
+			findingsDeduplicationList = findingsDeduplicationList[1:]
+		}
+		deduplicationMutex.Unlock()
+	}
+
+	return dedupedFindings
 }
 
 func DetectFileHits(content []byte, jobWebUrl string, jobName string, fileName string, archiveName string) {
 	// 1 goroutine to prevent maxThreads^2 which trashes memory
 	findings := DetectHits(content, 1)
 	for _, finding := range findings {
-		baseLog := log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("name", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", jobWebUrl).Str("jobName", jobName).Str("file", fileName)
+		baseLog := log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", jobWebUrl).Str("jobName", jobName).Str("file", fileName)
 		if len(archiveName) > 0 {
 			baseLog.Str("archive", archiveName).Msg("HIT Artifact (in archive)")
 		} else {
