@@ -198,8 +198,7 @@ func DetectHits(text []byte, maxThreads int) []Finding {
 
 	findingsTr := slices.Concat(resultsTr...)
 	totalFindings := slices.Concat(findingsCombined, findingsTr)
-	dedupedFindings := deduplicateFindings(totalFindings)
-	return dedupedFindings
+	return deduplicateFindings(totalFindings)
 }
 
 func deduplicateFindings(totalFindings []Finding) []Finding {
@@ -210,14 +209,11 @@ func deduplicateFindings(totalFindings []Finding) []Finding {
 		if !slices.Contains(findingsDeduplicationList, hash) {
 			dedupedFindings = append(dedupedFindings, finding)
 			findingsDeduplicationList = append(findingsDeduplicationList, hash)
-		} else {
-			log.Info().Str("hash", hash).Any("finding", finding.Text).Msg("Deduped")
-
 		}
 
-		// 300 = keep the last 300 findings and check dupes against this list.
-		if len(findingsDeduplicationList) > 300 {
-			findingsDeduplicationList[0] = "" // memory leak prevention
+		// keep the last 500 findings and check dupes against this list.
+		if len(findingsDeduplicationList) > 5 {
+			findingsDeduplicationList[0] = ""
 			findingsDeduplicationList = findingsDeduplicationList[1:]
 		}
 		deduplicationMutex.Unlock()
