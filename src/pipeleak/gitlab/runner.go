@@ -52,7 +52,10 @@ func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
 		keys = append(keys, k)
 	}
 
-	log.Info().Str("tags", strings.Join(keys, ",")).Msg("Unique runner tags")
+	if len(keys) > 0 {
+		log.Info().Str("tags", strings.Join(keys, ",")).Msg("Unique runner tags")
+
+	}
 }
 
 func listProjectRunners(git *gitlab.Client, runnerMap map[int]runnerResult) map[int]runnerResult {
