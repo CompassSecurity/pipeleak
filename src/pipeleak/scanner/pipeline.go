@@ -104,8 +104,8 @@ func setupQueue(options *ScanOptions) {
 	if err != nil {
 		log.Fatal().Err(err).Str("file", queueFileName).Msg("Opening Temp DB file failed")
 	}
-	queueDB.SetMaxOpenConns(2)
-	queueDB.SetMaxIdleConns(2)
+	queueDB.SetMaxOpenConns(1)
+	queueDB.SetMaxIdleConns(1)
 
 	if err := goqite.Setup(context.Background(), queueDB); err != nil {
 		log.Fatal().Err(err).Msg("Goqite setup failed")
