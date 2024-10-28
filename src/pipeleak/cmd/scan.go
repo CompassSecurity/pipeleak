@@ -56,7 +56,7 @@ func NewScanCmd() *cobra.Command {
 
 func Scan(cmd *cobra.Command, args []string) {
 	setLogLevel()
-	go logLevelListener()
+	go shortcutListeners()
 
 	_, err := url.ParseRequestURI(options.GitlabUrl)
 	if err != nil {
@@ -88,7 +88,7 @@ func setLogLevel() {
 	}
 }
 
-func logLevelListener() {
+func shortcutListeners() {
 	err := keyboard.Listen(func(key keys.Key) (stop bool, err error) {
 		switch key.Code {
 		case keys.CtrlC, keys.Escape:
@@ -117,6 +117,11 @@ func logLevelListener() {
 			if key.String() == "e" {
 				zerolog.SetGlobalLevel(zerolog.ErrorLevel)
 				log.Error().Msg("Loglevel Error")
+			}
+
+			if key.String() == "s" {
+				received, queueLength := scanner.GetQueueStatus()
+				log.Info().Int("runningJobs", received).Int("pendingjobs", queueLength).Msg("Queue status")
 			}
 		}
 

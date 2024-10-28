@@ -21,6 +21,7 @@ import (
 var queue *goqite.Queue
 var waitGroup *sync.WaitGroup
 var queueFileName string
+var queueDB *sql.DB
 
 type ScanOptions struct {
 	GitlabUrl          string
@@ -98,20 +99,20 @@ func setupQueue(options *ScanOptions) {
 	queueFileName = tmpfile.Name()
 
 	sqlUri := `file://` + queueFileName + `?_journal=WAL&_timeout=5000&_fk=true`
-	db, err := sql.Open("sqlite3", sqlUri)
+	queueDB, err = sql.Open("sqlite3", sqlUri)
 	log.Debug().Str("file", sqlUri).Msg("Using DB file")
 	if err != nil {
 		log.Fatal().Err(err).Str("file", queueFileName).Msg("Opening Temp DB file failed")
 	}
-	db.SetMaxOpenConns(1)
-	db.SetMaxIdleConns(1)
+	queueDB.SetMaxOpenConns(1)
+	queueDB.SetMaxIdleConns(1)
 
-	if err := goqite.Setup(context.Background(), db); err != nil {
+	if err := goqite.Setup(context.Background(), queueDB); err != nil {
 		log.Fatal().Err(err).Msg("Goqite setup failed")
 	}
 
 	queue = goqite.New(goqite.NewOpts{
-		DB:         db,
+		DB:         queueDB,
 		Name:       "jobs",
 		MaxReceive: options.MaxScanGoRoutines,
 	})
@@ -231,4 +232,30 @@ jobOut:
 
 func getJobUrl(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job) string {
 	return git.BaseURL().Host + "/" + project.PathWithNamespace + "/-/jobs/" + strconv.Itoa(job.ID)
+}
+
+func GetQueueStatus() (int, int) {
+	return getReceivedQueryCount(1), getReceivedQueryCount(0)
+}
+
+func getReceivedQueryCount(received int) int {
+	count := 0
+	if queueDB != nil {
+		row, err := queueDB.Query("select count(id) as count from goqite where received = ?;", received)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("Status received query error")
+			return 0
+		}
+		defer row.Close()
+
+		for row.Next() {
+			err = row.Scan(&count)
+			if err != nil {
+				log.Error().Stack().Err(err).Msg("Status received query scan error")
+				return 0
+			}
+		}
+	}
+
+	return count
 }
