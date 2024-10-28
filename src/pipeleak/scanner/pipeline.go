@@ -104,8 +104,8 @@ func setupQueue(options *ScanOptions) {
 	if err != nil {
 		log.Fatal().Err(err).Str("file", queueFileName).Msg("Opening Temp DB file failed")
 	}
-	queueDB.SetMaxOpenConns(1)
-	queueDB.SetMaxIdleConns(1)
+	queueDB.SetMaxOpenConns(2)
+	queueDB.SetMaxIdleConns(2)
 
 	if err := goqite.Setup(context.Background(), queueDB); err != nil {
 		log.Fatal().Err(err).Msg("Goqite setup failed")
@@ -234,34 +234,28 @@ func getJobUrl(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job) str
 	return git.BaseURL().Host + "/" + project.PathWithNamespace + "/-/jobs/" + strconv.Itoa(job.ID)
 }
 
-
 func GetQueueStatus() (int, int) {
+	return getReceivedQueryCount(1), getReceivedQueryCount(0)
+}
+
+func getReceivedQueryCount(received int) int {
+	count := 0
 	if queueDB != nil {
-		type row struct {
-			Count int `json:"count"`
+		row, err := queueDB.Query("select count(id) as count from goqite where received = ?;", received)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("Status received query error")
+			return 0
 		}
-		var rows []row
+		defer row.Close()
 
-		response, _  := queueDB.Query("select count(id) as count from goqite where received = 1;")
-		_ = response.Scan(&rows)
-
-		receivedCount := 0
-
-		if len(rows) > 0 {
-			receivedCount = rows[0].Count
-		} 
-
-		rows = []row{}
-		response, _  = queueDB.Query("select count(id) as count from goqite where received = 0;")
-		_ = response.Scan(&rows)
-
-		notReceivedCount := 0
-		if len(rows) > 0 {
-			notReceivedCount = rows[0].Count
-		} 
-
-		return receivedCount, notReceivedCount
+		for row.Next() {
+			err = row.Scan(&count)
+			if err != nil {
+				log.Error().Stack().Err(err).Msg("Status received query scan error")
+				return 0
+			}
+		}
 	}
 
-	return 0, 0
+	return count
 }

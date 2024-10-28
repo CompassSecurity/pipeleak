@@ -121,7 +121,7 @@ func shortcutListeners() {
 
 			if key.String() == "s" {
 				received, queueLength := scanner.GetQueueStatus()
-				log.Info().Int("currentJobs", received).Int("pendingjobs", queueLength).Msg("Queue status")
+				log.Info().Int("runningJobs", received).Int("pendingjobs", queueLength).Msg("Queue status")
 			}
 		}
 
