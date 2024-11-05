@@ -13,7 +13,7 @@ require (
 	github.com/rxwycdh/rxhash v0.0.0-20230131062142-10b7a38b400d
 	github.com/spf13/cobra v1.8.1
 	github.com/tidwall/gjson v1.18.0
-	github.com/trufflesecurity/trufflehog/v3 v3.82.13
+	github.com/trufflesecurity/trufflehog/v3 v3.83.2
 	github.com/xanzy/go-gitlab v0.112.0
 	gitlab.com/mitchenielsen/gitlab-ci-go v0.0.4
 	golift.io/xtractr v0.2.2
@@ -22,13 +22,13 @@ require (
 require (
 	cel.dev/expr v0.16.1 // indirect
 	cloud.google.com/go v0.116.0 // indirect
-	cloud.google.com/go/auth v0.9.8 // indirect
+	cloud.google.com/go/auth v0.9.9 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.4 // indirect
 	cloud.google.com/go/compute/metadata v0.5.2 // indirect
 	cloud.google.com/go/iam v1.2.1 // indirect
 	cloud.google.com/go/longrunning v0.6.1 // indirect
 	cloud.google.com/go/monitoring v1.21.1 // indirect
-	cloud.google.com/go/secretmanager v1.14.1 // indirect
+	cloud.google.com/go/secretmanager v1.14.2 // indirect
 	cloud.google.com/go/storage v1.45.0 // indirect
 	dario.cat/mergo v1.0.0 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
@@ -192,14 +192,14 @@ require (
 	github.com/rabbitmq/amqp091-go v1.10.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sassoftware/go-rpmutils v0.4.0 // indirect
-	github.com/schollz/progressbar/v3 v3.16.1 // indirect
+	github.com/schollz/progressbar/v3 v3.17.0 // indirect
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3 // indirect
 	github.com/shuheiktgw/go-travis v0.3.1 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/skeema/knownhosts v1.2.2 // indirect
 	github.com/snowflakedb/gosnowflake v1.11.2 // indirect
 	github.com/sorairolake/lzip-go v0.3.1 // indirect
-	github.com/tailscale/depaware v0.0.0-20240804103531-585336c3e1b3 // indirect
+	github.com/tailscale/depaware v0.0.0-20241028160002-3d7f3b30ed0e // indirect
 	github.com/tetratelabs/wazero v1.8.0 // indirect
 	github.com/therootcompany/xz v1.0.1 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
@@ -238,7 +238,7 @@ require (
 	golang.org/x/text v0.19.0 // indirect
 	golang.org/x/tools v0.26.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
-	google.golang.org/api v0.202.0 // indirect
+	google.golang.org/api v0.203.0 // indirect
 	google.golang.org/genproto v0.0.0-20241015192408-796eee8c2d53 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20241007155032-5fefd90f89a9 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241015192408-796eee8c2d53 // indirect
