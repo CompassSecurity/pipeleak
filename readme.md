@@ -1,3 +1,7 @@
+<p align="center">
+  <img width="600" height="200" src="https://raw.githubusercontent.com/CompassSecurity/pipeleak/refs/heads/main/docs/logo.png">
+</p>
+
 # Pipeleak
 
 Pipeleak is a tool designed to scan GitLab job output logs and artifacts for potential secrets.
