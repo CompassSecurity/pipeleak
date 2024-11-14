@@ -14,7 +14,7 @@ require (
 	github.com/spf13/cobra v1.8.1
 	github.com/tidwall/gjson v1.18.0
 	github.com/trufflesecurity/trufflehog/v3 v3.83.6
-	github.com/xanzy/go-gitlab v0.112.0
+	github.com/xanzy/go-gitlab v0.113.0
 	gitlab.com/mitchenielsen/gitlab-ci-go v0.0.4
 	golift.io/xtractr v0.2.2
 )
