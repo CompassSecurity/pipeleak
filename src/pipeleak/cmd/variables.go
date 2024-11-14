@@ -63,7 +63,7 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 		for _, project := range projects {
 			pvs, _, err := git.ProjectVariables.ListVariables(project.ID, nil, nil)
 			if err != nil {
-				log.Error().Stack().Err(err).Msg("Failed fetching project variable")
+				log.Error().Stack().Err(err).Msg("Failed fetching project variables")
 				continue
 			}
 			log.Warn().Str("project", project.WebURL).Any("variables", pvs).Msg("Project variables")
@@ -94,19 +94,26 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 		}
 
 		for _, group := range groups {
-			log.Debug().Str("name", group.Name).Msg("List group variables for")
-			pvs, _, err := git.GroupVariables.ListVariables(group.ID, nil, nil)
+			gvs, _, err := git.GroupVariables.ListVariables(group.ID, nil, nil)
 			if err != nil {
-				log.Error().Stack().Err(err).Msg("Failed fetching project variable")
+				log.Error().Stack().Err(err).Msg("Failed fetching group variables")
 				continue
 			}
-			log.Warn().Str("project", group.WebURL).Any("variables", pvs).Msg("Group variables")
+			log.Warn().Str("Group", group.WebURL).Any("variables", gvs).Msg("Group variables")
 		}
 
 		if resp.NextPage == 0 {
 			break
 		}
 		listGroupsOpts.Page = resp.NextPage
+	}
+
+	log.Info().Msg("Fetching instance variables, only allowed for admins")
+	ivs, _, err := git.InstanceVariables.ListVariables(nil)
+	if err != nil {
+		log.Debug().Stack().Err(err).Msg("Failed fetching instance variables")
+	} else {
+		log.Warn().Any("variables", ivs).Msg("Instance variables")
 	}
 
 	log.Info().Msg("Fetched all variables")
