@@ -21,6 +21,18 @@ Some companies grant their developers `developer` access to each repository, thi
 
 The main question: Is the access concept based on the least privilege principle?
 
+## Known Vulnerabilities
+
+Usually GitLab does disclose the installed version to auhtenticated users only.
+You can check the version manually at `https://leakycompany.com/help`.
+Using [pipeleak](https://github.com/CompassSecurity/pipeleak) we can automate this process and enumerates known vulnerabilities. 
+Make sure to verify manually as well.
+```bash
+pipeleak vuln -g https://leakycompany.com -t glpat-[redacted]
+2024-11-14T14:29:05+01:00 INF GitLab version=17.5.1-ee
+2024-11-14T14:29:05+01:00 INF Fetching CVEs for this version version=17.5.1-ee
+```
+
 # Misconfigurations And Mishandling
 
 ## Secret Detection in Source Code
@@ -28,7 +40,7 @@ Manually looking for sensitive info can be cumbersome and should be partially au
 
 Use Trufflehog to find secrets in the source code:
 ```bash
-trufflehog gitlab --token=glpat-[secret]
+trufflehog gitlab --token=glpat-[redacted]
 ```
 
 > To create a Personal Access Token https://leakycompany.com/-/user_settings/personal_access_tokens
@@ -101,7 +113,7 @@ There are many reasons why credentials might be included in the job output. More
 The tool [pipleak](https://github.com/CompassSecurity/pipeleak) can be used to scan for credentials in the job outputs.
 
 ```bash
-$ pipeleak scan --token glpat-[removed] --gitlab https://gitlab.com -c [gitlab session cookie]]  -v -a -j 5 --confidence high-verified,high 
+$ pipeleak scan --token glpat-[redacted] --gitlab https://gitlab.com -c [gitlab session cookie]]  -v -a -j 5 --confidence high-verified,high 
 2024-09-26T13:47:09+02:00 DBG Verbose log output enabled
 2024-09-26T13:47:10+02:00 INF Gitlab Version Check revision=2e166256199 version=17.5.0-pre
 2024-09-26T13:47:10+02:00 DBG Setting up queue on disk
@@ -166,7 +178,7 @@ Runners can be attached globally, on the group level or on individual projects.
 
 Using pipeleak we can automate runner enumeration:
 ```bash
-$ pipeleak runners --token glpat-[removed] --gitlab https://gitlab.com -v list
+$ pipeleak runners --token glpat-[redacted] --gitlab https://gitlab.com -v list
 2024-09-26T14:26:54+02:00 INF group runner description=2-green.shared-gitlab-org.runners-manager.gitlab.com name=comp-test-ia paused=false runner=gitlab-runner tags=gitlab-org type=instance_type
 2024-09-26T14:26:55+02:00 INF group runner description=3-green.shared-gitlab-org.runners-manager.gitlab.com/dind name=comp-test-ia paused=false runner=gitlab-runner tags=gitlab-org-docker type=instance_type
 2024-09-26T14:26:55+02:00 INF group runner description=blue-3.saas-linux-large-amd64.runners-manager.gitlab.com/default name=comp-test-ia paused=false runner=gitlab-runner tags=saas-linux-large-amd64 type=instance_type
@@ -181,7 +193,7 @@ Pipeleak can generate a `.gitlab-ci.yml` or directly create a project and launch
 
 ```bash
 # Manual creation
-$ pipeleak runners --token glpat-[removed] --gitlab https://gitlab.com -v exploit --tags saas-linux-small-amd64 --shell --dry
+$ pipeleak runners --token glpat-[redacted] --gitlab https://gitlab.com -v exploit --tags saas-linux-small-amd64 --shell --dry
 2024-09-26T14:32:26+02:00 DBG Verbose log output enabled
 2024-09-26T14:32:26+02:00 INF Generated .gitlab-ci.yml
 2024-09-26T14:32:26+02:00 INF ---
