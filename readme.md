@@ -1,5 +1,5 @@
 <p align="center">
-  <img height="200" src="https://raw.githubusercontent.com/CompassSecurity/pipeleak/refs/heads/main/docs/logo.png">
+  <img height="200" src="https://github.com/CompassSecurity/pipeleak/blob/main/docs/logo.png?raw=true">
 </p>
 
 # Pipeleak
