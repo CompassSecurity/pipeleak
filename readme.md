@@ -63,6 +63,7 @@ You can tweak `--threads`, `--max-artifact-size` and `--job-limit` to obtain a c
 
 `vuln` command: Check the installed version for CVEs in the NIST Vulnerability database
 
+`variables` command: Enumerate configured project/group/instance variables
 
 Setting an HTTP proxy is possible by setting the environment variable `HTTP_PROXY` e.g. to route through Burp:
 ```bash
