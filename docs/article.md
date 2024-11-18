@@ -35,11 +35,19 @@ pipeleak vuln -g https://leakycompany.com -t glpat-[redacted]
 
 # Misconfigurations And Mishandling
 
-## Enumerating CI/CD Variables
+## Enumerating CI/CD Variables And Secure Files
 If you already have access to projects and groups you can try to enumerate CI/CD variables and use these for potential privilege escalation/lateral movement paths.
 Using Pipeleak:
 ```bash
 pipeleak variables -g https://leakycompany.com -t glpat-[redacted]
+```
+
+And enumerating the secure files:
+```bash
+pipeleaksecureFiles  --gitlab https://leakycompany.com --token glpat-[redacted]
+2024-11-18T15:38:08Z INF Fetching project variables
+2024-11-18T15:38:09Z WRN Secure file content="this is a secure file!!" downloadUrl=https://leakycompany.com/api/v4/projects/60367314/secure_files/9149327/download
+2024-11-18T15:38:12Z INF Fetched all secure files
 ```
 
 ## Secret Detection in Source Code
