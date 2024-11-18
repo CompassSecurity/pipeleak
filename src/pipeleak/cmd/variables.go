@@ -49,8 +49,9 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 			PerPage: 100,
 			Page:    1,
 		},
-		Membership: gitlab.Ptr(true),
-		OrderBy:    gitlab.Ptr("last_activity_at"),
+		Membership:     gitlab.Ptr(true),
+		MinAccessLevel: gitlab.Ptr(gitlab.OwnerPermissions),
+		OrderBy:        gitlab.Ptr("last_activity_at"),
 	}
 
 	for {
@@ -61,19 +62,21 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 		}
 
 		for _, project := range projects {
+			log.Debug().Str("project", project.WebURL).Msg("Fetch project variables")
 			pvs, _, err := git.ProjectVariables.ListVariables(project.ID, nil, nil)
 			if err != nil {
 				log.Error().Stack().Err(err).Msg("Failed fetching project variables")
 				continue
 			}
-			log.Warn().Str("project", project.WebURL).Any("variables", pvs).Msg("Project variables")
+			if len(pvs) > 0 {
+				log.Warn().Str("project", project.WebURL).Any("variables", pvs).Msg("Project variables")
+			}
 		}
 
 		if resp.NextPage == 0 {
 			break
 		}
 		projectOpts.Page = resp.NextPage
-		log.Info().Int("total", projectOpts.Page*projectOpts.PerPage).Msg("Fetched projects")
 	}
 
 	log.Info().Msg("Fetching group variables")
@@ -84,7 +87,7 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 			Page:    1,
 		},
 		AllAvailable:   gitlab.Ptr(true),
-		MinAccessLevel: gitlab.Ptr(gitlab.DeveloperPermissions),
+		MinAccessLevel: gitlab.Ptr(gitlab.OwnerPermissions),
 	}
 
 	for {
@@ -94,12 +97,15 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 		}
 
 		for _, group := range groups {
+			log.Debug().Str("Group", group.WebURL).Msg("Fetch group variables")
 			gvs, _, err := git.GroupVariables.ListVariables(group.ID, nil, nil)
 			if err != nil {
 				log.Error().Stack().Err(err).Msg("Failed fetching group variables")
 				continue
 			}
-			log.Warn().Str("Group", group.WebURL).Any("variables", gvs).Msg("Group variables")
+			if len(gvs) > 0 {
+				log.Warn().Str("Group", group.WebURL).Any("variables", gvs).Msg("Group variables")
+			}
 		}
 
 		if resp.NextPage == 0 {
