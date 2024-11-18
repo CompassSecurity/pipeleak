@@ -35,6 +35,13 @@ pipeleak vuln -g https://leakycompany.com -t glpat-[redacted]
 
 # Misconfigurations And Mishandling
 
+## Enumerating CI/CD Variables
+If you already have access to projects and groups you can try to enumerate CI/CD variables and use these for potential privilege escalation/lateral movement paths.
+Using Pipeleak:
+```bash
+pipeleak variables -g https://leakycompany.com -t glpat-[redacted]
+```
+
 ## Secret Detection in Source Code
 Manually looking for sensitive info can be cumbersome and should be partially automated.
 
