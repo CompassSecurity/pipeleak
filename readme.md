@@ -65,6 +65,8 @@ You can tweak `--threads`, `--max-artifact-size` and `--job-limit` to obtain a c
 
 `variables` command: Enumerate configured project/group/instance variables
 
+`secureFiles` command: Enumerate secure files
+
 Setting an HTTP proxy is possible by setting the environment variable `HTTP_PROXY` e.g. to route through Burp:
 ```bash
 HTTP_PROXY=http://127.0.0.1:8080 pipeleak scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com
