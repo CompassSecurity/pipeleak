@@ -14,7 +14,8 @@ import (
 	"github.com/acarl005/stripansi"
 	"github.com/rs/zerolog/log"
 	"github.com/rxwycdh/rxhash"
-	"github.com/trufflesecurity/trufflehog/v3/pkg/engine"
+	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors"
+	"github.com/trufflesecurity/trufflehog/v3/pkg/engine/defaults"
 	"github.com/wandb/parallel"
 	"gopkg.in/yaml.v3"
 )
@@ -49,6 +50,7 @@ var secretsPatterns = SecretsPatterns{}
 // prevent printing the same finding e.g. 10 times just because the same job was run several times
 var findingsDeduplicationList []string
 var deduplicationMutex sync.Mutex
+var truffelhogRules []detectors.Detector
 
 func DownloadRules() {
 	if _, err := os.Stat(ruleFileName); errors.Is(err, os.ErrNotExist) {
@@ -117,8 +119,15 @@ func InitRules(confidenceFilter []string) {
 			log.Debug().Int("count", totalRules).Msg("Loaded filtered rules")
 		} else {
 			secretsPatterns.Patterns = patterns
-			log.Debug().Int("count", len(secretsPatterns.Patterns)).Msg("Loaded rules")
+			log.Debug().Int("count", len(secretsPatterns.Patterns)).Msg("Loaded rules.yml rules")
 		}
+	}
+
+	truffelhogRules = defaults.DefaultDetectors()
+	if len(truffelhogRules) < 1 {
+		log.Fatal().Msg("No trufflehog rules have been loaded, this is a bug")
+	} else {
+		log.Debug().Int("count", len(truffelhogRules)).Msg("Loaded TruffleHog rules")
 	}
 
 }
@@ -167,7 +176,7 @@ func DetectHits(text []byte, maxThreads int) []Finding {
 	findingsCombined := slices.Concat(resultsYml...)
 
 	trGroup := parallel.Collect[[]Finding](parallel.Limited(ctx, maxThreads))
-	for _, detector := range engine.DefaultDetectors() {
+	for _, detector := range defaults.DefaultDetectors() {
 		trGroup.Go(func(ctx context.Context) ([]Finding, error) {
 			findingsTr := []Finding{}
 			trHits, err := detector.FromData(ctx, true, text)
