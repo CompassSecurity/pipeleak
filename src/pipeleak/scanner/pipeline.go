@@ -6,7 +6,7 @@ import (
 	"github.com/CompassSecurity/pipeleak/helper"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/rs/zerolog/log"
-	"github.com/xanzy/go-gitlab"
+	"gitlab.com/gitlab-org/api/client-go"
 	"os"
 	"path"
 	"path/filepath"
