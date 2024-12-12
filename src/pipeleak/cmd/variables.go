@@ -50,7 +50,7 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 			Page:    1,
 		},
 		Membership:     gitlab.Ptr(true),
-		MinAccessLevel: gitlab.Ptr(gitlab.OwnerPermissions),
+		MinAccessLevel: gitlab.Ptr(gitlab.MaintainerPermissions),
 		OrderBy:        gitlab.Ptr("last_activity_at"),
 	}
 
@@ -80,14 +80,18 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 	}
 
 	log.Info().Msg("Fetching group variables")
+	log.Warn().Msg("Group inherited variables cannot really be enumerated through the API. If you have inherited access to variables from groups, you do not have owner access to, check manually in the GitLab UI!")
 
 	listGroupsOpts := &gitlab.ListGroupsOptions{
 		ListOptions: gitlab.ListOptions{
 			PerPage: 100,
 			Page:    1,
 		},
-		AllAvailable:   gitlab.Ptr(true),
-		MinAccessLevel: gitlab.Ptr(gitlab.OwnerPermissions),
+		AllAvailable: gitlab.Ptr(true),
+		// one can have group guest access and thus inherit variables.
+		// However these are visible in the GUI but not on API level, only if the user has owner access to the group
+		MinAccessLevel: gitlab.Ptr(gitlab.MaintainerPermissions),
+		TopLevelOnly:   gitlab.Ptr(false),
 	}
 
 	for {
@@ -100,8 +104,7 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 			log.Debug().Str("Group", group.WebURL).Msg("Fetch group variables")
 			gvs, _, err := git.GroupVariables.ListVariables(group.ID, nil, nil)
 			if err != nil {
-				log.Error().Stack().Err(err).Msg("Failed fetching group variables")
-				continue
+				log.Debug().Stack().Err(err).Msg("Failed fetching group variables")
 			}
 			if len(gvs) > 0 {
 				log.Warn().Str("Group", group.WebURL).Any("variables", gvs).Msg("Group variables")
