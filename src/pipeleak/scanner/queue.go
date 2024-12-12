@@ -22,7 +22,7 @@ import (
 	"github.com/maragudk/goqite/jobs"
 	"github.com/rs/zerolog/log"
 	"github.com/wandb/parallel"
-	"github.com/xanzy/go-gitlab"
+	"gitlab.com/gitlab-org/api/client-go"
 	"golift.io/xtractr"
 )
 

@@ -18,7 +18,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/xanzy/go-gitlab"
+	"gitlab.com/gitlab-org/api/client-go"
 	"gopkg.in/headzoo/surf.v1"
 )
 

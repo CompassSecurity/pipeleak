@@ -5,7 +5,7 @@ import (
 
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/rs/zerolog/log"
-	"github.com/xanzy/go-gitlab"
+	"gitlab.com/gitlab-org/api/client-go"
 )
 
 type runnerResult struct {
