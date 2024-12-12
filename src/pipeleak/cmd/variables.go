@@ -87,8 +87,8 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 			Page:    1,
 		},
 		AllAvailable: gitlab.Ptr(true),
-		// one can have only guest access and inherit variables.
-		// However the inherited vriables are only available from the group and not the project
+		// one can have group guest access and thus inherit variables.
+		// However the inherited variables are only available from the group and not the project
 		MinAccessLevel: gitlab.Ptr(gitlab.GuestPermissions),
 		TopLevelOnly:   gitlab.Ptr(false),
 	}
