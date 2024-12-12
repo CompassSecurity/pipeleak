@@ -86,8 +86,10 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 			PerPage: 100,
 			Page:    1,
 		},
-		AllAvailable:   gitlab.Ptr(true),
-		MinAccessLevel: gitlab.Ptr(gitlab.MaintainerPermissions),
+		AllAvailable: gitlab.Ptr(true),
+		// one can have only guest access and inherit variables.
+		// However the inherited vriables are only available from the group and not the project
+		MinAccessLevel: gitlab.Ptr(gitlab.GuestPermissions),
 		TopLevelOnly:   gitlab.Ptr(false),
 	}
 
@@ -101,7 +103,7 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 			log.Debug().Str("Group", group.WebURL).Msg("Fetch group variables")
 			gvs, _, err := git.GroupVariables.ListVariables(group.ID, nil, nil)
 			if err != nil {
-				log.Error().Stack().Err(err).Msg("Failed fetching group variables")
+				log.Debug().Stack().Err(err).Msg("Failed fetching group variables")
 			}
 			if len(gvs) > 0 {
 				log.Warn().Str("Group", group.WebURL).Any("variables", gvs).Msg("Group variables")
