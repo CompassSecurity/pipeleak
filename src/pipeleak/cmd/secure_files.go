@@ -38,7 +38,7 @@ func FetchSecureFiles(cmd *cobra.Command, args []string) {
 		log.Debug().Msg("Verbose log output enabled")
 	}
 
-	log.Info().Msg("Fetching project variables")
+	log.Info().Msg("Fetching secure files")
 
 	git, err := helper.GetGitlabClient(gitlabApiToken, gitlabUrl)
 	if err != nil {
@@ -50,8 +50,7 @@ func FetchSecureFiles(cmd *cobra.Command, args []string) {
 			PerPage: 100,
 			Page:    1,
 		},
-		Membership:     gitlab.Ptr(true),
-		MinAccessLevel: gitlab.Ptr(gitlab.OwnerPermissions),
+		MinAccessLevel: gitlab.Ptr(gitlab.MaintainerPermissions),
 		OrderBy:        gitlab.Ptr("last_activity_at"),
 	}
 

@@ -50,7 +50,7 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 			Page:    1,
 		},
 		Membership:     gitlab.Ptr(true),
-		MinAccessLevel: gitlab.Ptr(gitlab.OwnerPermissions),
+		MinAccessLevel: gitlab.Ptr(gitlab.MaintainerPermissions),
 		OrderBy:        gitlab.Ptr("last_activity_at"),
 	}
 
@@ -87,7 +87,8 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 			Page:    1,
 		},
 		AllAvailable:   gitlab.Ptr(true),
-		MinAccessLevel: gitlab.Ptr(gitlab.OwnerPermissions),
+		MinAccessLevel: gitlab.Ptr(gitlab.MaintainerPermissions),
+		TopLevelOnly:   gitlab.Ptr(false),
 	}
 
 	for {
@@ -101,7 +102,6 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 			gvs, _, err := git.GroupVariables.ListVariables(group.ID, nil, nil)
 			if err != nil {
 				log.Error().Stack().Err(err).Msg("Failed fetching group variables")
-				continue
 			}
 			if len(gvs) > 0 {
 				log.Warn().Str("Group", group.WebURL).Any("variables", gvs).Msg("Group variables")
