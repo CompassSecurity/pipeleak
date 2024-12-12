@@ -80,6 +80,7 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 	}
 
 	log.Info().Msg("Fetching group variables")
+	log.Warn().Msg("Group inherited variables cannot really be enumerated through the API. If you have inherited access to variables from groups, you do not have owner access to, check manually in the GitLab UI!")
 
 	listGroupsOpts := &gitlab.ListGroupsOptions{
 		ListOptions: gitlab.ListOptions{
@@ -88,8 +89,8 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 		},
 		AllAvailable: gitlab.Ptr(true),
 		// one can have group guest access and thus inherit variables.
-		// However the inherited variables are only available from the group and not the project
-		MinAccessLevel: gitlab.Ptr(gitlab.GuestPermissions),
+		// However these are visible in the GUI but not on API level, only if the user has owner access to the group
+		MinAccessLevel: gitlab.Ptr(gitlab.MaintainerPermissions),
 		TopLevelOnly:   gitlab.Ptr(false),
 	}
 
