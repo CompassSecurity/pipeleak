@@ -141,7 +141,7 @@ func AppendPipeleakRules(rules []PatternElement) []PatternElement {
 	return slices.Concat(rules, customRules)
 }
 
-func DetectHits(text []byte, maxThreads int) []Finding {
+func DetectHits(text []byte, maxThreads int, enableTruffleHogVerification bool) []Finding {
 	ctx := context.Background()
 	group := parallel.Collect[[]Finding](parallel.Limited(ctx, maxThreads))
 
@@ -179,21 +179,29 @@ func DetectHits(text []byte, maxThreads int) []Finding {
 	for _, detector := range defaults.DefaultDetectors() {
 		trGroup.Go(func(ctx context.Context) ([]Finding, error) {
 			findingsTr := []Finding{}
-			trHits, err := detector.FromData(ctx, true, text)
+			trHits, err := detector.FromData(ctx, enableTruffleHogVerification, text)
 			if err != nil {
 				log.Error().Msg("Truffelhog Detector Failed " + err.Error())
 				return []Finding{}, err
 			}
 
 			for _, result := range trHits {
-				// only report verified
-				if result.Verified {
-					secret := result.Raw
-					if len(result.RawV2) > 0 {
-						secret = result.Raw
-					}
+				secret := result.Raw
+				if len(result.RawV2) > 0 {
+					secret = result.RawV2
+				}
+				finding := Finding{Pattern: PatternElement{Pattern: PatternPattern{Name: result.DetectorType.String(), Confidence: "high-verified"}}, Text: string(secret)}
 
-					findingsTr = append(findingsTr, Finding{Pattern: PatternElement{Pattern: PatternPattern{Name: result.DetectorType.String(), Confidence: "high-verified"}}, Text: string(secret)})
+				// if trufflehog verification is enalbed ONLY verified rules are reported
+				if result.Verified {
+					findingsTr = append(findingsTr, finding)
+				}
+
+				// if trufflehog verification is disabled all rules are reported
+				if !enableTruffleHogVerification {
+					// trufflehog itself does not have confidence information
+					finding.Pattern.Pattern.Confidence = "trufflehog-unverified"
+					findingsTr = append(findingsTr, finding)
 				}
 			}
 			return findingsTr, nil
@@ -231,9 +239,9 @@ func deduplicateFindings(totalFindings []Finding) []Finding {
 	return dedupedFindings
 }
 
-func DetectFileHits(content []byte, jobWebUrl string, jobName string, fileName string, archiveName string) {
+func DetectFileHits(content []byte, jobWebUrl string, jobName string, fileName string, archiveName string, enableTruffleHogVerification bool) {
 	// 1 goroutine to prevent maxThreads^2 which trashes memory
-	findings := DetectHits(content, 1)
+	findings := DetectHits(content, 1, enableTruffleHogVerification)
 	for _, finding := range findings {
 		baseLog := log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", jobWebUrl).Str("jobName", jobName).Str("file", fileName)
 		if len(archiveName) > 0 {

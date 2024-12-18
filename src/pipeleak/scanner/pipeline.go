@@ -24,19 +24,20 @@ var queueFileName string
 var queueDB *sql.DB
 
 type ScanOptions struct {
-	GitlabUrl          string
-	GitlabApiToken     string
-	GitlabCookie       string
-	ProjectSearchQuery string
-	Artifacts          bool
-	Owned              bool
-	Member             bool
-	JobLimit           int
-	Verbose            bool
-	ConfidenceFilter   []string
-	MaxArtifactSize    int64
-	MaxScanGoRoutines  int
-	QueueFolder        string
+	GitlabUrl              string
+	GitlabApiToken         string
+	GitlabCookie           string
+	ProjectSearchQuery     string
+	Artifacts              bool
+	Owned                  bool
+	Member                 bool
+	JobLimit               int
+	Verbose                bool
+	ConfidenceFilter       []string
+	MaxArtifactSize        int64
+	MaxScanGoRoutines      int
+	QueueFolder            string
+	TruffleHogVerification bool
 }
 
 func ScanGitLabPipelines(options *ScanOptions) {
@@ -50,6 +51,9 @@ func ScanGitLabPipelines(options *ScanOptions) {
 	})
 
 	InitRules(options.ConfidenceFilter)
+	if !options.TruffleHogVerification {
+		log.Info().Msg("TruffleHog verification is disabled")
+	}
 
 	git, err := helper.GetGitlabClient(options.GitlabApiToken, options.GitlabUrl)
 	if err != nil {

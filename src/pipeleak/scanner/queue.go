@@ -102,7 +102,7 @@ func analyzeJobTrace(git *gitlab.Client, item QueueItem, options *ScanOptions) {
 		return
 	}
 
-	findings := DetectHits(trace, options.MaxScanGoRoutines)
+	findings := DetectHits(trace, options.MaxScanGoRoutines, options.TruffleHogVerification)
 	for _, finding := range findings {
 		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", item.Meta.JobWebUrl).Str("jobName", item.Meta.JobName).Msg("HIT")
 	}
@@ -140,9 +140,9 @@ func analyzeJobArtifact(git *gitlab.Client, item QueueItem, options *ScanOptions
 			kind, _ := filetype.Match(content)
 			// do not scan https://pkg.go.dev/github.com/h2non/filetype#readme-supported-types
 			if kind == filetype.Unknown {
-				DetectFileHits(content, item.Meta.JobWebUrl, item.Meta.JobName, file.Name, "")
+				DetectFileHits(content, item.Meta.JobWebUrl, item.Meta.JobName, file.Name, "", options.TruffleHogVerification)
 			} else if filetype.IsArchive(content) {
-				handleArchiveArtifact(file.Name, content, item.Meta.JobWebUrl, item.Meta.JobName)
+				handleArchiveArtifact(file.Name, content, item.Meta.JobWebUrl, item.Meta.JobName, options.TruffleHogVerification)
 			}
 			fc.Close()
 		})
@@ -157,7 +157,7 @@ func analyzeDotenvArtifact(git *gitlab.Client, item QueueItem, options *ScanOpti
 		return
 	}
 
-	findings := DetectHits(dotenvText, options.MaxScanGoRoutines)
+	findings := DetectHits(dotenvText, options.MaxScanGoRoutines, options.TruffleHogVerification)
 	for _, finding := range findings {
 		artifactsBaseUrl, _ := url.JoinPath(item.Meta.JobWebUrl, "/-/artifacts")
 		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("artifactUrl", artifactsBaseUrl).Int("jobId", item.Meta.JobId).Str("jobName", item.Meta.JobName).Msg("HIT DOTENV: Check artifacts page which is the only place to download the dotenv file")
@@ -286,7 +286,7 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 // https://docs.gitlab.com/ee/ci/caching/#common-use-cases-for-caches
 var skippableDirectoryNames = []string{"node_modules", ".yarn", ".yarn-cache", ".npm", "venv", "vendor", ".go/pkg/mod/"}
 
-func handleArchiveArtifact(archivefileName string, content []byte, jobWebUrl string, jobName string) {
+func handleArchiveArtifact(archivefileName string, content []byte, jobWebUrl string, jobName string, enableTruffleHogVerification bool) {
 	for _, skipKeyword := range skippableDirectoryNames {
 		if strings.Contains(archivefileName, skipKeyword) {
 			log.Debug().Str("file", archivefileName).Str("keyword", skipKeyword).Msg("Skipped archive due to blocklist entry")
@@ -342,7 +342,7 @@ func handleArchiveArtifact(archivefileName string, content []byte, jobWebUrl str
 
 			kind, _ := filetype.Match(fileBytes)
 			if kind == filetype.Unknown {
-				DetectFileHits(fileBytes, jobWebUrl, jobName, path.Base(fPath), archivefileName)
+				DetectFileHits(fileBytes, jobWebUrl, jobName, path.Base(fPath), archivefileName, enableTruffleHogVerification)
 			}
 		}
 	}
