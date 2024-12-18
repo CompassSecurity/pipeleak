@@ -1,6 +1,7 @@
 module github.com/CompassSecurity/pipeleak
 
-go 1.23.1
+go 1.23.4
+
 require (
 	atomicgo.dev/keyboard v0.2.9
 	github.com/PuerkitoBio/goquery v1.10.0
