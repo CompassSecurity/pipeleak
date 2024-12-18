@@ -51,7 +51,7 @@ func ScanGitLabPipelines(options *ScanOptions) {
 	})
 
 	InitRules(options.ConfidenceFilter)
-	if options.TruffleHogVerification == false {
+	if !enableTruffleHogVerification {
 		log.Info().Msg("TruffleHog verification is disabled")
 	}
 

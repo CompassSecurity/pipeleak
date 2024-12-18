@@ -198,7 +198,7 @@ func DetectHits(text []byte, maxThreads int, enableTruffleHogVerification bool) 
 				}
 
 				// if trufflehog verification is disabled all rules are reported
-				if enableTruffleHogVerification == false {
+				if !enableTruffleHogVerification {
 					// trufflehog itself does not have confidence information
 					finding.Pattern.Pattern.Confidence = "trufflehog-unverified"
 					findingsTr = append(findingsTr, finding)
