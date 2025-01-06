@@ -4,7 +4,7 @@ go 1.23.4
 
 require (
 	atomicgo.dev/keyboard v0.2.9
-	github.com/PuerkitoBio/goquery v1.10.0
+	github.com/PuerkitoBio/goquery v1.10.1
 	github.com/docker/go-units v0.5.0
 	github.com/maragudk/goqite v0.2.3
 	github.com/rs/zerolog v1.33.0
@@ -37,7 +37,7 @@ require (
 	github.com/JohnCGriffin/overflow v0.0.0-20211019200055-46fa312c352c // indirect
 	github.com/TheZeroSlave/zapsentry v1.23.0 // indirect
 	github.com/andybalholm/brotli v1.1.1 // indirect
-	github.com/andybalholm/cascadia v1.3.2 // indirect
+	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/apache/arrow/go/v16 v16.0.0 // indirect
 	github.com/aws/aws-sdk-go v1.55.5 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.26.1 // indirect
