@@ -11,7 +11,7 @@ require (
 	github.com/rxwycdh/rxhash v0.0.0-20230131062142-10b7a38b400d
 	github.com/spf13/cobra v1.8.1
 	github.com/tidwall/gjson v1.18.0
-	github.com/trufflesecurity/trufflehog/v3 v3.88.0
+	github.com/trufflesecurity/trufflehog/v3 v3.88.2
 	gitlab.com/gitlab-org/api/client-go v0.118.0
 	gitlab.com/mitchenielsen/gitlab-ci-go v0.0.4
 	golift.io/xtractr v0.2.2
@@ -116,7 +116,7 @@ require (
 	github.com/mtibben/percent v0.2.1 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/nwaples/rardecode v1.1.3 // indirect
-	github.com/onsi/gomega v1.27.10 // indirect
+	github.com/onsi/gomega v1.34.1 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
