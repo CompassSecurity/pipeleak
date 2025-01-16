@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -219,4 +220,12 @@ func IsDirectory(path string) bool {
 	}
 
 	return fileInfo.IsDir()
+}
+
+func LineNRToWebURL(webUrl string, lineNumber int) string {
+	if (lineNumber < 0) {
+		return webUrl
+	}
+	
+	return webUrl + "#L" + strconv.Itoa(lineNumber)
 }

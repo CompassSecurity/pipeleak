@@ -41,6 +41,7 @@ type PatternPattern struct {
 type Finding struct {
 	Pattern PatternElement
 	Text    string
+	LineNumber int
 }
 
 // hold patterns in memory during runtime
@@ -152,6 +153,7 @@ func DetectHits(text []byte, maxThreads int, enableTruffleHogVerification bool) 
 			hits := m.FindAllIndex(text, -1)
 
 			for _, hit := range hits {
+				lineNumber := countNewlinesUntilIndex(text, hit[0])
 				// truncate output to max 1024 chars for output readability
 				hitStr := extractHitWithSurroundingText(text, hit, 50)
 				hitStr = cleanHitLine(hitStr)
@@ -160,7 +162,7 @@ func DetectHits(text []byte, maxThreads int, enableTruffleHogVerification bool) 
 				}
 
 				if hitStr != "" {
-					findingsYml = append(findingsYml, Finding{Pattern: pattern, Text: hitStr})
+					findingsYml = append(findingsYml, Finding{Pattern: pattern, Text: hitStr, LineNumber: lineNumber})
 				}
 			}
 
@@ -190,7 +192,9 @@ func DetectHits(text []byte, maxThreads int, enableTruffleHogVerification bool) 
 				if len(result.RawV2) > 0 {
 					secret = result.RawV2
 				}
-				finding := Finding{Pattern: PatternElement{Pattern: PatternPattern{Name: result.DetectorType.String(), Confidence: "high-verified"}}, Text: string(secret)}
+				resultIndex := strings.Index(string(text), string(secret))
+				lineNumber := countNewlinesUntilIndex(text, resultIndex)
+				finding := Finding{Pattern: PatternElement{Pattern: PatternPattern{Name: result.DetectorType.String(), Confidence: "high-verified"}}, Text: string(secret), LineNumber: lineNumber}
 
 				// if trufflehog verification is enalbed ONLY verified rules are reported
 				if result.Verified {
@@ -276,4 +280,26 @@ func extractHitWithSurroundingText(text []byte, hitIndex []int, additionalBytes 
 func cleanHitLine(text string) string {
 	text = strings.ReplaceAll(text, "\n", " ")
 	return stripansi.Strip(text)
+}
+
+func countNewlinesUntilIndex(s []byte, index int) int {
+	if index > len(s) {
+		index = len(s)
+	}
+	if index == 0 {
+		return 0
+	}
+	if index < 0 {
+		return -1
+	}
+	substring := s[:index]
+
+	
+	count := 0
+	for i := 0; i < len(substring); i++ {
+		if substring[i] == '[' {
+			count++
+		}
+	}
+	return count
 }
