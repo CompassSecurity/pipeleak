@@ -104,7 +104,7 @@ func analyzeJobTrace(git *gitlab.Client, item QueueItem, options *ScanOptions) {
 
 	findings := DetectHits(trace, options.MaxScanGoRoutines, options.TruffleHogVerification)
 	for _, finding := range findings {
-		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", item.Meta.JobWebUrl).Str("jobName", item.Meta.JobName).Msg("HIT")
+		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", helper.LineNRToWebURL(item.Meta.JobWebUrl, finding.LineNumber)).Str("jobName", item.Meta.JobName).Msg("HIT")
 	}
 }
 
