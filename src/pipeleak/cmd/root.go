@@ -34,6 +34,7 @@ func init() {
 	rootCmd.AddCommand(NewVulnCmd())
 	rootCmd.AddCommand(NewVariablesCmd())
 	rootCmd.AddCommand(NewSecureFilesCmd())
+	rootCmd.AddCommand(NewEnumCmd())
 	rootCmd.PersistentFlags().BoolVarP(&JsonLogoutput, "json", "", false, "Use JSON as log output format")
 }
 
