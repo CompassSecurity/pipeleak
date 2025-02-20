@@ -11,7 +11,7 @@ require (
 	github.com/rxwycdh/rxhash v0.0.0-20230131062142-10b7a38b400d
 	github.com/spf13/cobra v1.8.1
 	github.com/tidwall/gjson v1.18.0
-	github.com/trufflesecurity/trufflehog/v3 v3.88.5
+	github.com/trufflesecurity/trufflehog/v3 v3.88.11
 	gitlab.com/gitlab-org/api/client-go v0.122.0
 	gitlab.com/mitchenielsen/gitlab-ci-go v0.0.4
 	golift.io/xtractr v0.2.2
@@ -39,7 +39,7 @@ require (
 	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/apache/arrow/go/v16 v16.0.0 // indirect
-	github.com/aws/aws-sdk-go v1.55.5 // indirect
+	github.com/aws/aws-sdk-go v1.55.6 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.26.1 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.2 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.11 // indirect
@@ -71,11 +71,11 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v1.1.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.7 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
 	github.com/getsentry/sentry-go v0.30.0 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.7 // indirect
 	github.com/go-errors/errors v1.5.1 // indirect
-	github.com/go-ldap/ldap/v3 v3.4.9 // indirect
+	github.com/go-ldap/ldap/v3 v3.4.10 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
@@ -130,12 +130,12 @@ require (
 	github.com/rabbitmq/amqp091-go v1.10.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/snowflakedb/gosnowflake v1.12.1 // indirect
-	github.com/tailscale/depaware v0.0.0-20241028160002-3d7f3b30ed0e // indirect
-	github.com/tetratelabs/wazero v1.8.2 // indirect
+	github.com/tailscale/depaware v0.0.0-20250112153213-b748de04d81b // indirect
+	github.com/tetratelabs/wazero v1.9.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/ulikunitz/xz v0.5.12 // indirect
-	github.com/wasilibs/go-re2 v1.8.0 // indirect
+	github.com/wasilibs/go-re2 v1.9.0 // indirect
 	github.com/wasilibs/wazero-helpers v0.0.0-20240620070341-3dff1577cd52 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
@@ -152,12 +152,12 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
-	golang.org/x/crypto v0.31.0 // indirect
+	golang.org/x/crypto v0.32.0 // indirect
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 // indirect
 	golang.org/x/mod v0.22.0 // indirect
-	golang.org/x/net v0.33.0 // indirect
+	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/term v0.27.0 // indirect
+	golang.org/x/term v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/tools v0.28.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
@@ -172,7 +172,6 @@ require (
 
 require (
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
-	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/h2non/filetype v1.1.3
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
@@ -182,11 +181,10 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/perimeterx/marshmallow v1.1.5
-	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/wandb/parallel v0.2.2
 	golang.org/x/oauth2 v0.25.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/time v0.9.0 // indirect
 	google.golang.org/protobuf v1.36.0 // indirect
 	gopkg.in/headzoo/surf.v1 v1.0.1
