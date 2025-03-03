@@ -4,13 +4,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
 func NewGitHubRootCmd() *cobra.Command {
-	runnersCmd := &cobra.Command{
-		Use:   "gh [no options!]",
+	ghCmd := &cobra.Command{
+		Use:   "gh [command]",
 		Short: "GitHub related commands",
 	}
 
+	ghCmd.AddCommand(NewScanCmd())
 
-	return runnersCmd
+
+	return ghCmd
 }

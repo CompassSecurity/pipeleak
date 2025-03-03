@@ -13,37 +13,37 @@ var (
 )
 
 func NewGitLabRootCmd() *cobra.Command {
-	runnersCmd := &cobra.Command{
-		Use:   "gl [no options!]",
+	glCmd := &cobra.Command{
+		Use:   "gl [command]",
 		Short: "GitLab related commands",
 	}
 
-	runnersCmd.AddCommand(NewScanCmd())
-	runnersCmd.AddCommand(NewShodanCmd())
-	runnersCmd.AddCommand(runners.NewRunnersRootCmd())
-	runnersCmd.AddCommand(NewRegisterCmd())
-	runnersCmd.AddCommand(NewVulnCmd())
-	runnersCmd.AddCommand(NewVariablesCmd())
-	runnersCmd.AddCommand(NewSecureFilesCmd())
-	runnersCmd.AddCommand(NewEnumCmd())
+	glCmd.AddCommand(NewScanCmd())
+	glCmd.AddCommand(NewShodanCmd())
+	glCmd.AddCommand(runners.NewRunnersRootCmd())
+	glCmd.AddCommand(NewRegisterCmd())
+	glCmd.AddCommand(NewVulnCmd())
+	glCmd.AddCommand(NewVariablesCmd())
+	glCmd.AddCommand(NewSecureFilesCmd())
+	glCmd.AddCommand(NewEnumCmd())
 
-	runnersCmd.PersistentFlags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
-	err := runnersCmd.MarkPersistentFlagRequired("gitlab")
+	glCmd.PersistentFlags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
+	err := glCmd.MarkPersistentFlagRequired("gitlab")
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Unable to require gitlab flag")
 	}
 
-	runnersCmd.PersistentFlags().StringVarP(&gitlabApiToken, "token", "t", "", "GitLab API Token")
-	err = runnersCmd.MarkPersistentFlagRequired("token")
+	glCmd.PersistentFlags().StringVarP(&gitlabApiToken, "token", "t", "", "GitLab API Token")
+	err = glCmd.MarkPersistentFlagRequired("token")
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("Unable to require token flag")
 	}
-	runnersCmd.MarkFlagsRequiredTogether("gitlab", "token")
+	glCmd.MarkFlagsRequiredTogether("gitlab", "token")
 
-	runnersCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
+	glCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 
-	runnersCmd.AddCommand(runners.NewRunnersListCmd())
-	runnersCmd.AddCommand(runners.NewRunnersExploitCmd())
+	glCmd.AddCommand(runners.NewRunnersListCmd())
+	glCmd.AddCommand(runners.NewRunnersExploitCmd())
 
-	return runnersCmd
+	return glCmd
 }

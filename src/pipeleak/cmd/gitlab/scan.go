@@ -56,7 +56,7 @@ func NewScanCmd() *cobra.Command {
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	setLogLevel()
+	helper.SetLogLevel(verbose)
 	go shortcutListeners()
 
 	_, err := url.ParseRequestURI(options.GitlabUrl)
@@ -80,13 +80,6 @@ func parseFileSize(size string) int64 {
 	}
 
 	return byteSize
-}
-
-func setLogLevel() {
-	if options.Verbose {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-		log.Debug().Msg("Verbose log output enabled")
-	}
 }
 
 func shortcutListeners() {
