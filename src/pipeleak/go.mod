@@ -68,6 +68,7 @@ require (
 	github.com/couchbaselabs/gocbconnstr/v2 v2.0.0-20240607131231-fb385523de28 // indirect
 	github.com/danieljoos/wincred v1.2.1 // indirect
 	github.com/dvsekhvalnov/jose2go v1.6.0 // indirect
+	github.com/enrichman/gh-iter v0.0.0-20240716154615-c70b8ca2bacf // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.1.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
@@ -88,6 +89,8 @@ require (
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/flatbuffers v24.3.25+incompatible // indirect
+	github.com/google/go-github/v63 v63.0.0 // indirect
+	github.com/google/go-github/v69 v69.2.0 // indirect
 	github.com/google/s2a-go v0.1.8 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.4 // indirect
