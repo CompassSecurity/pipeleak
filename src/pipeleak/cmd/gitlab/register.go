@@ -1,4 +1,4 @@
-package cmd
+package gitlab
 
 import (
 	"github.com/CompassSecurity/pipeleak/helper"
@@ -7,11 +7,9 @@ import (
 )
 
 var (
-	gitlabUrl string
 	username  string
 	password  string
 	email     string
-	verbose   bool
 )
 
 func NewRegisterCmd() *cobra.Command {
@@ -49,6 +47,6 @@ func NewRegisterCmd() *cobra.Command {
 }
 
 func Register(cmd *cobra.Command, args []string) {
-	setLogLevel()
+	helper.SetLogLevel(verbose)
 	helper.RegisterNewAccount(gitlabUrl, username, password, email)
 }

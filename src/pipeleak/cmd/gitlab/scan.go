@@ -1,4 +1,4 @@
-package cmd
+package gitlab
 
 import (
 	"net/url"

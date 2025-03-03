@@ -1,6 +1,7 @@
-package cmd
+package gitlab
 
 import (
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/runners"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -11,11 +12,20 @@ var (
 	verbose        bool
 )
 
-func NewRunnersRootCmd() *cobra.Command {
+func NewGitLabRootCmd() *cobra.Command {
 	runnersCmd := &cobra.Command{
-		Use:   "runners [no options!]",
-		Short: "runner related commands",
+		Use:   "gl [no options!]",
+		Short: "GitLab related commands",
 	}
+
+	runnersCmd.AddCommand(NewScanCmd())
+	runnersCmd.AddCommand(NewShodanCmd())
+	runnersCmd.AddCommand(runners.NewRunnersRootCmd())
+	runnersCmd.AddCommand(NewRegisterCmd())
+	runnersCmd.AddCommand(NewVulnCmd())
+	runnersCmd.AddCommand(NewVariablesCmd())
+	runnersCmd.AddCommand(NewSecureFilesCmd())
+	runnersCmd.AddCommand(NewEnumCmd())
 
 	runnersCmd.PersistentFlags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
 	err := runnersCmd.MarkPersistentFlagRequired("gitlab")
@@ -32,8 +42,8 @@ func NewRunnersRootCmd() *cobra.Command {
 
 	runnersCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 
-	runnersCmd.AddCommand(NewRunnersListCmd())
-	runnersCmd.AddCommand(NewRunnersExploitCmd())
+	runnersCmd.AddCommand(runners.NewRunnersListCmd())
+	runnersCmd.AddCommand(runners.NewRunnersExploitCmd())
 
 	return runnersCmd
 }
