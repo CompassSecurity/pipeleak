@@ -67,7 +67,8 @@ func Scan(cmd *cobra.Command, args []string) {
 
 	client := github.NewClient(nil).WithAuthToken(options.AccessToken)
 	scanner.InitRules(options.ConfidenceFilter)
-	ScanGithubActions(client)
+	id := identifyNewestPublicProjectId(client)
+	scanAllPublicRepositories(client, id)
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
 }
 
@@ -112,7 +113,33 @@ func listRepositories(client *github.Client, listOpt github.ListOptions, organiz
 	}
 }
 
-func ScanGithubActions(client *github.Client) {
+func scanAllPublicRepositories(client *github.Client, latestProjectId int64) {
+	opt := &github.RepositoryListAllOptions{
+		// 100 = page size
+		Since: latestProjectId - 100,
+	}
+
+	for {
+		if opt.Since < 0 {
+			break
+		}
+
+		repos, _, err := client.Repositories.ListAll(context.Background(), opt)
+		if err != nil {
+			log.Fatal().Stack().Err(err).Msg("Failed fetching authenticated user repos")
+		}
+
+		for _, repo := range repos {
+			log.Info().Int64("id", *repo.ID).Str("owner", *repo.Owner.Login).Str("name", *repo.Name).Str("url", *repo.HTMLURL).Msg("Scan")
+			iterateWorkflowRuns(client, repo)
+		}
+
+		opt.Since = opt.Since - 100
+		log.Error().Int64("page", opt.Since).Msg("hacker")
+	}
+}
+
+func scanGithubActions(client *github.Client) {
 	listOpt := github.ListOptions{PerPage: 100}
 	for {
 		repos, resp, listOpt := listRepositories(client, listOpt, options.Organization, options.User, options.Owned)
@@ -223,4 +250,34 @@ func readZipFile(zf *zip.File) ([]byte, error) {
 	}
 	defer f.Close()
 	return io.ReadAll(f)
+}
+
+func identifyNewestPublicProjectId(client *github.Client) int64 {
+	for {
+		listOpts := github.ListOptions{PerPage: 1000}
+		events, resp, err := client.Activity.ListEvents(context.Background(), &listOpts)
+		if err != nil {
+			log.Fatal().Stack().Err(err).Msg("Failed fetching activity")
+		}
+		for _, event := range events {
+			eventType := *event.Type
+			log.Trace().Str("type", eventType).Msg("Event")
+			if eventType == "CreateEvent" {
+				repo, _, err := client.Repositories.GetByID(context.Background(), *event.Repo.ID)
+				if err != nil {
+					log.Fatal().Stack().Err(err).Msg("Failed fetching Web URL of latest repo")
+				}
+				log.Info().Int64("Id", *repo.ID).Str("url", *repo.HTMLURL).Msg("Identified latest public repository")
+				return *event.Repo.ID
+			}
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		listOpts.Page = resp.NextPage
+	}
+
+	log.Fatal().Msg("Failed finding a CreateEvent and thus no rerpository id")
+	return -1
 }
