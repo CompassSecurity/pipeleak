@@ -22,6 +22,7 @@ type GitHubScanOptions struct {
 	MaxWorkflows           int
 	Organization           string
 	Owned                  bool
+	User                   string
 }
 
 var options = GitHubScanOptions{}
@@ -43,8 +44,9 @@ func NewScanCmd() *cobra.Command {
 	scanCmd.PersistentFlags().BoolVarP(&options.TruffleHogVerification, "truffleHogVerification", "", true, "Enable the TruffleHog credential verification, will actively test the found credentials and only report those. Disable with --truffleHogVerification=false")
 	scanCmd.PersistentFlags().IntVarP(&options.MaxWorkflows, "maxWorkflows", "", -1, "Max. number of workflows to scan per repository")
 	scanCmd.Flags().StringVarP(&options.Organization, "org", "", "", "GitHub organization name to scan")
+	scanCmd.Flags().StringVarP(&options.User, "user", "", "", "GitHub user name to scan")
 	scanCmd.PersistentFlags().BoolVarP(&options.Owned, "owned", "", false, "Scan user onwed projects only")
-	scanCmd.MarkFlagsMutuallyExclusive("owned", "org")
+	scanCmd.MarkFlagsMutuallyExclusive("owned", "org", "user")
 	scanCmd.PersistentFlags().BoolVarP(&options.Verbose, "verbose", "v", false, "Verbose logging")
 
 	return scanCmd
@@ -57,8 +59,10 @@ func Scan(cmd *cobra.Command, args []string) {
 
 	if options.Owned {
 		log.Info().Msg("Scanning authenticated user's owned repositories actions")
+	} else if options.User != "" {
+		log.Info().Str("users", options.User).Msg("Scanning user's repositories actions")
 	} else {
-		log.Info().Str("organization", options.Organization).Msg("Scanning authenticated user's accessible repositories actions")
+		log.Info().Str("organization", options.Organization).Msg("Scanning current authenticated user's repositories actions")
 	}
 
 	client := github.NewClient(nil).WithAuthToken(options.AccessToken)
@@ -67,7 +71,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
 }
 
-func listRepositories(client *github.Client, listOpt github.ListOptions, organization string, owned bool) ([]*github.Repository, *github.Response, github.ListOptions) {
+func listRepositories(client *github.Client, listOpt github.ListOptions, organization string, user string, owned bool) ([]*github.Repository, *github.Response, github.ListOptions) {
 	if organization != "" {
 		opt := &github.RepositoryListByOrgOptions{
 			Sort:        "updated",
@@ -75,10 +79,20 @@ func listRepositories(client *github.Client, listOpt github.ListOptions, organiz
 		}
 		repos, resp, err := client.Repositories.ListByOrg(context.Background(), organization, opt)
 		if err != nil {
-			log.Fatal().Stack().Err(err).Msg("Failed Fetching Repos")
+			log.Fatal().Stack().Err(err).Msg("Failed fetching organization repos")
 		}
 		return repos, resp, opt.ListOptions
 
+	} else if user != "" {
+		opt := &github.RepositoryListByUserOptions{
+			Sort:        "updated",
+			ListOptions: listOpt,
+		}
+		repos, resp, err := client.Repositories.ListByUser(context.Background(), user, opt)
+		if err != nil {
+			log.Fatal().Stack().Err(err).Msg("Failed fetching user repos")
+		}
+		return repos, resp, opt.ListOptions
 	} else {
 		affiliation := "owner,collaborator,organization_member"
 		if owned {
@@ -91,7 +105,7 @@ func listRepositories(client *github.Client, listOpt github.ListOptions, organiz
 
 		repos, resp, err := client.Repositories.ListByAuthenticatedUser(context.Background(), opt)
 		if err != nil {
-			log.Fatal().Stack().Err(err).Msg("Failed Fetching Repos")
+			log.Fatal().Stack().Err(err).Msg("Failed fetching authenticated user repos")
 		}
 
 		return repos, resp, opt.ListOptions
@@ -101,7 +115,7 @@ func listRepositories(client *github.Client, listOpt github.ListOptions, organiz
 func ScanGithubActions(client *github.Client) {
 	listOpt := github.ListOptions{PerPage: 100}
 	for {
-		repos, resp, listOpt := listRepositories(client, listOpt, options.Organization, options.Owned)
+		repos, resp, listOpt := listRepositories(client, listOpt, options.Organization, options.User, options.Owned)
 		for _, repo := range repos {
 			log.Info().Str("name", *repo.Name).Msg("Scanning Repository")
 			iterateWorkflowRuns(client, repo)
