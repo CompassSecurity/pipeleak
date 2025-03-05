@@ -20,6 +20,8 @@ type GitHubScanOptions struct {
 	MaxScanGoRoutines      int
 	TruffleHogVerification bool
 	MaxWorkflows           int
+	Organization           string
+	Owned                  bool
 }
 
 var options = GitHubScanOptions{}
@@ -30,7 +32,7 @@ func NewScanCmd() *cobra.Command {
 		Short: "Scan GitHub Actions",
 		Run:   Scan,
 	}
-	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "GitHub Peronsal Access Token")
+	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "GitHub Personal Access Token")
 	err := scanCmd.MarkFlagRequired("token")
 	if err != nil {
 		log.Fatal().Msg("Unable to require token flag")
@@ -40,7 +42,9 @@ func NewScanCmd() *cobra.Command {
 	scanCmd.PersistentFlags().IntVarP(&options.MaxScanGoRoutines, "threads", "", 4, "Nr of threads used to scan")
 	scanCmd.PersistentFlags().BoolVarP(&options.TruffleHogVerification, "truffleHogVerification", "", true, "Enable the TruffleHog credential verification, will actively test the found credentials and only report those. Disable with --truffleHogVerification=false")
 	scanCmd.PersistentFlags().IntVarP(&options.MaxWorkflows, "maxWorkflows", "", -1, "Max. number of workflows to scan per repository")
-
+	scanCmd.Flags().StringVarP(&options.Organization, "org", "", "", "GitHub organization name to scan")
+	scanCmd.PersistentFlags().BoolVarP(&options.Owned, "owned", "", false, "Scan user onwed projects only")
+	scanCmd.MarkFlagsMutuallyExclusive("owned", "org")
 	scanCmd.PersistentFlags().BoolVarP(&options.Verbose, "verbose", "v", false, "Verbose logging")
 
 	return scanCmd
@@ -51,23 +55,53 @@ func Scan(cmd *cobra.Command, args []string) {
 	// @todo this is buggy, does not refresh
 	go helper.ShortcutListeners(0, 0)
 
+	if options.Owned {
+		log.Info().Msg("Scanning authenticated user's owned repositories actions")
+	} else {
+		log.Info().Str("organization", options.Organization).Msg("Scanning authenticated user's accessible repositories actions")
+	}
+
 	client := github.NewClient(nil).WithAuthToken(options.AccessToken)
 	scanner.InitRules(options.ConfidenceFilter)
 	ScanGithubActions(client)
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
 }
 
-func ScanGithubActions(client *github.Client) {
-	log.Info().Msg("Scanning GitHub Actions")
-	opt := &github.RepositoryListByAuthenticatedUserOptions{
-		ListOptions: github.ListOptions{PerPage: 100},
-	}
-	for {
+func listRepositories(client *github.Client, listOpt github.ListOptions, organization string, owned bool) ([]*github.Repository, *github.Response, github.ListOptions) {
+	if organization != "" {
+		opt := &github.RepositoryListByOrgOptions{
+			Sort:        "updated",
+			ListOptions: listOpt,
+		}
+		repos, resp, err := client.Repositories.ListByOrg(context.Background(), organization, opt)
+		if err != nil {
+			log.Fatal().Stack().Err(err).Msg("Failed Fetching Repos")
+		}
+		return repos, resp, opt.ListOptions
+
+	} else {
+		affiliation := "owner,collaborator,organization_member"
+		if owned {
+			affiliation = "owner"
+		}
+		opt := &github.RepositoryListByAuthenticatedUserOptions{
+			ListOptions: listOpt,
+			Affiliation: affiliation,
+		}
+
 		repos, resp, err := client.Repositories.ListByAuthenticatedUser(context.Background(), opt)
 		if err != nil {
 			log.Fatal().Stack().Err(err).Msg("Failed Fetching Repos")
 		}
 
+		return repos, resp, opt.ListOptions
+	}
+}
+
+func ScanGithubActions(client *github.Client) {
+	listOpt := github.ListOptions{PerPage: 100}
+	for {
+		repos, resp, listOpt := listRepositories(client, listOpt, options.Organization, options.Owned)
 		for _, repo := range repos {
 			log.Info().Str("name", *repo.Name).Msg("Scanning Repository")
 			iterateWorkflowRuns(client, repo)
@@ -76,7 +110,7 @@ func ScanGithubActions(client *github.Client) {
 		if resp.NextPage == 0 {
 			break
 		}
-		opt.Page = resp.NextPage
+		listOpt.Page = resp.NextPage
 	}
 }
 
