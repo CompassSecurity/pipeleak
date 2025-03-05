@@ -23,6 +23,7 @@ type GitHubScanOptions struct {
 	Organization           string
 	Owned                  bool
 	User                   string
+	Public                 bool
 }
 
 var options = GitHubScanOptions{}
@@ -46,7 +47,8 @@ func NewScanCmd() *cobra.Command {
 	scanCmd.Flags().StringVarP(&options.Organization, "org", "", "", "GitHub organization name to scan")
 	scanCmd.Flags().StringVarP(&options.User, "user", "", "", "GitHub user name to scan")
 	scanCmd.PersistentFlags().BoolVarP(&options.Owned, "owned", "", false, "Scan user onwed projects only")
-	scanCmd.MarkFlagsMutuallyExclusive("owned", "org", "user")
+	scanCmd.MarkFlagsMutuallyExclusive("owned", "org", "user", "public")
+	scanCmd.PersistentFlags().BoolVarP(&options.Public, "public", "p", false, "Scan all public repositories")
 	scanCmd.PersistentFlags().BoolVarP(&options.Verbose, "verbose", "v", false, "Verbose logging")
 
 	return scanCmd
@@ -57,6 +59,12 @@ func Scan(cmd *cobra.Command, args []string) {
 	// @todo this is buggy, does not refresh
 	go helper.ShortcutListeners(0, 0)
 
+	client := github.NewClient(nil).WithAuthToken(options.AccessToken)
+	scan(client)
+	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
+}
+
+func scan(client *github.Client) {
 	if options.Owned {
 		log.Info().Msg("Scanning authenticated user's owned repositories actions")
 	} else if options.User != "" {
@@ -65,11 +73,13 @@ func Scan(cmd *cobra.Command, args []string) {
 		log.Info().Str("organization", options.Organization).Msg("Scanning current authenticated user's repositories actions")
 	}
 
-	client := github.NewClient(nil).WithAuthToken(options.AccessToken)
 	scanner.InitRules(options.ConfidenceFilter)
-	id := identifyNewestPublicProjectId(client)
-	scanAllPublicRepositories(client, id)
-	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
+	if options.Public {
+		id := identifyNewestPublicProjectId(client)
+		scanAllPublicRepositories(client, id)
+	} else {
+		scanRepositories(client)
+	}
 }
 
 func listRepositories(client *github.Client, listOpt github.ListOptions, organization string, user string, owned bool) ([]*github.Repository, *github.Response, github.ListOptions) {
@@ -139,12 +149,12 @@ func scanAllPublicRepositories(client *github.Client, latestProjectId int64) {
 	}
 }
 
-func scanGithubActions(client *github.Client) {
+func scanRepositories(client *github.Client) {
 	listOpt := github.ListOptions{PerPage: 100}
 	for {
 		repos, resp, listOpt := listRepositories(client, listOpt, options.Organization, options.User, options.Owned)
 		for _, repo := range repos {
-			log.Info().Str("name", *repo.Name).Msg("Scanning Repository")
+			log.Info().Str("name", *repo.Name).Str("url", *repo.HTMLURL).Msg("Scan")
 			iterateWorkflowRuns(client, repo)
 		}
 
