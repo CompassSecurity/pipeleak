@@ -19,6 +19,7 @@ type GitHubScanOptions struct {
 	ConfidenceFilter       []string
 	MaxScanGoRoutines      int
 	TruffleHogVerification bool
+	MaxWorkflows           int
 }
 
 var options = GitHubScanOptions{}
@@ -38,6 +39,8 @@ func NewScanCmd() *cobra.Command {
 	scanCmd.Flags().StringSliceVarP(&options.ConfidenceFilter, "confidence", "", []string{}, "Filter for confidence level, separate by comma if multiple. See readme for more info.")
 	scanCmd.PersistentFlags().IntVarP(&options.MaxScanGoRoutines, "threads", "", 4, "Nr of threads used to scan")
 	scanCmd.PersistentFlags().BoolVarP(&options.TruffleHogVerification, "truffleHogVerification", "", true, "Enable the TruffleHog credential verification, will actively test the found credentials and only report those. Disable with --truffleHogVerification=false")
+	scanCmd.PersistentFlags().IntVarP(&options.MaxWorkflows, "maxWorkflows", "", -1, "Max. number of workflows to scan per repository")
+
 	scanCmd.PersistentFlags().BoolVarP(&options.Verbose, "verbose", "v", false, "Verbose logging")
 
 	return scanCmd
@@ -58,15 +61,12 @@ func ScanGithubActions(client *github.Client) {
 	log.Info().Msg("Scanning GitHub Actions")
 	opt := &github.RepositoryListByAuthenticatedUserOptions{
 		ListOptions: github.ListOptions{PerPage: 100},
-		Affiliation: "owner",
 	}
 	for {
 		repos, resp, err := client.Repositories.ListByAuthenticatedUser(context.Background(), opt)
 		if err != nil {
 			log.Fatal().Stack().Err(err).Msg("Failed Fetching Repos")
 		}
-
-		log.Info().Int("len", len(repos)).Msg("test")
 
 		for _, repo := range repos {
 			log.Info().Str("name", *repo.Name).Msg("Scanning Repository")
@@ -84,15 +84,23 @@ func iterateWorkflowRuns(client *github.Client, repo *github.Repository) {
 	opt := &github.ListWorkflowRunsOptions{
 		ListOptions: github.ListOptions{PerPage: 1000},
 	}
+	wfCount := 0
 	for {
 		workflowRuns, resp, err := client.Actions.ListRepositoryWorkflowRuns(context.Background(), *repo.Owner.Login, *repo.Name, opt)
 		if err != nil {
-			log.Fatal().Stack().Err(err).Msg("Failed Fetching Workflow Runs")
+			log.Error().Stack().Err(err).Msg("Failed Fetching Workflow Runs")
+			return
 		}
 
 		for _, workflowRun := range workflowRuns.WorkflowRuns {
-			log.Info().Str("name", *workflowRun.DisplayTitle).Msg("Workflow Run")
+			log.Debug().Str("name", *workflowRun.DisplayTitle).Str("repo", *repo.HTMLURL).Msg("Workflow Run")
 			downloadWorkflowRunLog(client, repo, workflowRun)
+
+			wfCount = wfCount + 1
+			if wfCount > options.MaxWorkflows && options.MaxWorkflows > 0 {
+				log.Debug().Str("name", *workflowRun.DisplayTitle).Str("repo", *repo.HTMLURL).Msg("Reached MaxWorkflow runs, skip remaining")
+				return
+			}
 		}
 
 		if resp.NextPage == 0 {
@@ -107,25 +115,26 @@ func downloadWorkflowRunLog(client *github.Client, repo *github.Repository, work
 
 	// already deleted, skip
 	if resp.StatusCode == 410 {
-		log.Debug().Str("workflowRunId", *workflowRun.Name).Msg("Skipped expired")
+		log.Debug().Str("workflowRunName", *workflowRun.Name).Msg("Skipped expired")
 		return
 	}
 
 	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("Failed Getting Workflow Run Log URL")
+		log.Error().Stack().Err(err).Msg("Failed Getting Workflow Run Log URL")
+		return
 	}
 
 	logs := downloadRunLogZIP(logURL.String())
 	findings := scanner.DetectHits(logs, options.MaxScanGoRoutines, options.TruffleHogVerification)
 	for _, finding := range findings {
-		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("workflowRun", *workflowRun.WorkflowURL).Msg("HIT")
+		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("workflowRun", *workflowRun.HTMLURL).Msg("HIT")
 	}
 }
 
 func downloadRunLogZIP(url string) []byte {
 	client := helper.GetNonVerifyingHTTPClient()
 	res, err := client.Get(url)
-	logLines := make([]byte, 0, 0)
+	logLines := make([]byte, 0)
 
 	if err != nil {
 		return logLines
@@ -144,9 +153,8 @@ func downloadRunLogZIP(url string) []byte {
 			return logLines
 		}
 
-		// Read all the files from zip archive
 		for _, zipFile := range zipReader.File {
-			log.Debug().Str("zipFile", zipFile.Name).Msg("Zip file")
+			log.Trace().Str("zipFile", zipFile.Name).Msg("Zip file")
 			unzippedFileBytes, err := readZipFile(zipFile)
 			if err != nil {
 				log.Err(err).Msg("Failed reading zip file")

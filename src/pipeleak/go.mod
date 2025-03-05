@@ -6,6 +6,7 @@ require (
 	atomicgo.dev/keyboard v0.2.9
 	github.com/PuerkitoBio/goquery v1.10.2
 	github.com/docker/go-units v0.5.0
+	github.com/google/go-github/v69 v69.2.0
 	github.com/maragudk/goqite v0.2.3
 	github.com/rs/zerolog v1.33.0
 	github.com/rxwycdh/rxhash v0.0.0-20230131062142-10b7a38b400d
@@ -68,7 +69,6 @@ require (
 	github.com/couchbaselabs/gocbconnstr/v2 v2.0.0-20240607131231-fb385523de28 // indirect
 	github.com/danieljoos/wincred v1.2.1 // indirect
 	github.com/dvsekhvalnov/jose2go v1.6.0 // indirect
-	github.com/enrichman/gh-iter v0.0.0-20240716154615-c70b8ca2bacf // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.1.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
@@ -89,8 +89,6 @@ require (
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/flatbuffers v24.3.25+incompatible // indirect
-	github.com/google/go-github/v63 v63.0.0 // indirect
-	github.com/google/go-github/v69 v69.2.0 // indirect
 	github.com/google/s2a-go v0.1.8 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.4 // indirect
@@ -129,8 +127,6 @@ require (
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/rabbitmq/amqp091-go v1.10.0 // indirect
-	github.com/shurcooL/githubv4 v0.0.0-20240727222349-48295856cce7 // indirect
-	github.com/shurcooL/graphql v0.0.0-20230722043721-ed46e5a46466 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/snowflakedb/gosnowflake v1.12.1 // indirect
 	github.com/tailscale/depaware v0.0.0-20250112153213-b748de04d81b // indirect
