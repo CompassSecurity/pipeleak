@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	username  string
-	password  string
-	email     string
+	username string
+	password string
+	email    string
 )
 
 func NewRegisterCmd() *cobra.Command {

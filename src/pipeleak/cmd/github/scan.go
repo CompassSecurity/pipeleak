@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"sort"
 
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/CompassSecurity/pipeleak/scanner"
@@ -47,8 +48,9 @@ func NewScanCmd() *cobra.Command {
 	scanCmd.Flags().StringVarP(&options.Organization, "org", "", "", "GitHub organization name to scan")
 	scanCmd.Flags().StringVarP(&options.User, "user", "", "", "GitHub user name to scan")
 	scanCmd.PersistentFlags().BoolVarP(&options.Owned, "owned", "", false, "Scan user onwed projects only")
-	scanCmd.MarkFlagsMutuallyExclusive("owned", "org", "user", "public")
 	scanCmd.PersistentFlags().BoolVarP(&options.Public, "public", "p", false, "Scan all public repositories")
+	scanCmd.MarkFlagsMutuallyExclusive("owned", "org", "user", "public")
+
 	scanCmd.PersistentFlags().BoolVarP(&options.Verbose, "verbose", "v", false, "Verbose logging")
 
 	return scanCmd
@@ -125,13 +127,21 @@ func listRepositories(client *github.Client, listOpt github.ListOptions, organiz
 
 func scanAllPublicRepositories(client *github.Client, latestProjectId int64) {
 	opt := &github.RepositoryListAllOptions{
-		// 100 = page size
-		Since: latestProjectId - 100,
+		Since: latestProjectId,
 	}
 
+	// iterating through the repos in reverse must take into account, that missing ids prevent easy pagination as they create holes in the list.
+	// thus we keep a temporary cache of the ids of the last 5 pages and check if we alredy scanned the repo id, or skip them.
+	tmpIdCache := make(map[int64]struct{})
+	pageCounter := 0
 	for {
 		if opt.Since < 0 {
 			break
+		}
+
+		if pageCounter > 4 {
+			pageCounter = 0
+			tmpIdCache = deleteHighestXKeys(tmpIdCache, 100)
 		}
 
 		repos, _, err := client.Repositories.ListAll(context.Background(), opt)
@@ -139,14 +149,47 @@ func scanAllPublicRepositories(client *github.Client, latestProjectId int64) {
 			log.Fatal().Stack().Err(err).Msg("Failed fetching authenticated user repos")
 		}
 
+		sort.SliceStable(repos, func(i, j int) bool {
+			return *repos[i].ID > *repos[j].ID
+		})
+
 		for _, repo := range repos {
-			log.Info().Int64("id", *repo.ID).Str("owner", *repo.Owner.Login).Str("name", *repo.Name).Str("url", *repo.HTMLURL).Msg("Scan")
-			iterateWorkflowRuns(client, repo)
+			_, ok := tmpIdCache[*repo.ID]
+			if ok {
+				continue
+			} else {
+				tmpIdCache[*repo.ID] = struct{}{}
+			}
+
+			log.Info().Str("url", *repo.HTMLURL).Msg("Scan")
+			//iterateWorkflowRuns(client, repo)
+			opt.Since = *repo.ID
 		}
 
+		// 100 = page size, ideally no ids miss thus we cannot go higher
 		opt.Since = opt.Since - 100
-		log.Error().Int64("page", opt.Since).Msg("hacker")
+		pageCounter = pageCounter + 1
 	}
+}
+
+func deleteHighestXKeys(m map[int64]struct{}, nrKeys int) map[int64]struct{} {
+	if len(m) < nrKeys {
+		return make(map[int64]struct{})
+	}
+
+	keys := make([]int64, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i] > keys[j]
+	})
+
+	for i := 0; i < nrKeys; i++ {
+		delete(m, keys[i])
+	}
+	return m
 }
 
 func scanRepositories(client *github.Client) {

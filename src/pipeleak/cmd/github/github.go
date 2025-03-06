@@ -12,6 +12,5 @@ func NewGitHubRootCmd() *cobra.Command {
 
 	ghCmd.AddCommand(NewScanCmd())
 
-
 	return ghCmd
 }
