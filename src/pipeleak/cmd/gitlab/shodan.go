@@ -1,4 +1,4 @@
-package cmd
+package gitlab
 
 import (
 	"bytes"
@@ -51,7 +51,7 @@ func NewShodanCmd() *cobra.Command {
 }
 
 func Shodan(cmd *cobra.Command, args []string) {
-	setLogLevel()
+	helper.SetLogLevel(verbose)
 
 	jsonFile, err := os.Open(shodanJson)
 	if err != nil {

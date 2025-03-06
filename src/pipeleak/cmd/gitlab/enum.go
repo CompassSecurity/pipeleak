@@ -1,4 +1,4 @@
-package cmd
+package gitlab
 
 import (
 	"github.com/CompassSecurity/pipeleak/helper"
@@ -35,7 +35,7 @@ func NewEnumCmd() *cobra.Command {
 }
 
 func Enum(cmd *cobra.Command, args []string) {
-	setLogLevel()
+	helper.SetLogLevel(verbose)
 	git, err := helper.GetGitlabClient(gitlabApiToken, gitlabUrl)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("failed creating gitlab client")

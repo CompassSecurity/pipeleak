@@ -1,4 +1,4 @@
-package cmd
+package gitlab
 
 import (
 	"github.com/CompassSecurity/pipeleak/helper"

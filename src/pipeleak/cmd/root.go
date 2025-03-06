@@ -4,7 +4,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/cmd/runners"
+	"github.com/CompassSecurity/pipeleak/cmd/github"
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -13,8 +14,8 @@ import (
 var (
 	rootCmd = &cobra.Command{
 		Use:   "pipeleak",
-		Short: "💎💎 Scan GitLab job logs and artifacts for secrets 💎💎",
-		Long:  "Pipeleak is a tool designed to scan GitLab job output logs and artifacts for potential secrets. 💎💎",
+		Short: "💎💎 Scan job logs and artifacts for secrets 💎💎",
+		Long:  "Pipeleak is a tool designed to scan CI/CD job output logs and artifacts for potential secrets. 💎💎",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			initLogger()
 		},
@@ -27,14 +28,8 @@ func Execute() error {
 }
 
 func init() {
-	rootCmd.AddCommand(NewScanCmd())
-	rootCmd.AddCommand(NewShodanCmd())
-	rootCmd.AddCommand(cmd.NewRunnersRootCmd())
-	rootCmd.AddCommand(NewRegisterCmd())
-	rootCmd.AddCommand(NewVulnCmd())
-	rootCmd.AddCommand(NewVariablesCmd())
-	rootCmd.AddCommand(NewSecureFilesCmd())
-	rootCmd.AddCommand(NewEnumCmd())
+	rootCmd.AddCommand(github.NewGitHubRootCmd())
+	rootCmd.AddCommand(gitlab.NewGitLabRootCmd())
 	rootCmd.PersistentFlags().BoolVarP(&JsonLogoutput, "json", "", false, "Use JSON as log output format")
 }
 
