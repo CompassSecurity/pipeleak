@@ -162,7 +162,7 @@ func scanAllPublicRepositories(client *github.Client, latestProjectId int64) {
 			}
 
 			log.Info().Str("url", *repo.HTMLURL).Msg("Scan")
-			//iterateWorkflowRuns(client, repo)
+			iterateWorkflowRuns(client, repo)
 			opt.Since = *repo.ID
 		}
 
