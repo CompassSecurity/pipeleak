@@ -25,6 +25,7 @@ type GitHubScanOptions struct {
 	Owned                  bool
 	User                   string
 	Public                 bool
+	SearchQuery            string
 }
 
 var options = GitHubScanOptions{}
@@ -49,7 +50,8 @@ func NewScanCmd() *cobra.Command {
 	scanCmd.Flags().StringVarP(&options.User, "user", "", "", "GitHub user name to scan")
 	scanCmd.PersistentFlags().BoolVarP(&options.Owned, "owned", "", false, "Scan user onwed projects only")
 	scanCmd.PersistentFlags().BoolVarP(&options.Public, "public", "p", false, "Scan all public repositories")
-	scanCmd.MarkFlagsMutuallyExclusive("owned", "org", "user", "public")
+	scanCmd.Flags().StringVarP(&options.SearchQuery, "search", "s", "", "GitHub search query")
+	scanCmd.MarkFlagsMutuallyExclusive("owned", "org", "user", "public", "search")
 
 	scanCmd.PersistentFlags().BoolVarP(&options.Verbose, "verbose", "v", false, "Verbose logging")
 
@@ -71,6 +73,8 @@ func scan(client *github.Client) {
 		log.Info().Msg("Scanning authenticated user's owned repositories actions")
 	} else if options.User != "" {
 		log.Info().Str("users", options.User).Msg("Scanning user's repositories actions")
+	} else if options.SearchQuery != "" {
+		log.Info().Str("query", options.SearchQuery).Msg("Searching repositories")
 	} else {
 		log.Info().Str("organization", options.Organization).Msg("Scanning current authenticated user's repositories actions")
 	}
@@ -79,6 +83,8 @@ func scan(client *github.Client) {
 	if options.Public {
 		id := identifyNewestPublicProjectId(client)
 		scanAllPublicRepositories(client, id)
+	} else if options.SearchQuery != "" {
+		searchRepositories(client, options.SearchQuery)
 	} else {
 		scanRepositories(client)
 	}
@@ -122,6 +128,26 @@ func listRepositories(client *github.Client, listOpt github.ListOptions, organiz
 		}
 
 		return repos, resp, opt.ListOptions
+	}
+}
+
+func searchRepositories(client *github.Client, query string) {
+	searchOpt := github.SearchOptions{}
+	for {
+		searchResults, resp, err := client.Search.Repositories(context.Background(), query, &searchOpt)
+		if err != nil {
+			log.Fatal().Stack().Err(err).Msg("Failed searching repositories")
+		}
+
+		for _, repo := range searchResults.Repositories {
+			log.Info().Str("name", *repo.Name).Str("url", *repo.HTMLURL).Msg("Scan")
+			iterateWorkflowRuns(client, repo)
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		searchOpt.Page = resp.NextPage
 	}
 }
 
