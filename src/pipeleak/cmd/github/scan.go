@@ -9,6 +9,10 @@ import (
 
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/CompassSecurity/pipeleak/scanner"
+	"github.com/gofri/go-github-pagination/githubpagination"
+	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit"
+	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit/github_primary_ratelimit"
+	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit/github_secondary_ratelimit"
 	"github.com/google/go-github/v69/github"
 	"github.com/h2non/filetype"
 	"github.com/rs/zerolog"
@@ -67,7 +71,19 @@ func Scan(cmd *cobra.Command, args []string) {
 	helper.SetLogLevel(options.Verbose)
 	go helper.ShortcutListeners(scanStatus)
 
-	client := github.NewClient(nil).WithAuthToken(options.AccessToken)
+	rateLimiter := github_ratelimit.New(nil,
+		github_primary_ratelimit.WithLimitDetectedCallback(func(ctx *github_primary_ratelimit.CallbackContext) {
+			log.Info().Str("category", string(ctx.Category)).Time("reset", *ctx.ResetTime).Msg("Primary rate limit detected")
+		}),
+		github_secondary_ratelimit.WithLimitDetectedCallback(func(ctx *github_secondary_ratelimit.CallbackContext) {
+			log.Info().Time("reset", *ctx.ResetTime).Dur("totalSleep", *ctx.TotalSleepTime).Msg("Primary rate limit detected")
+		}),
+	)
+	paginator := githubpagination.NewClient(rateLimiter,
+		githubpagination.WithPerPage(100),
+	)
+	client := github.NewClient(paginator).WithAuthToken(options.AccessToken)
+
 	scan(client)
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
 }
@@ -244,12 +260,10 @@ func scanRepositories(client *github.Client) {
 }
 
 func iterateWorkflowRuns(client *github.Client, repo *github.Repository) {
-	opt := &github.ListWorkflowRunsOptions{
-		ListOptions: github.ListOptions{PerPage: 1000},
-	}
+	opt := github.ListWorkflowRunsOptions{	}
 	wfCount := 0
 	for {
-		workflowRuns, resp, err := client.Actions.ListRepositoryWorkflowRuns(context.Background(), *repo.Owner.Login, *repo.Name, opt)
+		workflowRuns, resp, err := client.Actions.ListRepositoryWorkflowRuns(context.Background(), *repo.Owner.Login, *repo.Name, &opt)
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("Failed Fetching Workflow Runs")
 			return
