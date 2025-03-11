@@ -10,6 +10,7 @@ import (
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/CompassSecurity/pipeleak/scanner"
 	"github.com/google/go-github/v69/github"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -61,7 +62,7 @@ func NewScanCmd() *cobra.Command {
 func Scan(cmd *cobra.Command, args []string) {
 	helper.SetLogLevel(options.Verbose)
 	// @todo this is buggy, does not refresh
-	go helper.ShortcutListeners(0, 0)
+	go helper.ShortcutListeners(scanStatus)
 
 	client := github.NewClient(nil).WithAuthToken(options.AccessToken)
 	scan(client)
@@ -88,6 +89,11 @@ func scan(client *github.Client) {
 	} else {
 		scanRepositories(client)
 	}
+}
+
+func scanStatus() *zerolog.Event {
+	//@todo add queue status when implemented.
+	return log.Info().Str("mode", "GitHub")
 }
 
 func listRepositories(client *github.Client, listOpt github.ListOptions, organization string, user string, owned bool) ([]*github.Repository, *github.Response, github.ListOptions) {

@@ -31,7 +31,9 @@ func SetLogLevel(verbose bool) {
 	}
 }
 
-func ShortcutListeners(queueLength int, runningJobs int) {
+type ShortcutStatusFN func() *zerolog.Event
+
+func ShortcutListeners(status ShortcutStatusFN) {
 	err := keyboard.Listen(func(key keys.Key) (stop bool, err error) {
 		switch key.Code {
 		case keys.CtrlC, keys.Escape:
@@ -63,8 +65,8 @@ func ShortcutListeners(queueLength int, runningJobs int) {
 			}
 
 			if key.String() == "s" {
-				// @todo fix
-				log.Info().Int("runningJobs", runningJobs).Int("pendingjobs", queueLength).Msg("Queue status")
+				log := status()
+				log.Msg("Queue status")
 			}
 		}
 
