@@ -10,9 +10,11 @@ import (
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/CompassSecurity/pipeleak/scanner"
 	"github.com/google/go-github/v69/github"
+	"github.com/h2non/filetype"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"github.com/wandb/parallel"
 )
 
 type GitHubScanOptions struct {
@@ -27,6 +29,7 @@ type GitHubScanOptions struct {
 	User                   string
 	Public                 bool
 	SearchQuery            string
+	Artifacts              bool
 }
 
 var options = GitHubScanOptions{}
@@ -47,6 +50,7 @@ func NewScanCmd() *cobra.Command {
 	scanCmd.PersistentFlags().IntVarP(&options.MaxScanGoRoutines, "threads", "", 4, "Nr of threads used to scan")
 	scanCmd.PersistentFlags().BoolVarP(&options.TruffleHogVerification, "truffleHogVerification", "", true, "Enable the TruffleHog credential verification, will actively test the found credentials and only report those. Disable with --truffleHogVerification=false")
 	scanCmd.PersistentFlags().IntVarP(&options.MaxWorkflows, "maxWorkflows", "", -1, "Max. number of workflows to scan per repository")
+	scanCmd.PersistentFlags().BoolVarP(&options.Artifacts, "artifacts", "a", false, "Scan workflow artifacts")
 	scanCmd.Flags().StringVarP(&options.Organization, "org", "", "", "GitHub organization name to scan")
 	scanCmd.Flags().StringVarP(&options.User, "user", "", "", "GitHub user name to scan")
 	scanCmd.PersistentFlags().BoolVarP(&options.Owned, "owned", "", false, "Scan user onwed projects only")
@@ -61,7 +65,6 @@ func NewScanCmd() *cobra.Command {
 
 func Scan(cmd *cobra.Command, args []string) {
 	helper.SetLogLevel(options.Verbose)
-	// @todo this is buggy, does not refresh
 	go helper.ShortcutListeners(scanStatus)
 
 	client := github.NewClient(nil).WithAuthToken(options.AccessToken)
@@ -256,6 +259,10 @@ func iterateWorkflowRuns(client *github.Client, repo *github.Repository) {
 			log.Debug().Str("name", *workflowRun.DisplayTitle).Str("repo", *repo.HTMLURL).Msg("Workflow Run")
 			downloadWorkflowRunLog(client, repo, workflowRun)
 
+			if options.Artifacts {
+				listArtifacts(client, workflowRun)
+			}
+
 			wfCount = wfCount + 1
 			if wfCount > options.MaxWorkflows && options.MaxWorkflows > 0 {
 				log.Debug().Str("name", *workflowRun.DisplayTitle).Str("repo", *repo.HTMLURL).Msg("Reached MaxWorkflow runs, skip remaining")
@@ -365,4 +372,95 @@ func identifyNewestPublicProjectId(client *github.Client) int64 {
 
 	log.Fatal().Msg("Failed finding a CreateEvent and thus no rerpository id")
 	return -1
+}
+
+func listArtifacts(client *github.Client, workflowRun *github.WorkflowRun) {
+	listOpt := github.ListOptions{PerPage: 100}
+	for {
+		artifactList, resp, err := client.Actions.ListWorkflowRunArtifacts(context.Background(), *workflowRun.Repository.Owner.Login, *workflowRun.Repository.Name, *workflowRun.ID, &listOpt)
+
+		if resp.StatusCode == 404 {
+			return
+		}
+
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("Failed fetching artifacts list")
+			return
+		}
+
+		for _, artifact := range artifactList.Artifacts {
+			log.Debug().Str("name", *artifact.Name).Str("url", *artifact.ArchiveDownloadURL).Msg("Scan")
+			analyzeArtifact(client, workflowRun, artifact)
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		listOpt.Page = resp.NextPage
+	}
+}
+
+func analyzeArtifact(client *github.Client, workflowRun *github.WorkflowRun, artifact *github.Artifact) {
+
+	url, resp, err := client.Actions.DownloadArtifact(context.Background(), *workflowRun.Repository.Owner.Login, *workflowRun.Repository.Name, *artifact.ID, 5)
+	if err != nil {
+		log.Err(err).Msg("Failed getting artifact download URL")
+		return
+	}
+
+	// already deleted, skip
+	if resp.StatusCode == 410 {
+		log.Debug().Str("workflowRunName", *workflowRun.Name).Msg("Skipped expired artifact")
+		return
+	}
+
+	httpClient := helper.GetNonVerifyingHTTPClient()
+	res, err := httpClient.Get(url.String())
+
+	if err != nil {
+		log.Err(err).Str("workflow", url.String()).Msg("Failed downloading artifacts zip")
+		return
+	}
+
+	if res.StatusCode == 200 {
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			log.Err(err).Msg("Failed reading response log body")
+			return
+		}
+		zipListing, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
+		if err != nil {
+			log.Err(err).Msg("Failed creating zip reader")
+			return
+		}
+
+		ctx := context.Background()
+		group := parallel.Limited(ctx, options.MaxScanGoRoutines)
+		for _, file := range zipListing.File {
+			group.Go(func(ctx context.Context) {
+				fc, err := file.Open()
+				if err != nil {
+					log.Error().Stack().Err(err).Msg("Unable to open raw artifact zip file")
+					return
+				}
+
+				content, err := io.ReadAll(fc)
+				if err != nil {
+					log.Error().Stack().Err(err).Msg("Unable to readAll artifact zip file")
+					return
+				}
+
+				kind, _ := filetype.Match(content)
+				// do not scan https://pkg.go.dev/github.com/h2non/filetype#readme-supported-types
+				if kind == filetype.Unknown {
+					scanner.DetectFileHits(content, *workflowRun.HTMLURL, *workflowRun.Name, file.Name, "", options.TruffleHogVerification)
+				} else if filetype.IsArchive(content) {
+					scanner.HandleArchiveArtifact(file.Name, content, *workflowRun.HTMLURL, *workflowRun.Name, options.TruffleHogVerification)
+				}
+				fc.Close()
+			})
+		}
+
+		group.Wait()
+	}
 }

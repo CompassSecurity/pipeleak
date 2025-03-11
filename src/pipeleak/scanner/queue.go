@@ -142,7 +142,7 @@ func analyzeJobArtifact(git *gitlab.Client, item QueueItem, options *ScanOptions
 			if kind == filetype.Unknown {
 				DetectFileHits(content, item.Meta.JobWebUrl, item.Meta.JobName, file.Name, "", options.TruffleHogVerification)
 			} else if filetype.IsArchive(content) {
-				handleArchiveArtifact(file.Name, content, item.Meta.JobWebUrl, item.Meta.JobName, options.TruffleHogVerification)
+				HandleArchiveArtifact(file.Name, content, item.Meta.JobWebUrl, item.Meta.JobName, options.TruffleHogVerification)
 			}
 			fc.Close()
 		})
@@ -286,7 +286,7 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 // https://docs.gitlab.com/ee/ci/caching/#common-use-cases-for-caches
 var skippableDirectoryNames = []string{"node_modules", ".yarn", ".yarn-cache", ".npm", "venv", "vendor", ".go/pkg/mod/"}
 
-func handleArchiveArtifact(archivefileName string, content []byte, jobWebUrl string, jobName string, enableTruffleHogVerification bool) {
+func HandleArchiveArtifact(archivefileName string, content []byte, jobWebUrl string, jobName string, enableTruffleHogVerification bool) {
 	for _, skipKeyword := range skippableDirectoryNames {
 		if strings.Contains(archivefileName, skipKeyword) {
 			log.Debug().Str("file", archivefileName).Str("keyword", skipKeyword).Msg("Skipped archive due to blocklist entry")
