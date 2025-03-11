@@ -149,7 +149,7 @@ func searchRepositories(client *github.Client, query string) {
 		}
 
 		for _, repo := range searchResults.Repositories {
-			log.Info().Str("name", *repo.Name).Str("url", *repo.HTMLURL).Msg("Scan")
+			log.Debug().Str("name", *repo.Name).Str("url", *repo.HTMLURL).Msg("Scan")
 			iterateWorkflowRuns(client, repo)
 		}
 
@@ -196,7 +196,7 @@ func scanAllPublicRepositories(client *github.Client, latestProjectId int64) {
 				tmpIdCache[*repo.ID] = struct{}{}
 			}
 
-			log.Info().Str("url", *repo.HTMLURL).Msg("Scan")
+			log.Debug().Str("url", *repo.HTMLURL).Msg("Scan")
 			iterateWorkflowRuns(client, repo)
 			opt.Since = *repo.ID
 		}
@@ -232,7 +232,7 @@ func scanRepositories(client *github.Client) {
 	for {
 		repos, resp, listOpt := listRepositories(client, listOpt, options.Organization, options.User, options.Owned)
 		for _, repo := range repos {
-			log.Info().Str("name", *repo.Name).Str("url", *repo.HTMLURL).Msg("Scan")
+			log.Debug().Str("name", *repo.Name).Str("url", *repo.HTMLURL).Msg("Scan")
 			iterateWorkflowRuns(client, repo)
 		}
 
@@ -264,7 +264,7 @@ func iterateWorkflowRuns(client *github.Client, repo *github.Repository) {
 			}
 
 			wfCount = wfCount + 1
-			if wfCount > options.MaxWorkflows && options.MaxWorkflows > 0 {
+			if wfCount >= options.MaxWorkflows && options.MaxWorkflows > 0 {
 				log.Debug().Str("name", *workflowRun.DisplayTitle).Str("repo", *repo.HTMLURL).Msg("Reached MaxWorkflow runs, skip remaining")
 				return
 			}
