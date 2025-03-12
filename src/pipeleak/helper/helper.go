@@ -66,7 +66,7 @@ func ShortcutListeners(status ShortcutStatusFN) {
 
 			if key.String() == "s" {
 				log := status()
-				log.Msg("Queue status")
+				log.Msg("Status")
 			}
 		}
 

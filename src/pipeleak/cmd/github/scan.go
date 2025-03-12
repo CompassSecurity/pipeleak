@@ -5,11 +5,12 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"net/http"
 	"sort"
+	"time"
 
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/CompassSecurity/pipeleak/scanner"
-	"github.com/gofri/go-github-pagination/githubpagination"
 	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit"
 	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit/github_primary_ratelimit"
 	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit/github_secondary_ratelimit"
@@ -34,6 +35,8 @@ type GitHubScanOptions struct {
 	Public                 bool
 	SearchQuery            string
 	Artifacts              bool
+	Context                context.Context
+	Client                 *github.Client
 }
 
 var options = GitHubScanOptions{}
@@ -71,21 +74,29 @@ func Scan(cmd *cobra.Command, args []string) {
 	helper.SetLogLevel(options.Verbose)
 	go helper.ShortcutListeners(scanStatus)
 
+	options.Context = context.WithValue(context.Background(), github.BypassRateLimitCheck, true)
+	options.Client = setupClient(options.AccessToken)
+	scan(options.Client)
+	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
+}
+
+func setupClient(accessToken string) *github.Client {
 	rateLimiter := github_ratelimit.New(nil,
 		github_primary_ratelimit.WithLimitDetectedCallback(func(ctx *github_primary_ratelimit.CallbackContext) {
-			log.Info().Str("category", string(ctx.Category)).Time("reset", *ctx.ResetTime).Msg("Primary rate limit detected")
+			resetTime := ctx.ResetTime.Add(time.Duration(time.Second * 30))
+			log.Info().Str("category", string(ctx.Category)).Time("reset", resetTime).Msg("Primary rate limit detected, will resume automatically")
+			time.Sleep(time.Until(resetTime))
+			log.Info().Str("category", string(ctx.Category)).Msg("Resuming")
 		}),
 		github_secondary_ratelimit.WithLimitDetectedCallback(func(ctx *github_secondary_ratelimit.CallbackContext) {
-			log.Info().Time("reset", *ctx.ResetTime).Dur("totalSleep", *ctx.TotalSleepTime).Msg("Primary rate limit detected")
+			resetTime := ctx.ResetTime.Add(time.Duration(time.Second * 30))
+			log.Info().Time("reset", *ctx.ResetTime).Dur("totalSleep", *ctx.TotalSleepTime).Msg("Secondary rate limit detected")
+			time.Sleep(time.Until(resetTime))
+			log.Info().Msg("Resuming")
 		}),
 	)
-	paginator := githubpagination.NewClient(rateLimiter,
-		githubpagination.WithPerPage(100),
-	)
-	client := github.NewClient(paginator).WithAuthToken(options.AccessToken)
 
-	scan(client)
-	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
+	return github.NewClient(&http.Client{Transport: rateLimiter}).WithAuthToken(accessToken)
 }
 
 func scan(client *github.Client) {
@@ -111,8 +122,16 @@ func scan(client *github.Client) {
 }
 
 func scanStatus() *zerolog.Event {
-	//@todo add queue status when implemented.
-	return log.Info().Str("mode", "GitHub")
+	rateLimit, resp, err := options.Client.RateLimit.Get(options.Context)
+	if resp == nil {
+		return log.Info().Str("rateLimit", "You're rate limited, just wait ✨")
+	}
+
+	if err != nil {
+		log.Fatal().Stack().Err(err).Msg("Failed fetching rate limit stats")
+	}
+
+	return log.Info().Int("coreRateLimitRemaining", rateLimit.Core.Remaining).Time("coreRateLimitReset", rateLimit.Core.Reset.Time).Int("searchRateLimitRemaining", rateLimit.Search.Remaining).Time("searchRateLimitReset", rateLimit.Search.Reset.Time)
 }
 
 func listRepositories(client *github.Client, listOpt github.ListOptions, organization string, user string, owned bool) ([]*github.Repository, *github.Response, github.ListOptions) {
@@ -121,7 +140,7 @@ func listRepositories(client *github.Client, listOpt github.ListOptions, organiz
 			Sort:        "updated",
 			ListOptions: listOpt,
 		}
-		repos, resp, err := client.Repositories.ListByOrg(context.Background(), organization, opt)
+		repos, resp, err := client.Repositories.ListByOrg(options.Context, organization, opt)
 		if err != nil {
 			log.Fatal().Stack().Err(err).Msg("Failed fetching organization repos")
 		}
@@ -132,7 +151,7 @@ func listRepositories(client *github.Client, listOpt github.ListOptions, organiz
 			Sort:        "updated",
 			ListOptions: listOpt,
 		}
-		repos, resp, err := client.Repositories.ListByUser(context.Background(), user, opt)
+		repos, resp, err := client.Repositories.ListByUser(options.Context, user, opt)
 		if err != nil {
 			log.Fatal().Stack().Err(err).Msg("Failed fetching user repos")
 		}
@@ -147,7 +166,7 @@ func listRepositories(client *github.Client, listOpt github.ListOptions, organiz
 			Affiliation: affiliation,
 		}
 
-		repos, resp, err := client.Repositories.ListByAuthenticatedUser(context.Background(), opt)
+		repos, resp, err := client.Repositories.ListByAuthenticatedUser(options.Context, opt)
 		if err != nil {
 			log.Fatal().Stack().Err(err).Msg("Failed fetching authenticated user repos")
 		}
@@ -159,7 +178,7 @@ func listRepositories(client *github.Client, listOpt github.ListOptions, organiz
 func searchRepositories(client *github.Client, query string) {
 	searchOpt := github.SearchOptions{}
 	for {
-		searchResults, resp, err := client.Search.Repositories(context.Background(), query, &searchOpt)
+		searchResults, resp, err := client.Search.Repositories(options.Context, query, &searchOpt)
 		if err != nil {
 			log.Fatal().Stack().Err(err).Msg("Failed searching repositories")
 		}
@@ -195,7 +214,7 @@ func scanAllPublicRepositories(client *github.Client, latestProjectId int64) {
 			tmpIdCache = deleteHighestXKeys(tmpIdCache, 100)
 		}
 
-		repos, _, err := client.Repositories.ListAll(context.Background(), opt)
+		repos, _, err := client.Repositories.ListAll(options.Context, opt)
 		if err != nil {
 			log.Fatal().Stack().Err(err).Msg("Failed fetching authenticated user repos")
 		}
@@ -260,17 +279,21 @@ func scanRepositories(client *github.Client) {
 }
 
 func iterateWorkflowRuns(client *github.Client, repo *github.Repository) {
-	opt := github.ListWorkflowRunsOptions{	}
+	opt := github.ListWorkflowRunsOptions{}
 	wfCount := 0
 	for {
-		workflowRuns, resp, err := client.Actions.ListRepositoryWorkflowRuns(context.Background(), *repo.Owner.Login, *repo.Name, &opt)
+		workflowRuns, resp, err := client.Actions.ListRepositoryWorkflowRuns(options.Context, *repo.Owner.Login, *repo.Name, &opt)
+		if resp.StatusCode == 404 {
+			return
+		}
+
 		if err != nil {
-			log.Error().Stack().Err(err).Msg("Failed Fetching Workflow Runs")
+			log.Error().Stack().Err(err).Msg("Failed fetching workflow runs")
 			return
 		}
 
 		for _, workflowRun := range workflowRuns.WorkflowRuns {
-			log.Debug().Str("name", *workflowRun.DisplayTitle).Str("repo", *repo.HTMLURL).Msg("Workflow Run")
+			log.Debug().Str("name", *workflowRun.DisplayTitle).Str("url", *workflowRun.HTMLURL).Msg("Workflow run")
 			downloadWorkflowRunLog(client, repo, workflowRun)
 
 			if options.Artifacts {
@@ -279,7 +302,7 @@ func iterateWorkflowRuns(client *github.Client, repo *github.Repository) {
 
 			wfCount = wfCount + 1
 			if wfCount >= options.MaxWorkflows && options.MaxWorkflows > 0 {
-				log.Debug().Str("name", *workflowRun.DisplayTitle).Str("repo", *repo.HTMLURL).Msg("Reached MaxWorkflow runs, skip remaining")
+				log.Debug().Str("name", *workflowRun.DisplayTitle).Str("url", *workflowRun.HTMLURL).Msg("Reached MaxWorkflow runs, skip remaining")
 				return
 			}
 		}
@@ -292,7 +315,7 @@ func iterateWorkflowRuns(client *github.Client, repo *github.Repository) {
 }
 
 func downloadWorkflowRunLog(client *github.Client, repo *github.Repository, workflowRun *github.WorkflowRun) {
-	logURL, resp, err := client.Actions.GetWorkflowRunLogs(context.Background(), *repo.Owner.Login, *repo.Name, *workflowRun.ID, 5)
+	logURL, resp, err := client.Actions.GetWorkflowRunLogs(options.Context, *repo.Owner.Login, *repo.Name, *workflowRun.ID, 5)
 
 	// already deleted, skip
 	if resp.StatusCode == 410 {
@@ -301,15 +324,18 @@ func downloadWorkflowRunLog(client *github.Client, repo *github.Repository, work
 	}
 
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("Failed Getting Workflow Run Log URL")
+		log.Error().Stack().Err(err).Msg("Failed getting workflow run log URL")
 		return
 	}
 
+	log.Trace().Msg("Downloading run log")
 	logs := downloadRunLogZIP(logURL.String())
+	log.Trace().Msg("Finished downloading run log")
 	findings := scanner.DetectHits(logs, options.MaxScanGoRoutines, options.TruffleHogVerification)
 	for _, finding := range findings {
 		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("workflowRun", *workflowRun.HTMLURL).Msg("HIT")
 	}
+	log.Trace().Msg("Finished scannig run log")
 }
 
 func downloadRunLogZIP(url string) []byte {
@@ -361,7 +387,7 @@ func readZipFile(zf *zip.File) ([]byte, error) {
 func identifyNewestPublicProjectId(client *github.Client) int64 {
 	for {
 		listOpts := github.ListOptions{PerPage: 1000}
-		events, resp, err := client.Activity.ListEvents(context.Background(), &listOpts)
+		events, resp, err := client.Activity.ListEvents(options.Context, &listOpts)
 		if err != nil {
 			log.Fatal().Stack().Err(err).Msg("Failed fetching activity")
 		}
@@ -369,7 +395,7 @@ func identifyNewestPublicProjectId(client *github.Client) int64 {
 			eventType := *event.Type
 			log.Trace().Str("type", eventType).Msg("Event")
 			if eventType == "CreateEvent" {
-				repo, _, err := client.Repositories.GetByID(context.Background(), *event.Repo.ID)
+				repo, _, err := client.Repositories.GetByID(options.Context, *event.Repo.ID)
 				if err != nil {
 					log.Fatal().Stack().Err(err).Msg("Failed fetching Web URL of latest repo")
 				}
@@ -391,7 +417,7 @@ func identifyNewestPublicProjectId(client *github.Client) int64 {
 func listArtifacts(client *github.Client, workflowRun *github.WorkflowRun) {
 	listOpt := github.ListOptions{PerPage: 100}
 	for {
-		artifactList, resp, err := client.Actions.ListWorkflowRunArtifacts(context.Background(), *workflowRun.Repository.Owner.Login, *workflowRun.Repository.Name, *workflowRun.ID, &listOpt)
+		artifactList, resp, err := client.Actions.ListWorkflowRunArtifacts(options.Context, *workflowRun.Repository.Owner.Login, *workflowRun.Repository.Name, *workflowRun.ID, &listOpt)
 
 		if resp.StatusCode == 404 {
 			return
@@ -416,7 +442,7 @@ func listArtifacts(client *github.Client, workflowRun *github.WorkflowRun) {
 
 func analyzeArtifact(client *github.Client, workflowRun *github.WorkflowRun, artifact *github.Artifact) {
 
-	url, resp, err := client.Actions.DownloadArtifact(context.Background(), *workflowRun.Repository.Owner.Login, *workflowRun.Repository.Name, *artifact.ID, 5)
+	url, resp, err := client.Actions.DownloadArtifact(options.Context, *workflowRun.Repository.Owner.Login, *workflowRun.Repository.Name, *artifact.ID, 5)
 	if err != nil {
 		log.Err(err).Msg("Failed getting artifact download URL")
 		return
@@ -448,7 +474,7 @@ func analyzeArtifact(client *github.Client, workflowRun *github.WorkflowRun, art
 			return
 		}
 
-		ctx := context.Background()
+		ctx := options.Context
 		group := parallel.Limited(ctx, options.MaxScanGoRoutines)
 		for _, file := range zipListing.File {
 			group.Go(func(ctx context.Context) {

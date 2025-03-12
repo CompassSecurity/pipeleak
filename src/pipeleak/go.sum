@@ -245,8 +245,6 @@ github.com/goccy/go-json v0.10.2/go.mod h1:6MelG93GURQebXPDq3khkgXZkazVtN9CRI+MG
 github.com/godbus/dbus v0.0.0-20190726142602-4481cbc300e2 h1:ZpnhV/YsD2/4cESfV5+Hoeu/iUR3ruzNvZ+yQfO03a0=
 github.com/godbus/dbus v0.0.0-20190726142602-4481cbc300e2/go.mod h1:bBOAhwG1umN6/6ZUMtDFBMQR8jRg9O75tm9K00oMsK4=
 github.com/godbus/dbus/v5 v5.0.4/go.mod h1:xhWf0FNVPg57R7Z0UbKHbJfkEywrmjJnf7w5xrFpKfA=
-github.com/gofri/go-github-pagination v1.0.0 h1:nnCi+1xT5ybqY/plctISgiQPWZOtfSciVQlbx/hM/Yw=
-github.com/gofri/go-github-pagination v1.0.0/go.mod h1:Qij55Fb4fNPjam3SB+8cLnqp4pgR8RGMyIspYXcyHX0=
 github.com/gofri/go-github-ratelimit/v2 v2.0.1 h1:jhd3iZ2XINscvYGL+kNXZosr70IZyDITZZC+MznthLI=
 github.com/gofri/go-github-ratelimit/v2 v2.0.1/go.mod h1:nqGxwHNwqXx5GNRaEEhegUOvMLAx51BOJtN8eFi8FEA=
 github.com/gogo/protobuf v1.3.2 h1:Ov1cvc58UF3b5XjBnZv7+opcTcQFZebYjWzi34vdm4Q=
