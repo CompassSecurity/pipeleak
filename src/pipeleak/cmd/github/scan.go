@@ -281,7 +281,9 @@ func scanRepositories(client *github.Client) {
 }
 
 func iterateWorkflowRuns(client *github.Client, repo *github.Repository) {
-	opt := github.ListWorkflowRunsOptions{}
+	opt := github.ListWorkflowRunsOptions{
+		ListOptions: github.ListOptions{PerPage: 100},
+	}
 	wfCount := 0
 	for {
 		workflowRuns, resp, err := client.Actions.ListRepositoryWorkflowRuns(options.Context, *repo.Owner.Login, *repo.Name, &opt)
