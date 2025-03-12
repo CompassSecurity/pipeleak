@@ -41,27 +41,27 @@ func ShortcutListeners(status ShortcutStatusFN) {
 		case keys.RuneKey:
 			if key.String() == "t" {
 				zerolog.SetGlobalLevel(zerolog.TraceLevel)
-				log.Info().Msg("Loglevel Trace")
+				log.Info().Str("logLevel", "trace").Msg("New Log level")
 			}
 
 			if key.String() == "d" {
 				zerolog.SetGlobalLevel(zerolog.DebugLevel)
-				log.Info().Msg("Loglevel Debug")
+				log.Info().Str("logLevel", "debug").Msg("New Log level")
 			}
 
 			if key.String() == "i" {
 				zerolog.SetGlobalLevel(zerolog.InfoLevel)
-				log.Info().Msg("Loglevel Info")
+				log.Info().Str("logLevel", "info").Msg("New Log level")
 			}
 
 			if key.String() == "w" {
 				zerolog.SetGlobalLevel(zerolog.WarnLevel)
-				log.Warn().Msg("Loglevel Warn")
+				log.Info().Str("logLevel", "warn").Msg("New Log level")
 			}
 
 			if key.String() == "e" {
 				zerolog.SetGlobalLevel(zerolog.ErrorLevel)
-				log.Error().Msg("Loglevel Error")
+				log.Info().Str("logLevel", "error").Msg("New Log level")
 			}
 
 			if key.String() == "s" {

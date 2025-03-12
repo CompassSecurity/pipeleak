@@ -90,7 +90,7 @@ func setupClient(accessToken string) *github.Client {
 		}),
 		github_secondary_ratelimit.WithLimitDetectedCallback(func(ctx *github_secondary_ratelimit.CallbackContext) {
 			resetTime := ctx.ResetTime.Add(time.Duration(time.Second * 30))
-			log.Info().Time("reset", *ctx.ResetTime).Dur("totalSleep", *ctx.TotalSleepTime).Msg("Secondary rate limit detected")
+			log.Info().Time("reset", *ctx.ResetTime).Dur("totalSleep", *ctx.TotalSleepTime).Msg("Secondary rate limit detected, will resume automatically")
 			time.Sleep(time.Until(resetTime))
 			log.Info().Msg("Resuming")
 		}),
@@ -106,6 +106,8 @@ func scan(client *github.Client) {
 		log.Info().Str("users", options.User).Msg("Scanning user's repositories actions")
 	} else if options.SearchQuery != "" {
 		log.Info().Str("query", options.SearchQuery).Msg("Searching repositories")
+	} else if options.Public {
+		log.Info().Msg("Scanning most recent public repositories")
 	} else {
 		log.Info().Str("organization", options.Organization).Msg("Scanning current authenticated user's repositories actions")
 	}
@@ -320,6 +322,8 @@ func downloadWorkflowRunLog(client *github.Client, repo *github.Repository, work
 	// already deleted, skip
 	if resp.StatusCode == 410 {
 		log.Debug().Str("workflowRunName", *workflowRun.Name).Msg("Skipped expired")
+		return
+	} else if resp.StatusCode == 404 {
 		return
 	}
 
