@@ -15,10 +15,12 @@ import (
 	"syscall"
 	"time"
 
+	"atomicgo.dev/keyboard"
+	"atomicgo.dev/keyboard/keys"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"gitlab.com/gitlab-org/api/client-go"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 	"gopkg.in/headzoo/surf.v1"
 )
 
@@ -26,6 +28,53 @@ func SetLogLevel(verbose bool) {
 	if verbose {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		log.Debug().Msg("Verbose log output enabled")
+	}
+}
+
+type ShortcutStatusFN func() *zerolog.Event
+
+func ShortcutListeners(status ShortcutStatusFN) {
+	err := keyboard.Listen(func(key keys.Key) (stop bool, err error) {
+		switch key.Code {
+		case keys.CtrlC, keys.Escape:
+			return true, nil
+		case keys.RuneKey:
+			if key.String() == "t" {
+				zerolog.SetGlobalLevel(zerolog.TraceLevel)
+				log.Info().Str("logLevel", "trace").Msg("New Log level")
+			}
+
+			if key.String() == "d" {
+				zerolog.SetGlobalLevel(zerolog.DebugLevel)
+				log.Info().Str("logLevel", "debug").Msg("New Log level")
+			}
+
+			if key.String() == "i" {
+				zerolog.SetGlobalLevel(zerolog.InfoLevel)
+				log.Info().Str("logLevel", "info").Msg("New Log level")
+			}
+
+			if key.String() == "w" {
+				zerolog.SetGlobalLevel(zerolog.WarnLevel)
+				log.Info().Str("logLevel", "warn").Msg("New Log level")
+			}
+
+			if key.String() == "e" {
+				zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+				log.Info().Str("logLevel", "error").Msg("New Log level")
+			}
+
+			if key.String() == "s" {
+				log := status()
+				log.Msg("Status")
+			}
+		}
+
+		return false, nil
+	})
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed hooking keyboard bindings")
 	}
 }
 

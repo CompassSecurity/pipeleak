@@ -1,4 +1,4 @@
-package cmd
+package gitlab
 
 import (
 	pgitlab "github.com/CompassSecurity/pipeleak/gitlab"

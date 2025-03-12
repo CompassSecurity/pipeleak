@@ -1,4 +1,4 @@
-package cmd
+package runners
 
 import (
 	"github.com/CompassSecurity/pipeleak/gitlab"
