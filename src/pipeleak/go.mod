@@ -1,6 +1,7 @@
 module github.com/CompassSecurity/pipeleak
 
 go 1.23.4
+toolchain go1.24.1
 
 require (
 	atomicgo.dev/keyboard v0.2.9
@@ -12,7 +13,7 @@ require (
 	github.com/spf13/cobra v1.9.1
 	github.com/tidwall/gjson v1.18.0
 	github.com/trufflesecurity/trufflehog/v3 v3.88.16
-	gitlab.com/gitlab-org/api/client-go v0.124.0
+	gitlab.com/gitlab-org/api/client-go v0.125.0
 	gitlab.com/mitchenielsen/gitlab-ci-go v0.0.4
 	golift.io/xtractr v0.2.2
 )
@@ -184,7 +185,7 @@ require (
 	github.com/wandb/parallel v0.2.2
 	golang.org/x/oauth2 v0.25.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
-	golang.org/x/time v0.9.0 // indirect
+	golang.org/x/time v0.10.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/headzoo/surf.v1 v1.0.1
 	gopkg.in/yaml.v3 v3.0.1
