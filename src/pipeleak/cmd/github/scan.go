@@ -287,6 +287,12 @@ func iterateWorkflowRuns(client *github.Client, repo *github.Repository) {
 	wfCount := 0
 	for {
 		workflowRuns, resp, err := client.Actions.ListRepositoryWorkflowRuns(options.Context, *repo.Owner.Login, *repo.Name, &opt)
+
+		if resp == nil {
+			log.Trace().Msg("Empty response due to rate limit, resume now<")
+			continue
+		}
+
 		if resp.StatusCode == 404 {
 			return
 		}

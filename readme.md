@@ -2,6 +2,7 @@
   <img height="200" src="https://github.com/CompassSecurity/pipeleak/blob/main/docs/logo.png?raw=true">
 </p>
 
+![GitHub Release Build Status](https://github.com/CompassSecurity/pipeleak/actions/workflows/release.yaml/badge.svg?event=release)
 ![GitHub Release](https://img.shields.io/github/v/release/CompassSecurity/pipeleak)
 ![GitHub commits since latest release](https://img.shields.io/github/commits-since/CompassSecurity/pipeleak/latest)
 
@@ -22,7 +23,7 @@ To begin using Pipeleak, download the latest binary from the [Releases](https://
 Run the following command to scan your e.g. GitLab instance:
 
 ```bash
-pipeleak scan gl --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com
+pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com
 ```
 
 ### Scanning Artifacts
