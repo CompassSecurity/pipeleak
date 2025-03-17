@@ -1,11 +1,9 @@
-package cmd
+package gitlab
 
 import (
 	"net/url"
 	"os"
 
-	"atomicgo.dev/keyboard"
-	"atomicgo.dev/keyboard/keys"
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/CompassSecurity/pipeleak/scanner"
 	gounits "github.com/docker/go-units"
@@ -56,8 +54,8 @@ func NewScanCmd() *cobra.Command {
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	setLogLevel()
-	go shortcutListeners()
+	helper.SetLogLevel(verbose)
+	go helper.ShortcutListeners(scanStatus)
 
 	_, err := url.ParseRequestURI(options.GitlabUrl)
 	if err != nil {
@@ -82,54 +80,7 @@ func parseFileSize(size string) int64 {
 	return byteSize
 }
 
-func setLogLevel() {
-	if options.Verbose {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-		log.Debug().Msg("Verbose log output enabled")
-	}
-}
-
-func shortcutListeners() {
-	err := keyboard.Listen(func(key keys.Key) (stop bool, err error) {
-		switch key.Code {
-		case keys.CtrlC, keys.Escape:
-			return true, nil
-		case keys.RuneKey:
-			if key.String() == "t" {
-				zerolog.SetGlobalLevel(zerolog.TraceLevel)
-				log.Info().Msg("Loglevel Trace")
-			}
-
-			if key.String() == "d" {
-				zerolog.SetGlobalLevel(zerolog.DebugLevel)
-				log.Info().Msg("Loglevel Debug")
-			}
-
-			if key.String() == "i" {
-				zerolog.SetGlobalLevel(zerolog.InfoLevel)
-				log.Info().Msg("Loglevel Info")
-			}
-
-			if key.String() == "w" {
-				zerolog.SetGlobalLevel(zerolog.WarnLevel)
-				log.Warn().Msg("Loglevel Warn")
-			}
-
-			if key.String() == "e" {
-				zerolog.SetGlobalLevel(zerolog.ErrorLevel)
-				log.Error().Msg("Loglevel Error")
-			}
-
-			if key.String() == "s" {
-				received, queueLength := scanner.GetQueueStatus()
-				log.Info().Int("runningJobs", received).Int("pendingjobs", queueLength).Msg("Queue status")
-			}
-		}
-
-		return false, nil
-	})
-
-	if err != nil {
-		log.Error().Err(err).Msg("Failed hooking keyboard bindings")
-	}
+func scanStatus() *zerolog.Event {
+	received, queueLength := scanner.GetQueueStatus()
+	return log.Info().Int("runningJobs", received).Int("pendingjobs", queueLength)
 }

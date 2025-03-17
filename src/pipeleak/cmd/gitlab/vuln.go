@@ -1,4 +1,4 @@
-package cmd
+package gitlab
 
 import (
 	"github.com/CompassSecurity/pipeleak/helper"
@@ -7,10 +7,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/tidwall/gjson"
-)
-
-var (
-	gitlabApiToken string
 )
 
 func NewVulnCmd() *cobra.Command {
