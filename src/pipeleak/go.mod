@@ -1,6 +1,7 @@
 module github.com/CompassSecurity/pipeleak
 
 go 1.23.4
+
 toolchain go1.24.1
 
 require (
@@ -15,7 +16,7 @@ require (
 	github.com/spf13/cobra v1.9.1
 	github.com/tidwall/gjson v1.18.0
 	github.com/trufflesecurity/trufflehog/v3 v3.88.17
-	gitlab.com/gitlab-org/api/client-go v0.125.0
+	gitlab.com/gitlab-org/api/client-go v0.126.0
 	gitlab.com/mitchenielsen/gitlab-ci-go v0.0.4
 	golift.io/xtractr v0.2.2
 )
