@@ -72,50 +72,81 @@ func Scan(cmd *cobra.Command, args []string) {
 }
 
 func scanOwned(client BitBucketApiClient, owner string) {
-	workspaces, _, err := client.ListOwnedWorkspaces()
-	if err != nil {
-		log.Error().Err(err).Msg("Failed fetching workspaces")
-	}
+	next := ""
+	for {
+		workspaces, nextUrl, _, err := client.ListOwnedWorkspaces(next)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed fetching workspaces")
+		}
 
-	for _, workspace := range workspaces {
-		log.Info().Str("name", workspace.Name).Msg("Workspace")
-		listWorkspaceRepos(client, workspace.Slug)
+		for _, workspace := range workspaces {
+			log.Trace().Str("name", workspace.Name).Msg("Workspace")
+			listWorkspaceRepos(client, workspace.Slug)
+		}
+
+		if nextUrl == "" {
+			break
+		}
+		next = nextUrl
 	}
 }
 
 func listWorkspaceRepos(client BitBucketApiClient, workspaceSlug string) {
-	repos, _, err := client.ListWorkspaceRepositoires(workspaceSlug)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed fetching workspace repos")
-	}
+	next := ""
+	for {
+		repos, nextUrl, _, err := client.ListWorkspaceRepositoires(next, workspaceSlug)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed fetching workspace repos")
+		}
 
-	for _, repo := range repos {
-		log.Info().Str("name", repo.Name).Msg("Repo")
-		listRepoPipelines(client, workspaceSlug, repo.Name)
+		for _, repo := range repos {
+			log.Trace().Str("name", repo.Name).Msg("Repo")
+			listRepoPipelines(client, workspaceSlug, repo.Name)
+		}
+		if nextUrl == "" {
+			break
+		}
+		next = nextUrl
 	}
 }
 
 func listRepoPipelines(client BitBucketApiClient, workspaceSlug string, repoSlug string) {
-	pipelines, _, err := client.ListRepositoryPipelines(workspaceSlug, repoSlug)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed fetching repo pipelines")
-	}
+	next := ""
+	for {
+		pipelines, nextUrl, _, err := client.ListRepositoryPipelines(next, workspaceSlug, repoSlug)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed fetching repo pipelines")
+		}
 
-	for _, pipeline := range pipelines {
-		log.Info().Int("buildNr", pipeline.BuildNumber).Msg("Pipeline")
-		listPipelineSteps(client, workspaceSlug, repoSlug, pipeline.UUID)
+		for _, pipeline := range pipelines {
+			log.Trace().Int("buildNr", pipeline.BuildNumber).Msg("Pipeline")
+			listPipelineSteps(client, workspaceSlug, repoSlug, pipeline.UUID)
+		}
+
+		if nextUrl == "" {
+			break
+		}
+		next = nextUrl
 	}
 }
 
 func listPipelineSteps(client BitBucketApiClient, workspaceSlug string, repoSlug string, pipelineUuid string) {
-	steps, _, err := client.ListPipelineSteps(workspaceSlug, repoSlug, pipelineUuid)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed fetching pipeline steps")
-	}
+	next := ""
+	for {
+		steps, nextUrl, _, err := client.ListPipelineSteps(next, workspaceSlug, repoSlug, pipelineUuid)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed fetching pipeline steps")
+		}
 
-	for _, step := range steps {
-		log.Info().Str("step", step.UUID).Msg("Step")
-		getSteplog(client, workspaceSlug, repoSlug, pipelineUuid, step.UUID)
+		for _, step := range steps {
+			log.Trace().Str("step", step.UUID).Msg("Step")
+			getSteplog(client, workspaceSlug, repoSlug, pipelineUuid, step.UUID)
+		}
+
+		if nextUrl == "" {
+			break
+		}
+		next = nextUrl
 	}
 }
 
@@ -125,12 +156,11 @@ func getSteplog(client BitBucketApiClient, workspaceSlug string, repoSlug string
 		log.Error().Err(err).Msg("Failed fetching pipeline steps")
 	}
 
-	log.Info().Bytes("by", logBytes).Msg("data")
+	log.Trace().Bytes("by", logBytes).Msg("data")
 }
 
 func scanPublic(client BitBucketApiClient) {
 	log.Info().Msg("public")
-	return
 }
 
 func scanStatus() *zerolog.Event {

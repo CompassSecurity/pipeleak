@@ -3,10 +3,12 @@ package bitbucket
 import "time"
 
 type PaginatedResponse[T any] struct {
-	Pagelen int `json:"pagelen"`
-	Page    int `json:"page"`
-	Size    int `json:"size"`
-	Values  []T `json:"values"`
+	Pagelen  int    `json:"pagelen"`
+	Page     int    `json:"page"`
+	Size     int    `json:"size"`
+	Next     string `json:"next"`
+	Previous string `json:"previous"`
+	Values   []T    `json:"values"`
 }
 
 type Workspace struct {
