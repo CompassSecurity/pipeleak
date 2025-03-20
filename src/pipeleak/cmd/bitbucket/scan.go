@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/CompassSecurity/pipeleak/helper"
+	"github.com/CompassSecurity/pipeleak/scanner"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -57,6 +58,8 @@ func Scan(cmd *cobra.Command, args []string) {
 	helper.SetLogLevel(options.Verbose)
 	go helper.ShortcutListeners(scanStatus)
 
+	scanner.InitRules(options.ConfidenceFilter)
+
 	options.Context = context.Background()
 	options.Client = NewClient(options.Username, options.AccessToken)
 
@@ -100,7 +103,7 @@ func listWorkspaceRepos(client BitBucketApiClient, workspaceSlug string) {
 		}
 
 		for _, repo := range repos {
-			log.Trace().Str("name", repo.Name).Msg("Repo")
+			log.Debug().Str("name", repo.Name).Msg("Repo")
 			listRepoPipelines(client, workspaceSlug, repo.Name)
 		}
 		if nextUrl == "" {
@@ -157,6 +160,10 @@ func getSteplog(client BitBucketApiClient, workspaceSlug string, repoSlug string
 	}
 
 	log.Trace().Bytes("by", logBytes).Msg("data")
+	findings := scanner.DetectHits(logBytes, options.MaxScanGoRoutines, options.TruffleHogVerification)
+	for _, finding := range findings {
+		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("Run", "https://bitbucket.org/"+workspaceSlug+"/"+repoSlug+"/pipelines/results/"+pipelineUuid+"/steps/"+stepUUID).Msg("HIT")
+	}
 }
 
 func scanPublic(client BitBucketApiClient) {
