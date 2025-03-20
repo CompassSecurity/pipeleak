@@ -1,0 +1,219 @@
+package bitbucket
+
+import (
+	"context"
+
+	"github.com/CompassSecurity/pipeleak/helper"
+	"github.com/CompassSecurity/pipeleak/scanner"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
+)
+
+type GitHubScanOptions struct {
+	Username               string
+	AccessToken            string
+	Verbose                bool
+	ConfidenceFilter       []string
+	MaxScanGoRoutines      int
+	TruffleHogVerification bool
+	MaxPipelines           int
+	Workspace              string
+	Owned                  bool
+	Artifacts              bool
+	Context                context.Context
+	Client                 BitBucketApiClient
+	Public                 bool
+}
+
+var options = GitHubScanOptions{}
+
+func NewScanCmd() *cobra.Command {
+	scanCmd := &cobra.Command{
+		Use:   "scan [no options!]",
+		Short: "Scan GitHub Actions",
+		Run:   Scan,
+	}
+	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "Bitbucket Application Password")
+	scanCmd.Flags().StringVarP(&options.Username, "username", "u", "", "Bitbucket Username")
+	scanCmd.MarkFlagsRequiredTogether("token", "username")
+
+	scanCmd.Flags().StringSliceVarP(&options.ConfidenceFilter, "confidence", "", []string{}, "Filter for confidence level, separate by comma if multiple. See readme for more info.")
+	scanCmd.PersistentFlags().IntVarP(&options.MaxScanGoRoutines, "threads", "", 4, "Nr of threads used to scan")
+	scanCmd.PersistentFlags().BoolVarP(&options.TruffleHogVerification, "truffleHogVerification", "", true, "Enable the TruffleHog credential verification, will actively test the found credentials and only report those. Disable with --truffleHogVerification=false")
+	scanCmd.PersistentFlags().BoolVarP(&options.Public, "public", "p", true, "Scan all public repositories")
+	scanCmd.PersistentFlags().IntVarP(&options.MaxPipelines, "maxPipelines", "", -1, "Max. number of pipelines to scan per repository")
+	scanCmd.PersistentFlags().BoolVarP(&options.Artifacts, "artifacts", "a", false, "Scan workflow artifacts")
+	scanCmd.Flags().StringVarP(&options.Workspace, "workspace", "w", "", "Workspace name to scan")
+	scanCmd.PersistentFlags().BoolVarP(&options.Owned, "owned", "", false, "Scan user onwed projects only")
+	scanCmd.MarkFlagsMutuallyExclusive("workspace", "owned", "public")
+
+	scanCmd.PersistentFlags().BoolVarP(&options.Verbose, "verbose", "v", false, "Verbose logging")
+
+	return scanCmd
+}
+
+func Scan(cmd *cobra.Command, args []string) {
+	helper.SetLogLevel(options.Verbose)
+	go helper.ShortcutListeners(scanStatus)
+
+	scanner.InitRules(options.ConfidenceFilter)
+
+	options.Context = context.Background()
+	options.Client = NewClient(options.Username, options.AccessToken)
+
+	if options.Owned {
+		log.Info().Msg("Scanning current user owned workspaces")
+		scanOwned(options.Client)
+	} else if options.Workspace != "" {
+		log.Info().Str("name", options.Workspace).Msg("Scanning a workspace")
+		scanWorkspace(options.Client, options.Workspace)
+	} else if options.Public {
+		log.Info().Msg("Scanning public repositories")
+		scanPublic(options.Client)
+	}
+
+	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
+}
+
+func scanOwned(client BitBucketApiClient) {
+	next := ""
+	for {
+		workspaces, nextUrl, _, err := client.ListOwnedWorkspaces(next)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed fetching workspaces")
+		}
+
+		for _, workspace := range workspaces {
+			log.Trace().Str("name", workspace.Name).Msg("Workspace")
+			listWorkspaceRepos(client, workspace.Slug)
+		}
+
+		if nextUrl == "" {
+			break
+		}
+		next = nextUrl
+	}
+}
+
+func scanWorkspace(client BitBucketApiClient, workspace string) {
+	next := ""
+	for {
+		repos, nextUrl, _, err := client.ListWorkspaceRepositoires(next, workspace)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed fetching workspace")
+		}
+
+		for _, repo := range repos {
+			log.Debug().Str("name", repo.Name).Msg("Repo")
+			listRepoPipelines(client, workspace, repo.Name)
+		}
+
+		if nextUrl == "" {
+			break
+		}
+		next = nextUrl
+	}
+}
+
+func scanPublic(client BitBucketApiClient) {
+	next := ""
+	for {
+		repos, nextUrl, _, err := client.ListPublicRepositoires(next)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed fetching public repos")
+		}
+
+		for _, repo := range repos {
+			log.Debug().Str("url", repo.Links.HTML.Href).Msg("Repo")
+			listRepoPipelines(client, repo.Workspace.Slug, repo.Name)
+		}
+
+		if nextUrl == "" {
+			break
+		}
+		next = nextUrl
+	}
+}
+
+func listWorkspaceRepos(client BitBucketApiClient, workspaceSlug string) {
+	next := ""
+	for {
+		repos, nextUrl, _, err := client.ListWorkspaceRepositoires(next, workspaceSlug)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed fetching workspace repos")
+		}
+
+		for _, repo := range repos {
+			log.Debug().Str("name", repo.Name).Msg("Repo")
+			listRepoPipelines(client, workspaceSlug, repo.Name)
+		}
+		if nextUrl == "" {
+			break
+		}
+		next = nextUrl
+	}
+}
+
+func listRepoPipelines(client BitBucketApiClient, workspaceSlug string, repoSlug string) {
+	pipelineCount := 0
+	next := ""
+	for {
+		pipelines, nextUrl, _, err := client.ListRepositoryPipelines(next, workspaceSlug, repoSlug)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed fetching repo pipelines")
+		}
+
+		for _, pipeline := range pipelines {
+			log.Trace().Int("buildNr", pipeline.BuildNumber).Msg("Pipeline")
+			listPipelineSteps(client, workspaceSlug, repoSlug, pipeline.UUID)
+
+			pipelineCount = pipelineCount + 1
+			if pipelineCount >= options.MaxPipelines && options.MaxPipelines > 0 {
+				log.Debug().Str("workspace", workspaceSlug).Str("repo", repoSlug).Msg("Reached max pipelines runs, skip remaining")
+				return
+			}
+		}
+
+		if nextUrl == "" {
+			break
+		}
+		next = nextUrl
+	}
+}
+
+func listPipelineSteps(client BitBucketApiClient, workspaceSlug string, repoSlug string, pipelineUuid string) {
+	next := ""
+	for {
+		steps, nextUrl, _, err := client.ListPipelineSteps(next, workspaceSlug, repoSlug, pipelineUuid)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed fetching pipeline steps")
+		}
+
+		for _, step := range steps {
+			log.Trace().Str("step", step.UUID).Msg("Step")
+			getSteplog(client, workspaceSlug, repoSlug, pipelineUuid, step.UUID)
+		}
+
+		if nextUrl == "" {
+			break
+		}
+		next = nextUrl
+	}
+}
+
+func getSteplog(client BitBucketApiClient, workspaceSlug string, repoSlug string, pipelineUuid string, stepUUID string) {
+	logBytes, _, err := client.GetStepLog(workspaceSlug, repoSlug, pipelineUuid, stepUUID)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed fetching pipeline steps")
+	}
+
+	findings := scanner.DetectHits(logBytes, options.MaxScanGoRoutines, options.TruffleHogVerification)
+	for _, finding := range findings {
+		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("Run", "https://bitbucket.org/"+workspaceSlug+"/"+repoSlug+"/pipelines/results/"+pipelineUuid+"/steps/"+stepUUID).Msg("HIT")
+	}
+}
+
+func scanStatus() *zerolog.Event {
+	return log.Info().Str("debug", "test")
+}
