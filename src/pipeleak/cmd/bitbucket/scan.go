@@ -20,11 +20,10 @@ type GitHubScanOptions struct {
 	MaxPipelines           int
 	Workspace              string
 	Owned                  bool
-	Public                 bool
-	SearchQuery            string
 	Artifacts              bool
 	Context                context.Context
 	Client                 BitBucketApiClient
+	Public                 bool
 }
 
 var options = GitHubScanOptions{}
@@ -42,12 +41,12 @@ func NewScanCmd() *cobra.Command {
 	scanCmd.Flags().StringSliceVarP(&options.ConfidenceFilter, "confidence", "", []string{}, "Filter for confidence level, separate by comma if multiple. See readme for more info.")
 	scanCmd.PersistentFlags().IntVarP(&options.MaxScanGoRoutines, "threads", "", 4, "Nr of threads used to scan")
 	scanCmd.PersistentFlags().BoolVarP(&options.TruffleHogVerification, "truffleHogVerification", "", true, "Enable the TruffleHog credential verification, will actively test the found credentials and only report those. Disable with --truffleHogVerification=false")
+	scanCmd.PersistentFlags().BoolVarP(&options.Public, "public", "p", true, "Scan all public repositories")
 	scanCmd.PersistentFlags().IntVarP(&options.MaxPipelines, "maxPipelines", "", -1, "Max. number of pipelines to scan per repository")
 	scanCmd.PersistentFlags().BoolVarP(&options.Artifacts, "artifacts", "a", false, "Scan workflow artifacts")
 	scanCmd.Flags().StringVarP(&options.Workspace, "workspace", "w", "", "Workspace name to scan")
 	scanCmd.PersistentFlags().BoolVarP(&options.Owned, "owned", "", false, "Scan user onwed projects only")
-	scanCmd.PersistentFlags().BoolVarP(&options.Public, "public", "p", false, "Scan all public repositories")
-	scanCmd.Flags().StringVarP(&options.SearchQuery, "search", "s", "", "GitHub search query")
+	scanCmd.MarkFlagsMutuallyExclusive("workspace", "owned", "public")
 
 	scanCmd.PersistentFlags().BoolVarP(&options.Verbose, "verbose", "v", false, "Verbose logging")
 
@@ -63,15 +62,15 @@ func Scan(cmd *cobra.Command, args []string) {
 	options.Context = context.Background()
 	options.Client = NewClient(options.Username, options.AccessToken)
 
-	if options.Public {
-		log.Info().Msg("Scanning public repos")
-		scanPublic(options.Client)
-	} else if options.Owned {
+	if options.Owned {
 		log.Info().Msg("Scanning current user owned workspaces")
 		scanOwned(options.Client)
 	} else if options.Workspace != "" {
 		log.Info().Str("name", options.Workspace).Msg("Scanning a workspace")
 		scanWorkspace(options.Client, options.Workspace)
+	} else if options.Public {
+		log.Info().Msg("Scanning public repositories")
+		scanPublic(options.Client)
 	}
 
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
@@ -108,6 +107,26 @@ func scanWorkspace(client BitBucketApiClient, workspace string) {
 		for _, repo := range repos {
 			log.Debug().Str("name", repo.Name).Msg("Repo")
 			listRepoPipelines(client, workspace, repo.Name)
+		}
+
+		if nextUrl == "" {
+			break
+		}
+		next = nextUrl
+	}
+}
+
+func scanPublic(client BitBucketApiClient) {
+	next := ""
+	for {
+		repos, nextUrl, _, err := client.ListPublicRepositoires(next)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed fetching public repos")
+		}
+
+		for _, repo := range repos {
+			log.Debug().Str("url", repo.Links.HTML.Href).Msg("Repo")
+			listRepoPipelines(client, repo.Workspace.Slug, repo.Name)
 		}
 
 		if nextUrl == "" {
@@ -189,15 +208,10 @@ func getSteplog(client BitBucketApiClient, workspaceSlug string, repoSlug string
 		log.Error().Err(err).Msg("Failed fetching pipeline steps")
 	}
 
-	log.Trace().Bytes("by", logBytes).Msg("data")
 	findings := scanner.DetectHits(logBytes, options.MaxScanGoRoutines, options.TruffleHogVerification)
 	for _, finding := range findings {
 		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("Run", "https://bitbucket.org/"+workspaceSlug+"/"+repoSlug+"/pipelines/results/"+pipelineUuid+"/steps/"+stepUUID).Msg("HIT")
 	}
-}
-
-func scanPublic(client BitBucketApiClient) {
-	log.Info().Msg("public")
 }
 
 func scanStatus() *zerolog.Event {

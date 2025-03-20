@@ -15,7 +15,21 @@ type BitBucketApiClient struct {
 }
 
 func NewClient(username string, password string) BitBucketApiClient {
-	return BitBucketApiClient{Client: *resty.New().SetBasicAuth(username, password)}
+	bbClient := BitBucketApiClient{Client: *resty.New().SetBasicAuth(username, password)}
+	bbClient.Client.AddResponseMiddleware(func(c *resty.Client, res *resty.Response) error {
+		// rateLimit := res.Header().Get("X-RateLimit-Limit")
+		// resource := res.Header().Get("X-RateLimit-Resource")
+		// nearLimit := res.Header().Get("X-RateLimit-NearLimit")
+
+		//log.Info().Any("asdf", res.Header()).Str("rateLimit", rateLimit).Str("resource", resource).Str("nearLimit", nearLimit).Msg("Rate Limiter Status")
+		// perform logic here
+
+		// cascade error downstream
+		// return errors.New("hey error occurred")
+
+		return nil
+	})
+	return bbClient
 }
 
 // https://developer.atlassian.com/cloud/bitbucket/rest/api-group-workspaces/#api-workspaces-get
@@ -29,6 +43,23 @@ func (a BitBucketApiClient) ListOwnedWorkspaces(nextPageUrl string) ([]Workspace
 		SetQueryParam("sort", "-updated_on").
 		SetResult(resp).
 		Get(url)
+
+	return resp.Values, resp.Next, res, err
+}
+
+// hhttps://developer.atlassian.com/cloud/bitbucket/rest/api-group-repositories/#api-repositories-get
+func (a BitBucketApiClient) ListPublicRepositoires(nextPageUrl string) ([]PublicRepository, string, *resty.Response, error) {
+	reqUrl := ""
+	if nextPageUrl != "" {
+		reqUrl = nextPageUrl
+	} else {
+		reqUrl = "https://api.bitbucket.org/2.0/repositories/"
+	}
+
+	resp := &PaginatedResponse[PublicRepository]{}
+	res, err := a.Client.R().
+		SetResult(resp).
+		Get(reqUrl)
 
 	return resp.Values, resp.Next, res, err
 }
@@ -97,7 +128,7 @@ func (a BitBucketApiClient) ListPipelineSteps(nextPageUrl string, workspaceSlug 
 	res, err := a.Client.R().
 		SetResult(resp).
 		Get(reqUrl)
-	
+
 	return resp.Values, resp.Next, res, err
 }
 
