@@ -17,7 +17,7 @@ type GitHubScanOptions struct {
 	ConfidenceFilter       []string
 	MaxScanGoRoutines      int
 	TruffleHogVerification bool
-	MaxWorkflows           int
+	MaxPipelines           int
 	Workspace              string
 	Owned                  bool
 	Public                 bool
@@ -42,7 +42,7 @@ func NewScanCmd() *cobra.Command {
 	scanCmd.Flags().StringSliceVarP(&options.ConfidenceFilter, "confidence", "", []string{}, "Filter for confidence level, separate by comma if multiple. See readme for more info.")
 	scanCmd.PersistentFlags().IntVarP(&options.MaxScanGoRoutines, "threads", "", 4, "Nr of threads used to scan")
 	scanCmd.PersistentFlags().BoolVarP(&options.TruffleHogVerification, "truffleHogVerification", "", true, "Enable the TruffleHog credential verification, will actively test the found credentials and only report those. Disable with --truffleHogVerification=false")
-	scanCmd.PersistentFlags().IntVarP(&options.MaxWorkflows, "maxWorkflows", "", -1, "Max. number of workflows to scan per repository")
+	scanCmd.PersistentFlags().IntVarP(&options.MaxPipelines, "maxPipelines", "", -1, "Max. number of pipelines to scan per repository")
 	scanCmd.PersistentFlags().BoolVarP(&options.Artifacts, "artifacts", "a", false, "Scan workflow artifacts")
 	scanCmd.Flags().StringVarP(&options.Workspace, "workspace", "w", "", "Workspace name to scan")
 	scanCmd.PersistentFlags().BoolVarP(&options.Owned, "owned", "", false, "Scan user onwed projects only")
@@ -67,14 +67,17 @@ func Scan(cmd *cobra.Command, args []string) {
 		log.Info().Msg("Scanning public repos")
 		scanPublic(options.Client)
 	} else if options.Owned {
-		log.Info().Msg("Scanning owned workspaces")
-		scanOwned(options.Client, options.Workspace)
-
+		log.Info().Msg("Scanning current user owned workspaces")
+		scanOwned(options.Client)
+	} else if options.Workspace != "" {
+		log.Info().Str("name", options.Workspace).Msg("Scanning a workspace")
+		scanWorkspace(options.Client, options.Workspace)
 	}
+
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
 }
 
-func scanOwned(client BitBucketApiClient, owner string) {
+func scanOwned(client BitBucketApiClient) {
 	next := ""
 	for {
 		workspaces, nextUrl, _, err := client.ListOwnedWorkspaces(next)
@@ -85,6 +88,26 @@ func scanOwned(client BitBucketApiClient, owner string) {
 		for _, workspace := range workspaces {
 			log.Trace().Str("name", workspace.Name).Msg("Workspace")
 			listWorkspaceRepos(client, workspace.Slug)
+		}
+
+		if nextUrl == "" {
+			break
+		}
+		next = nextUrl
+	}
+}
+
+func scanWorkspace(client BitBucketApiClient, workspace string) {
+	next := ""
+	for {
+		repos, nextUrl, _, err := client.ListWorkspaceRepositoires(next, workspace)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed fetching workspace")
+		}
+
+		for _, repo := range repos {
+			log.Debug().Str("name", repo.Name).Msg("Repo")
+			listRepoPipelines(client, workspace, repo.Name)
 		}
 
 		if nextUrl == "" {
@@ -114,6 +137,7 @@ func listWorkspaceRepos(client BitBucketApiClient, workspaceSlug string) {
 }
 
 func listRepoPipelines(client BitBucketApiClient, workspaceSlug string, repoSlug string) {
+	pipelineCount := 0
 	next := ""
 	for {
 		pipelines, nextUrl, _, err := client.ListRepositoryPipelines(next, workspaceSlug, repoSlug)
@@ -124,6 +148,12 @@ func listRepoPipelines(client BitBucketApiClient, workspaceSlug string, repoSlug
 		for _, pipeline := range pipelines {
 			log.Trace().Int("buildNr", pipeline.BuildNumber).Msg("Pipeline")
 			listPipelineSteps(client, workspaceSlug, repoSlug, pipeline.UUID)
+
+			pipelineCount = pipelineCount + 1
+			if pipelineCount >= options.MaxPipelines && options.MaxPipelines > 0 {
+				log.Debug().Str("workspace", workspaceSlug).Str("repo", repoSlug).Msg("Reached max pipelines runs, skip remaining")
+				return
+			}
 		}
 
 		if nextUrl == "" {
