@@ -1,13 +1,14 @@
 module github.com/CompassSecurity/pipeleak
 
 go 1.23.4
+
 toolchain go1.24.1
 
 require (
 	atomicgo.dev/keyboard v0.2.9
 	github.com/PuerkitoBio/goquery v1.10.2
 	github.com/docker/go-units v0.5.0
-	github.com/gofri/go-github-ratelimit/v2 v2.0.1
+	github.com/gofri/go-github-ratelimit/v2 v2.0.2
 	github.com/google/go-github/v69 v69.2.0
 	github.com/maragudk/goqite v0.2.3
 	github.com/rs/zerolog v1.33.0
