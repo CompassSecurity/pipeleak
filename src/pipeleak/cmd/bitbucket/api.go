@@ -3,6 +3,7 @@ package bitbucket
 import (
 	"net/url"
 	"path"
+	"time"
 
 	"github.com/rs/zerolog/log"
 
@@ -56,6 +57,30 @@ func (a BitBucketApiClient) ListWorkspaceRepositoires(nextPageUrl string, worksp
 	return resp.Values, resp.Next, res, err
 }
 
+// https://developer.atlassian.com/cloud/bitbucket/rest/api-group-repositories/#api-repositories-get
+func (a BitBucketApiClient) ListPublicRepositories(nextPageUrl string, after time.Time) ([]PublicRepository, string, *resty.Response, error) {
+	reqUrl := ""
+	if nextPageUrl != "" {
+		reqUrl = nextPageUrl
+	} else {
+		u, err := url.Parse("https://api.bitbucket.org/2.0/repositories/")
+		if err != nil {
+			log.Fatal().Err(err).Msg("Unable to parse ListPublicRepositories url")
+		}
+		reqUrl = u.String()
+	}
+
+	resp := &PaginatedResponse[PublicRepository]{}
+	c := a.Client.R().SetResult(resp)
+	// only set it initially after that the next url does use the after query param for paging
+	if nextPageUrl == "" {
+		c = c.SetQueryParam("after", after.Format(time.RFC3339))
+	}
+	res, err := c.Get(reqUrl)
+
+	return resp.Values, resp.Next, res, err
+}
+
 // https://developer.atlassian.com/cloud/bitbucket/rest/api-group-pipelines/#api-repositories-workspace-repo-slug-pipelines-get
 func (a BitBucketApiClient) ListRepositoryPipelines(nextPageUrl string, workspaceSlug string, repoSlug string) ([]Pipeline, string, *resty.Response, error) {
 	reqUrl := ""
@@ -97,7 +122,7 @@ func (a BitBucketApiClient) ListPipelineSteps(nextPageUrl string, workspaceSlug 
 	res, err := a.Client.R().
 		SetResult(resp).
 		Get(reqUrl)
-	
+
 	return resp.Values, resp.Next, res, err
 }
 

@@ -97,6 +97,23 @@ HTTP_PROXY=http://127.0.0.1:8080 pipeleak gl scan --token glpat-xxxxxxxxxxx --gi
 
 No remarks yet 🌟
 
+## BitBucket
+
+Scan your owned repistories
+```bash
+pipeleak bb scan --token xxxxxxxxxxx --username jfrtest-admin --owned
+```
+
+Scan a workspace (https://bitbucket.org/repo/all/)
+```bash
+pipeleak bb scan --token xxxxxxxxxxx --username jfrtest-admin --workspace bitbucketpipelines
+```
+
+Scan public repositories
+```bash
+pipeleak bb scan --token xxxxxxxxxxx --username jfrtest-admin --public --maxPipelines 5 --after 2025-03-01T15:00:00+00:00
+```
+
 # ELK Integration
 
 To easily analyze the results you can [redirect the pipeleak](https://github.com/deviantony/docker-elk?tab=readme-ov-file#injecting-data) output using `nc` into Logstash.
