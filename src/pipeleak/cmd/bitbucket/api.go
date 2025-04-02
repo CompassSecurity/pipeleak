@@ -16,7 +16,21 @@ type BitBucketApiClient struct {
 }
 
 func NewClient(username string, password string) BitBucketApiClient {
-	return BitBucketApiClient{Client: *resty.New().SetBasicAuth(username, password)}
+	bbClient := BitBucketApiClient{Client: *resty.New().SetBasicAuth(username, password)}
+	bbClient.Client.AddResponseMiddleware(func(c *resty.Client, res *resty.Response) error {
+		// rateLimit := res.Header().Get("X-RateLimit-Limit")
+		// resource := res.Header().Get("X-RateLimit-Resource")
+		// nearLimit := res.Header().Get("X-RateLimit-NearLimit")
+
+		//log.Info().Any("asdf", res.Header()).Str("rateLimit", rateLimit).Str("resource", resource).Str("nearLimit", nearLimit).Msg("Rate Limiter Status")
+		// perform logic here
+
+		// cascade error downstream
+		// return errors.New("hey error occurred")
+
+		return nil
+	})
+	return bbClient
 }
 
 // https://developer.atlassian.com/cloud/bitbucket/rest/api-group-workspaces/#api-workspaces-get
