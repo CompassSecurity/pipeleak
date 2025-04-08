@@ -99,8 +99,8 @@ type Repository struct {
 	} `json:"owner"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	CreatedOn   string `json:"created_on"`
-	UpdatedOn   string `json:"updated_on"`
+	CreatedOn   time.Time `json:"created_on"`
+	UpdatedOn   time.Time `json:"updated_on"`
 	Size        int    `json:"size"`
 	Language    string `json:"language"`
 	HasIssues   bool   `json:"has_issues"`

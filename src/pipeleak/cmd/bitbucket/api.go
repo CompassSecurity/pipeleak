@@ -2,10 +2,8 @@ package bitbucket
 
 import (
 	"io"
-	"net/http"
 	"net/url"
 	"path"
-	"strconv"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -20,19 +18,15 @@ type BitBucketApiClient struct {
 
 func NewClient(username string, password string) BitBucketApiClient {
 	bbClient := BitBucketApiClient{Client: *resty.New().SetBasicAuth(username, password).SetRedirectPolicy(resty.FlexibleRedirectPolicy(5))}
-	bbClient.Client.AddResponseMiddleware(func(c *resty.Client, res *resty.Response) error {
-		// rateLimit := res.Header().Get("X-RateLimit-Limit")
-		// resource := res.Header().Get("X-RateLimit-Resource")
-		// nearLimit := res.Header().Get("X-RateLimit-NearLimit")
-
-		//log.Info().Any("asdf", res.Header()).Str("rateLimit", rateLimit).Str("resource", resource).Str("nearLimit", nearLimit).Msg("Rate Limiter Status")
-		// perform logic here
-
-		// cascade error downstream
-		// return errors.New("hey error occurred")
-
-		return nil
-	})
+	bbClient.Client.AddRetryHooks(
+		func(res *resty.Response, err error) {
+			if 429 == res.StatusCode() {
+				log.Info().Int("status", res.StatusCode()).Msg("Retrying request, we are rate limited")
+			} else {
+				log.Debug().Int("status", res.StatusCode()).Msg("Retrying request, not due to rate limit")
+			}
+		},
+	)
 	return bbClient
 }
 
@@ -158,40 +152,6 @@ func (a BitBucketApiClient) GetStepLog(workspaceSlug string, repoSlug string, pi
 	return res.Bytes(), res, err
 }
 
-// INTERNAL API: https://bitbucket.org/!api/internal/repositories/jfrtest/secrets/pipelines/4/artifacts
-func (a BitBucketApiClient) ListArtifacts(nextPageUrl string, workspaceSlug string, repoSlug string, pipelineId int) ([]Artifact, string, *resty.Response, error) {
-	reqUrl := ""
-	if nextPageUrl != "" {
-		reqUrl = nextPageUrl
-	} else {
-		u, err := url.Parse("https://bitbucket.org/!api/internal/repositories/")
-		if err != nil {
-			log.Fatal().Err(err).Msg("Unable to parse LisArtifacts url")
-		}
-		u.Path = path.Join(u.Path, workspaceSlug, repoSlug, "pipelines", strconv.Itoa(pipelineId), "artifacts")
-		reqUrl = u.String()
-	}
-
-	log.Trace().Str("url", reqUrl).Msg("Fetch artifact url")
-
-	resp := &PaginatedResponse[Artifact]{}
-	res, err := a.Client.R().
-		SetResult(resp).
-		SetCookie(&http.Cookie{Name: "cloud.session.token", Value: "REPLACE_MEE"}).
-		Get(reqUrl)
-
-	defer res.Body.Close()
-
-	bodyBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		log.Fatal()
-	}
-	bodyString := string(bodyBytes)
-	log.Trace().Str("resp", bodyString).Int("code", res.StatusCode()).Any("parsed", resp.Values).Msg("art repsonse")
-
-	return resp.Values, resp.Next, res, err
-}
-
 // https://developer.atlassian.com/cloud/bitbucket/rest/api-group-downloads/#api-repositories-workspace-repo-slug-downloads-get
 func (a BitBucketApiClient) ListDownloadArtifacts(nextPageUrl string, workspaceSlug string, repoSlug string) ([]DownloadArtifact, string, *resty.Response, error) {
 	reqUrl := ""
@@ -229,5 +189,3 @@ func (a BitBucketApiClient) GetDownloadArtifact(url string) []byte {
 
 	return bodyBytes
 }
-
-// https://developer.atlassian.com/cloud/bitbucket/rest/api-group-downloads/#api-repositories-workspace-repo-slug-downloads-filename-get

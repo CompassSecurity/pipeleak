@@ -40,7 +40,7 @@ func NewScanCmd() *cobra.Command {
 		Short: "Scan GitHub Actions",
 		Run:   Scan,
 	}
-	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "Bitbucket Application Password")
+	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "Bitbucket Application Password - https://bitbucket.org/account/settings/app-passwords/")
 	scanCmd.Flags().StringVarP(&options.Username, "username", "u", "", "Bitbucket Username")
 	scanCmd.MarkFlagsRequiredTogether("token", "username")
 
@@ -112,7 +112,7 @@ func scanWorkspace(client BitBucketApiClient, workspace string) {
 		}
 
 		for _, repo := range repos {
-			log.Debug().Str("name", repo.Name).Msg("Repo")
+			log.Debug().Str("url", repo.Links.HTML.Href).Time("created", repo.CreatedOn).Time("updated", repo.UpdatedOn).Msg("Repo")
 			listRepoPipelines(client, workspace, repo.Name)
 		}
 
@@ -137,7 +137,7 @@ func scanPublic(client BitBucketApiClient, after string) {
 		}
 
 		for _, repo := range repos {
-			log.Debug().Str("name", repo.Name).Time("updatedOn", repo.UpdatedOn).Msg("Repo")
+			log.Debug().Str("url", repo.Links.HTML.Href).Time("created", repo.CreatedOn).Time("updated", repo.UpdatedOn).Msg("Repo")
 			listRepoPipelines(client, repo.Workspace.Name, repo.Name)
 		}
 
@@ -157,7 +157,7 @@ func listWorkspaceRepos(client BitBucketApiClient, workspaceSlug string) {
 		}
 
 		for _, repo := range repos {
-			log.Debug().Str("name", repo.Name).Msg("Repo")
+			log.Debug().Str("url", repo.Links.HTML.Href).Time("created", repo.CreatedOn).Time("updated", repo.UpdatedOn).Msg("Repo")
 			listRepoPipelines(client, workspaceSlug, repo.Name)
 		}
 		if nextUrl == "" {
@@ -194,25 +194,6 @@ func listRepoPipelines(client BitBucketApiClient, workspaceSlug string, repoSlug
 				log.Debug().Str("workspace", workspaceSlug).Str("repo", repoSlug).Msg("Reached max pipelines runs, skip remaining")
 				return
 			}
-		}
-
-		if nextUrl == "" {
-			break
-		}
-		next = nextUrl
-	}
-}
-
-func listArtifacts(client BitBucketApiClient, workspaceSlug string, repoSlug string, pipelineId int) {
-	next := ""
-	for {
-		artifacts, nextUrl, _, err := client.ListArtifacts(next, workspaceSlug, repoSlug, pipelineId)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed fetching pipeline artifacts")
-		}
-
-		for _, artifact := range artifacts {
-			log.Trace().Str("name", artifact.Name).Str("uuid", artifact.UUID).Msg("Artifact")
 		}
 
 		if nextUrl == "" {
