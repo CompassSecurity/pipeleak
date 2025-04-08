@@ -286,3 +286,42 @@ type PipelineStep struct {
 	ScriptCommands []struct {
 	} `json:"script_commands"`
 }
+
+type Artifact struct {
+	UUID          string    `json:"uuid"`
+	StepUUID      string    `json:"step_uuid"`
+	Path          string    `json:"path"`
+	ArtifactType  string    `json:"artifactType"`
+	FileSizeBytes int       `json:"file_size_bytes"`
+	CreatedOn     time.Time `json:"created_on"`
+	StorageType   string    `json:"storageType"`
+	Key           string    `json:"key"`
+	Name          string    `json:"name"`
+}
+
+type DownloadArtifact struct {
+	Name      string    `json:"name"`
+	Size      int       `json:"size"`
+	CreatedOn time.Time `json:"created_on"`
+	User      struct {
+		Type  string `json:"type"`
+		Links struct {
+			Avatar struct {
+				Href string `json:"href"`
+			} `json:"avatar"`
+		} `json:"links"`
+		CreatedOn     time.Time `json:"created_on"`
+		DisplayName   string    `json:"display_name"`
+		UUID          string    `json:"uuid"`
+		AccountID     string    `json:"account_id"`
+		AccountStatus string    `json:"account_status"`
+		Kind          string    `json:"kind"`
+	} `json:"user"`
+	Downloads int `json:"downloads"`
+	Links     struct {
+		Self struct {
+			Href string `json:"href"`
+		} `json:"self"`
+	} `json:"links"`
+	Type string `json:"type"`
+}

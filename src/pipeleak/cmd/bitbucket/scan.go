@@ -2,10 +2,13 @@ package bitbucket
 
 import (
 	"context"
+	"net/url"
+	"path"
 	"time"
 
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/CompassSecurity/pipeleak/scanner"
+	"github.com/h2non/filetype"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -120,6 +123,31 @@ func scanWorkspace(client BitBucketApiClient, workspace string) {
 	}
 }
 
+func scanPublic(client BitBucketApiClient, after string) {
+	afterTime := time.Time{}
+	if after != "" {
+		afterTime = helper.ParseISO8601(after)
+	}
+	log.Info().Time("after", afterTime).Msg("Scanning repos after")
+	next := ""
+	for {
+		repos, nextUrl, _, err := client.ListPublicRepositories(next, afterTime)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed fetching public repositories")
+		}
+
+		for _, repo := range repos {
+			log.Debug().Str("name", repo.Name).Time("updatedOn", repo.UpdatedOn).Msg("Repo")
+			listRepoPipelines(client, repo.Workspace.Name, repo.Name)
+		}
+
+		if nextUrl == "" {
+			break
+		}
+		next = nextUrl
+	}
+}
+
 func listWorkspaceRepos(client BitBucketApiClient, workspaceSlug string) {
 	next := ""
 	for {
@@ -153,14 +181,58 @@ func listRepoPipelines(client BitBucketApiClient, workspaceSlug string, repoSlug
 		}
 
 		for _, pipeline := range pipelines {
-			log.Trace().Int("buildNr", pipeline.BuildNumber).Msg("Pipeline")
+			log.Trace().Int("buildNr", pipeline.BuildNumber).Str("uuid", pipeline.UUID).Msg("Pipeline")
 			listPipelineSteps(client, workspaceSlug, repoSlug, pipeline.UUID)
+			if options.Artifacts {
+				log.Trace().Int("buildNr", pipeline.BuildNumber).Str("uuid", pipeline.UUID).Msg("Fetch pipeline artifacts")
+				//listArtifacts(client, workspaceSlug, repoSlug, pipeline.BuildNumber)
+				listDownloadArtifacts(client, workspaceSlug, repoSlug)
+			}
 
 			pipelineCount = pipelineCount + 1
 			if pipelineCount >= options.MaxPipelines && options.MaxPipelines > 0 {
 				log.Debug().Str("workspace", workspaceSlug).Str("repo", repoSlug).Msg("Reached max pipelines runs, skip remaining")
 				return
 			}
+		}
+
+		if nextUrl == "" {
+			break
+		}
+		next = nextUrl
+	}
+}
+
+func listArtifacts(client BitBucketApiClient, workspaceSlug string, repoSlug string, pipelineId int) {
+	next := ""
+	for {
+		artifacts, nextUrl, _, err := client.ListArtifacts(next, workspaceSlug, repoSlug, pipelineId)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed fetching pipeline artifacts")
+		}
+
+		for _, artifact := range artifacts {
+			log.Trace().Str("name", artifact.Name).Str("uuid", artifact.UUID).Msg("Artifact")
+		}
+
+		if nextUrl == "" {
+			break
+		}
+		next = nextUrl
+	}
+}
+
+func listDownloadArtifacts(client BitBucketApiClient, workspaceSlug string, repoSlug string) {
+	next := ""
+	for {
+		downloadArtifacts, nextUrl, _, err := client.ListDownloadArtifacts(next, workspaceSlug, repoSlug)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed fetching pipeline download artifacts")
+		}
+
+		for _, artifact := range downloadArtifacts {
+			log.Trace().Str("name", artifact.Name).Str("creator", artifact.User.DisplayName).Msg("Download Artifact")
+			getDownloadArtifact(client, artifact.Links.Self.Href, constructDownloadArtifactWebUrl(workspaceSlug, repoSlug, artifact.Name), artifact.Name)
 		}
 
 		if nextUrl == "" {
@@ -190,6 +262,15 @@ func listPipelineSteps(client BitBucketApiClient, workspaceSlug string, repoSlug
 	}
 }
 
+func constructDownloadArtifactWebUrl(workspaceSlug string, repoSlug string, artifactName string) string {
+	u, err := url.Parse("https://bitbucket.org/")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to parse ListDownloadArtifacts url")
+	}
+	u.Path = path.Join(u.Path, workspaceSlug, repoSlug, "downloads", artifactName)
+	return u.String()
+}
+
 func getSteplog(client BitBucketApiClient, workspaceSlug string, repoSlug string, pipelineUuid string, stepUUID string) {
 	logBytes, _, err := client.GetStepLog(workspaceSlug, repoSlug, pipelineUuid, stepUUID)
 	if err != nil {
@@ -202,28 +283,16 @@ func getSteplog(client BitBucketApiClient, workspaceSlug string, repoSlug string
 	}
 }
 
-func scanPublic(client BitBucketApiClient, after string) {
-	afterTime := time.Time{}
-	if after != "" {
-		afterTime = helper.ParseISO8601(after)
+func getDownloadArtifact(client BitBucketApiClient, downloadUrl string, webUrl string, filename string) {
+	fileBytes := client.GetDownloadArtifact(downloadUrl)
+	if len(fileBytes) == 0 {
+		return
 	}
-	log.Info().Time("after", afterTime).Msg("Scanning repos after")
-	next := ""
-	for {
-		repos, nextUrl, _, err := client.ListPublicRepositories(next, afterTime)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed fetching public repositories")
-		}
 
-		for _, repo := range repos {
-			log.Debug().Str("name", repo.Name).Time("updatedOn", repo.UpdatedOn).Msg("Repo")
-			listRepoPipelines(client, repo.Workspace.Name, repo.Name)
-		}
-
-		if nextUrl == "" {
-			break
-		}
-		next = nextUrl
+	if filetype.IsArchive(fileBytes) {
+		scanner.HandleArchiveArtifact(filename, fileBytes, webUrl, "Download Artifact", options.TruffleHogVerification)
+	} else {
+		scanner.DetectFileHits(fileBytes, webUrl, "Download Artifact", filename, "", options.TruffleHogVerification)
 	}
 }
 
