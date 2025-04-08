@@ -109,7 +109,7 @@ func scan(client *github.Client) {
 	} else if options.Public {
 		log.Info().Msg("Scanning most recent public repositories")
 	} else {
-		log.Info().Str("organization", options.Organization).Msg("Scanning current authenticated user's repositories actions")
+		log.Info().Str("organization", options.Organization).Msg("Scanning organization repositories actions")
 	}
 
 	scanner.InitRules(options.ConfidenceFilter)

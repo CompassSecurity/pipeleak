@@ -13,6 +13,7 @@ Pipeleak is a tool designed to scan CI/CD logs and artifacts for secrets.
 It supports the following platforms:
 * GitLab
 * GitHub
+* BitBucket
 
 ## Getting Started
 
@@ -95,7 +96,50 @@ HTTP_PROXY=http://127.0.0.1:8080 pipeleak gl scan --token glpat-xxxxxxxxxxx --gi
 
 ## GitHub
 
-No remarks yet 🌟
+Scan owned repositories including their artifacts
+```bash
+pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --owned
+```
+
+Scan repositories of an organization
+```bash
+pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --maxWorkflows 10 --org apache
+```
+
+Scan public repositories
+```bash
+pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --maxWorkflows 10 --public
+```
+
+Scan by search term
+```bash
+pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --maxWorkflows 10 --search iac
+```
+
+Scan repositories of a user
+```bash
+pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --user firefart
+```
+
+## BitBucket
+
+> BitBucket does [not offer](https://community.atlassian.com/forums/Bitbucket-questions/Re-Get-artifacts-produced-by-a-pipeline-via-Bitbucket-RE/qaq-p/2493300/comment-id/98001#M98001) a public API for artifacts. Only artifacts that were uploaded to the [Downloads](https://support.atlassian.com/bitbucket-cloud/docs/deploy-build-artifacts-to-bitbucket-downloads/) section can be scanned.
+
+Scan your owned repositories and their artifacts
+```bash
+pipeleak bb scan --token xxxxxxxxxxx --username auser --owned --artifacts
+```
+
+Scan a workspace (find public ones here: https://bitbucket.org/repo/all/)
+```bash
+pipeleak bb scan --token xxxxxxxxxxx --username auser --workspace bitbucketpipelines
+```
+
+Scan all public repositories
+> If using `after`, the API becomes quite unreliable 👀
+```bash
+pipeleak bb scan --token xxxxxxxxxxx --username auser --public --maxPipelines 5 --after 2025-03-01T15:00:00+00:00
+```
 
 # ELK Integration
 
