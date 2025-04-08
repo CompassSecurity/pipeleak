@@ -126,19 +126,19 @@ pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --user firefart
 
 Scan your owned repositories and their artifacts
 ```bash
-pipeleak bb scan --token xxxxxxxxxxx --username jfrtest-admin --owned --artifacts
+pipeleak bb scan --token xxxxxxxxxxx --username auser --owned --artifacts
 ```
 
 Scan a workspace (find public ones here: https://bitbucket.org/repo/all/)
 ```bash
-pipeleak bb scan --token xxxxxxxxxxx --username jfrtest-admin --workspace bitbucketpipelines
+pipeleak bb scan --token xxxxxxxxxxx --username auser --workspace bitbucketpipelines
 ```
 
 
 Scan all public repositories
 > If using `after`, the API becomes quite unreliable 👀
 ```bash
-pipeleak bb scan --token xxxxxxxxxxx --username jfrtest-admin --public --maxPipelines 5 --after 2025-03-01T15:00:00+00:00
+pipeleak bb scan --token xxxxxxxxxxx --username auser --public --maxPipelines 5 --after 2025-03-01T15:00:00+00:00
 ```
 
 # ELK Integration
