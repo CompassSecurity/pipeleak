@@ -134,7 +134,9 @@ Scan a workspace (find public ones here: https://bitbucket.org/repo/all/)
 pipeleak bb scan --token xxxxxxxxxxx --username jfrtest-admin --workspace bitbucketpipelines
 ```
 
+
 Scan all public repositories
+> If using `after`, the API becomes quite unreliable 👀
 ```bash
 pipeleak bb scan --token xxxxxxxxxxx --username jfrtest-admin --public --maxPipelines 5 --after 2025-03-01T15:00:00+00:00
 ```

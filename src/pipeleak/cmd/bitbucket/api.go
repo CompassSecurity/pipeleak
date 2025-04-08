@@ -82,14 +82,14 @@ func (a BitBucketApiClient) ListPublicRepositories(nextPageUrl string, after tim
 	}
 
 	resp := &PaginatedResponse[PublicRepository]{}
-	c := a.Client.R().SetResult(resp)
 	// only set it initially after that the next url does use the after query param for paging
 	if nextPageUrl == "" {
-		c = c.SetQueryParam("after", after.Format(time.RFC3339))
+		res, err := a.Client.R().SetResult(resp).SetQueryParam("after", after.Format(time.RFC3339)).Get(reqUrl)
+		return resp.Values, resp.Next, res, err
+	} else {
+		res, err := a.Client.R().SetResult(resp).Get(reqUrl)
+		return resp.Values, resp.Next, res, err
 	}
-	res, err := c.Get(reqUrl)
-
-	return resp.Values, resp.Next, res, err
 }
 
 // https://developer.atlassian.com/cloud/bitbucket/rest/api-group-pipelines/#api-repositories-workspace-repo-slug-pipelines-get
@@ -146,7 +146,6 @@ func (a BitBucketApiClient) GetStepLog(workspaceSlug string, repoSlug string, pi
 	u.Path = path.Join(u.Path, workspaceSlug, repoSlug, "pipelines", pipelineUUID, "steps", stepUUID, "log")
 
 	res, err := a.Client.R().
-		EnableTrace().
 		Get(u.String())
 
 	return res.Bytes(), res, err
