@@ -13,6 +13,7 @@ Pipeleak is a tool designed to scan CI/CD logs and artifacts for secrets.
 It supports the following platforms:
 * GitLab
 * GitHub
+* BitBucket
 
 ## Getting Started
 
@@ -133,7 +134,6 @@ Scan a workspace (find public ones here: https://bitbucket.org/repo/all/)
 ```bash
 pipeleak bb scan --token xxxxxxxxxxx --username auser --workspace bitbucketpipelines
 ```
-
 
 Scan all public repositories
 > If using `after`, the API becomes quite unreliable 👀
