@@ -97,15 +97,15 @@ type Repository struct {
 	Owner     struct {
 		Type string `json:"type"`
 	} `json:"owner"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
 	CreatedOn   time.Time `json:"created_on"`
 	UpdatedOn   time.Time `json:"updated_on"`
-	Size        int    `json:"size"`
-	Language    string `json:"language"`
-	HasIssues   bool   `json:"has_issues"`
-	HasWiki     bool   `json:"has_wiki"`
-	ForkPolicy  string `json:"fork_policy"`
+	Size        int       `json:"size"`
+	Language    string    `json:"language"`
+	HasIssues   bool      `json:"has_issues"`
+	HasWiki     bool      `json:"has_wiki"`
+	ForkPolicy  string    `json:"fork_policy"`
 	Project     struct {
 		Type string `json:"type"`
 	} `json:"project"`
