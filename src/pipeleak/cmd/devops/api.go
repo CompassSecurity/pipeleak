@@ -28,6 +28,49 @@ func NewClient(username string, password string) AzureDevOpsApiClient {
 	return bbClient
 }
 
+// https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=7.2-preview.3
+func (a AzureDevOpsApiClient) GetAuthenticatedUser() (*AuthenticatedUser, *resty.Response, error) {
+	u, err := url.Parse("https://app.vssps.visualstudio.com/_apis/profile/profiles/me")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to parse GetAuthenticatedUser url")
+	}
+	reqUrl := u.String()
+
+	user := &AuthenticatedUser{}
+	res, err := a.Client.R().
+		SetQueryParam("api-version", "7.2-preview.3").
+		SetResult(user).
+		Get(reqUrl)
+
+	if res.StatusCode() > 400 {
+		log.Fatal().Int("status", res.StatusCode()).Str("response", res.String()).Msg("Failed fetching authenticated user")
+	}
+
+	return user, res, err
+}
+
+// https://app.vssps.visualstudio.com/_apis/accounts?api-version=7.2-preview.1&ownerId=c7ab2e8b-7583-690c-beb5-9df2871c5655
+func (a AzureDevOpsApiClient) ListAccounts(ownerId string) ([]Account, *resty.Response, error) {
+	u, err := url.Parse("https://app.vssps.visualstudio.com/_apis/accounts")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to parse ListAccounts url")
+	}
+	reqUrl := u.String()
+
+	resp := &PaginatedResponse[Account]{}
+	res, err := a.Client.R().
+		SetQueryParam("api-version", "7.2-preview.1").
+		SetQueryParam("ownerId", ownerId).
+		SetResult(resp).
+		Get(reqUrl)
+
+	if res.StatusCode() > 400 {
+		log.Fatal().Int("status", res.StatusCode()).Str("ownerId", ownerId).Msg("Fetching accounts failed")
+	}
+
+	return resp.Value, res, err
+}
+
 // https://learn.microsoft.com/en-us/rest/api/azure/devops/core/projects/list?view=azure-devops-rest-7.2&tabs=HTTP
 func (a AzureDevOpsApiClient) ListRepositories(organization string) ([]Repository, *resty.Response, error) {
 	reqUrl := ""

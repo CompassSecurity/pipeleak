@@ -67,20 +67,33 @@ func Scan(cmd *cobra.Command, args []string) {
 
 	options.Context = context.Background()
 	options.Client = NewClient(options.Username, options.AccessToken)
+
 	scanOrganization(options.Client, options.Organization)
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
 }
 
 // notes: https://dev.azure.com/PowerShell/PowerShell/_apis/pipelines
 func scanOrganization(client AzureDevOpsApiClient, organization string) {
-	for {
-		repos, _, err := client.ListRepositories(organization)
+
+	user, _, err := client.GetAuthenticatedUser()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed fetching authenticated user")
+	}
+
+	log.Info().Str("displayName", user.DisplayName).Msg("Authenticated User")
+
+	// @todo paging
+	accounts, _, err := client.ListAccounts(user.ID)
+	for _, account := range accounts {
+		log.Debug().Str("name", account.AccountName).Msg("Scanning Account")
+
+		repos, _, err := client.ListRepositories(account.AccountName)
 		if err != nil {
-			log.Error().Err(err).Str("organization", organization).Msg("Failed fetching repositories")
+			log.Error().Err(err).Str("organization", account.AccountName).Msg("Failed fetching repositories")
 		}
 
 		for _, repo := range repos {
-			log.Debug().Str("url", getRepoWebUrl(organization, repo.Name)).Msg("Repository")
+			log.Debug().Str("url", getRepoWebUrl(account.AccountName, repo.Name)).Msg("Repository")
 		}
 	}
 }

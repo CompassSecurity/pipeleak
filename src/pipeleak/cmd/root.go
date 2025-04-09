@@ -4,8 +4,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/cmd/devops"
 	"github.com/CompassSecurity/pipeleak/cmd/bitbucket"
+	"github.com/CompassSecurity/pipeleak/cmd/devops"
 	"github.com/CompassSecurity/pipeleak/cmd/github"
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab"
 	"github.com/rs/zerolog"
