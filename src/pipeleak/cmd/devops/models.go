@@ -23,7 +23,7 @@ type Account struct {
 	AccountName string `json:"accountName"`
 }
 
-type Repository struct {
+type Project struct {
 	ID             string    `json:"id"`
 	Name           string    `json:"name"`
 	URL            string    `json:"url"`
@@ -31,4 +31,53 @@ type Repository struct {
 	Revision       int       `json:"revision"`
 	Visibility     string    `json:"visibility"`
 	LastUpdateTime time.Time `json:"lastUpdateTime"`
+}
+
+type Pipeline struct {
+	Links struct {
+		Self struct {
+			Href string `json:"href"`
+		} `json:"self"`
+		Web struct {
+			Href string `json:"href"`
+		} `json:"web"`
+	} `json:"_links"`
+	URL      string `json:"url"`
+	ID       int    `json:"id"`
+	Revision int    `json:"revision"`
+	Name     string `json:"name"`
+	Folder   string `json:"folder"`
+}
+
+type PipelineRun struct {
+	Links struct {
+		Self struct {
+			Href string `json:"href"`
+		} `json:"self"`
+		Web struct {
+			Href string `json:"href"`
+		} `json:"web"`
+		PipelineWeb struct {
+			Href string `json:"href"`
+		} `json:"pipeline.web"`
+		Pipeline struct {
+			Href string `json:"href"`
+		} `json:"pipeline"`
+	} `json:"_links"`
+	TemplateParameters struct {
+	} `json:"templateParameters"`
+	Pipeline struct {
+		URL      string `json:"url"`
+		ID       int    `json:"id"`
+		Revision int    `json:"revision"`
+		Name     string `json:"name"`
+		Folder   string `json:"folder"`
+	} `json:"pipeline"`
+	State        string    `json:"state"`
+	Result       string    `json:"result"`
+	CreatedDate  time.Time `json:"createdDate"`
+	FinishedDate time.Time `json:"finishedDate"`
+	URL          string    `json:"url"`
+	ID           int       `json:"id"`
+	Name         string    `json:"name"`
 }

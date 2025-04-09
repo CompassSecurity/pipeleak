@@ -48,7 +48,6 @@ func NewScanCmd() *cobra.Command {
 	scanCmd.PersistentFlags().IntVarP(&options.MaxPipelines, "maxPipelines", "", -1, "Max. number of pipelines to scan per repository")
 	scanCmd.PersistentFlags().BoolVarP(&options.Artifacts, "artifacts", "a", false, "Scan workflow artifacts")
 	scanCmd.Flags().StringVarP(&options.Organization, "organization", "o", "", "Organization name to scan")
-	scanCmd.MarkFlagRequired("organization")
 	//scanCmd.PersistentFlags().BoolVarP(&options.Owned, "owned", "", false, "Scan user onwed projects only")
 	//scanCmd.PersistentFlags().BoolVarP(&options.Public, "public", "p", false, "Scan all public repositories")
 	//scanCmd.PersistentFlags().StringVarP(&options.After, "after", "", "", "Filter public repos by a given date in ISO 8601 format: 2025-04-02T15:00:00+02:00 ")
@@ -72,7 +71,6 @@ func Scan(cmd *cobra.Command, args []string) {
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
 }
 
-// notes: https://dev.azure.com/PowerShell/PowerShell/_apis/pipelines
 func scanOrganization(client AzureDevOpsApiClient, organization string) {
 
 	user, _, err := client.GetAuthenticatedUser()
@@ -84,16 +82,36 @@ func scanOrganization(client AzureDevOpsApiClient, organization string) {
 
 	// @todo paging
 	accounts, _, err := client.ListAccounts(user.ID)
+	if err != nil {
+		log.Fatal().Err(err).Str("userId", user.ID).Msg("Failed fetching accounts")
+	}
+
 	for _, account := range accounts {
 		log.Debug().Str("name", account.AccountName).Msg("Scanning Account")
 
-		repos, _, err := client.ListRepositories(account.AccountName)
+		projects, _, err := client.ListProjects(account.AccountName)
 		if err != nil {
-			log.Error().Err(err).Str("organization", account.AccountName).Msg("Failed fetching repositories")
+			log.Error().Err(err).Str("account", account.AccountName).Msg("Failed fetching projects")
 		}
 
-		for _, repo := range repos {
-			log.Debug().Str("url", getRepoWebUrl(account.AccountName, repo.Name)).Msg("Repository")
+		for _, project := range projects {
+			pipelines, _, err := client.ListPipelines(account.AccountName, project.Name)
+			if err != nil {
+				log.Error().Err(err).Str("account", account.AccountName).Str("project", project.Name).Msg("Failed fetching pipelines")
+			}
+
+			for _, pipeline := range pipelines {
+				log.Debug().Str("url", pipeline.Links.Web.Href).Msg("Pipeline")
+
+				runs, _, err := client.ListPipelineRuns(account.AccountName, project.Name, pipeline.ID)
+				if err != nil {
+					log.Error().Err(err).Str("account", account.AccountName).Str("project", project.Name).Int("pipeline", pipeline.ID).Msg("Failed fetching pipeline runs")
+				}
+
+				for _, run := range runs {
+					log.Debug().Str("url", run.Links.Web.Href).Msg("Pipeline run")
+				}
+			}
 		}
 	}
 }
