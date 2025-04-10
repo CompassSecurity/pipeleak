@@ -73,7 +73,7 @@ func (a AzureDevOpsApiClient) ListAccounts(ownerId string) ([]Account, *resty.Re
 }
 
 // https://learn.microsoft.com/en-us/rest/api/azure/devops/core/projects/list?view=azure-devops-rest-7.2&tabs=HTTP
-func (a AzureDevOpsApiClient) ListProjects(organization string) ([]Project, *resty.Response, error) {
+func (a AzureDevOpsApiClient) ListProjects(continuationToken string, organization string) ([]Project, *resty.Response, string, error) {
 	reqUrl := ""
 	u, err := url.Parse("https://dev.azure.com/")
 	if err != nil {
@@ -85,6 +85,8 @@ func (a AzureDevOpsApiClient) ListProjects(organization string) ([]Project, *res
 	resp := &PaginatedResponse[Project]{}
 	res, err := a.Client.R().
 		SetQueryParam("api-version", "7.2-preview.4").
+		SetQueryParam("$top", "100").
+		SetQueryParam("continuationtoken", continuationToken).
 		SetResult(resp).
 		Get(reqUrl)
 
@@ -92,11 +94,11 @@ func (a AzureDevOpsApiClient) ListProjects(organization string) ([]Project, *res
 		log.Fatal().Int("status", res.StatusCode()).Str("organization", organization).Msg("Projects list does not exist or you do not have access")
 	}
 
-	return resp.Value, res, err
+	return resp.Value, res, res.Header().Get("x-ms-continuationtoken"), err
 }
 
 // https://learn.microsoft.com/en-us/rest/api/azure/devops/build/builds/list?view=azure-devops-rest-7.2
-func (a AzureDevOpsApiClient) ListBuilds(organization string, project string) ([]Build, *resty.Response, error) {
+func (a AzureDevOpsApiClient) ListBuilds(continuationToken string, organization string, project string) ([]Build, *resty.Response, string, error) {
 	reqUrl := ""
 	u, err := url.Parse("https://dev.azure.com/")
 	if err != nil {
@@ -109,6 +111,8 @@ func (a AzureDevOpsApiClient) ListBuilds(organization string, project string) ([
 	resp := &PaginatedResponse[Build]{}
 	res, err := a.Client.R().
 		SetQueryParam("api-version", "7.2-preview.7").
+		SetQueryParam("$top", "100").
+		SetQueryParam("continuationtoken", continuationToken).
 		SetResult(resp).
 		Get(reqUrl)
 
@@ -116,10 +120,11 @@ func (a AzureDevOpsApiClient) ListBuilds(organization string, project string) ([
 		log.Fatal().Int("status", res.StatusCode()).Str("project", project).Str("organization", organization).Msg("Build list does not exist or you do not have access")
 	}
 
-	return resp.Value, res, err
+	return resp.Value, res, res.Header().Get("x-ms-continuationtoken"), err
 }
 
 // https://learn.microsoft.com/en-us/rest/api/azure/devops/build/builds/get-build-logs?view=azure-devops-rest-7.2
+// this endpoint is NOT paged
 func (a AzureDevOpsApiClient) ListBuildLogs(organization string, project string, buildId int) ([]BuildLog, *resty.Response, error) {
 	reqUrl := ""
 	u, err := url.Parse("https://dev.azure.com/")

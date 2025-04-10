@@ -116,25 +116,42 @@ func listAccounts(client AzureDevOpsApiClient, userId string) {
 }
 
 func listProjects(client AzureDevOpsApiClient, organization string) {
-	projects, _, err := client.ListProjects(organization)
-	if err != nil {
-		log.Fatal().Err(err).Str("organization", organization).Msg("Failed fetching projects")
-	}
+	continuationToken := ""
+	for {
+		projects, _, ctoken, err := client.ListProjects(continuationToken, organization)
 
-	for _, project := range projects {
-		listBuilds(client, organization, project.Name)
+		if err != nil {
+			log.Fatal().Err(err).Str("organization", organization).Msg("Failed fetching projects")
+		}
+
+		for _, project := range projects {
+			listBuilds(client, organization, project.Name)
+		}
+
+		if ctoken == "" {
+			break
+		}
+		continuationToken = ctoken
 	}
 }
 
 func listBuilds(client AzureDevOpsApiClient, organization string, project string) {
-	builds, _, err := client.ListBuilds(organization, project)
-	if err != nil {
-		log.Error().Err(err).Str("organization", organization).Str("project", project).Msg("Failed fetching builds")
-	}
+	continuationToken := ""
+	for {
+		builds, _, ctoken, err := client.ListBuilds(continuationToken, organization, project)
+		if err != nil {
+			log.Error().Err(err).Str("organization", organization).Str("project", project).Msg("Failed fetching builds")
+		}
 
-	for _, build := range builds {
-		log.Trace().Str("url", build.Links.Web.Href).Msg("Build")
-		listLogs(client, organization, project, build.ID, build.Links.Web.Href)
+		for _, build := range builds {
+			log.Trace().Str("url", build.Links.Web.Href).Msg("Build")
+			listLogs(client, organization, project, build.ID, build.Links.Web.Href)
+		}
+
+		if ctoken == "" {
+			break
+		}
+		continuationToken = ctoken
 	}
 }
 
