@@ -154,7 +154,7 @@ Scan all pipelines of an organization e.g. https://dev.azure.com/PowerShell
 pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization PowerShell
 ```
 
-Scan all pipelines of an project e.g. https://dev.azure.com/PowerShell/PowerShell
+Scan all pipelines of a project e.g. https://dev.azure.com/PowerShell/PowerShell
 ```bash
 pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization PowerShell --project PowerShell
 ```
