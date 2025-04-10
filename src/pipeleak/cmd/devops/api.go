@@ -29,7 +29,7 @@ func NewClient(username string, password string) AzureDevOpsApiClient {
 	return bbClient
 }
 
-// https://app.vssps.visualstudio.com/_apis/profile/profiles/me?api-version=7.2-preview.3
+// https://learn.microsoft.com/en-us/rest/api/azure/devops/profile/profiles/get?view=azure-devops-rest-7.2&tabs=HTTP
 func (a AzureDevOpsApiClient) GetAuthenticatedUser() (*AuthenticatedUser, *resty.Response, error) {
 	u, err := url.Parse("https://app.vssps.visualstudio.com/_apis/profile/profiles/me")
 	if err != nil {
@@ -50,7 +50,7 @@ func (a AzureDevOpsApiClient) GetAuthenticatedUser() (*AuthenticatedUser, *resty
 	return user, res, err
 }
 
-// https://app.vssps.visualstudio.com/_apis/accounts?api-version=7.2-preview.1&ownerId=c7ab2e8b-7583-690c-beb5-9df2871c5655
+// https://learn.microsoft.com/en-us/rest/api/azure/devops/account/accounts/list?view=azure-devops-rest-7.2&tabs=HTTP
 func (a AzureDevOpsApiClient) ListAccounts(ownerId string) ([]Account, *resty.Response, error) {
 	u, err := url.Parse("https://app.vssps.visualstudio.com/_apis/accounts")
 	if err != nil {
@@ -95,99 +95,71 @@ func (a AzureDevOpsApiClient) ListProjects(organization string) ([]Project, *res
 	return resp.Value, res, err
 }
 
-// https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/pipelines/list?view=azure-devops-rest-7.2
-func (a AzureDevOpsApiClient) ListPipelines(accountName string, organization string) ([]Pipeline, *resty.Response, error) {
-	reqUrl := ""
-	u, err := url.Parse("https://dev.azure.com/")
-	if err != nil {
-		log.Fatal().Err(err).Msg("Unable to parse ListPipelines url")
-	}
-	u.Path = path.Join(u.Path, accountName, organization, "_apis", "pipelines")
-	reqUrl = u.String()
-
-	resp := &PaginatedResponse[Pipeline]{}
-	res, err := a.Client.R().
-		SetQueryParam("api-version", "7.2-preview.1").
-		SetResult(resp).
-		Get(reqUrl)
-
-	if res.StatusCode() == 404 || res.StatusCode() == 401 {
-		log.Fatal().Int("status", res.StatusCode()).Str("account", accountName).Str("organization", organization).Msg("Pipelines list does not exist or you do not have access")
-	}
-
-	return resp.Value, res, err
-}
-
-// https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/runs/list?view=azure-devops-rest-7.2
-func (a AzureDevOpsApiClient) ListPipelineRuns(accountName string, organization string, pipelineId int) ([]PipelineRun, *resty.Response, error) {
-	reqUrl := ""
-	u, err := url.Parse("https://dev.azure.com/")
-	if err != nil {
-		log.Fatal().Err(err).Msg("Unable to parse ListPipelineRuns url")
-	}
-
-	u.Path = path.Join(u.Path, accountName, organization, "_apis", "pipelines", strconv.Itoa(pipelineId), "runs")
-	reqUrl = u.String()
-
-	resp := &PaginatedResponse[PipelineRun]{}
-	res, err := a.Client.R().
-		SetQueryParam("api-version", "7.2-preview.1").
-		SetResult(resp).
-		Get(reqUrl)
-
-	if res.StatusCode() == 404 || res.StatusCode() == 401 {
-		log.Fatal().Int("status", res.StatusCode()).Str("account", accountName).Str("organization", organization).Int("pipeline", pipelineId).Msg("Pipeline runs list does not exist or you do not have access")
-	}
-
-	return resp.Value, res, err
-}
-
-// https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/logs/list?view=azure-devops-rest-7.2
-func (a AzureDevOpsApiClient) ListRunLogs(organization string, project string, pipelineId int, runId int) ([]RunLog, *resty.Response, error) {
-	reqUrl := ""
-	u, err := url.Parse("https://dev.azure.com/")
-	if err != nil {
-		log.Fatal().Err(err).Msg("Unable to parse ListRunLogs url")
-	}
-
-	u.Path = path.Join(u.Path, organization, project, "_apis", "pipelines", strconv.Itoa(pipelineId), "runs", strconv.Itoa(runId), "logs")
-	reqUrl = u.String()
-
-	resp := &PaginatedLogsResponse[RunLog]{}
-	res, err := a.Client.R().
-		SetQueryParam("api-version", "7.2-preview.1").
-		SetResult(resp).
-		Get(reqUrl)
-
-	if res.StatusCode() == 404 || res.StatusCode() == 401 {
-		log.Fatal().Int("status", res.StatusCode()).Str("project", project).Str("organization", organization).Int("pipeline", pipelineId).Msg("Logs list does not exist or you do not have access")
-	}
-
-	return resp.Logs, res, err
-}
-
 // https://learn.microsoft.com/en-us/rest/api/azure/devops/build/builds/list?view=azure-devops-rest-7.2
-func (a AzureDevOpsApiClient) ListBuilds(organization string, project string, pipelineId int, runId int, logId int) ([]byte, *resty.Response, error) {
+func (a AzureDevOpsApiClient) ListBuilds(organization string, project string) ([]Build, *resty.Response, error) {
 	reqUrl := ""
 	u, err := url.Parse("https://dev.azure.com/")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to parse ListBuilds url")
 	}
 
-	u.Path = path.Join(u.Path, organization, project, "_apis", "builds")
+	u.Path = path.Join(u.Path, organization, project, "_apis", "build", "builds")
 	reqUrl = u.String()
 
-	resp := &PaginatedLogsResponse[RunLog]{}
+	resp := &PaginatedResponse[Build]{}
 	res, err := a.Client.R().
 		SetQueryParam("api-version", "7.2-preview.7").
 		SetResult(resp).
 		Get(reqUrl)
 
-	log.Debug().Int("status", res.StatusCode()).Str("project", reqUrl).Msg("Logsggys")
+	if res.StatusCode() == 404 || res.StatusCode() == 401 {
+		log.Fatal().Int("status", res.StatusCode()).Str("project", project).Str("organization", organization).Msg("Build list does not exist or you do not have access")
+	}
 
+	return resp.Value, res, err
+}
+
+// https://learn.microsoft.com/en-us/rest/api/azure/devops/build/builds/get-build-logs?view=azure-devops-rest-7.2
+func (a AzureDevOpsApiClient) ListBuildLogs(organization string, project string, buildId int) ([]BuildLog, *resty.Response, error) {
+	reqUrl := ""
+	u, err := url.Parse("https://dev.azure.com/")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to parse ListBuilds url")
+	}
+
+	u.Path = path.Join(u.Path, organization, project, "_apis", "build", "builds", strconv.Itoa(buildId), "logs")
+	reqUrl = u.String()
+
+	resp := &PaginatedResponse[BuildLog]{}
+	res, err := a.Client.R().
+		SetQueryParam("api-version", "7.2-preview.2").
+		SetResult(resp).
+		Get(reqUrl)
 
 	if res.StatusCode() == 404 || res.StatusCode() == 401 {
-		log.Fatal().Int("status", res.StatusCode()).Str("project", project).Str("organization", organization).Int("pipeline", pipelineId).Msg("Logs list does not exist or you do not have access")
+		log.Fatal().Int("status", res.StatusCode()).Str("project", project).Str("organization", organization).Msg("Build log list does not exist or you do not have access")
+	}
+
+	return resp.Value, res, err
+}
+
+// https://learn.microsoft.com/en-us/rest/api/azure/devops/build/builds/get-build-log?view=azure-devops-rest-7.2
+func (a AzureDevOpsApiClient) GetLog(organization string, project string, buildId int, logId int) ([]byte, *resty.Response, error) {
+	reqUrl := ""
+	u, err := url.Parse("https://dev.azure.com/")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to parse ListBuilds url")
+	}
+
+	u.Path = path.Join(u.Path, organization, project, "_apis", "build", "builds", strconv.Itoa(buildId), "logs", strconv.Itoa(logId))
+	reqUrl = u.String()
+
+	res, err := a.Client.R().
+		SetQueryParam("api-version", "7.2-preview.2").
+		Get(reqUrl)
+
+	if res.StatusCode() == 404 || res.StatusCode() == 401 {
+		log.Error().Int("status", res.StatusCode()).Str("project", project).Str("organization", organization).Msg("Log does not exist or you do not have access")
 	}
 
 	return res.Bytes(), res, err

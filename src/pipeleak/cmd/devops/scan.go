@@ -67,11 +67,11 @@ func Scan(cmd *cobra.Command, args []string) {
 	options.Context = context.Background()
 	options.Client = NewClient(options.Username, options.AccessToken)
 
-	scanOrganization(options.Client, options.Organization)
+	scanAuthenticatedUser(options.Client, options.Organization)
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
 }
 
-func scanOrganization(client AzureDevOpsApiClient, organization string) {
+func scanAuthenticatedUser(client AzureDevOpsApiClient, organization string) {
 
 	user, _, err := client.GetAuthenticatedUser()
 	if err != nil {
@@ -79,60 +79,65 @@ func scanOrganization(client AzureDevOpsApiClient, organization string) {
 	}
 
 	log.Info().Str("displayName", user.DisplayName).Msg("Authenticated User")
+	listAccounts(client, user.ID)
+}
 
-	// @todo paging
-	accounts, _, err := client.ListAccounts(user.ID)
+func listAccounts(client AzureDevOpsApiClient, userId string) {
+	accounts, _, err := client.ListAccounts(userId)
 	if err != nil {
-		log.Fatal().Err(err).Str("userId", user.ID).Msg("Failed fetching accounts")
+		log.Fatal().Err(err).Str("userId", userId).Msg("Failed fetching accounts")
 	}
 
 	for _, account := range accounts {
 		log.Debug().Str("name", account.AccountName).Msg("Scanning Account")
-
-		projects, _, err := client.ListProjects(account.AccountName)
-		if err != nil {
-			log.Error().Err(err).Str("account", account.AccountName).Msg("Failed fetching projects")
-		}
-
-		for _, project := range projects {
-			pipelines, _, err := client.ListPipelines(account.AccountName, project.Name)
-			if err != nil {
-				log.Error().Err(err).Str("account", account.AccountName).Str("project", project.Name).Msg("Failed fetching pipelines")
-			}
-
-			for _, pipeline := range pipelines {
-				log.Debug().Str("url", pipeline.Links.Web.Href).Msg("Pipeline")
-
-				runs, _, err := client.ListPipelineRuns(account.AccountName, project.Name, pipeline.ID)
-				if err != nil {
-					log.Error().Err(err).Str("account", account.AccountName).Str("project", project.Name).Int("pipeline", pipeline.ID).Msg("Failed fetching pipeline runs")
-				}
-
-				for _, run := range runs {
-					log.Debug().Str("url", run.Links.Web.Href).Msg("Pipeline run")
-
-					logs, _, err := client.ListRunLogs(account.AccountName, project.Name, pipeline.ID, run.ID)
-					if err != nil {
-						log.Error().Err(err).Str("account", account.AccountName).Str("project", project.Name).Int("pipeline", pipeline.ID).Int("run", run.ID).Msg("Failed fetching pipeline run log")
-					}
-
-					for _, lg := range logs {
-						log.Debug().Str("url", run.Links.Web.Href).Any("sadf", lg).Msg("Pipeline run log")
-
-						logLines, _, err := client.GetLog(account.AccountName, project.Name, pipeline.ID, run.ID, lg.ID)
-						if err != nil {
-							log.Error().Err(err).Str("account", account.AccountName).Str("project", project.Name).Int("pipeline", pipeline.ID).Int("run", run.ID).Msg("Failed fetching pipeline run log")
-						}
-						log.Warn().Str("logs", string(logLines)).Any("sadf", lg).Msg("LLOG")
-					}
-				}
-			}
-		}
+		listProjects(client, account.AccountName)
 	}
 }
 
-func getRepoWebUrl(organization string, repo string) string {
-	return "https://dev.azure.com/" + organization + "/" + repo
+func listProjects(client AzureDevOpsApiClient, organization string) {
+	projects, _, err := client.ListProjects(organization)
+	if err != nil {
+		log.Fatal().Err(err).Str("organization", organization).Msg("Failed fetching projects")
+	}
+
+	for _, project := range projects {
+		listBuilds(client, organization, project.Name)
+	}
+}
+
+func listBuilds(client AzureDevOpsApiClient, organization string, project string) {
+	builds, _, err := client.ListBuilds(organization, project)
+	if err != nil {
+		log.Error().Err(err).Str("organization", organization).Str("project", project).Msg("Failed fetching builds")
+	}
+
+	for _, build := range builds {
+		log.Trace().Str("url", build.Links.Web.Href).Msg("Build")
+		listLogs(client, organization, project, build.ID, build.Links.Web.Href)
+	}
+}
+
+func listLogs(client AzureDevOpsApiClient, organization string, project string, buildId int, buildWebUrl string) {
+	logs, _, err := client.ListBuildLogs(organization, project, buildId)
+	if err != nil {
+		log.Error().Err(err).Str("organization", organization).Str("project", project).Int("build", buildId).Msg("Failed fetching build logs")
+	}
+
+	for _, logEntry := range logs {
+		logLines, _, err := client.GetLog(organization, project, buildId, logEntry.ID)
+		if err != nil {
+			log.Error().Err(err).Str("organization", organization).Str("project", project).Int("build", buildId).Int("logId", logEntry.ID).Msg("Failed fetching build log lines")
+		}
+
+		scanLogLines(logLines, buildWebUrl)
+	}
+}
+
+func scanLogLines(logs []byte, buildWebUrl string) {
+	findings := scanner.DetectHits(logs, options.MaxScanGoRoutines, options.TruffleHogVerification)
+	for _, finding := range findings {
+		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", buildWebUrl).Msg("HIT")
+	}
 }
 
 func scanStatus() *zerolog.Event {
