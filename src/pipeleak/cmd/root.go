@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/CompassSecurity/pipeleak/cmd/bitbucket"
+	"github.com/CompassSecurity/pipeleak/cmd/devops"
 	"github.com/CompassSecurity/pipeleak/cmd/github"
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab"
 	"github.com/rs/zerolog"
@@ -32,6 +33,7 @@ func init() {
 	rootCmd.AddCommand(github.NewGitHubRootCmd())
 	rootCmd.AddCommand(gitlab.NewGitLabRootCmd())
 	rootCmd.AddCommand(bitbucket.NewBitBucketRootCmd())
+	rootCmd.AddCommand(devops.NewAzureDevOpsRootCmd())
 	rootCmd.PersistentFlags().BoolVarP(&JsonLogoutput, "json", "", false, "Use JSON as log output format")
 }
 

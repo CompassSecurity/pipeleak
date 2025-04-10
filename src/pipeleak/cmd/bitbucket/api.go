@@ -23,7 +23,7 @@ func NewClient(username string, password string) BitBucketApiClient {
 			if 429 == res.StatusCode() {
 				log.Info().Int("status", res.StatusCode()).Msg("Retrying request, we are rate limited")
 			} else {
-				log.Debug().Int("status", res.StatusCode()).Msg("Retrying request, not due to rate limit")
+				log.Info().Int("status", res.StatusCode()).Msg("Retrying request, not due to rate limit")
 			}
 		},
 	)
