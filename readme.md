@@ -14,6 +14,7 @@ It supports the following platforms:
 * GitLab
 * GitHub
 * BitBucket
+* Azure DevOps
 
 ## Getting Started
 
@@ -139,6 +140,23 @@ Scan all public repositories
 > If using `after`, the API becomes quite unreliable 👀
 ```bash
 pipeleak bb scan --token xxxxxxxxxxx --username auser --public --maxPipelines 5 --after 2025-03-01T15:00:00+00:00
+```
+
+## Azure DevOps
+
+Scan all pipelines the current user has access to
+```bash
+pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts
+```
+
+Scan all pipelines of an organization e.g. https://dev.azure.com/PowerShell
+```bash
+pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization PowerShell
+```
+
+Scan all pipelines of an project e.g. https://dev.azure.com/PowerShell/PowerShell
+```bash
+pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization PowerShell --project PowerShell
 ```
 
 # ELK Integration

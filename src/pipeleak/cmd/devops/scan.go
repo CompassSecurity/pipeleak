@@ -19,6 +19,7 @@ type DevOpsScanOptions struct {
 	TruffleHogVerification bool
 	MaxPipelines           int
 	Organization           string
+	Project                string
 	//Owned                  bool
 	//Public                 bool
 	//After                  string
@@ -48,6 +49,8 @@ func NewScanCmd() *cobra.Command {
 	scanCmd.PersistentFlags().IntVarP(&options.MaxPipelines, "maxPipelines", "", -1, "Max. number of pipelines to scan per repository")
 	scanCmd.PersistentFlags().BoolVarP(&options.Artifacts, "artifacts", "a", false, "Scan workflow artifacts")
 	scanCmd.Flags().StringVarP(&options.Organization, "organization", "o", "", "Organization name to scan")
+	scanCmd.Flags().StringVarP(&options.Project, "project", "p", "", "Project name to scan - can be combined with organization")
+
 	//scanCmd.PersistentFlags().BoolVarP(&options.Owned, "owned", "", false, "Scan user onwed projects only")
 	//scanCmd.PersistentFlags().BoolVarP(&options.Public, "public", "p", false, "Scan all public repositories")
 	//scanCmd.PersistentFlags().StringVarP(&options.After, "after", "", "", "Filter public repos by a given date in ISO 8601 format: 2025-04-02T15:00:00+02:00 ")
@@ -67,11 +70,19 @@ func Scan(cmd *cobra.Command, args []string) {
 	options.Context = context.Background()
 	options.Client = NewClient(options.Username, options.AccessToken)
 
-	scanAuthenticatedUser(options.Client, options.Organization)
+	if options.Organization == "" && options.Project == "" {
+		scanAuthenticatedUser(options.Client, options.Organization)
+	} else if options.Organization != "" && options.Project == "" {
+		scanOrganization(options.Client, options.Organization)
+	} else if options.Organization != "" && options.Project != "" {
+		scanProject(options.Client, options.Organization, options.Project)
+	}
+
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
 }
 
 func scanAuthenticatedUser(client AzureDevOpsApiClient, organization string) {
+	log.Info().Msg("Scanning authenticated user")
 
 	user, _, err := client.GetAuthenticatedUser()
 	if err != nil {
@@ -80,6 +91,16 @@ func scanAuthenticatedUser(client AzureDevOpsApiClient, organization string) {
 
 	log.Info().Str("displayName", user.DisplayName).Msg("Authenticated User")
 	listAccounts(client, user.ID)
+}
+
+func scanOrganization(client AzureDevOpsApiClient, organization string) {
+	log.Info().Str("organization", organization).Msg("Scanning organization")
+	listProjects(client, organization)
+}
+
+func scanProject(client AzureDevOpsApiClient, organization string, project string) {
+	log.Info().Str("organization", organization).Str("project", project).Msg("Scanning project")
+	listBuilds(client, organization, project)
 }
 
 func listAccounts(client AzureDevOpsApiClient, userId string) {
