@@ -125,7 +125,7 @@ func (a AzureDevOpsApiClient) ListPipelineRuns(accountName string, organization 
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to parse ListPipelineRuns url")
 	}
-	//GET https://dev.azure.com/{organization}/{project}/_apis/pipelines/{pipelineId}/runs?api-version=7.2-preview.1
+
 	u.Path = path.Join(u.Path, accountName, organization, "_apis", "pipelines", strconv.Itoa(pipelineId), "runs")
 	reqUrl = u.String()
 
@@ -140,4 +140,55 @@ func (a AzureDevOpsApiClient) ListPipelineRuns(accountName string, organization 
 	}
 
 	return resp.Value, res, err
+}
+
+// https://learn.microsoft.com/en-us/rest/api/azure/devops/pipelines/logs/list?view=azure-devops-rest-7.2
+func (a AzureDevOpsApiClient) ListRunLogs(organization string, project string, pipelineId int, runId int) ([]RunLog, *resty.Response, error) {
+	reqUrl := ""
+	u, err := url.Parse("https://dev.azure.com/")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to parse ListRunLogs url")
+	}
+
+	u.Path = path.Join(u.Path, organization, project, "_apis", "pipelines", strconv.Itoa(pipelineId), "runs", strconv.Itoa(runId), "logs")
+	reqUrl = u.String()
+
+	resp := &PaginatedLogsResponse[RunLog]{}
+	res, err := a.Client.R().
+		SetQueryParam("api-version", "7.2-preview.1").
+		SetResult(resp).
+		Get(reqUrl)
+
+	if res.StatusCode() == 404 || res.StatusCode() == 401 {
+		log.Fatal().Int("status", res.StatusCode()).Str("project", project).Str("organization", organization).Int("pipeline", pipelineId).Msg("Logs list does not exist or you do not have access")
+	}
+
+	return resp.Logs, res, err
+}
+
+// https://learn.microsoft.com/en-us/rest/api/azure/devops/build/builds/list?view=azure-devops-rest-7.2
+func (a AzureDevOpsApiClient) ListBuilds(organization string, project string, pipelineId int, runId int, logId int) ([]byte, *resty.Response, error) {
+	reqUrl := ""
+	u, err := url.Parse("https://dev.azure.com/")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to parse ListBuilds url")
+	}
+
+	u.Path = path.Join(u.Path, organization, project, "_apis", "builds")
+	reqUrl = u.String()
+
+	resp := &PaginatedLogsResponse[RunLog]{}
+	res, err := a.Client.R().
+		SetQueryParam("api-version", "7.2-preview.7").
+		SetResult(resp).
+		Get(reqUrl)
+
+	log.Debug().Int("status", res.StatusCode()).Str("project", reqUrl).Msg("Logsggys")
+
+
+	if res.StatusCode() == 404 || res.StatusCode() == 401 {
+		log.Fatal().Int("status", res.StatusCode()).Str("project", project).Str("organization", organization).Int("pipeline", pipelineId).Msg("Logs list does not exist or you do not have access")
+	}
+
+	return res.Bytes(), res, err
 }

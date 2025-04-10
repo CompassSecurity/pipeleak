@@ -81,3 +81,16 @@ type PipelineRun struct {
 	ID           int       `json:"id"`
 	Name         string    `json:"name"`
 }
+
+type PaginatedLogsResponse[T any] struct {
+	Logs []T    `json:"logs"`
+	URL  string `json:"url"`
+}
+
+type RunLog struct {
+	CreatedOn     time.Time `json:"createdOn"`
+	ID            int       `json:"id"`
+	LastChangedOn time.Time `json:"lastChangedOn"`
+	LineCount     int       `json:"lineCount"`
+	URL           string    `json:"url"`
+}

@@ -110,6 +110,21 @@ func scanOrganization(client AzureDevOpsApiClient, organization string) {
 
 				for _, run := range runs {
 					log.Debug().Str("url", run.Links.Web.Href).Msg("Pipeline run")
+
+					logs, _, err := client.ListRunLogs(account.AccountName, project.Name, pipeline.ID, run.ID)
+					if err != nil {
+						log.Error().Err(err).Str("account", account.AccountName).Str("project", project.Name).Int("pipeline", pipeline.ID).Int("run", run.ID).Msg("Failed fetching pipeline run log")
+					}
+
+					for _, lg := range logs {
+						log.Debug().Str("url", run.Links.Web.Href).Any("sadf", lg).Msg("Pipeline run log")
+
+						logLines, _, err := client.GetLog(account.AccountName, project.Name, pipeline.ID, run.ID, lg.ID)
+						if err != nil {
+							log.Error().Err(err).Str("account", account.AccountName).Str("project", project.Name).Int("pipeline", pipeline.ID).Int("run", run.ID).Msg("Failed fetching pipeline run log")
+						}
+						log.Warn().Str("logs", string(logLines)).Any("sadf", lg).Msg("LLOG")
+					}
 				}
 			}
 		}
