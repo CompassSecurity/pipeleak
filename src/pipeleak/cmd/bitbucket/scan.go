@@ -278,5 +278,5 @@ func getDownloadArtifact(client BitBucketApiClient, downloadUrl string, webUrl s
 }
 
 func scanStatus() *zerolog.Event {
-	return log.Info().Str("debug", "test")
+	return log.Info().Str("debug", "nothing to show ✔️")
 }
