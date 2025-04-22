@@ -14,18 +14,33 @@ env:
   CGO_ENABLED: 1
 
 jobs:
-  release-platforms:
+  release-nix-platforms:
     name: release builds
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        goos: [linux, windows]
+        goos: [linux]
         goarch: [amd64, arm64]
     steps:
     - uses: actions/checkout@v4
     - uses: wangyoucao577/go-release-action@v1
       with:
-        pre_command: apt-get update && apt-get install --no-install-recommends -y gcc-mingw-w64-x86-64 && export CGO_ENABLED=1
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        goos: ${{ matrix.goos }}
+        goarch: ${{ matrix.goarch }}
+        project_path: ./src/pipeleak
+
+  release-win-platforms:
+    name: release builds
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        goos: [windows]
+        goarch: [amd64]
+    steps:
+    - uses: actions/checkout@v4
+    - uses: wangyoucao577/go-release-action@v1
+      with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         goos: ${{ matrix.goos }}
         goarch: ${{ matrix.goarch }}
