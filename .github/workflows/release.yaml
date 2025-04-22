@@ -34,7 +34,7 @@ jobs:
         with:
           distribution: goreleaser
           workdir: ./src/pipeleak
-          args: release --clean ${{ env.flags }}
+          args: release --clean --snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       -
