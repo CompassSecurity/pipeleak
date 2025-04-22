@@ -1,36 +1,9 @@
-# This is an example-real .goreleaser.yml file with some sensible defaults.
-# Make sure to check the documentation at https://goreleaser.com
-before:
-  hooks:
-    - go mod tidy
+project_name: pipeleak
 builds:
-- targets: [go_first_class]
-  mod_timestamp: '{{ .CommitTimestamp }}'
-  flags:
-    # trims path
-    - -trimpath
-  ldflags:
-    # use commit date instead of current date as main.date
-    # only needed if you actually use those things in your main package, otherwise can be ignored.
-    - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{ .CommitDate }}
-checksum:
-  name_template: 'checksums.txt'
-snapshot:
-  name_template: "{{ incpatch .Version }}-next"
-changelog:
-  sort: asc
-  filters:
-    exclude:
-      - '^docs:'
-      - '^test:'
-
-release:
-  name_template: 'v{{ .Version }}'
-  footer: |
-    * * *
-
-    <a href="https://goreleser.com"><img src="https://raw.githubusercontent.com/goreleaser/artwork/master/opencollective-header.png" with="100%" alt="GoReleaser logo"></a>
-
-    Find example-reals and commented usage of all options in our [website](https://goreleaser.com/intro/).
-    Want to help? You can [sponsor](https://goreleaser.com/sponsors/),get a [Pro License](https://goreleaser.com/pro) or [contribute](https://goreleaser.com/contributing).
-    Also, feel free to reach out on [Discord](https://discord.gg/RGEBtg8vQ6) and [Twitter](https://twitter.com/goreleaser)!
+  - env: [CGO_ENABLED=1]
+    goos:
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
