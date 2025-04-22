@@ -1,8 +1,7 @@
 name: release
 on:
+  pull_request:
   push:
-    branches:
-      - 'cgo-builds'
   release:
     types: [created]
 
@@ -14,23 +13,7 @@ env:
   CGO_ENABLED: 1
 
 jobs:
-  release-nix-platforms:
-    name: release builds
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        goos: [linux]
-        goarch: [amd64, arm64]
-    steps:
-    - uses: actions/checkout@v4
-    - uses: wangyoucao577/go-release-action@v1
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        goos: ${{ matrix.goos }}
-        goarch: ${{ matrix.goarch }}
-        project_path: ./src/pipeleak
-
-  goreleaser:
+  goreleaser-windows:
     runs-on: windows-latest
     steps:
       -
@@ -45,10 +28,16 @@ jobs:
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
-          # either 'goreleaser' (default) or 'goreleaser-pro'
           distribution: goreleaser
-          # 'latest', 'nightly', or a semver
           version: '~> v2'
+          workdir: ./src/pipeleak
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            -
+      -
+        name: Upload assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pipeleak
+          path: ./src/pipeleak/dist/*
