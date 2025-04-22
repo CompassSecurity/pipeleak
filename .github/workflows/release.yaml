@@ -1,9 +1,9 @@
 name: release
 on:
+  workflow_dispatch:
   pull_request:
   push:
-  release:
-    types: [created]
+    tags: ['v*']
 
 permissions:
     contents: write
