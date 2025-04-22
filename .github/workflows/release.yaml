@@ -8,14 +8,17 @@ on:
 permissions:
     contents: write
     packages: write
-
-env:
-  CGO_ENABLED: 1
+ 
 
 jobs:
   goreleaser-windows:
     runs-on: windows-latest
+    env:
+      CGO_ENABLED: 1
+      flags: ""
     steps:
+      - if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: echo "flags=--snapshot" >> $GITHUB_ENV
       -
         name: Checkout
         uses: actions/checkout@v4
@@ -29,12 +32,10 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
-          version: '~> v2'
           workdir: ./src/pipeleak
-          args: release --clean
+          args: release --rm-dist ${{ env.flags }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            -
       -
         name: Upload assets
         uses: actions/upload-artifact@v4
