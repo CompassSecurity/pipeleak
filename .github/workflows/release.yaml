@@ -6,9 +6,10 @@ on:
     tags: ['v*']
 
 permissions:
-    contents: write
-    packages: write
- 
+  contents: write
+  id-token: write
+  packages: write
+
 
 jobs:
   goreleaser-windows:
