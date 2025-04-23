@@ -26,7 +26,7 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
-          args: release --clean --snapshot --verbose -f .github/workflows/.goreleaser.yaml
+          args: release --clean --verbose -f .github/workflows/.goreleaser.yaml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       -
