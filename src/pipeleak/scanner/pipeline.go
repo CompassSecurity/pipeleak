@@ -101,7 +101,7 @@ func setupQueue(options *ScanOptions) {
 	defer os.Remove(tmpfile.Name())
 	queueFileName = tmpfile.Name()
 
-	sqlUri := `file://` + queueFileName + `?_journal=WAL&_timeout=5000&_fk=true`
+	sqlUri := queueFileName + `?_journal=WAL&_timeout=5000&_fk=true`
 	queueDB, err = sql.Open("sqlite3", sqlUri)
 	log.Debug().Str("file", sqlUri).Msg("Using DB file")
 	if err != nil {
