@@ -8,11 +8,8 @@ permissions:
 
 jobs:
   goreleaser:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     container: goreleaser/goreleaser-cross:latest
-    env:
-      CGO_ENABLED: 1
-      flags: ""
     steps:
       -
         name: Checkout

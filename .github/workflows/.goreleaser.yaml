@@ -11,7 +11,7 @@ builds:
       - -buildvcs=false
       - -v
     goos:
-      - linux
+      #- linux
       - windows
     goarch:
       - amd64
