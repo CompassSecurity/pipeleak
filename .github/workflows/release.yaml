@@ -29,7 +29,6 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
-          workdir: ./src/pipeleak
           args: release --clean --snapshot -f .github/workflows/.goreleaser.yaml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

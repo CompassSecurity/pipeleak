@@ -4,7 +4,7 @@ builds:
   -
     id: "pipleak"
     dir: ./src/pipeleak/
-    binary: pipeleak
+    binary: pipeleakgit p
     env:
       - CGO_ENABLED=1
     goos:
