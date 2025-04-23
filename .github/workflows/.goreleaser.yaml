@@ -14,5 +14,5 @@ builds:
       - linux
       #- windows
     goarch:
-      #- amd64
+      ##- amd64
       - arm64
