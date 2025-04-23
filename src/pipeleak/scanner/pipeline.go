@@ -8,7 +8,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"gitlab.com/gitlab-org/api/client-go"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"sync"
@@ -87,7 +86,7 @@ func setupQueue(options *ScanOptions) {
 		if err != nil {
 			log.Fatal().Err(err).Msg("Could not determine CWD")
 		}
-		relative := path.Join(cwd, queueDirectory)
+		relative := filepath.Join(cwd, queueDirectory)
 		absPath, err := filepath.Abs(relative)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed parsing absolute path")
