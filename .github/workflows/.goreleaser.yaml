@@ -1,0 +1,23 @@
+version: 2
+project_name: pipeleak
+builds:
+  -
+    id: "pipleak"
+    dir: ./src/pipeleak/
+    binary: pipeleak
+    env:
+      - CGO_ENABLED=1
+      - >-
+        {{- if eq .Os "darwin" }}
+          {{- if eq .Arch "amd64"}}CC=o64-clang{{- end }}
+          {{- if eq .Arch "arm64"}}CC=aarch64-apple-darwin20.2-clang{{- end }}
+        {{- end }}
+        {{- if eq .Os "windows" }}
+          {{- if eq .Arch "amd64" }}CC=x86_64-w64-mingw32-gcc{{- end }}
+        {{- end }}
+    goos:
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64

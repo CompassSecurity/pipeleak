@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   goreleaser:
-    runs-on: windows-latest
+    runs-on: goreleaser/goreleaser-cross:latest
     env:
       CGO_ENABLED: 1
       flags: ""
@@ -29,7 +29,7 @@ jobs:
         with:
           distribution: goreleaser
           workdir: ./src/pipeleak
-          args: release --clean --snapshot -f ../../.goreleaser.yaml
+          args: release --clean --snapshot -f .github/workflows/.goreleaser.yaml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       -
