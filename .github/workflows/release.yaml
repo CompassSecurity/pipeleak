@@ -10,7 +10,8 @@ permissions:
 
 jobs:
   goreleaser:
-    runs-on: goreleaser/goreleaser-cross:latest
+    runs-on: ubuntu-latest
+    container: goreleaser/goreleaser-cross:latest
     env:
       CGO_ENABLED: 1
       flags: ""
