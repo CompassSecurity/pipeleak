@@ -2,9 +2,9 @@ version: 2
 project_name: pipeleak
 builds:
   -
-    id: "pipleak"
+    id: "pipeleak"
     dir: ./src/pipeleak/
-    binary: pipeleakgit p
+    binary: pipeleak
     env:
       - CGO_ENABLED=1
     flags:
