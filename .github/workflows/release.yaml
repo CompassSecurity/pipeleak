@@ -38,4 +38,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Pipeleak
-          path: ./src/pipeleak/dist/*
+          path: ./dist/*
