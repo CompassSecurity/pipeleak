@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   goreleaser:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     #container: goreleaser/goreleaser-cross:latest
     steps:
       -

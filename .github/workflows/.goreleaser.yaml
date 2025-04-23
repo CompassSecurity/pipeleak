@@ -5,13 +5,11 @@ builds:
     id: "pipeleak"
     dir: ./src/pipeleak/
     binary: pipeleak
-    env:
-      - CGO_ENABLED=1
     flags:
       - -buildvcs=false
       - -v
     goos:
-      #- linux
+      - linux
       - windows
     goarch:
       - amd64
