@@ -7,6 +7,9 @@ builds:
     binary: pipeleakgit p
     env:
       - CGO_ENABLED=1
+    flags:
+      - -buildvcs=false
+      - -v
     goos:
       - linux
       - windows
