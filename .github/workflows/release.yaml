@@ -9,7 +9,7 @@ permissions:
 jobs:
   goreleaser:
     runs-on: windows-latest
-    container: goreleaser/goreleaser-cross:latest
+    #container: goreleaser/goreleaser-cross:latest
     steps:
       -
         name: Checkout
