@@ -12,7 +12,11 @@ permissions:
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
+    env:
+      flags: ""
     steps:
+      - if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: echo "flags=--snapshot" >> $GITHUB_ENV
       -
         name: Checkout
         uses: actions/checkout@v4
@@ -26,7 +30,7 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
-          args: release --clean --verbose -f .github/workflows/.goreleaser.yaml
+          args: release --clean --verbose -f .github/workflows/.goreleaser.yaml ${{ env.flags }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       -
