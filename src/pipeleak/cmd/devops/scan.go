@@ -1,13 +1,18 @@
 package devops
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
+	"io"
 
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/CompassSecurity/pipeleak/scanner"
+	"github.com/h2non/filetype"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"github.com/wandb/parallel"
 )
 
 type DevOpsScanOptions struct {
@@ -139,6 +144,10 @@ func listBuilds(client AzureDevOpsApiClient, organization string, project string
 			log.Trace().Str("url", build.Links.Web.Href).Msg("Build")
 			listLogs(client, organization, project, build.ID, build.Links.Web.Href)
 
+			if options.Artifacts {
+				listArtifacts(client, organization, project, build.ID, build.Links.Web.Href)
+			}
+
 			buildsCount = buildsCount + 1
 			if buildsCount >= options.MaxBuilds && options.MaxBuilds > 0 {
 				log.Trace().Str("organization", organization).Str("project", project).Msg("Reached MaxBuild runs, skip remaining")
@@ -160,12 +169,12 @@ func listLogs(client AzureDevOpsApiClient, organization string, project string, 
 	}
 
 	for _, logEntry := range logs {
-		//logLines, _, err := client.GetLog(organization, project, buildId, logEntry.ID)
+		logLines, _, err := client.GetLog(organization, project, buildId, logEntry.ID)
 		if err != nil {
 			log.Error().Err(err).Str("organization", organization).Str("project", project).Int("build", buildId).Int("logId", logEntry.ID).Msg("Failed fetching build log lines")
 		}
 
-		//scanLogLines(logLines, buildWebUrl)
+		scanLogLines(logLines, buildWebUrl)
 	}
 }
 
@@ -174,6 +183,68 @@ func scanLogLines(logs []byte, buildWebUrl string) {
 	for _, finding := range findings {
 		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", buildWebUrl).Msg("HIT")
 	}
+}
+
+func listArtifacts(client AzureDevOpsApiClient, organization string, project string, buildId int, buildWebUrl string) {
+	continuationToken := ""
+	for {
+		artifacts, _, ctoken, err := client.ListBuildArtifacts(continuationToken, organization, project, buildId)
+		if err != nil {
+			log.Error().Err(err).Str("organization", organization).Str("project", project).Int("build", buildId).Msg("Failed fetching build artifacts")
+		}
+
+		for _, artifact := range artifacts {
+			analyzeArtifact(client, artifact, buildWebUrl)
+		}
+
+		if ctoken == "" {
+			break
+		}
+		continuationToken = ctoken
+	}
+}
+
+func analyzeArtifact(client AzureDevOpsApiClient, artifact Artifact, buildWebUrl string) {
+	zipBytes, _, err := client.DownloadArtifactZip(artifact.Resource.DownloadURL)
+	if err != nil {
+		log.Err(err).Msg("Failed downloading artifact")
+		return
+	}
+
+	zipListing, err := zip.NewReader(bytes.NewReader(zipBytes), int64(len(zipBytes)))
+	if err != nil {
+		log.Err(err).Msg("Failed creating zip reader")
+		return
+	}
+
+	ctx := options.Context
+	group := parallel.Limited(ctx, options.MaxScanGoRoutines)
+	for _, file := range zipListing.File {
+		group.Go(func(ctx context.Context) {
+			fc, err := file.Open()
+			if err != nil {
+				log.Error().Stack().Err(err).Msg("Unable to open raw artifact zip file")
+				return
+			}
+
+			content, err := io.ReadAll(fc)
+			if err != nil {
+				log.Error().Stack().Err(err).Msg("Unable to readAll artifact zip file")
+				return
+			}
+
+			kind, _ := filetype.Match(content)
+			// do not scan https://pkg.go.dev/github.com/h2non/filetype#readme-supported-types
+			if kind == filetype.Unknown {
+				scanner.DetectFileHits(content, buildWebUrl, artifact.Name, file.Name, "", options.TruffleHogVerification)
+			} else if filetype.IsArchive(content) {
+				scanner.HandleArchiveArtifact(file.Name, content, buildWebUrl, artifact.Name, options.TruffleHogVerification)
+			}
+			fc.Close()
+		})
+	}
+
+	group.Wait()
 }
 
 func scanStatus() *zerolog.Event {

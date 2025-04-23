@@ -169,3 +169,40 @@ func (a AzureDevOpsApiClient) GetLog(organization string, project string, buildI
 
 	return res.Bytes(), res, err
 }
+
+func (a AzureDevOpsApiClient) DownloadArtifactZip(url string) ([]byte, *resty.Response, error) {
+	res, err := a.Client.R().
+		Get(url)
+
+	if res.StatusCode() == 404 || res.StatusCode() == 401 {
+		log.Error().Int("status", res.StatusCode()).Str("url", url).Msg("Failed downloading artifact zip")
+	}
+
+	return res.Bytes(), res, err
+}
+
+// https://learn.microsoft.com/en-us/rest/api/azure/devops/build/artifacts/list?view=azure-devops-rest-7.1
+// this endpoint is NOT paged
+func (a AzureDevOpsApiClient) ListBuildArtifacts(continuationToken string, organization string, project string, buildId int) ([]Artifact, *resty.Response, string, error) {
+	reqUrl := ""
+	u, err := url.Parse("https://dev.azure.com/")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to parse ListBuildArtifacts url")
+	}
+
+	u.Path = path.Join(u.Path, organization, project, "_apis", "build", "builds", strconv.Itoa(buildId), "artifacts")
+	reqUrl = u.String()
+
+	resp := &PaginatedResponse[Artifact]{}
+	res, err := a.Client.R().
+		SetQueryParam("api-version", "7.1").
+		SetQueryParam("continuationtoken", continuationToken).
+		SetResult(resp).
+		Get(reqUrl)
+
+	if res.StatusCode() == 404 || res.StatusCode() == 401 {
+		log.Fatal().Int("status", res.StatusCode()).Str("project", project).Str("organization", organization).Msg("Build artifacts list does not exist or you do not have access")
+	}
+
+	return resp.Value, res, res.Header().Get("x-ms-continuationtoken"), err
+}

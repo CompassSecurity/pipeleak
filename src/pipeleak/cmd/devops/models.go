@@ -181,3 +181,20 @@ type BuildLog struct {
 	Type          string    `json:"type"`
 	URL           string    `json:"url"`
 }
+
+
+type Artifact struct {
+	ID       int    `json:"id"`
+	Name     string `json:"name"`
+	Source   string `json:"source"`
+	Resource struct {
+		Type       string `json:"type"`
+		Data       string `json:"data"`
+		Properties struct {
+			Localpath    string `json:"localpath"`
+			Artifactsize string `json:"artifactsize"`
+		} `json:"properties"`
+		URL         string `json:"url"`
+		DownloadURL string `json:"downloadUrl"`
+	} `json:"resource"`
+}
