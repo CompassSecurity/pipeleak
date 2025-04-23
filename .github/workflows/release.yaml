@@ -2,6 +2,9 @@ name: release
 
 on:
   pull_request:
+  push:
+    tags:
+      - "*"
 
 permissions:
   contents: write
@@ -9,7 +12,6 @@ permissions:
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
-    #container: goreleaser/goreleaser-cross:latest
     steps:
       -
         name: Checkout
