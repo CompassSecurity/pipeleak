@@ -7,8 +7,6 @@ import (
 	"sync"
 
 	"github.com/CompassSecurity/pipeleak/helper"
-	_ "github.com/ncruces/go-sqlite3/driver"
-	_ "github.com/ncruces/go-sqlite3/embed"
 	"github.com/nsqio/go-diskqueue"
 	"github.com/rs/zerolog/log"
 	gitlab "gitlab.com/gitlab-org/api/client-go"

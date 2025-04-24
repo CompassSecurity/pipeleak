@@ -123,7 +123,6 @@ require (
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/mtibben/percent v0.2.1 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/ncruces/julianday v1.0.0 // indirect
 	github.com/nwaples/rardecode v1.1.3 // indirect
 	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/onsi/gomega v1.34.1 // indirect
@@ -188,7 +187,6 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/ncruces/go-sqlite3 v0.25.0
 	github.com/nsqio/go-diskqueue v1.1.0
 	github.com/perimeterx/marshmallow v1.1.5
 	github.com/spf13/pflag v1.0.6 // indirect
