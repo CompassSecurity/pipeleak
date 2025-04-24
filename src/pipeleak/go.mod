@@ -10,7 +10,6 @@ require (
 	github.com/docker/go-units v0.5.0
 	github.com/gofri/go-github-ratelimit/v2 v2.0.2
 	github.com/google/go-github/v69 v69.2.0
-	github.com/maragudk/goqite v0.2.3
 	github.com/rs/zerolog v1.34.0
 	github.com/rxwycdh/rxhash v0.0.0-20230131062142-10b7a38b400d
 	github.com/spf13/cobra v1.9.1
@@ -190,6 +189,7 @@ require (
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/ncruces/go-sqlite3 v0.25.0
+	github.com/nsqio/go-diskqueue v1.1.0
 	github.com/perimeterx/marshmallow v1.1.5
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/wandb/parallel v0.2.2
