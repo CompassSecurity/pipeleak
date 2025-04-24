@@ -81,6 +81,6 @@ func parseFileSize(size string) int64 {
 }
 
 func scanStatus() *zerolog.Event {
-	received, queueLength := scanner.GetQueueStatus()
-	return log.Info().Int("runningJobs", received).Int("pendingjobs", queueLength)
+	queueLength := scanner.GetQueueStatus()
+	return log.Info().Int("pendingjobs", queueLength)
 }

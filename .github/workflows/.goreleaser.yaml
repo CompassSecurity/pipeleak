@@ -1,0 +1,13 @@
+version: 2
+project_name: pipeleak
+builds:
+  -
+    id: "pipeleak"
+    dir: ./src/pipeleak/
+    binary: pipeleak
+    goos:
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64

@@ -6,20 +6,23 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/h2non/filetype"
-	"github.com/maragudk/goqite"
-	"github.com/maragudk/goqite/jobs"
+	"github.com/nsqio/go-diskqueue"
 	"github.com/rs/zerolog/log"
 	"github.com/wandb/parallel"
 	"gitlab.com/gitlab-org/api/client-go"
@@ -48,11 +51,32 @@ type QueueItem struct {
 	Meta        QueueMeta     `json:"meta"`
 }
 
-type QueueLogger struct {
-}
+func setupQueue(options *ScanOptions) (diskqueue.Interface, string) {
+	log.Debug().Msg("Setting up queue on disk")
 
-func (re QueueLogger) Info(text string, queueMeta ...any) {
-	log.Debug().Any("queue", queueMeta).Msg("Queue: " + text)
+	queueDirectory := options.QueueFolder
+	if len(options.QueueFolder) > 0 {
+		cwd, err := os.Getwd()
+		if err != nil {
+			log.Fatal().Err(err).Msg("Could not determine CWD")
+		}
+		relative := filepath.Join(cwd, queueDirectory)
+		absPath, err := filepath.Abs(relative)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed parsing absolute path")
+		}
+		queueDirectory = absPath
+	}
+
+	tmpfile, err := os.CreateTemp(queueDirectory, "pipeleak-queue-db-")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Creating Temp DB file failed")
+	}
+	defer os.Remove(tmpfile.Name())
+
+	return diskqueue.New(tmpfile.Name(), queueDirectory, 512, 0, math.MaxInt32, 2500, 2*time.Second, func(lvl diskqueue.LogLevel, f string, args ...interface{}) {
+		log.Trace().Msg("Queue Log: " + fmt.Sprintf(lvl.String()+": "+f, args...))
+	}), tmpfile.Name()
 }
 
 func analyzeQueueItem(serializeditem []byte, git *gitlab.Client, options *ScanOptions, wg *sync.WaitGroup) {
@@ -76,20 +100,18 @@ func analyzeQueueItem(serializeditem []byte, git *gitlab.Client, options *ScanOp
 	if item.Type == QueueItemDotenv {
 		analyzeDotenvArtifact(git, item, options)
 	}
-
 }
 
-func enqueueItem(queue *goqite.Queue, qType QueueItemType, meta QueueMeta, wg *sync.WaitGroup) {
+func enqueueItem(queue diskqueue.Interface, qType QueueItemType, meta QueueMeta, wg *sync.WaitGroup) {
 	item := &QueueItem{Type: qType, Meta: meta}
 	itemBytes, err := json.Marshal(item)
 	if err != nil {
 		log.Error().Str("type", string(qType)).Err(err).Msg("Failed marshalling job item")
 		return
 	}
-
-	err = jobs.Create(context.Background(), queue, "pipeleak-job", itemBytes)
+	err = queue.Put(itemBytes)
 	if err != nil {
-		log.Error().Str("type", string(qType)).Err(err).Msg("Failed queuing job")
+		log.Error().Str("type", string(qType)).Err(err).Msg("Failed put'ing the queue item")
 		return
 	}
 

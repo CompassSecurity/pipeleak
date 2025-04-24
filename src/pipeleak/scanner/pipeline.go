@@ -1,26 +1,20 @@
 package scanner
 
 import (
-	"context"
-	"database/sql"
-	"github.com/CompassSecurity/pipeleak/helper"
-	_ "github.com/mattn/go-sqlite3"
-	"github.com/rs/zerolog/log"
-	"gitlab.com/gitlab-org/api/client-go"
 	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
-	"time"
 
-	"github.com/maragudk/goqite"
-	"github.com/maragudk/goqite/jobs"
+	"github.com/CompassSecurity/pipeleak/helper"
+	"github.com/nsqio/go-diskqueue"
+	"github.com/rs/zerolog/log"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
-var queue *goqite.Queue
+var globQueue diskqueue.Interface
 var waitGroup *sync.WaitGroup
 var queueFileName string
-var queueDB *sql.DB
 
 type ScanOptions struct {
 	GitlabUrl              string
@@ -40,14 +34,8 @@ type ScanOptions struct {
 }
 
 func ScanGitLabPipelines(options *ScanOptions) {
-	setupQueue(options)
+	globQueue, queueFileName = setupQueue(options)
 	helper.RegisterGracefulShutdownHandler(cleanUp)
-	r := jobs.NewRunner(jobs.NewRunnerOpts{
-		Limit:        options.MaxScanGoRoutines,
-		Log:          QueueLogger{},
-		PollInterval: 10 * time.Millisecond,
-		Queue:        queue,
-	})
 
 	InitRules(options.ConfidenceFilter)
 	if !options.TruffleHogVerification {
@@ -56,7 +44,7 @@ func ScanGitLabPipelines(options *ScanOptions) {
 
 	git, err := helper.GetGitlabClient(options.GitlabApiToken, options.GitlabUrl)
 	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("failed creating gitlab client")
+		log.Fatal().Stack().Err(err).Msg("Failed creating gitlab client")
 	}
 
 	// waitgroup is used to coordinate termination
@@ -65,64 +53,24 @@ func ScanGitLabPipelines(options *ScanOptions) {
 	waitGroup.Add(1)
 	go fetchProjects(git, options, waitGroup)
 
-	r.Register("pipeleak-job", func(ctx context.Context, m []byte) error {
-		analyzeQueueItem(m, git, options, waitGroup)
-		return nil
-	})
-
-	queueCtx, cancel := context.WithCancel(context.Background())
-	go r.Start(queueCtx)
+	go func() {
+		queueChan := globQueue.ReadChan()
+		for qitem := range queueChan {
+			analyzeQueueItem(qitem, git, options, waitGroup)
+		}
+	}()
 
 	waitGroup.Wait()
-	cancel()
-}
-
-func setupQueue(options *ScanOptions) {
-	log.Debug().Msg("Setting up queue on disk")
-
-	queueDirectory := options.QueueFolder
-	if len(options.QueueFolder) > 0 {
-		cwd, err := os.Getwd()
-		if err != nil {
-			log.Fatal().Err(err).Msg("Could not determine CWD")
-		}
-		relative := filepath.Join(cwd, queueDirectory)
-		absPath, err := filepath.Abs(relative)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed parsing absolute path")
-		}
-		queueDirectory = absPath
-	}
-
-	tmpfile, err := os.CreateTemp(queueDirectory, "pipeleak-queue-db-")
-	if err != nil {
-		log.Fatal().Err(err).Msg("Creating Temp DB file failed")
-	}
-	defer os.Remove(tmpfile.Name())
-	queueFileName = tmpfile.Name()
-
-	sqlUri := queueFileName + `?_journal=WAL&_timeout=5000&_fk=true`
-	queueDB, err = sql.Open("sqlite3", sqlUri)
-	log.Debug().Str("file", sqlUri).Msg("Using DB file")
-	if err != nil {
-		log.Fatal().Err(err).Str("file", queueFileName).Msg("Opening Temp DB file failed")
-	}
-	queueDB.SetMaxOpenConns(1)
-	queueDB.SetMaxIdleConns(1)
-
-	if err := goqite.Setup(context.Background(), queueDB); err != nil {
-		log.Fatal().Err(err).Msg("Goqite setup failed")
-	}
-
-	queue = goqite.New(goqite.NewOpts{
-		DB:         queueDB,
-		Name:       "jobs",
-		MaxReceive: options.MaxScanGoRoutines,
-	})
+	cleanUp()
 }
 
 func cleanUp() {
-	log.Info().Msg("Graceful Shutdown, cleaning up")
+	log.Debug().Msg("Cleaning up")
+	err := globQueue.Delete()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error deleteing queue on shutdown")
+	}
+
 	files, err := filepath.Glob(queueFileName + "*")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error removing database files")
@@ -132,14 +80,13 @@ func cleanUp() {
 		if err != nil {
 			log.Fatal().Err(err).Str("file", f).Msg("Error deleting database file")
 		}
-		log.Debug().Str("file", f).Msg("Deleted")
+		log.Trace().Str("file", f).Msg("Deleted")
 	}
 	os.Remove(queueFileName)
 }
 
 func fetchProjects(git *gitlab.Client, options *ScanOptions, wg *sync.WaitGroup) {
 	defer wg.Done()
-
 	log.Info().Msg("Fetching projects")
 
 	if len(options.GitlabCookie) > 0 {
@@ -210,12 +157,12 @@ jobOut:
 		for _, job := range jobs {
 			currentJobCtr += 1
 			meta := QueueMeta{JobId: job.ID, ProjectId: project.ID, JobWebUrl: getJobUrl(git, project, job), JobName: job.Name, ProjectPathWithNamespace: project.PathWithNamespace}
-			enqueueItem(queue, QueueItemJobTrace, meta, waitGroup)
+			enqueueItem(globQueue, QueueItemJobTrace, meta, waitGroup)
 
 			if options.Artifacts {
-				enqueueItem(queue, QueueItemArtifact, meta, waitGroup)
+				enqueueItem(globQueue, QueueItemArtifact, meta, waitGroup)
 				if len(options.GitlabCookie) > 1 {
-					enqueueItem(queue, QueueItemDotenv, meta, waitGroup)
+					enqueueItem(globQueue, QueueItemDotenv, meta, waitGroup)
 				}
 			}
 
@@ -237,28 +184,6 @@ func getJobUrl(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job) str
 	return git.BaseURL().Host + "/" + project.PathWithNamespace + "/-/jobs/" + strconv.Itoa(job.ID)
 }
 
-func GetQueueStatus() (int, int) {
-	return getReceivedQueryCount(1), getReceivedQueryCount(0)
-}
-
-func getReceivedQueryCount(received int) int {
-	count := 0
-	if queueDB != nil {
-		row, err := queueDB.Query("select count(id) as count from goqite where received = ?;", received)
-		if err != nil {
-			log.Error().Stack().Err(err).Msg("Status received query error")
-			return 0
-		}
-		defer row.Close()
-
-		for row.Next() {
-			err = row.Scan(&count)
-			if err != nil {
-				log.Error().Stack().Err(err).Msg("Status received query scan error")
-				return 0
-			}
-		}
-	}
-
-	return count
+func GetQueueStatus() int {
+	return int(globQueue.Depth())
 }
