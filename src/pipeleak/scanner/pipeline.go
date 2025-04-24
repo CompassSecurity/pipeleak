@@ -82,7 +82,7 @@ func cleanUp() {
 		if err != nil {
 			log.Fatal().Err(err).Str("file", f).Msg("Error deleting database file")
 		}
-		log.Debug().Str("file", f).Msg("Deleted")
+		log.Trace().Str("file", f).Msg("Deleted")
 	}
 	os.Remove(queueFileName)
 }
