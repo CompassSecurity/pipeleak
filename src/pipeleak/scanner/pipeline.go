@@ -1,6 +1,8 @@
 package scanner
 
 import (
+	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 
@@ -14,6 +16,7 @@ import (
 
 var globQueue diskqueue.Interface
 var waitGroup *sync.WaitGroup
+var queueFileName string
 
 type ScanOptions struct {
 	GitlabUrl              string
@@ -33,7 +36,7 @@ type ScanOptions struct {
 }
 
 func ScanGitLabPipelines(options *ScanOptions) {
-	globQueue = setupQueue(options)
+	globQueue, queueFileName = setupQueue(options)
 	helper.RegisterGracefulShutdownHandler(cleanUp)
 
 	InitRules(options.ConfidenceFilter)
@@ -60,22 +63,28 @@ func ScanGitLabPipelines(options *ScanOptions) {
 	}()
 
 	waitGroup.Wait()
-	err = globQueue.Delete()
-	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("Failed deleteing queue")
-	}
+	cleanUp()
 }
 
 func cleanUp() {
-	log.Info().Msg("Graceful Shutdown, cleaning up")
-	err := globQueue.Close()
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error closing queue on shutdown")
-	}
-	err = globQueue.Delete()
+	log.Debug().Msg("Cleaning up")
+	err := globQueue.Delete()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error deleteing queue on shutdown")
 	}
+
+	files, err := filepath.Glob(queueFileName + "*")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error removing database files")
+	}
+	for _, f := range files {
+		err := os.Remove(f)
+		if err != nil {
+			log.Fatal().Err(err).Str("file", f).Msg("Error deleting database file")
+		}
+		log.Debug().Str("file", f).Msg("Deleted")
+	}
+	os.Remove(queueFileName)
 }
 
 func fetchProjects(git *gitlab.Client, options *ScanOptions, wg *sync.WaitGroup) {

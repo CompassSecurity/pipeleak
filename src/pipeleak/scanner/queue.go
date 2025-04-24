@@ -51,7 +51,7 @@ type QueueItem struct {
 	Meta        QueueMeta     `json:"meta"`
 }
 
-func setupQueue(options *ScanOptions) diskqueue.Interface {
+func setupQueue(options *ScanOptions) (diskqueue.Interface, string) {
 	log.Debug().Msg("Setting up queue on disk")
 
 	queueDirectory := options.QueueFolder
@@ -76,7 +76,7 @@ func setupQueue(options *ScanOptions) diskqueue.Interface {
 
 	return diskqueue.New(tmpfile.Name(), queueDirectory, 512, 0, math.MaxInt32, 2500, 2*time.Second, func(lvl diskqueue.LogLevel, f string, args ...interface{}) {
 		log.Trace().Msg("Queue Log: " + fmt.Sprintf(lvl.String()+": "+f, args...))
-	})
+	}), tmpfile.Name()
 }
 
 func analyzeQueueItem(serializeditem []byte, git *gitlab.Client, options *ScanOptions, wg *sync.WaitGroup) {
