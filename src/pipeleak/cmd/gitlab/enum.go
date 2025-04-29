@@ -1,10 +1,15 @@
 package gitlab
 
 import (
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
+	"resty.dev/v3"
 )
 
 var minAccessLevel int
@@ -50,76 +55,119 @@ func Enum(cmd *cobra.Command, args []string) {
 	log.Info().Msg("Enumerating User")
 	log.Warn().Str("username", user.Username).Str("name", user.Name).Str("email", user.Email).Bool("admin", user.IsAdmin).Bool("bot", user.Bot).Msg("Current user")
 
-	log.Info().Int("minAccessLevel", minAccessLevel).Msg("Enumerating repositories with minimum access level")
-	projectOpts := &gitlab.ListProjectsOptions{
-		ListOptions: gitlab.ListOptions{
-			PerPage: 100,
-			Page:    1,
-		},
-		MinAccessLevel: gitlab.Ptr(gitlab.AccessLevelValue(minAccessLevel)),
-		OrderBy:        gitlab.Ptr("last_activity_at"),
+	EnumNew(gitlabApiToken, minAccessLevel)
+}
+
+type TokenAssociations struct {
+	Groups []struct {
+		ID             int         `json:"id"`
+		WebURL         string      `json:"web_url"`
+		Name           string      `json:"name"`
+		ParentID       interface{} `json:"parent_id"`
+		OrganizationID int         `json:"organization_id"`
+		AccessLevels   int         `json:"access_levels"`
+		Visibility     string      `json:"visibility"`
+	} `json:"groups"`
+	Projects []struct {
+		ID                int       `json:"id"`
+		Description       string    `json:"description"`
+		Name              string    `json:"name"`
+		NameWithNamespace string    `json:"name_with_namespace"`
+		Path              string    `json:"path"`
+		PathWithNamespace string    `json:"path_with_namespace"`
+		CreatedAt         time.Time `json:"created_at"`
+		AccessLevels      struct {
+			ProjectAccessLevel int `json:"project_access_level"`
+			GroupAccessLevel   int         `json:"group_access_level"`
+		} `json:"access_levels"`
+		Visibility string `json:"visibility"`
+		WebURL     string `json:"web_url"`
+		Namespace  struct {
+			ID        int         `json:"id"`
+			Name      string      `json:"name"`
+			Path      string      `json:"path"`
+			Kind      string      `json:"kind"`
+			FullPath  string      `json:"full_path"`
+			ParentID  interface{} `json:"parent_id"`
+			AvatarURL string `json:"avatar_url"`
+			WebURL    string      `json:"web_url"`
+		} `json:"namespace"`
+	} `json:"projects"`
+}
+
+type SelfToken struct {
+	ID          int       `json:"id"`
+	Name        string    `json:"name"`
+	Revoked     bool      `json:"revoked"`
+	CreatedAt   time.Time `json:"created_at"`
+	Description string    `json:"description"`
+	Scopes      []string  `json:"scopes"`
+	UserID      int       `json:"user_id"`
+	LastUsedAt  time.Time `json:"last_used_at"`
+	Active      bool      `json:"active"`
+	ExpiresAt   string    `json:"expires_at"`
+	LastUsedIps []string  `json:"last_used_ips"`
+}
+
+func enumCurrentToken(client resty.Client, pat string) {
+	url := "https://gitlab.com/api/v4/personal_access_tokens/self"
+	currentToken := &SelfToken{}
+	res, err := client.R().
+		SetHeader("PRIVATE-TOKEN", pat).
+		SetResult(currentToken).
+		Get(url)
+
+	if res.StatusCode() != 200 {
+		log.Error().Stack().Any("any", res.RawResponse.Body).Msg("Failed fetching token associations")
 	}
 
-	for {
-		projects, resp, err := git.Projects.ListProjects(projectOpts)
-		if err != nil {
-			log.Error().Stack().Err(err).Msg("Failed fetching projects")
-		}
-
-		for _, project := range projects {
-			logLine := log.Warn().Str("project", project.WebURL).Str("name", project.NameWithNamespace).Bool("publicJobs", project.PublicJobs)
-
-			if len(project.Description) > 0 {
-				logLine.Str("description", project.Description)
-			}
-
-			if project.Permissions.ProjectAccess != nil {
-				logLine.Int("projectAccessLevel", int(project.Permissions.ProjectAccess.AccessLevel))
-			}
-
-			if project.Permissions.GroupAccess != nil {
-				logLine.Int("groupAcessLevel", int(project.Permissions.GroupAccess.AccessLevel))
-			}
-
-			logLine.Msg("Repo")
-		}
-
-		if resp.NextPage == 0 {
-			break
-		}
-
-		projectOpts.Page = resp.NextPage
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Failed fetching token associations")
 	}
 
-	log.Info().Int("minAccessLevel", minAccessLevel).Msg("Enumerating groups with minimum access level")
-	listGroupsOpts := &gitlab.ListGroupsOptions{
-		ListOptions: gitlab.ListOptions{
-			PerPage: 100,
-			Page:    1,
-		},
-		MinAccessLevel: gitlab.Ptr(gitlab.AccessLevelValue(minAccessLevel)),
-		TopLevelOnly:   gitlab.Ptr(false),
+	log.Warn().
+	Int("id", currentToken.ID).
+	Str("name", currentToken.Name).
+	Bool("revoked", currentToken.Revoked).
+	Time("created", currentToken.CreatedAt).
+	Str("description", currentToken.Description).
+	Str("scopes", strings.Join(currentToken.Scopes, ",")).
+	Int("userId", currentToken.UserID).
+	Time("lastUsedAt", currentToken.LastUsedAt).
+	Bool("active", currentToken.Active).
+	Str("lastUsedIps", strings.Join(currentToken.LastUsedIps, ",")).
+	Msg("Current Token")
+}
+
+// https://docs.gitlab.com/api/personal_access_tokens/#list-all-token-associations
+func enumAssociations(client resty.Client, pat string, accessLevel int) {
+	url := "https://gitlab.com/api/v4/personal_access_tokens/self/associations"
+	resp := &TokenAssociations{}
+	res, err := client.R().
+		SetHeader("PRIVATE-TOKEN", pat).
+		SetResult(resp).
+		SetQueryParam("min_access_level", strconv.Itoa(accessLevel)).
+		Get(url)
+
+	if res.StatusCode() != 200 {
+		log.Error().Stack().Str("Str", res.String()).Int("code", res.StatusCode()).Msg("Failed fetching token associations")
 	}
 
-	for {
-		groups, resp, err := git.Groups.ListGroups(listGroupsOpts)
-		if err != nil {
-			log.Error().Stack().Err(err).Msg("failed listing groups")
-		}
-
-		for _, group := range groups {
-			logLine := log.Warn().Str("group", group.WebURL).Str("fullName", group.FullName).Str("name", group.Name).Str("visibility", string(group.Visibility))
-
-			if len(group.Description) > 0 {
-				logLine.Str("description", group.Description)
-			}
-
-			logLine.Msg("Group")
-		}
-
-		if resp.NextPage == 0 {
-			break
-		}
-		listGroupsOpts.Page = resp.NextPage
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Failed fetching token associations")
 	}
+
+	for _, group := range resp.Groups {
+		log.Warn().Str("group", group.WebURL).Int("accessLevel", group.AccessLevels).Str("name", group.Name).Str("visibility", string(group.Visibility)).Msg("Group")
+	}
+
+	for _, project := range resp.Projects {
+		log.Warn().Str("project", project.WebURL).Str("name", project.NameWithNamespace).Int("groupAccessLevel", project.AccessLevels.GroupAccessLevel).Int("projectAccessLevel", project.AccessLevels.ProjectAccessLevel).Msg("Project")
+	}
+}
+
+func EnumNew(pat string, accessLevel int) {
+	client := *resty.New().SetRedirectPolicy(resty.FlexibleRedirectPolicy(5))
+	enumCurrentToken(client, pat)
+	enumAssociations(client, pat, accessLevel)
 }
