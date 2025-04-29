@@ -175,6 +175,7 @@ func listLogs(client AzureDevOpsApiClient, organization string, project string, 
 	}
 
 	for _, logEntry := range logs {
+		log.Trace().Str("url", logEntry.URL).Msg("Analyze log")
 		logLines, _, err := client.GetLog(organization, project, buildId, logEntry.ID)
 		if err != nil {
 			log.Error().Err(err).Str("organization", organization).Str("project", project).Int("build", buildId).Int("logId", logEntry.ID).Msg("Failed fetching build log lines")
@@ -200,6 +201,7 @@ func listArtifacts(client AzureDevOpsApiClient, organization string, project str
 		}
 
 		for _, artifact := range artifacts {
+			log.Trace().Str("name", artifact.Name).Msg("Analyze artifact")
 			analyzeArtifact(client, artifact, buildWebUrl)
 		}
 

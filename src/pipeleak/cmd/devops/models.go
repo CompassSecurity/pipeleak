@@ -182,7 +182,6 @@ type BuildLog struct {
 	URL           string    `json:"url"`
 }
 
-
 type Artifact struct {
 	ID       int    `json:"id"`
 	Name     string `json:"name"`

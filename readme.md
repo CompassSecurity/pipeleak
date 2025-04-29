@@ -149,14 +149,14 @@ Scan all pipelines the current user has access to
 pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts
 ```
 
-Scan all pipelines of an organization e.g. https://dev.azure.com/PowerShell
+Scan all pipelines of an organization
 ```bash
-pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization PowerShell
+pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization myOrganization
 ```
 
 Scan all pipelines of a project e.g. https://dev.azure.com/PowerShell/PowerShell
 ```bash
-pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization PowerShell --project PowerShell
+pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization powershell --project PowerShell
 ```
 
 # ELK Integration
