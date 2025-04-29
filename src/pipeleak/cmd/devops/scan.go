@@ -39,9 +39,15 @@ func NewScanCmd() *cobra.Command {
 		Run:   Scan,
 	}
 	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "Azure DevOps Personal Access Token - https://dev.azure.com/{yourUsername}/_usersSettings/tokens")
-	scanCmd.MarkFlagRequired("token")
+	err := scanCmd.MarkFlagRequired("token")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed marking token required")
+	}
 	scanCmd.Flags().StringVarP(&options.Username, "username", "u", "", "Username")
-	scanCmd.MarkFlagRequired("username")
+	err = scanCmd.MarkFlagRequired("username")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed marking username required")
+	}
 	scanCmd.MarkFlagsRequiredTogether("token", "username")
 
 	scanCmd.Flags().StringSliceVarP(&options.ConfidenceFilter, "confidence", "", []string{}, "Filter for confidence level, separate by comma if multiple. See readme for more info.")
