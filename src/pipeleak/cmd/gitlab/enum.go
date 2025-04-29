@@ -1,6 +1,8 @@
 package gitlab
 
 import (
+	"net/url"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -55,7 +57,17 @@ func Enum(cmd *cobra.Command, args []string) {
 	log.Info().Msg("Enumerating User")
 	log.Warn().Str("username", user.Username).Str("name", user.Name).Str("email", user.Email).Bool("admin", user.IsAdmin).Bool("bot", user.Bot).Msg("Current user")
 
-	EnumNew(gitlabApiToken, minAccessLevel)
+	log.Info().Msg("Enumerating Access Token")
+	client := *resty.New().SetRedirectPolicy(resty.FlexibleRedirectPolicy(5))
+	enumCurrentToken(client, gitlabUrl, gitlabApiToken)
+
+	log.Info().Msg("Enumerating Projects and Groups")
+	page := 1
+	for page != -1 {
+		page = listTokenAssociations(client, gitlabUrl, gitlabApiToken, minAccessLevel, page)
+	}
+
+	log.Info().Msg("Done")
 }
 
 type TokenAssociations struct {
@@ -78,7 +90,7 @@ type TokenAssociations struct {
 		CreatedAt         time.Time `json:"created_at"`
 		AccessLevels      struct {
 			ProjectAccessLevel int `json:"project_access_level"`
-			GroupAccessLevel   int         `json:"group_access_level"`
+			GroupAccessLevel   int `json:"group_access_level"`
 		} `json:"access_levels"`
 		Visibility string `json:"visibility"`
 		WebURL     string `json:"web_url"`
@@ -89,7 +101,7 @@ type TokenAssociations struct {
 			Kind      string      `json:"kind"`
 			FullPath  string      `json:"full_path"`
 			ParentID  interface{} `json:"parent_id"`
-			AvatarURL string `json:"avatar_url"`
+			AvatarURL string      `json:"avatar_url"`
 			WebURL    string      `json:"web_url"`
 		} `json:"namespace"`
 	} `json:"projects"`
@@ -109,13 +121,17 @@ type SelfToken struct {
 	LastUsedIps []string  `json:"last_used_ips"`
 }
 
-func enumCurrentToken(client resty.Client, pat string) {
-	url := "https://gitlab.com/api/v4/personal_access_tokens/self"
+func enumCurrentToken(client resty.Client, baseUrl string, pat string) {
+	u, err := url.Parse(baseUrl)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to parse base URL")
+	}
+	u.Path = path.Join(u.Path, "api/v4/personal_access_tokens/self")
 	currentToken := &SelfToken{}
 	res, err := client.R().
 		SetHeader("PRIVATE-TOKEN", pat).
 		SetResult(currentToken).
-		Get(url)
+		Get(u.String())
 
 	if res.StatusCode() != 200 {
 		log.Error().Stack().Any("any", res.RawResponse.Body).Msg("Failed fetching token associations")
@@ -126,28 +142,34 @@ func enumCurrentToken(client resty.Client, pat string) {
 	}
 
 	log.Warn().
-	Int("id", currentToken.ID).
-	Str("name", currentToken.Name).
-	Bool("revoked", currentToken.Revoked).
-	Time("created", currentToken.CreatedAt).
-	Str("description", currentToken.Description).
-	Str("scopes", strings.Join(currentToken.Scopes, ",")).
-	Int("userId", currentToken.UserID).
-	Time("lastUsedAt", currentToken.LastUsedAt).
-	Bool("active", currentToken.Active).
-	Str("lastUsedIps", strings.Join(currentToken.LastUsedIps, ",")).
-	Msg("Current Token")
+		Int("id", currentToken.ID).
+		Str("name", currentToken.Name).
+		Bool("revoked", currentToken.Revoked).
+		Time("created", currentToken.CreatedAt).
+		Str("description", currentToken.Description).
+		Str("scopes", strings.Join(currentToken.Scopes, ",")).
+		Int("userId", currentToken.UserID).
+		Time("lastUsedAt", currentToken.LastUsedAt).
+		Bool("active", currentToken.Active).
+		Str("lastUsedIps", strings.Join(currentToken.LastUsedIps, ",")).
+		Msg("Current Token")
 }
 
 // https://docs.gitlab.com/api/personal_access_tokens/#list-all-token-associations
-func enumAssociations(client resty.Client, pat string, accessLevel int) {
-	url := "https://gitlab.com/api/v4/personal_access_tokens/self/associations"
+func listTokenAssociations(client resty.Client, baseUrl string, pat string, accessLevel int, page int) int {
+	u, err := url.Parse(baseUrl)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to parse base URL")
+	}
+	u.Path = path.Join(u.Path, "api/v4/personal_access_tokens/self/associations")
 	resp := &TokenAssociations{}
 	res, err := client.R().
 		SetHeader("PRIVATE-TOKEN", pat).
 		SetResult(resp).
 		SetQueryParam("min_access_level", strconv.Itoa(accessLevel)).
-		Get(url)
+		SetQueryParam("per_page", "100").
+		SetQueryParam("page", strconv.Itoa(page)).
+		Get(u.String())
 
 	if res.StatusCode() != 200 {
 		log.Error().Stack().Str("Str", res.String()).Int("code", res.StatusCode()).Msg("Failed fetching token associations")
@@ -164,10 +186,11 @@ func enumAssociations(client resty.Client, pat string, accessLevel int) {
 	for _, project := range resp.Projects {
 		log.Warn().Str("project", project.WebURL).Str("name", project.NameWithNamespace).Int("groupAccessLevel", project.AccessLevels.GroupAccessLevel).Int("projectAccessLevel", project.AccessLevels.ProjectAccessLevel).Msg("Project")
 	}
-}
 
-func EnumNew(pat string, accessLevel int) {
-	client := *resty.New().SetRedirectPolicy(resty.FlexibleRedirectPolicy(5))
-	enumCurrentToken(client, pat)
-	enumAssociations(client, pat, accessLevel)
+	nextPage, err := strconv.Atoi(res.Header().Get("x-next-page"))
+	if err != nil {
+		nextPage = -1
+	}
+
+	return nextPage
 }
