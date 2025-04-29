@@ -7,6 +7,7 @@ import (
 	"github.com/CompassSecurity/pipeleak/cmd/bitbucket"
 	"github.com/CompassSecurity/pipeleak/cmd/github"
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab"
+	"github.com/mattn/go-colorable"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -36,7 +37,7 @@ func init() {
 }
 
 func initLogger() {
-	log.Logger = zerolog.New(os.Stdout).With().Timestamp().Logger()
+	log.Logger = zerolog.New(colorable.NewColorableStdout()).With().Timestamp().Logger()
 	if !JsonLogoutput {
 		output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
 		log.Logger = zerolog.New(output).With().Timestamp().Logger()
