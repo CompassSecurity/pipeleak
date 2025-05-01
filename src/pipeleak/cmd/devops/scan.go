@@ -73,7 +73,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	options.Client = NewClient(options.Username, options.AccessToken)
 
 	if options.Organization == "" && options.Project == "" {
-		scanAuthenticatedUser(options.Client, options.Organization)
+		scanAuthenticatedUser(options.Client)
 	} else if options.Organization != "" && options.Project == "" {
 		scanOrganization(options.Client, options.Organization)
 	} else if options.Organization != "" && options.Project != "" {
@@ -83,7 +83,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
 }
 
-func scanAuthenticatedUser(client AzureDevOpsApiClient, organization string) {
+func scanAuthenticatedUser(client AzureDevOpsApiClient) {
 	log.Info().Msg("Scanning authenticated user")
 
 	user, _, err := client.GetAuthenticatedUser()
@@ -147,7 +147,7 @@ func listBuilds(client AzureDevOpsApiClient, organization string, project string
 		}
 
 		for _, build := range builds {
-			log.Trace().Str("url", build.Links.Web.Href).Msg("Build")
+			log.Debug().Str("url", build.Links.Web.Href).Msg("Build")
 			listLogs(client, organization, project, build.ID, build.Links.Web.Href)
 
 			if options.Artifacts {
@@ -175,7 +175,7 @@ func listLogs(client AzureDevOpsApiClient, organization string, project string, 
 	}
 
 	for _, logEntry := range logs {
-		log.Trace().Str("url", logEntry.URL).Msg("Analyze log")
+		log.Trace().Str("url", logEntry.URL).Msg("Download log")
 		logLines, _, err := client.GetLog(organization, project, buildId, logEntry.ID)
 		if err != nil {
 			log.Error().Err(err).Str("organization", organization).Str("project", project).Int("build", buildId).Int("logId", logEntry.ID).Msg("Failed fetching build log lines")
@@ -186,7 +186,12 @@ func listLogs(client AzureDevOpsApiClient, organization string, project string, 
 }
 
 func scanLogLines(logs []byte, buildWebUrl string) {
-	findings := scanner.DetectHits(logs, options.MaxScanGoRoutines, options.TruffleHogVerification)
+	findings, err := scanner.DetectHits(logs, options.MaxScanGoRoutines, options.TruffleHogVerification)
+	if err != nil {
+		log.Debug().Err(err).Str("build", buildWebUrl).Msg("Failed detecting secrets")
+		return
+	}
+
 	for _, finding := range findings {
 		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", buildWebUrl).Msg("HIT")
 	}

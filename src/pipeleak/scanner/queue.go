@@ -102,7 +102,12 @@ func analyzeJobTrace(git *gitlab.Client, item QueueItem, options *ScanOptions) {
 		return
 	}
 
-	findings := DetectHits(trace, options.MaxScanGoRoutines, options.TruffleHogVerification)
+	findings, err := DetectHits(trace, options.MaxScanGoRoutines, options.TruffleHogVerification)
+	if err != nil {
+		log.Debug().Err(err).Int("project", item.Meta.ProjectId).Int("job", item.Meta.JobId).Msg("Failed detecting secrets")
+		return
+	}
+
 	for _, finding := range findings {
 		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", item.Meta.JobWebUrl).Str("jobName", item.Meta.JobName).Msg("HIT")
 	}
@@ -157,7 +162,11 @@ func analyzeDotenvArtifact(git *gitlab.Client, item QueueItem, options *ScanOpti
 		return
 	}
 
-	findings := DetectHits(dotenvText, options.MaxScanGoRoutines, options.TruffleHogVerification)
+	findings, err := DetectHits(dotenvText, options.MaxScanGoRoutines, options.TruffleHogVerification)
+	if err != nil {
+		log.Debug().Err(err).Int("project", item.Meta.ProjectId).Int("job", item.Meta.JobId).Msg("Failed detecting secrets")
+		return
+	}
 	for _, finding := range findings {
 		artifactsBaseUrl, _ := url.JoinPath(item.Meta.JobWebUrl, "/-/artifacts")
 		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("artifactUrl", artifactsBaseUrl).Int("jobId", item.Meta.JobId).Str("jobName", item.Meta.JobName).Msg("HIT DOTENV: Check artifacts page which is the only place to download the dotenv file")

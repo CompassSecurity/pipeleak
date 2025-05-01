@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/acarl005/stripansi"
@@ -141,7 +142,26 @@ func AppendPipeleakRules(rules []PatternElement) []PatternElement {
 	return slices.Concat(rules, customRules)
 }
 
-func DetectHits(text []byte, maxThreads int, enableTruffleHogVerification bool) []Finding {
+type DetectionResult struct {
+	Findings []Finding
+	Error    error
+}
+
+func DetectHits(text []byte, maxThreads int, enableTruffleHogVerification bool) ([]Finding, error) {
+	result := make(chan DetectionResult, 1)
+	go func() {
+		result <- DetectHitsWithTimeout(text, maxThreads, enableTruffleHogVerification)
+	}()
+	select {
+	// Hit detection timeout
+	case <-time.After(30 * time.Second):
+		return nil, errors.New("Hit detection timed out")
+	case result := <-result:
+		return result.Findings, result.Error
+	}
+}
+
+func DetectHitsWithTimeout(text []byte, maxThreads int, enableTruffleHogVerification bool) DetectionResult {
 	ctx := context.Background()
 	group := parallel.Collect[[]Finding](parallel.Limited(ctx, maxThreads))
 
@@ -215,7 +235,7 @@ func DetectHits(text []byte, maxThreads int, enableTruffleHogVerification bool) 
 
 	findingsTr := slices.Concat(resultsTr...)
 	totalFindings := slices.Concat(findingsCombined, findingsTr)
-	return deduplicateFindings(totalFindings)
+	return DetectionResult{Findings: deduplicateFindings(totalFindings), Error: nil}
 }
 
 func deduplicateFindings(totalFindings []Finding) []Finding {
@@ -241,7 +261,11 @@ func deduplicateFindings(totalFindings []Finding) []Finding {
 
 func DetectFileHits(content []byte, jobWebUrl string, jobName string, fileName string, archiveName string, enableTruffleHogVerification bool) {
 	// 1 goroutine to prevent maxThreads^2 which trashes memory
-	findings := DetectHits(content, 1, enableTruffleHogVerification)
+	findings, err := DetectHits(content, 1, enableTruffleHogVerification)
+	if err != nil {
+		log.Debug().Err(err).Str("job", jobWebUrl).Msg("Failed detecting secrets")
+		return
+	}
 	for _, finding := range findings {
 		baseLog := log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", jobWebUrl).Str("jobName", jobName).Str("file", fileName)
 		if len(archiveName) > 0 {

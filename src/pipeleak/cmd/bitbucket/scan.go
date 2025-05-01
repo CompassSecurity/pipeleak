@@ -258,7 +258,12 @@ func getSteplog(client BitBucketApiClient, workspaceSlug string, repoSlug string
 		log.Error().Err(err).Msg("Failed fetching pipeline steps")
 	}
 
-	findings := scanner.DetectHits(logBytes, options.MaxScanGoRoutines, options.TruffleHogVerification)
+	findings, err := scanner.DetectHits(logBytes, options.MaxScanGoRoutines, options.TruffleHogVerification)
+	if err != nil {
+		log.Debug().Err(err).Str("stepUUid", stepUUID).Msg("Failed detecting secrets")
+		return
+	}
+
 	for _, finding := range findings {
 		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("Run", "https://bitbucket.org/"+workspaceSlug+"/"+repoSlug+"/pipelines/results/"+pipelineUuid+"/steps/"+stepUUID).Msg("HIT")
 	}

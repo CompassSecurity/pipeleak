@@ -343,7 +343,12 @@ func downloadWorkflowRunLog(client *github.Client, repo *github.Repository, work
 	log.Trace().Msg("Downloading run log")
 	logs := downloadRunLogZIP(logURL.String())
 	log.Trace().Msg("Finished downloading run log")
-	findings := scanner.DetectHits(logs, options.MaxScanGoRoutines, options.TruffleHogVerification)
+	findings, err := scanner.DetectHits(logs, options.MaxScanGoRoutines, options.TruffleHogVerification)
+	if err != nil {
+		log.Debug().Err(err).Str("workflowRun", *workflowRun.HTMLURL).Msg("Failed detecting secrets")
+		return
+	}
+
 	for _, finding := range findings {
 		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("workflowRun", *workflowRun.HTMLURL).Msg("HIT")
 	}
