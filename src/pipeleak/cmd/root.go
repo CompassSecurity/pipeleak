@@ -5,8 +5,6 @@ import (
 	"io"
 	"os"
 	"runtime"
-
-	//"runtime"
 	"time"
 
 	"github.com/CompassSecurity/pipeleak/cmd/bitbucket"
