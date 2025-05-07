@@ -49,7 +49,7 @@ type CustomWriter struct {
 }
 
 func (cw *CustomWriter) Write(p []byte) (n int, err error) {
-	originalen := len(p)
+	originalLen := len(p)
 	if bytes.HasSuffix(p, []byte("\n")) {
 		p = bytes.TrimSuffix(p, []byte("\n"))
 	}
@@ -71,7 +71,7 @@ func (cw *CustomWriter) Write(p []byte) (n int, err error) {
 		return 0, io.ErrShortWrite
 	}
 
-	return originalen, nil
+	return originalLen, nil
 }
 
 func initLogger() {
