@@ -14,6 +14,7 @@ It supports the following platforms:
 * GitLab
 * GitHub
 * BitBucket
+* Azure DevOps
 
 ## Getting Started
 
@@ -140,6 +141,31 @@ Scan all public repositories
 ```bash
 pipeleak bb scan --token xxxxxxxxxxx --username auser --public --maxPipelines 5 --after 2025-03-01T15:00:00+00:00
 ```
+
+## Azure DevOps
+
+Scan all pipelines the current user has access to
+```bash
+pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts
+```
+
+Scan all pipelines of an organization
+```bash
+pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization myOrganization
+```
+
+Scan all pipelines of a project e.g. https://dev.azure.com/PowerShell/PowerShell
+```bash
+pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization powershell --project PowerShell
+```
+
+### Authentication
+Create your PAT here: https://dev.azure.com/{yourproject}/_usersSettings/tokens
+
+> In the top right corner you can choose the scope (Global, Project etc.). 
+> Global in that case means per tenant. If you have access to multiple tentants you need to run a scan per tenant.
+> Get you username from an HTTPS git clone url from the UI.
+
 
 # ELK Integration
 
