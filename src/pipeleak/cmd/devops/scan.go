@@ -111,6 +111,11 @@ func listAccounts(client AzureDevOpsApiClient, userId string) {
 		log.Fatal().Err(err).Str("userId", userId).Msg("Failed fetching accounts")
 	}
 
+	if len(accounts) == 0 {
+		log.Info().Msg("No accounts found, check your token access scope!")
+		return
+	}
+
 	for _, account := range accounts {
 		log.Debug().Str("name", account.AccountName).Msg("Scanning Account")
 		listProjects(client, account.AccountName)
@@ -188,7 +193,7 @@ func listLogs(client AzureDevOpsApiClient, organization string, project string, 
 func scanLogLines(logs []byte, buildWebUrl string) {
 	findings, err := scanner.DetectHits(logs, options.MaxScanGoRoutines, options.TruffleHogVerification)
 	if err != nil {
-		log.Debug().Err(err).Str("build", buildWebUrl).Msg("Failed detecting secrets")
+		log.Debug().Err(err).Str("build", buildWebUrl).Msg("Failed detecting secrets of a single log line")
 		return
 	}
 
