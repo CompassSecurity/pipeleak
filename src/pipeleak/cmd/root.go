@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"bytes"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/CompassSecurity/pipeleak/cmd/bitbucket"
@@ -58,7 +60,13 @@ func initLogger() {
 	if JsonLogoutput {
 		log.Logger = zerolog.New(defaultOut).With().Timestamp().Logger()
 	} else {
-		output := zerolog.ConsoleWriter{Out: defaultOut, TimeFormat: time.RFC3339, NoColor: !LogColor}
+		output := zerolog.ConsoleWriter{Out: defaultOut, TimeFormat: time.RFC3339, NoColor: !LogColor,
+			FormatExtra: func(evt map[string]interface{}, buf *bytes.Buffer) error {
+				if runtime.GOOS == "windows" {
+					buf.WriteString("\r\n")
+				}
+				return nil
+			}}
 		log.Logger = zerolog.New(output).With().Timestamp().Logger()
 	}
 
