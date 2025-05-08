@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"bytes"
+	"io"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/CompassSecurity/pipeleak/cmd/bitbucket"
@@ -41,8 +44,38 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&LogFile, "logfile", "l", "", "Log output to a file")
 }
 
+type CustomWriter struct {
+	Writer *os.File
+}
+
+func (cw *CustomWriter) Write(p []byte) (n int, err error) {
+	originalLen := len(p)
+	if bytes.HasSuffix(p, []byte("\n")) {
+		p = bytes.TrimSuffix(p, []byte("\n"))
+	}
+
+	// necessary as to: https://github.com/rs/zerolog/blob/master/log.go#L474
+	newlineChars := []byte("\n")
+	if runtime.GOOS == "windows" {
+		newlineChars = []byte("\n\r")
+	}
+
+	modified := append(p, newlineChars...)
+
+	written, err := cw.Writer.Write(modified)
+	if err != nil {
+		return 0, err
+	}
+
+	if written != len(modified) {
+		return 0, io.ErrShortWrite
+	}
+
+	return originalLen, nil
+}
+
 func initLogger() {
-	defaultOut := os.Stdout
+	defaultOut := &CustomWriter{Writer: os.Stdout}
 	if LogFile != "" {
 		runLogFile, err := os.OpenFile(
 			LogFile,
@@ -52,7 +85,7 @@ func initLogger() {
 		if err != nil {
 			panic(err)
 		}
-		defaultOut = runLogFile
+		defaultOut = &CustomWriter{Writer: runLogFile}
 	}
 
 	if JsonLogoutput {
