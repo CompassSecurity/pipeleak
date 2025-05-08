@@ -9,26 +9,26 @@ import (
 )
 
 func NewVariablesCmd() *cobra.Command {
-	vulnCmd := &cobra.Command{
+	variablesCmd := &cobra.Command{
 		Use:   "variables [no options!]",
 		Short: "Print configured CI/CD variables",
 		Run:   FetchVariables,
 	}
-	vulnCmd.Flags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
-	err := vulnCmd.MarkFlagRequired("gitlab")
+	variablesCmd.Flags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
+	err := variablesCmd.MarkFlagRequired("gitlab")
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Unable to require gitlab flag")
 	}
 
-	vulnCmd.Flags().StringVarP(&gitlabApiToken, "token", "t", "", "GitLab API Token")
-	err = vulnCmd.MarkFlagRequired("token")
+	variablesCmd.Flags().StringVarP(&gitlabApiToken, "token", "t", "", "GitLab API Token")
+	err = variablesCmd.MarkFlagRequired("token")
 	if err != nil {
 		log.Fatal().Msg("Unable to require token flag")
 	}
-	vulnCmd.MarkFlagsRequiredTogether("gitlab", "token")
+	variablesCmd.MarkFlagsRequiredTogether("gitlab", "token")
 
-	vulnCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
-	return vulnCmd
+	variablesCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
+	return variablesCmd
 }
 
 func FetchVariables(cmd *cobra.Command, args []string) {

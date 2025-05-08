@@ -10,26 +10,26 @@ import (
 )
 
 func NewSecureFilesCmd() *cobra.Command {
-	vulnCmd := &cobra.Command{
+	secureFilesCmd := &cobra.Command{
 		Use:   "secureFiles [no options!]",
 		Short: "Print CI/CD secure files",
 		Run:   FetchSecureFiles,
 	}
-	vulnCmd.Flags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
-	err := vulnCmd.MarkFlagRequired("gitlab")
+	secureFilesCmd.Flags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
+	err := secureFilesCmd.MarkFlagRequired("gitlab")
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Unable to require gitlab flag")
 	}
 
-	vulnCmd.Flags().StringVarP(&gitlabApiToken, "token", "t", "", "GitLab API Token")
-	err = vulnCmd.MarkFlagRequired("token")
+	secureFilesCmd.Flags().StringVarP(&gitlabApiToken, "token", "t", "", "GitLab API Token")
+	err = secureFilesCmd.MarkFlagRequired("token")
 	if err != nil {
 		log.Fatal().Msg("Unable to require token flag")
 	}
-	vulnCmd.MarkFlagsRequiredTogether("gitlab", "token")
+	secureFilesCmd.MarkFlagsRequiredTogether("gitlab", "token")
 
-	vulnCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
-	return vulnCmd
+	secureFilesCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
+	return secureFilesCmd
 }
 
 func FetchSecureFiles(cmd *cobra.Command, args []string) {
