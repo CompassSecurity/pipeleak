@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type GitHubScanOptions struct {
+type BitBucketScanOptions struct {
 	Username               string
 	AccessToken            string
 	Verbose                bool
@@ -26,18 +26,17 @@ type GitHubScanOptions struct {
 	Owned                  bool
 	Public                 bool
 	After                  string
-	SearchQuery            string
 	Artifacts              bool
 	Context                context.Context
 	Client                 BitBucketApiClient
 }
 
-var options = GitHubScanOptions{}
+var options = BitBucketScanOptions{}
 
 func NewScanCmd() *cobra.Command {
 	scanCmd := &cobra.Command{
 		Use:   "scan [no options!]",
-		Short: "Scan GitHub Actions",
+		Short: "Scan BitBucket Pipelines",
 		Run:   Scan,
 	}
 	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "Bitbucket Application Password - https://bitbucket.org/account/settings/app-passwords/")
@@ -53,7 +52,6 @@ func NewScanCmd() *cobra.Command {
 	scanCmd.PersistentFlags().BoolVarP(&options.Owned, "owned", "", false, "Scan user onwed projects only")
 	scanCmd.PersistentFlags().BoolVarP(&options.Public, "public", "p", false, "Scan all public repositories")
 	scanCmd.PersistentFlags().StringVarP(&options.After, "after", "", "", "Filter public repos by a given date in ISO 8601 format: 2025-04-02T15:00:00+02:00 ")
-	scanCmd.Flags().StringVarP(&options.SearchQuery, "search", "s", "", "GitHub search query")
 
 	scanCmd.PersistentFlags().BoolVarP(&options.Verbose, "verbose", "v", false, "Verbose logging")
 
@@ -78,6 +76,8 @@ func Scan(cmd *cobra.Command, args []string) {
 	} else if options.Workspace != "" {
 		log.Info().Str("name", options.Workspace).Msg("Scanning a workspace")
 		scanWorkspace(options.Client, options.Workspace)
+	} else {
+		log.Error().Msg("Specify a scan mode --public, --owned, --workspace")
 	}
 
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
