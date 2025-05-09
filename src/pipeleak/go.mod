@@ -17,8 +17,9 @@ require (
 	github.com/trufflesecurity/trufflehog/v3 v3.88.28
 	gitlab.com/gitlab-org/api/client-go v0.128.0
 	gitlab.com/mitchenielsen/gitlab-ci-go v0.0.4
+	golang.org/x/term v0.31.0
 	golift.io/xtractr v0.2.2
-	resty.dev/v3 v3.0.0-beta.2
+	resty.dev/v3 v3.0.0-beta.3
 )
 
 require (
@@ -167,7 +168,6 @@ require (
 	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/net v0.39.0 // indirect
 	golang.org/x/sync v0.13.0 // indirect
-	golang.org/x/term v0.31.0 // indirect
 	golang.org/x/text v0.24.0 // indirect
 	golang.org/x/tools v0.31.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
