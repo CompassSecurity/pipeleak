@@ -1,4 +1,4 @@
-package scanner
+package scan
 
 import (
 	"archive/zip"
@@ -12,21 +12,19 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/CompassSecurity/pipeleak/helper"
+	"github.com/CompassSecurity/pipeleak/scanner"
 	"github.com/h2non/filetype"
 	"github.com/nsqio/go-diskqueue"
 	"github.com/rs/zerolog/log"
 	"github.com/wandb/parallel"
 	"gitlab.com/gitlab-org/api/client-go"
-	"golift.io/xtractr"
 )
 
 type QueueItemType string
@@ -124,7 +122,7 @@ func analyzeJobTrace(git *gitlab.Client, item QueueItem, options *ScanOptions) {
 		return
 	}
 
-	findings, err := DetectHits(trace, options.MaxScanGoRoutines, options.TruffleHogVerification)
+	findings, err := scanner.DetectHits(trace, options.MaxScanGoRoutines, options.TruffleHogVerification)
 	if err != nil {
 		log.Debug().Err(err).Int("project", item.Meta.ProjectId).Int("job", item.Meta.JobId).Msg("Failed detecting secrets")
 		return
@@ -167,9 +165,9 @@ func analyzeJobArtifact(git *gitlab.Client, item QueueItem, options *ScanOptions
 			kind, _ := filetype.Match(content)
 			// do not scan https://pkg.go.dev/github.com/h2non/filetype#readme-supported-types
 			if kind == filetype.Unknown {
-				DetectFileHits(content, item.Meta.JobWebUrl, item.Meta.JobName, file.Name, "", options.TruffleHogVerification)
+				scanner.DetectFileHits(content, item.Meta.JobWebUrl, item.Meta.JobName, file.Name, "", options.TruffleHogVerification)
 			} else if filetype.IsArchive(content) {
-				HandleArchiveArtifact(file.Name, content, item.Meta.JobWebUrl, item.Meta.JobName, options.TruffleHogVerification)
+				scanner.HandleArchiveArtifact(file.Name, content, item.Meta.JobWebUrl, item.Meta.JobName, options.TruffleHogVerification)
 			}
 			fc.Close()
 		})
@@ -184,7 +182,7 @@ func analyzeDotenvArtifact(git *gitlab.Client, item QueueItem, options *ScanOpti
 		return
 	}
 
-	findings, err := DetectHits(dotenvText, options.MaxScanGoRoutines, options.TruffleHogVerification)
+	findings, err := scanner.DetectHits(dotenvText, options.MaxScanGoRoutines, options.TruffleHogVerification)
 	if err != nil {
 		log.Debug().Err(err).Int("project", item.Meta.ProjectId).Int("job", item.Meta.JobId).Msg("Failed detecting secrets")
 		return
@@ -312,69 +310,4 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 	}
 
 	return envText
-}
-
-// https://docs.gitlab.com/ee/ci/caching/#common-use-cases-for-caches
-var skippableDirectoryNames = []string{"node_modules", ".yarn", ".yarn-cache", ".npm", "venv", "vendor", ".go/pkg/mod/"}
-
-func HandleArchiveArtifact(archivefileName string, content []byte, jobWebUrl string, jobName string, enableTruffleHogVerification bool) {
-	for _, skipKeyword := range skippableDirectoryNames {
-		if strings.Contains(archivefileName, skipKeyword) {
-			log.Debug().Str("file", archivefileName).Str("keyword", skipKeyword).Msg("Skipped archive due to blocklist entry")
-			return
-		}
-	}
-
-	fileType, err := filetype.Get(content)
-	if err != nil {
-		log.Error().Stack().Err(err).Msg("Cannot determine file type")
-		return
-	}
-
-	tmpArchiveFile, err := os.CreateTemp("", "pipeleak-artifact-archive-*."+fileType.Extension)
-	if err != nil {
-		log.Error().Stack().Err(err).Msg("Cannot create artifact archive temp file")
-		return
-	}
-
-	err = os.WriteFile(tmpArchiveFile.Name(), content, 0666)
-	if err != nil {
-		log.Error().Stack().Err(err).Msg("Failed writing archive to disk")
-		return
-	}
-	defer os.Remove(tmpArchiveFile.Name())
-
-	tmpArchiveFilesDirectory, err := os.MkdirTemp("", "pipeleak-artifact-archive-out-")
-	if err != nil {
-		log.Error().Stack().Err(err).Msg("Cannot create artifact archive temp directory")
-		return
-	}
-	defer os.RemoveAll(tmpArchiveFilesDirectory)
-
-	x := &xtractr.XFile{
-		FilePath:  tmpArchiveFile.Name(),
-		OutputDir: tmpArchiveFilesDirectory,
-		FileMode:  0o600,
-		DirMode:   0o700,
-	}
-
-	_, files, _, err := xtractr.ExtractFile(x)
-	if err != nil || files == nil {
-		log.Debug().Str("err", err.Error()).Msg("Unable to handle archive in artifacts")
-		return
-	}
-
-	for _, fPath := range files {
-		if !helper.IsDirectory(fPath) {
-			fileBytes, err := os.ReadFile(fPath)
-			if err != nil {
-				log.Debug().Str("file", fPath).Stack().Str("err", err.Error()).Msg("Cannot read temp artifact archive file content")
-			}
-
-			kind, _ := filetype.Match(fileBytes)
-			if kind == filetype.Unknown {
-				DetectFileHits(fileBytes, jobWebUrl, jobName, path.Base(fPath), archivefileName, enableTruffleHogVerification)
-			}
-		}
-	}
 }

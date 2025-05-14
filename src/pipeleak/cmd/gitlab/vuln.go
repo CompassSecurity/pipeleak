@@ -1,8 +1,8 @@
 package gitlab
 
 import (
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/nist"
 	"github.com/CompassSecurity/pipeleak/helper"
-	"github.com/CompassSecurity/pipeleak/nist"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
