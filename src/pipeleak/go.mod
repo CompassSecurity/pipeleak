@@ -19,7 +19,7 @@ require (
 	gitlab.com/mitchenielsen/gitlab-ci-go v0.0.4
 	golang.org/x/term v0.31.0
 	golift.io/xtractr v0.2.2
-	resty.dev/v3 v3.0.0-beta.2
+	resty.dev/v3 v3.0.0-beta.3
 )
 
 require (
