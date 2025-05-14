@@ -1,18 +1,17 @@
-package gitlab
+package scan
 
 import (
 	"net/url"
 	"os"
 
 	"github.com/CompassSecurity/pipeleak/helper"
-	"github.com/CompassSecurity/pipeleak/scanner"
 	gounits "github.com/docker/go-units"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
-var options = scanner.ScanOptions{}
+var options = ScanOptions{}
 var maxArtifactSize string
 
 func NewScanCmd() *cobra.Command {
@@ -54,7 +53,7 @@ func NewScanCmd() *cobra.Command {
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	helper.SetLogLevel(verbose)
+	helper.SetLogLevel(options.Verbose)
 	go helper.ShortcutListeners(scanStatus)
 
 	_, err := url.ParseRequestURI(options.GitlabUrl)
@@ -67,7 +66,7 @@ func Scan(cmd *cobra.Command, args []string) {
 
 	version := helper.DetermineVersion(options.GitlabUrl, options.GitlabApiToken)
 	log.Info().Str("version", version.Version).Str("revision", version.Revision).Msg("Gitlab Version Check")
-	scanner.ScanGitLabPipelines(&options)
+	ScanGitLabPipelines(&options)
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
 }
 
@@ -81,6 +80,6 @@ func parseFileSize(size string) int64 {
 }
 
 func scanStatus() *zerolog.Event {
-	queueLength := scanner.GetQueueStatus()
+	queueLength := GetQueueStatus()
 	return log.Info().Int("pendingjobs", queueLength)
 }

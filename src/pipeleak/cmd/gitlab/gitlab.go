@@ -2,6 +2,8 @@ package gitlab
 
 import (
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/runners"
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/scan"
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/secureFiles"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -18,13 +20,13 @@ func NewGitLabRootCmd() *cobra.Command {
 		Short: "GitLab related commands",
 	}
 
-	glCmd.AddCommand(NewScanCmd())
+	glCmd.AddCommand(scan.NewScanCmd())
 	glCmd.AddCommand(NewShodanCmd())
 	glCmd.AddCommand(runners.NewRunnersRootCmd())
 	glCmd.AddCommand(NewRegisterCmd())
 	glCmd.AddCommand(NewVulnCmd())
 	glCmd.AddCommand(NewVariablesCmd())
-	glCmd.AddCommand(NewSecureFilesCmd())
+	glCmd.AddCommand(securefiles.NewSecureFilesCmd())
 	glCmd.AddCommand(NewEnumCmd())
 
 	glCmd.PersistentFlags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
