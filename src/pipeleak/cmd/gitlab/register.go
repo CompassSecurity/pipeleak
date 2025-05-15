@@ -1,10 +1,10 @@
 package gitlab
 
 import (
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
 )
 
 var (
