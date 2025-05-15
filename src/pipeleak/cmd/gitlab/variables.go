@@ -1,11 +1,11 @@
 package gitlab
 
 import (
-	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"gitlab.com/gitlab-org/api/client-go"
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
 )
 
 func NewVariablesCmd() *cobra.Command {
@@ -39,7 +39,7 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 
 	log.Info().Msg("Fetching project variables")
 
-	git, err := helper.GetGitlabClient(gitlabApiToken, gitlabUrl)
+	git, err := util.GetGitlabClient(gitlabApiToken, gitlabUrl)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("failed creating gitlab client")
 	}

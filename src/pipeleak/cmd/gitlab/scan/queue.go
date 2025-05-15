@@ -24,7 +24,7 @@ import (
 	"github.com/nsqio/go-diskqueue"
 	"github.com/rs/zerolog/log"
 	"github.com/wandb/parallel"
-	"gitlab.com/gitlab-org/api/client-go"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
 type QueueItemType string
@@ -272,7 +272,7 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 
 	req.AddCookie(&http.Cookie{Name: "_gitlab_session", Value: cookieVal})
 
-	client := helper.GetNonVerifyingHTTPClient()
+	client := helper.GetPipeleakHTTPClient()
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Debug().Stack().Err(err).Msg("Failed requesting dotenv artifact")

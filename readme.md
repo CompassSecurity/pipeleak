@@ -89,9 +89,20 @@ You can tweak `--threads`, `--max-artifact-size` and `--job-limit` to obtain a c
 
 `enum` command: Enumerate user permissions and accesss
 
-Setting an HTTP proxy is possible by setting the environment variable `HTTP_PROXY` e.g. to route through Burp:
+### GitLab Proxy Support
+
+> **Note:** Proxying is currently supported only for GitLab commands.
+
+Since Go binaries aren't compatible with Proxychains, you can set a proxy using the HTTP_PROXY environment variable.
+
+For HTTP proxy (e.g., Burp Suite):
 ```bash
 HTTP_PROXY=http://127.0.0.1:8080 pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com
+```
+
+For SOCKS5 proxy:
+```bash
+HTTP_PROXY=socks5://127.0.0.1:8080 pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com
 ```
 
 ## GitHub

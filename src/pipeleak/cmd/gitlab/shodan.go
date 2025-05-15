@@ -124,7 +124,7 @@ func isRegistrationEnabled(base string) (bool, error) {
 	u.Path = path.Join(u.Path, "/users/somenotexistigusr/exists")
 	s := u.String()
 
-	client := helper.GetNonVerifyingHTTPClient()
+	client := helper.GetPipeleakHTTPClient()
 	res, err := client.Get(s)
 
 	if err != nil {
@@ -156,7 +156,7 @@ func checkNrPublicRepos(base string) (int, error) {
 		return 0, err
 	}
 
-	client := helper.GetNonVerifyingHTTPClient()
+	client := helper.GetPipeleakHTTPClient()
 	u.Path = "/api/v4/projects"
 	s := u.String()
 	res, err := client.Get(s + "?per_page=100")
