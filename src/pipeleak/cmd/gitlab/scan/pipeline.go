@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/CompassSecurity/pipeleak/scanner"
 	"github.com/nsqio/go-diskqueue"
@@ -43,7 +44,7 @@ func ScanGitLabPipelines(options *ScanOptions) {
 		log.Info().Msg("TruffleHog verification is disabled")
 	}
 
-	git, err := helper.GetGitlabClient(options.GitlabApiToken, options.GitlabUrl)
+	git, err := util.GetGitlabClient(options.GitlabApiToken, options.GitlabUrl)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed creating gitlab client")
 	}
@@ -91,7 +92,7 @@ func fetchProjects(git *gitlab.Client, options *ScanOptions, wg *sync.WaitGroup)
 	log.Info().Msg("Fetching projects")
 
 	if len(options.GitlabCookie) > 0 {
-		helper.CookieSessionValid(options.GitlabUrl, options.GitlabCookie)
+		util.CookieSessionValid(options.GitlabUrl, options.GitlabCookie)
 	}
 
 	if len(options.ProjectSearchQuery) > 0 {

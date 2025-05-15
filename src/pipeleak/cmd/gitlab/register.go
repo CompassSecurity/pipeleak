@@ -4,6 +4,7 @@ import (
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
 )
 
 var (
@@ -48,5 +49,5 @@ func NewRegisterCmd() *cobra.Command {
 
 func Register(cmd *cobra.Command, args []string) {
 	helper.SetLogLevel(verbose)
-	helper.RegisterNewAccount(gitlabUrl, username, password, email)
+	util.RegisterNewAccount(gitlabUrl, username, password, email)
 }

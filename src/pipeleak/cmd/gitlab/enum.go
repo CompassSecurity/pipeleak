@@ -7,10 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
+
 	"resty.dev/v3"
 )
 
@@ -43,7 +45,7 @@ func NewEnumCmd() *cobra.Command {
 
 func Enum(cmd *cobra.Command, args []string) {
 	helper.SetLogLevel(verbose)
-	git, err := helper.GetGitlabClient(gitlabApiToken, gitlabUrl)
+	git, err := util.GetGitlabClient(gitlabApiToken, gitlabUrl)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("failed creating gitlab client")
 	}

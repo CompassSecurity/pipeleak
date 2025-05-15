@@ -37,6 +37,7 @@ type GitHubScanOptions struct {
 	Artifacts              bool
 	Context                context.Context
 	Client                 *github.Client
+	HttpClient             *http.Client
 }
 
 var options = GitHubScanOptions{}
@@ -76,6 +77,7 @@ func Scan(cmd *cobra.Command, args []string) {
 
 	options.Context = context.WithValue(context.Background(), github.BypassRateLimitCheck, true)
 	options.Client = setupClient(options.AccessToken)
+	options.HttpClient = helper.GetPipeleakHTTPClient()
 	scan(options.Client)
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
 }
@@ -356,8 +358,7 @@ func downloadWorkflowRunLog(client *github.Client, repo *github.Repository, work
 }
 
 func downloadRunLogZIP(url string) []byte {
-	client := helper.GetNonVerifyingHTTPClient()
-	res, err := client.Get(url)
+	res, err := options.HttpClient.Get(url)
 	logLines := make([]byte, 0)
 
 	if err != nil {
@@ -471,8 +472,7 @@ func analyzeArtifact(client *github.Client, workflowRun *github.WorkflowRun, art
 		return
 	}
 
-	httpClient := helper.GetNonVerifyingHTTPClient()
-	res, err := httpClient.Get(url.String())
+	res, err := options.HttpClient.Get(url.String())
 
 	if err != nil {
 		log.Err(err).Str("workflow", url.String()).Msg("Failed downloading artifacts zip")

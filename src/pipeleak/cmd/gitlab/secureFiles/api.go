@@ -17,7 +17,7 @@ func GetSecureFiles(projectId int, base string, token string) (error, []int64) {
 		return err, []int64{}
 	}
 
-	client := helper.GetNonVerifyingHTTPClient()
+	client := helper.GetPipeleakHTTPClient()
 	// https://docs.gitlab.com/ee/api/secure_files.html#download-secure-file
 	// pagination does not exist here
 	u.Path = "/api/v4/projects/" + strconv.Itoa(projectId) + "/secure_files"
@@ -58,7 +58,7 @@ func DownloadSecureFile(projectId int, fileId int64, base string, token string) 
 		return err, []byte{}, ""
 	}
 
-	client := helper.GetNonVerifyingHTTPClient()
+	client := helper.GetPipeleakHTTPClient()
 	// https://docs.gitlab.com/ee/api/secure_files.html#download-secure-file
 	u.Path = "/api/v4/projects/" + strconv.Itoa(projectId) + "/secure_files/" + strconv.Itoa(int(fileId)) + "/download"
 	s := u.String()

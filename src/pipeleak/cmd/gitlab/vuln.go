@@ -2,7 +2,7 @@ package gitlab
 
 import (
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/nist"
-	"github.com/CompassSecurity/pipeleak/helper"
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -38,7 +38,7 @@ func CheckVulns(cmd *cobra.Command, args []string) {
 		log.Debug().Msg("Verbose log output enabled")
 	}
 
-	installedVersion := helper.DetermineVersion(gitlabUrl, gitlabApiToken)
+	installedVersion := util.DetermineVersion(gitlabUrl, gitlabApiToken)
 	log.Info().Str("version", installedVersion.Version).Msg("GitLab")
 
 	log.Info().Str("version", installedVersion.Version).Msg("Fetching CVEs for this version")
