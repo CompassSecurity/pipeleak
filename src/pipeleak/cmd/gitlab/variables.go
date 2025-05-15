@@ -1,11 +1,11 @@
 package gitlab
 
 import (
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"gitlab.com/gitlab-org/api/client-go"
-	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
 )
 
 func NewVariablesCmd() *cobra.Command {
