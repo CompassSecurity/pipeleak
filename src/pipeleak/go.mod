@@ -10,11 +10,12 @@ require (
 	github.com/docker/go-units v0.5.0
 	github.com/gofri/go-github-ratelimit/v2 v2.0.2
 	github.com/google/go-github/v69 v69.2.0
+	github.com/headzoo/surf v1.0.1
 	github.com/rs/zerolog v1.34.0
 	github.com/rxwycdh/rxhash v0.0.0-20230131062142-10b7a38b400d
 	github.com/spf13/cobra v1.9.1
 	github.com/tidwall/gjson v1.18.0
-	github.com/trufflesecurity/trufflehog/v3 v3.88.29
+	github.com/trufflesecurity/trufflehog/v3 v3.88.31
 	gitlab.com/gitlab-org/api/client-go v0.128.0
 	gitlab.com/mitchenielsen/gitlab-ci-go v0.0.4
 	golang.org/x/term v0.32.0
@@ -110,7 +111,6 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
-	github.com/headzoo/surf v1.0.1 // indirect
 	github.com/headzoo/ut v0.0.0-20181013193318-a13b5a7a02ca // indirect
 	github.com/jlaffaye/ftp v0.2.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
@@ -196,6 +196,5 @@ require (
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
-	gopkg.in/headzoo/surf.v1 v1.0.1
 	gopkg.in/yaml.v3 v3.0.1
 )
