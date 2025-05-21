@@ -360,6 +360,12 @@ func HandleArchiveArtifact(archivefileName string, content []byte, jobWebUrl str
 				log.Debug().Str("file", fPath).Stack().Str("err", err.Error()).Msg("Cannot read temp artifact archive file content")
 			}
 
+			// recursively extract archives
+			if filetype.IsArchive(fileBytes) {
+				log.Trace().Str("fileName", archivefileName).Msg("Detected archive, recursing")
+				HandleArchiveArtifact(archivefileName, fileBytes, jobWebUrl, jobName, enableTruffleHogVerification)
+			}
+
 			kind, _ := filetype.Match(fileBytes)
 			if kind == filetype.Unknown {
 				DetectFileHits(fileBytes, jobWebUrl, jobName, path.Base(fPath), archivefileName, enableTruffleHogVerification)
