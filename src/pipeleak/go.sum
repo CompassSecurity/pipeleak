@@ -562,8 +562,8 @@ github.com/tklauser/go-sysconf v0.3.12 h1:0QaGUFOdQaIVdPgfITYzaTegZvdCjmYO52cSFA
 github.com/tklauser/go-sysconf v0.3.12/go.mod h1:Ho14jnntGE1fpdOqQEEaiKRpvIavV0hSfmBq8nJbHYI=
 github.com/tklauser/numcpus v0.6.1 h1:ng9scYS7az0Bk4OZLvrNXNSAO2Pxr1XXRAPyjhIx+Fk=
 github.com/tklauser/numcpus v0.6.1/go.mod h1:1XfjsgE2zo8GVw7POkMbHENHzVg3GzmoZ9fESEdAacY=
-github.com/trufflesecurity/trufflehog/v3 v3.88.31 h1:ZVoBMAG1l/eIVDIggl7/5EC55UeDrLOHdvI6uu19nKE=
-github.com/trufflesecurity/trufflehog/v3 v3.88.31/go.mod h1:atHKAg/ncDYvHDeS3tgXI9ZaspZUB+k/2Pb7L5Xsywc=
+github.com/trufflesecurity/trufflehog/v3 v3.88.33 h1:zHB8odfGlmqAJR0TbN6B5+dyUjGDANJvzhA6wmZnNBs=
+github.com/trufflesecurity/trufflehog/v3 v3.88.33/go.mod h1:atHKAg/ncDYvHDeS3tgXI9ZaspZUB+k/2Pb7L5Xsywc=
 github.com/ugorji/go/codec v1.2.7 h1:YPXUKf7fYbp/y8xloBqZOw2qaVggbfwMlI8WM3wZUJ0=
 github.com/ugorji/go/codec v1.2.7/go.mod h1:WGN1fab3R1fzQlVQTkfxVtIBhWDRqOviHU95kRgeqEY=
 github.com/ulikunitz/xz v0.5.12 h1:37Nm15o69RwBkXM0J6A5OlE67RZTfzUxTj8fB3dfcsc=
