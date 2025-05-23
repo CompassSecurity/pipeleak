@@ -15,7 +15,7 @@ require (
 	github.com/rxwycdh/rxhash v0.0.0-20230131062142-10b7a38b400d
 	github.com/spf13/cobra v1.9.1
 	github.com/tidwall/gjson v1.18.0
-	github.com/trufflesecurity/trufflehog/v3 v3.88.31
+	github.com/trufflesecurity/trufflehog/v3 v3.88.34
 	gitlab.com/gitlab-org/api/client-go v0.129.0
 	gitlab.com/mitchenielsen/gitlab-ci-go v0.0.4
 	golang.org/x/term v0.32.0
