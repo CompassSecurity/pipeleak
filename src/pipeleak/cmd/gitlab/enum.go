@@ -135,12 +135,14 @@ func enumCurrentToken(client resty.Client, baseUrl string, pat string) {
 		SetResult(currentToken).
 		Get(u.String())
 
-	if res.StatusCode() != 200 {
-		log.Error().Stack().Any("any", res.RawResponse.Body).Msg("Failed fetching token associations")
-	}
-
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("Failed fetching token associations")
+		log.Error().Err(err).Str("url", u.String()).Msg("Failed fetching token details (network or client error)")
+		return
+	}
+	
+	if res != nil && res.StatusCode() != 200 {
+		log.Error().Int("status", res.StatusCode()).Str("url", u.String()).Str("response", res.String()).Msg("Failed fetching token details (HTTP error)")
+		return
 	}
 
 	log.Warn().
@@ -173,12 +175,13 @@ func listTokenAssociations(client resty.Client, baseUrl string, pat string, acce
 		SetQueryParam("page", strconv.Itoa(page)).
 		Get(u.String())
 
-	if res.StatusCode() != 200 {
-		log.Error().Stack().Str("Str", res.String()).Int("code", res.StatusCode()).Msg("Failed fetching token associations")
-	}
-
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("Failed fetching token associations")
+		log.Error().Err(err).Str("url", u.String()).Msg("Failed fetching token associations (network or client error)")
+		return -1
+	}
+	if res != nil && res.StatusCode() != 200 {
+		log.Error().Int("status", res.StatusCode()).Str("url", u.String()).Str("response", res.String()).Msg("Failed fetching token associations (HTTP error)")
+		return -1
 	}
 
 	for _, group := range resp.Groups {
