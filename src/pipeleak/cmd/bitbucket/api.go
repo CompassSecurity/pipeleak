@@ -28,7 +28,7 @@ func NewClient(username string, password string, bitBucketCookie string) BitBuck
 			{
 				Name:  "cloud.session.token",
 				Value: bitBucketCookie,
-				Path:  "/!api/internal",
+				Path:  "/!api",
 			},
 		})
 		client.SetCookieJar(jar)
@@ -251,4 +251,22 @@ func (a BitBucketApiClient) GetPipelineArtifact(workspaceSlug string, repoSlug s
 	}
 
 	return bodyBytes
+}
+
+// Internal API: GET https://bitbucket.org/!api/2.0/user/emails
+func (a BitBucketApiClient) GetuserInfo() {
+	resp := &UserInfo{}
+	res, err := a.Client.R().
+		SetResult(resp).
+		Get("https://bitbucket.org/!api/2.0/user")
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed get user info (network or client error)")
+	}
+
+	if res != nil && res.StatusCode() != 200 {
+		log.Fatal().Int("status", res.StatusCode()).Msg("Failed to get user info (HTTP error). Check your cookie supplied with the -c flag! See the help menu for more information.")
+	}
+
+	log.Info().Str("username", resp.Username).Str("type", resp.Type).Msg("BitBucket session cookie is valid")
 }

@@ -325,3 +325,37 @@ type DownloadArtifact struct {
 	} `json:"links"`
 	Type string `json:"type"`
 }
+
+type UserInfo struct {
+	DisplayName string `json:"display_name"`
+	Links       struct {
+		Self struct {
+			Href string `json:"href"`
+		} `json:"self"`
+		Avatar struct {
+			Href string `json:"href"`
+		} `json:"avatar"`
+		Repositories struct {
+			Href string `json:"href"`
+		} `json:"repositories"`
+		Snippets struct {
+			Href string `json:"href"`
+		} `json:"snippets"`
+		HTML struct {
+			Href string `json:"href"`
+		} `json:"html"`
+		Hooks struct {
+			Href string `json:"href"`
+		} `json:"hooks"`
+	} `json:"links"`
+	CreatedOn     time.Time   `json:"created_on"`
+	Type          string      `json:"type"`
+	UUID          string      `json:"uuid"`
+	Has2FaEnabled bool        `json:"has_2fa_enabled"`
+	Username      string      `json:"username"`
+	IsStaff       bool        `json:"is_staff"`
+	AccountID     string      `json:"account_id"`
+	Nickname      string      `json:"nickname"`
+	AccountStatus string      `json:"account_status"`
+	Location      interface{} `json:"location"`
+}

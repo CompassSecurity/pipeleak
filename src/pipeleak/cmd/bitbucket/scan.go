@@ -72,6 +72,10 @@ func Scan(cmd *cobra.Command, args []string) {
 	options.Context = context.Background()
 	options.Client = NewClient(options.Username, options.AccessToken, options.BitBucketCookie)
 
+	if len(options.BitBucketCookie) > 0 {
+		options.Client.GetuserInfo()
+	}
+
 	if options.Public {
 		log.Info().Msg("Scanning public repos")
 		scanPublic(options.Client, options.After)
