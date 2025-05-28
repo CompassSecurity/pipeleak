@@ -147,6 +147,11 @@ func (a BitBucketApiClient) ListRepositoryPipelines(nextPageUrl string, workspac
 		log.Error().Err(err).Str("url", reqUrl).Msg("Failed to list repository pipelines (network or client error)")
 	}
 
+	// if pipelines are not active silently continue
+	if res != nil && res.StatusCode() == 404 {
+		return resp.Values, resp.Next, res, err
+	}
+
 	if res != nil && res.StatusCode() >= 400 {
 		log.Error().Int("status", res.StatusCode()).Str("url", reqUrl).Str("response", res.String()).Msg("Failed to list repository pipelines (HTTP error)")
 	}
@@ -199,6 +204,11 @@ func (a BitBucketApiClient) GetStepLog(workspaceSlug string, repoSlug string, pi
 		log.Error().Err(err).Str("url", u.String()).Msg("Failed to get step log (network or client error)")
 	}
 
+	// if step log is missing silently continue
+	if res != nil && res.StatusCode() == 404 {
+		return res.Bytes(), res, err
+	}
+
 	if res != nil && res.StatusCode() >= 400 {
 		log.Error().Int("status", res.StatusCode()).Str("url", u.String()).Str("response", res.String()).Msg("Failed to get step log (HTTP error)")
 	}
@@ -242,7 +252,7 @@ func (a BitBucketApiClient) GetDownloadArtifact(url string) []byte {
 		log.Error().Err(err).Str("url", url).Msg("Failed downloading Download Artifact (network or client error)")
 		return []byte{}
 	}
-	
+
 	if res != nil && res.StatusCode() >= 400 {
 		log.Error().Int("status", res.StatusCode()).Str("url", url).Str("response", res.String()).Msg("Failed downloading Download Artifact (HTTP error)")
 		return []byte{}

@@ -176,10 +176,6 @@ func listRepoPipelines(client BitBucketApiClient, workspaceSlug string, repoSlug
 			log.Error().Err(err).Msg("Failed fetching repo pipelines")
 		}
 
-		if len(pipelines) == 0 {
-			log.Trace().Msg("No pipelines")
-		}
-
 		for _, pipeline := range pipelines {
 			log.Trace().Int("buildNr", pipeline.BuildNumber).Str("uuid", pipeline.UUID).Msg("Pipeline")
 			listPipelineSteps(client, workspaceSlug, repoSlug, pipeline.UUID)
