@@ -42,6 +42,14 @@ func (a BitBucketApiClient) ListOwnedWorkspaces(nextPageUrl string) ([]Workspace
 		SetResult(resp).
 		Get(url)
 
+	if err != nil {
+		log.Error().Err(err).Str("url", url).Msg("Failed to list owned workspaces (network or client error)")
+	}
+
+	if res != nil && res.StatusCode() >= 400 {
+		log.Error().Int("status", res.StatusCode()).Str("url", url).Str("response", res.String()).Msg("Failed to list owned workspaces (HTTP error)")
+	}
+
 	return resp.Values, resp.Next, res, err
 }
 
@@ -65,6 +73,14 @@ func (a BitBucketApiClient) ListWorkspaceRepositoires(nextPageUrl string, worksp
 		SetResult(resp).
 		Get(reqUrl)
 
+	if err != nil {
+		log.Error().Err(err).Str("url", reqUrl).Msg("Failed to list workspace repositories (network or client error)")
+	}
+
+	if res != nil && res.StatusCode() >= 400 {
+		log.Error().Int("status", res.StatusCode()).Str("url", reqUrl).Str("response", res.String()).Msg("Failed to list workspace repositories (HTTP error)")
+	}
+
 	return resp.Values, resp.Next, res, err
 }
 
@@ -85,9 +101,24 @@ func (a BitBucketApiClient) ListPublicRepositories(nextPageUrl string, after tim
 	// only set it initially after that the next url does use the after query param for paging
 	if nextPageUrl == "" {
 		res, err := a.Client.R().SetResult(resp).SetQueryParam("after", after.Format(time.RFC3339)).Get(reqUrl)
+		if err != nil {
+			log.Error().Err(err).Str("url", reqUrl).Msg("Failed to list public repositories (network or client error)")
+		}
+
+		if res != nil && res.StatusCode() >= 400 {
+			log.Error().Int("status", res.StatusCode()).Str("url", reqUrl).Str("response", res.String()).Msg("Failed to list public repositories (HTTP error)")
+		}
+
 		return resp.Values, resp.Next, res, err
 	} else {
 		res, err := a.Client.R().SetResult(resp).Get(reqUrl)
+		if err != nil {
+			log.Error().Err(err).Str("url", reqUrl).Msg("Failed to list public repositories (network or client error)")
+		}
+
+		if res != nil && res.StatusCode() >= 400 {
+			log.Error().Int("status", res.StatusCode()).Str("url", reqUrl).Str("response", res.String()).Msg("Failed to list public repositories (HTTP error)")
+		}
 		return resp.Values, resp.Next, res, err
 	}
 }
@@ -112,6 +143,19 @@ func (a BitBucketApiClient) ListRepositoryPipelines(nextPageUrl string, workspac
 		SetResult(resp).
 		Get(reqUrl)
 
+	if err != nil {
+		log.Error().Err(err).Str("url", reqUrl).Msg("Failed to list repository pipelines (network or client error)")
+	}
+
+	// if pipelines are not active silently continue
+	if res != nil && res.StatusCode() == 404 {
+		return resp.Values, resp.Next, res, err
+	}
+
+	if res != nil && res.StatusCode() >= 400 {
+		log.Error().Int("status", res.StatusCode()).Str("url", reqUrl).Str("response", res.String()).Msg("Failed to list repository pipelines (HTTP error)")
+	}
+
 	return resp.Values, resp.Next, res, err
 }
 
@@ -134,6 +178,14 @@ func (a BitBucketApiClient) ListPipelineSteps(nextPageUrl string, workspaceSlug 
 		SetResult(resp).
 		Get(reqUrl)
 
+	if err != nil {
+		log.Error().Err(err).Str("url", reqUrl).Msg("Failed to list pipeline steps (network or client error)")
+	}
+
+	if res != nil && res.StatusCode() >= 400 {
+		log.Error().Int("status", res.StatusCode()).Str("url", reqUrl).Str("response", res.String()).Msg("Failed to list pipeline steps (HTTP error)")
+	}
+
 	return resp.Values, resp.Next, res, err
 }
 
@@ -147,6 +199,19 @@ func (a BitBucketApiClient) GetStepLog(workspaceSlug string, repoSlug string, pi
 
 	res, err := a.Client.R().
 		Get(u.String())
+
+	if err != nil {
+		log.Error().Err(err).Str("url", u.String()).Msg("Failed to get step log (network or client error)")
+	}
+
+	// if step log is missing silently continue
+	if res != nil && res.StatusCode() == 404 {
+		return res.Bytes(), res, err
+	}
+
+	if res != nil && res.StatusCode() >= 400 {
+		log.Error().Int("status", res.StatusCode()).Str("url", u.String()).Str("response", res.String()).Msg("Failed to get step log (HTTP error)")
+	}
 
 	return res.Bytes(), res, err
 }
@@ -170,13 +235,26 @@ func (a BitBucketApiClient) ListDownloadArtifacts(nextPageUrl string, workspaceS
 		SetResult(resp).
 		Get(reqUrl)
 
+	if err != nil {
+		log.Error().Err(err).Str("url", reqUrl).Msg("Failed to list download artifacts (network or client error)")
+	}
+
+	if res != nil && res.StatusCode() >= 400 {
+		log.Error().Int("status", res.StatusCode()).Str("url", reqUrl).Str("response", res.String()).Msg("Failed to list download artifacts (HTTP error)")
+	}
+
 	return resp.Values, resp.Next, res, err
 }
 
 func (a BitBucketApiClient) GetDownloadArtifact(url string) []byte {
 	res, err := a.Client.R().Get(url)
 	if err != nil {
-		log.Error().Err(err).Str("url", url).Msg("Failed downloading Download Artifact")
+		log.Error().Err(err).Str("url", url).Msg("Failed downloading Download Artifact (network or client error)")
+		return []byte{}
+	}
+
+	if res != nil && res.StatusCode() >= 400 {
+		log.Error().Int("status", res.StatusCode()).Str("url", url).Str("response", res.String()).Msg("Failed downloading Download Artifact (HTTP error)")
 		return []byte{}
 	}
 

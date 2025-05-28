@@ -43,8 +43,12 @@ func (a AzureDevOpsApiClient) GetAuthenticatedUser() (*AuthenticatedUser, *resty
 		SetResult(user).
 		Get(reqUrl)
 
-	if res.StatusCode() > 400 {
-		log.Fatal().Int("status", res.StatusCode()).Str("response", res.String()).Msg("Failed fetching authenticated user")
+	if err != nil {
+		log.Error().Err(err).Str("url", reqUrl).Msg("Failed fetching authenticated user (network or client error)")
+	}
+
+	if res != nil && res.StatusCode() > 400 {
+		log.Error().Int("status", res.StatusCode()).Str("url", reqUrl).Str("response", res.String()).Msg("Failed fetching authenticated user (HTTP error)")
 	}
 
 	return user, res, err
@@ -65,8 +69,12 @@ func (a AzureDevOpsApiClient) ListAccounts(ownerId string) ([]Account, *resty.Re
 		SetResult(resp).
 		Get(reqUrl)
 
-	if res.StatusCode() > 400 {
-		log.Fatal().Int("status", res.StatusCode()).Str("ownerId", ownerId).Msg("Fetching accounts failed")
+	if err != nil {
+		log.Error().Err(err).Str("url", reqUrl).Msg("Fetching accounts failed (network or client error)")
+	}
+
+	if res != nil && res.StatusCode() > 400 {
+		log.Error().Int("status", res.StatusCode()).Str("url", reqUrl).Str("ownerId", ownerId).Str("response", res.String()).Msg("Fetching accounts failed (HTTP error)")
 	}
 
 	return resp.Value, res, err
@@ -90,8 +98,12 @@ func (a AzureDevOpsApiClient) ListProjects(continuationToken string, organizatio
 		SetResult(resp).
 		Get(reqUrl)
 
-	if res.StatusCode() == 404 || res.StatusCode() == 401 {
-		log.Fatal().Int("status", res.StatusCode()).Str("organization", organization).Msg("Projects list does not exist or you do not have access")
+	if err != nil {
+		log.Error().Err(err).Str("url", reqUrl).Str("organization", organization).Msg("Failed to list projects (network or client error)")
+	}
+
+	if res != nil && (res.StatusCode() == 404 || res.StatusCode() == 401) {
+		log.Error().Int("status", res.StatusCode()).Str("organization", organization).Str("url", reqUrl).Str("response", res.String()).Msg("Projects list does not exist or you do not have access (HTTP error)")
 	}
 
 	return resp.Value, res, res.Header().Get("x-ms-continuationtoken"), err
@@ -116,8 +128,12 @@ func (a AzureDevOpsApiClient) ListBuilds(continuationToken string, organization 
 		SetResult(resp).
 		Get(reqUrl)
 
-	if res.StatusCode() == 404 || res.StatusCode() == 401 {
-		log.Fatal().Int("status", res.StatusCode()).Str("project", project).Str("organization", organization).Msg("Build list does not exist or you do not have access")
+	if err != nil {
+		log.Error().Err(err).Str("url", reqUrl).Str("organization", organization).Str("project", project).Msg("Failed to list builds (network or client error)")
+	}
+
+	if res != nil && (res.StatusCode() == 404 || res.StatusCode() == 401) {
+		log.Error().Int("status", res.StatusCode()).Str("organization", organization).Str("project", project).Str("url", reqUrl).Str("response", res.String()).Msg("Build list does not exist or you do not have access (HTTP error)")
 	}
 
 	return resp.Value, res, res.Header().Get("x-ms-continuationtoken"), err
@@ -141,8 +157,12 @@ func (a AzureDevOpsApiClient) ListBuildLogs(organization string, project string,
 		SetResult(resp).
 		Get(reqUrl)
 
-	if res.StatusCode() == 404 || res.StatusCode() == 401 {
-		log.Fatal().Int("status", res.StatusCode()).Str("project", project).Str("organization", organization).Msg("Build log list does not exist or you do not have access")
+	if err != nil {
+		log.Error().Err(err).Str("url", reqUrl).Str("organization", organization).Str("project", project).Msg("Failed to list build logs (network or client error)")
+	}
+
+	if res != nil && (res.StatusCode() == 404 || res.StatusCode() == 401) {
+		log.Error().Int("status", res.StatusCode()).Str("organization", organization).Str("project", project).Str("url", reqUrl).Str("response", res.String()).Msg("Build log list does not exist or you do not have access (HTTP error)")
 	}
 
 	return resp.Value, res, err
@@ -163,8 +183,12 @@ func (a AzureDevOpsApiClient) GetLog(organization string, project string, buildI
 		SetQueryParam("api-version", "7.2-preview.2").
 		Get(reqUrl)
 
-	if res.StatusCode() == 404 || res.StatusCode() == 401 {
-		log.Error().Int("status", res.StatusCode()).Str("project", project).Str("organization", organization).Msg("Log does not exist or you do not have access")
+	if err != nil {
+		log.Error().Err(err).Str("url", reqUrl).Str("organization", organization).Str("project", project).Msg("Failed to get build log (network or client error)")
+	}
+
+	if res != nil && (res.StatusCode() == 404 || res.StatusCode() == 401) {
+		log.Error().Int("status", res.StatusCode()).Str("organization", organization).Str("project", project).Str("url", reqUrl).Str("response", res.String()).Msg("Log does not exist or you do not have access (HTTP error)")
 	}
 
 	return res.Bytes(), res, err
@@ -174,8 +198,12 @@ func (a AzureDevOpsApiClient) DownloadArtifactZip(url string) ([]byte, *resty.Re
 	res, err := a.Client.R().
 		Get(url)
 
-	if res.StatusCode() == 404 || res.StatusCode() == 401 {
-		log.Error().Int("status", res.StatusCode()).Str("url", url).Msg("Failed downloading artifact zip")
+	if err != nil {
+		log.Error().Err(err).Str("url", url).Msg("Failed downloading artifact zip (network or client error)")
+	}
+
+	if res != nil && (res.StatusCode() == 404 || res.StatusCode() == 401) {
+		log.Error().Int("status", res.StatusCode()).Str("url", url).Str("response", res.String()).Msg("Failed downloading artifact zip (HTTP error)")
 	}
 
 	return res.Bytes(), res, err
@@ -200,8 +228,12 @@ func (a AzureDevOpsApiClient) ListBuildArtifacts(continuationToken string, organ
 		SetResult(resp).
 		Get(reqUrl)
 
-	if res.StatusCode() == 404 || res.StatusCode() == 401 {
-		log.Fatal().Int("status", res.StatusCode()).Str("project", project).Str("organization", organization).Msg("Build artifacts list does not exist or you do not have access")
+	if err != nil {
+		log.Error().Err(err).Str("url", reqUrl).Str("organization", organization).Str("project", project).Msg("Failed to list build artifacts (network or client error)")
+	}
+	
+	if res != nil && (res.StatusCode() == 404 || res.StatusCode() == 401) {
+		log.Error().Int("status", res.StatusCode()).Str("organization", organization).Str("project", project).Str("url", reqUrl).Str("response", res.String()).Msg("Build artifacts list does not exist or you do not have access (HTTP error)")
 	}
 
 	return resp.Value, res, res.Header().Get("x-ms-continuationtoken"), err

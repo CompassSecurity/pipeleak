@@ -169,7 +169,12 @@ func DetectHitsWithTimeout(text []byte, maxThreads int, enableTruffleHogVerifica
 	for _, pattern := range secretsPatterns.Patterns {
 		group.Go(func(ctx context.Context) ([]Finding, error) {
 			findingsYml := []Finding{}
-			m := regexp.MustCompile(pattern.Pattern.Regex)
+			m, err := regexp.Compile(pattern.Pattern.Regex)
+			if err != nil {
+				log.Trace().Err(err).Str("name", pattern.Pattern.Name).Str("regex", pattern.Pattern.Regex).Msg("Failed compiling regex expression")
+				return findingsYml, nil
+			}
+
 			hits := m.FindAllIndex(text, -1)
 
 			for _, hit := range hits {
