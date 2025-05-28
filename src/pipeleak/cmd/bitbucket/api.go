@@ -2,8 +2,11 @@ package bitbucket
 
 import (
 	"io"
+	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"path"
+	"strconv"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -16,8 +19,23 @@ type BitBucketApiClient struct {
 	Client resty.Client
 }
 
-func NewClient(username string, password string) BitBucketApiClient {
-	bbClient := BitBucketApiClient{Client: *resty.New().SetBasicAuth(username, password).SetRedirectPolicy(resty.FlexibleRedirectPolicy(5))}
+func NewClient(username string, password string, bitBucketCookie string) BitBucketApiClient {
+	client := *resty.New().SetBasicAuth(username, password).SetRedirectPolicy(resty.FlexibleRedirectPolicy(5))
+	if len(bitBucketCookie) > 0 {
+		jar, _ := cookiejar.New(nil)
+		targetURL, _ := url.Parse("https://bitbucket.org/")
+		jar.SetCookies(targetURL, []*http.Cookie{
+			{
+				Name:  "cloud.session.token",
+				Value: bitBucketCookie,
+				Path:  "/!api",
+			},
+		})
+		client.SetCookieJar(jar)
+		log.Debug().Msg("Added cloud.session.token to HTTP client")
+	}
+
+	bbClient := BitBucketApiClient{Client: client}
 	bbClient.Client.AddRetryHooks(
 		func(res *resty.Response, err error) {
 			if 429 == res.StatusCode() {
@@ -265,4 +283,68 @@ func (a BitBucketApiClient) GetDownloadArtifact(url string) []byte {
 	}
 
 	return bodyBytes
+}
+
+// Internal API: https://bitbucket.org/!api/internal/repositories/{workspace}/{repo}/pipelines/{buildNumber}/artifacts
+func (a BitBucketApiClient) ListPipelineArtifacts(nextPageUrl string, workspaceSlug string, repoSlug string, buildNumber int) ([]Artifact, string, *resty.Response, error) {
+	reqUrl := ""
+	if nextPageUrl != "" {
+		reqUrl = nextPageUrl
+	} else {
+		u, err := url.Parse("https://bitbucket.org/!api/internal/repositories/")
+		if err != nil {
+			log.Fatal().Err(err).Msg("Unable to parse ListPipelineArtifacst url")
+		}
+		u.Path = path.Join(u.Path, workspaceSlug, repoSlug, "pipelines", strconv.Itoa(buildNumber), "artifacts")
+		reqUrl = u.String()
+	}
+
+	resp := &PaginatedResponse[Artifact]{}
+	res, err := a.Client.R().
+		SetResult(resp).
+		Get(reqUrl)
+
+	return resp.Values, resp.Next, res, err
+}
+
+// Internal API: https://bitbucket.org/!api/internal/repositories/{workspace}/{repo}/pipelines/{buildId}/artifacts/{ArtifactUUID}/content
+func (a BitBucketApiClient) GetPipelineArtifact(workspaceSlug string, repoSlug string, buildNumber int, artifactUUID string) []byte {
+
+	u, err := url.Parse("https://bitbucket.org/!api/internal/repositories/")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to parse GetPipelineArtifact url")
+	}
+	u.Path = path.Join(u.Path, workspaceSlug, repoSlug, "pipelines", strconv.Itoa(buildNumber), "artifacts", artifactUUID, "content")
+
+	res, err := a.Client.R().Get(u.String())
+	if err != nil {
+		log.Error().Err(err).Str("url", u.String()).Msg("Failed downloading pipeline artifact")
+		return []byte{}
+	}
+
+	bodyBytes, err := io.ReadAll(res.Body)
+	if err != nil {
+		log.Error().Err(err).Str("url", u.String()).Msg("Failed reading pipeline artifact response")
+		return []byte{}
+	}
+
+	return bodyBytes
+}
+
+// Internal API: GET https://bitbucket.org/!api/2.0/user/emails
+func (a BitBucketApiClient) GetuserInfo() {
+	resp := &UserInfo{}
+	res, err := a.Client.R().
+		SetResult(resp).
+		Get("https://bitbucket.org/!api/2.0/user")
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed get user info (network or client error)")
+	}
+
+	if res != nil && res.StatusCode() != 200 {
+		log.Fatal().Int("status", res.StatusCode()).Msg("Failed to get user info (HTTP error). Check your cookie supplied with the -c flag! See the help menu for more information.")
+	}
+
+	log.Info().Str("username", resp.Username).Str("type", resp.Type).Msg("BitBucket session cookie is valid")
 }

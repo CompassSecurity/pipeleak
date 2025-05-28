@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/url"
 	"path"
+	"strconv"
 	"time"
 
 	"github.com/CompassSecurity/pipeleak/helper"
@@ -29,6 +30,7 @@ type BitBucketScanOptions struct {
 	Artifacts              bool
 	Context                context.Context
 	Client                 BitBucketApiClient
+	BitBucketCookie        string
 }
 
 var options = BitBucketScanOptions{}
@@ -42,14 +44,17 @@ func NewScanCmd() *cobra.Command {
 	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "Bitbucket Application Password - https://bitbucket.org/account/settings/app-passwords/")
 	scanCmd.Flags().StringVarP(&options.Username, "username", "u", "", "Bitbucket Username")
 	scanCmd.MarkFlagsRequiredTogether("token", "username")
+	scanCmd.Flags().StringVarP(&options.BitBucketCookie, "cookie", "c", "", "Bitbucket Cookie [value of cloud.session.token on https://bitbucket.org]")
+	scanCmd.PersistentFlags().BoolVarP(&options.Artifacts, "artifacts", "a", false, "Scan workflow artifacts")
+	scanCmd.MarkFlagsRequiredTogether("cookie", "artifacts")
 
 	scanCmd.Flags().StringSliceVarP(&options.ConfidenceFilter, "confidence", "", []string{}, "Filter for confidence level, separate by comma if multiple. See readme for more info.")
 	scanCmd.PersistentFlags().IntVarP(&options.MaxScanGoRoutines, "threads", "", 4, "Nr of threads used to scan")
 	scanCmd.PersistentFlags().BoolVarP(&options.TruffleHogVerification, "truffleHogVerification", "", true, "Enable the TruffleHog credential verification, will actively test the found credentials and only report those. Disable with --truffleHogVerification=false")
 	scanCmd.PersistentFlags().IntVarP(&options.MaxPipelines, "maxPipelines", "", -1, "Max. number of pipelines to scan per repository")
-	scanCmd.PersistentFlags().BoolVarP(&options.Artifacts, "artifacts", "a", false, "Scan workflow artifacts")
+
 	scanCmd.Flags().StringVarP(&options.Workspace, "workspace", "w", "", "Workspace name to scan")
-	scanCmd.PersistentFlags().BoolVarP(&options.Owned, "owned", "", false, "Scan user onwed projects only")
+	scanCmd.PersistentFlags().BoolVarP(&options.Owned, "owned", "o", false, "Scan user onwed projects only")
 	scanCmd.PersistentFlags().BoolVarP(&options.Public, "public", "p", false, "Scan all public repositories")
 	scanCmd.PersistentFlags().StringVarP(&options.After, "after", "", "", "Filter public repos by a given date in ISO 8601 format: 2025-04-02T15:00:00+02:00 ")
 
@@ -65,7 +70,11 @@ func Scan(cmd *cobra.Command, args []string) {
 	scanner.InitRules(options.ConfidenceFilter)
 
 	options.Context = context.Background()
-	options.Client = NewClient(options.Username, options.AccessToken)
+	options.Client = NewClient(options.Username, options.AccessToken, options.BitBucketCookie)
+
+	if len(options.BitBucketCookie) > 0 {
+		options.Client.GetuserInfo()
+	}
 
 	if options.Public {
 		log.Info().Msg("Scanning public repos")
@@ -181,7 +190,7 @@ func listRepoPipelines(client BitBucketApiClient, workspaceSlug string, repoSlug
 			listPipelineSteps(client, workspaceSlug, repoSlug, pipeline.UUID)
 			if options.Artifacts {
 				log.Trace().Int("buildNr", pipeline.BuildNumber).Str("uuid", pipeline.UUID).Msg("Fetch pipeline artifacts")
-				//listArtifacts(client, workspaceSlug, repoSlug, pipeline.BuildNumber)
+				listArtifacts(client, workspaceSlug, repoSlug, pipeline.BuildNumber)
 				listDownloadArtifacts(client, workspaceSlug, repoSlug)
 			}
 
@@ -190,6 +199,27 @@ func listRepoPipelines(client BitBucketApiClient, workspaceSlug string, repoSlug
 				log.Debug().Str("workspace", workspaceSlug).Str("repo", repoSlug).Msg("Reached max pipelines runs, skip remaining")
 				return
 			}
+		}
+
+		if nextUrl == "" {
+			break
+		}
+		next = nextUrl
+	}
+}
+
+func listArtifacts(client BitBucketApiClient, workspaceSlug string, repoSlug string, buildId int) {
+	next := ""
+	for {
+		artifacts, nextUrl, _, err := client.ListPipelineArtifacts(next, workspaceSlug, repoSlug, buildId)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed fetching pipeline download artifacts")
+		}
+
+		for _, artifact := range artifacts {
+			log.Trace().Str("name", artifact.Name).Msg("Pipeline Artifact")
+			artifactBytes := client.GetPipelineArtifact(workspaceSlug, repoSlug, buildId, artifact.UUID)
+			scanner.HandleArchiveArtifact(artifact.Name, artifactBytes, buildWebArtifactUrl(workspaceSlug, repoSlug, buildId, artifact.StepUUID), "Build "+strconv.Itoa(buildId), options.TruffleHogVerification)
 		}
 
 		if nextUrl == "" {

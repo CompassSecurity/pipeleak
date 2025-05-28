@@ -312,6 +312,16 @@ func cleanHitLine(text string) string {
 var skippableDirectoryNames = []string{"node_modules", ".yarn", ".yarn-cache", ".npm", "venv", "vendor", ".go/pkg/mod/"}
 
 func HandleArchiveArtifact(archivefileName string, content []byte, jobWebUrl string, jobName string, enableTruffleHogVerification bool) {
+	HandleArchiveArtifactWithDepth(archivefileName, content, jobWebUrl, jobName, enableTruffleHogVerification, 1)
+}
+
+func HandleArchiveArtifactWithDepth(archivefileName string, content []byte, jobWebUrl string, jobName string, enableTruffleHogVerification bool, depth int) {
+	// Prevent infinite recursion in case of nested archives, make configurable when needed.
+	if depth > 10 {
+		log.Debug().Str("file", archivefileName).Int("recursionDepth", depth).Msg("Max archive recursion depth reached, skipping further extraction")
+		return
+	}
+
 	for _, skipKeyword := range skippableDirectoryNames {
 		if strings.Contains(archivefileName, skipKeyword) {
 			log.Debug().Str("file", archivefileName).Str("keyword", skipKeyword).Msg("Skipped archive due to blocklist entry")
@@ -363,6 +373,12 @@ func HandleArchiveArtifact(archivefileName string, content []byte, jobWebUrl str
 			fileBytes, err := os.ReadFile(fPath)
 			if err != nil {
 				log.Debug().Str("file", fPath).Stack().Str("err", err.Error()).Msg("Cannot read temp artifact archive file content")
+			}
+
+			// recursively extract archives
+			if filetype.IsArchive(fileBytes) {
+				log.Trace().Str("fileName", archivefileName).Msg("Detected archive, recursing")
+				HandleArchiveArtifactWithDepth(archivefileName, fileBytes, jobWebUrl, jobName, enableTruffleHogVerification, depth+1)
 			}
 
 			kind, _ := filetype.Match(fileBytes)
