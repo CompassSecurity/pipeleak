@@ -134,19 +134,19 @@ pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --user firefart
 
 ## BitBucket
 
-> BitBucket does [not offer](https://community.atlassian.com/forums/Bitbucket-questions/Re-Get-artifacts-produced-by-a-pipeline-via-Bitbucket-RE/qaq-p/2493300/comment-id/98001#M98001) a public API for artifacts. Only artifacts that were uploaded to the [Downloads](https://support.atlassian.com/bitbucket-cloud/docs/deploy-build-artifacts-to-bitbucket-downloads/) section can be scanned.
+> To scan artifacts internal APIs are called. Thus you need to extract the session cookie value `cloud.session.token` from https://bitbucket.org using your browser and supply it in the -c flag.
 
 Scan your owned repositories and their artifacts
 ```bash
-pipeleak bb scan --token xxxxxxxxxxx --username auser --owned --artifacts
+pipeleak bb scan -t xxxxxxxxxxx -c eyJxxxxxxxxxxx -u auser --owned --artifacts
 ```
 
-Scan a workspace (find public ones here: https://bitbucket.org/repo/all/)
+Scan a workspace (find public ones here: https://bitbucket.org/repo/all/) without artifacts
 ```bash
 pipeleak bb scan --token xxxxxxxxxxx --username auser --workspace bitbucketpipelines
 ```
 
-Scan all public repositories
+Scan all public repositories without their artifacts
 > If using `after`, the API becomes quite unreliable 👀
 ```bash
 pipeleak bb scan --token xxxxxxxxxxx --username auser --public --maxPipelines 5 --after 2025-03-01T15:00:00+00:00
