@@ -139,7 +139,7 @@ func enumCurrentToken(client resty.Client, baseUrl string, pat string) {
 		log.Error().Err(err).Str("url", u.String()).Msg("Failed fetching token details (network or client error)")
 		return
 	}
-	
+
 	if res != nil && res.StatusCode() != 200 {
 		log.Error().Int("status", res.StatusCode()).Str("url", u.String()).Str("response", res.String()).Msg("Failed fetching token details (HTTP error)")
 		return
