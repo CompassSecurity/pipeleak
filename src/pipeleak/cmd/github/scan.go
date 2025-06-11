@@ -329,6 +329,10 @@ func iterateWorkflowRuns(client *github.Client, repo *github.Repository) {
 func downloadWorkflowRunLog(client *github.Client, repo *github.Repository, workflowRun *github.WorkflowRun) {
 	logURL, resp, err := client.Actions.GetWorkflowRunLogs(options.Context, *repo.Owner.Login, *repo.Name, *workflowRun.ID, 5)
 
+	if resp == nil {
+		return
+	}
+
 	// already deleted, skip
 	if resp.StatusCode == 410 {
 		log.Debug().Str("workflowRunName", *workflowRun.Name).Msg("Skipped expired")
@@ -436,6 +440,9 @@ func listArtifacts(client *github.Client, workflowRun *github.WorkflowRun) {
 	listOpt := github.ListOptions{PerPage: 100}
 	for {
 		artifactList, resp, err := client.Actions.ListWorkflowRunArtifacts(options.Context, *workflowRun.Repository.Owner.Login, *workflowRun.Repository.Name, *workflowRun.ID, &listOpt)
+		if resp == nil {
+			return
+		}
 
 		if resp.StatusCode == 404 {
 			return
@@ -461,7 +468,7 @@ func listArtifacts(client *github.Client, workflowRun *github.WorkflowRun) {
 func analyzeArtifact(client *github.Client, workflowRun *github.WorkflowRun, artifact *github.Artifact) {
 
 	url, resp, err := client.Actions.DownloadArtifact(options.Context, *workflowRun.Repository.Owner.Login, *workflowRun.Repository.Name, *artifact.ID, 5)
-	if err != nil {
+	if err != nil || resp == nil {
 		log.Err(err).Msg("Failed getting artifact download URL")
 		return
 	}

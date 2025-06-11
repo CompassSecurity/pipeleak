@@ -231,7 +231,7 @@ func (a AzureDevOpsApiClient) ListBuildArtifacts(continuationToken string, organ
 	if err != nil {
 		log.Error().Err(err).Str("url", reqUrl).Str("organization", organization).Str("project", project).Msg("Failed to list build artifacts (network or client error)")
 	}
-	
+
 	if res != nil && (res.StatusCode() == 404 || res.StatusCode() == 401) {
 		log.Error().Int("status", res.StatusCode()).Str("organization", organization).Str("project", project).Str("url", reqUrl).Str("response", res.String()).Msg("Build artifacts list does not exist or you do not have access (HTTP error)")
 	}
