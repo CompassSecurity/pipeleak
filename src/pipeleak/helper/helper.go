@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -163,4 +164,13 @@ func ContainsI(a string, b string) bool {
 		strings.ToLower(a),
 		strings.ToLower(b),
 	)
+}
+
+func GetPlatformAgnosticNewline() string {
+	newline := "\n"
+	if runtime.GOOS == "windows" {
+		newline = "\r\n"
+	}
+
+	return newline
 }

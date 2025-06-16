@@ -121,9 +121,12 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 
 	hasRenovateConfig, configFile := detectRenovateBotJob(res.MergedYaml, git, project)
 	if hasRenovateConfig || configFile != nil {
-		isSelfHostedConfig := isSelfHostedConfig(configFile.Content)
+		selfHostedConfigFile := false
+		if configFile != nil {
+			selfHostedConfigFile = isSelfHostedConfig(configFile.Content)
+		}
 		autodiscovery := detectAutodiscover(res.MergedYaml)
-		log.Warn().Str("pipelines", string(project.BuildsAccessLevel)).Bool("autodiscovery", autodiscovery).Bool("hasConfigFile", configFile != nil).Bool("selfHostedConfig", isSelfHostedConfig).Str("url", project.WebURL).Msg("Identified potential renovate (bot) configuration")
+		log.Warn().Str("pipelines", string(project.BuildsAccessLevel)).Bool("hasAutodiscovery", autodiscovery).Bool("hasConfigFile", configFile != nil).Bool("selfHostedConfigFile", selfHostedConfigFile).Str("url", project.WebURL).Msg("Identified renovate (bot) configuration")
 
 		if verbose && hasRenovateConfig {
 			yml, err := helper.PrettyPrintYAML(res.MergedYaml)
@@ -131,8 +134,7 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 				log.Error().Stack().Err(err).Msg("Failed pretty printing project ci/cd yml")
 				return
 			}
-			// make windows compatible
-			log.Info().Msg("\n" + yml)
+			log.Info().Msg(helper.GetPlatformAgnosticNewline() + yml)
 		}
 	}
 }
@@ -147,9 +149,6 @@ func detectRenovateBotJob(cicdConf string, git *gitlab.Client, project *gitlab.P
 	var configFile *gitlab.File = nil
 	if !fast {
 		configFile = detectRenovateConfigFile(git, project)
-		if configFile != nil {
-			log.Info().Str("file", configFile.FilePath).Str("url", project.WebURL).Msg("Found renovate config file")
-		}
 	}
 
 	return hasRenovateConfig, configFile
@@ -231,6 +230,7 @@ func extractSelfHostedOptions(data []byte) []string {
 }
 
 func isSelfHostedConfig(renovateConfigB64 string) bool {
+
 	conf, err := b64.StdEncoding.DecodeString(renovateConfigB64)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("Failed decoding renovate config base64 content")
