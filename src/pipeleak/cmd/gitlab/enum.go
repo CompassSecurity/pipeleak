@@ -37,7 +37,7 @@ func NewEnumCmd() *cobra.Command {
 	}
 	enumCmd.MarkFlagsRequiredTogether("gitlab", "token")
 
-	enumCmd.PersistentFlags().IntVarP(&minAccessLevel, "level", "l", int(gitlab.GuestPermissions), "Minimum repo access level. See https://docs.gitlab.com/api/access_requests/#valid-access-levels for integer values")
+	enumCmd.PersistentFlags().IntVarP(&minAccessLevel, "level", "", int(gitlab.GuestPermissions), "Minimum repo access level. See https://docs.gitlab.com/api/access_requests/#valid-access-levels for integer values")
 
 	enumCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 	return enumCmd
