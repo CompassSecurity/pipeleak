@@ -37,7 +37,7 @@ func NewEnumCmd() *cobra.Command {
 	}
 	enumCmd.MarkFlagsRequiredTogether("gitlab", "token")
 
-	enumCmd.PersistentFlags().IntVarP(&minAccessLevel, "level", "l", int(gitlab.GuestPermissions), "Minimum repo access level. See https://docs.gitlab.com/api/access_requests/#valid-access-levels for integer values")
+	enumCmd.PersistentFlags().IntVarP(&minAccessLevel, "level", "", int(gitlab.GuestPermissions), "Minimum repo access level. See https://docs.gitlab.com/api/access_requests/#valid-access-levels for integer values")
 
 	enumCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 	return enumCmd
@@ -139,7 +139,7 @@ func enumCurrentToken(client resty.Client, baseUrl string, pat string) {
 		log.Error().Err(err).Str("url", u.String()).Msg("Failed fetching token details (network or client error)")
 		return
 	}
-	
+
 	if res != nil && res.StatusCode() != 200 {
 		log.Error().Int("status", res.StatusCode()).Str("url", u.String()).Str("response", res.String()).Msg("Failed fetching token details (HTTP error)")
 		return
