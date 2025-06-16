@@ -89,7 +89,7 @@ You can tweak `--threads`, `--max-artifact-size` and `--job-limit` to obtain a c
 
 `enum` command: Enumerate user permissions and accesss
 
-`renovate` command: Enumerate self-hosted Renovate instances. More here on [Autodiscovery](https://blog.compass-security.com/2025/05/renovate-keeping-your-updates-secure/).
+`renovate` command: Enumerate Renovate configurations. More here on [Autodiscovery](https://blog.compass-security.com/2025/05/renovate-keeping-your-updates-secure/). Use `-v` to print CI/CD config.
 
 ### GitLab Proxy Support
 

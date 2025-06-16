@@ -27,7 +27,7 @@ var (
 func NewRenovateCmd() *cobra.Command {
 	renovateCmd := &cobra.Command{
 		Use:   "renovate [no options!]",
-		Short: "Enumerate renovate runner projects",
+		Short: "Enumerate Renovate configurations",
 		Run:   Enumerate,
 	}
 
@@ -104,34 +104,20 @@ func fetchProjects(git *gitlab.Client) {
 }
 
 func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
-
-	lintOpts := &gitlab.ProjectLintOptions{
-		IncludeJobs: gitlab.Ptr(true),
-	}
-	res, response, err := git.Validate.ProjectLint(project.ID, lintOpts)
-
-	if response.StatusCode == 404 || response.StatusCode == 403 {
-		return // Project does not have a CI/CD configuration or is not accessible
-	}
-
-	if err != nil {
-		log.Error().Stack().Err(err).Msg("Failed fetching project ci/cd yml")
-		return
-	}
-
-	hasRenovateConfig, configFile := detectRenovateBotJob(res.MergedYaml, git, project)
-	if hasRenovateConfig || configFile != nil {
+	ciCdYml := fetchCICDYml(git, project.ID)
+	hasCiCdRenovateConfig, configFile := detectRenovateBotJob(ciCdYml, git, project)
+	if hasCiCdRenovateConfig || configFile != nil {
 		selfHostedConfigFile := false
 		if configFile != nil {
 			selfHostedConfigFile = isSelfHostedConfig(configFile.Content)
 		}
-		autodiscovery := detectAutodiscover(res.MergedYaml)
-		log.Warn().Str("pipelines", string(project.BuildsAccessLevel)).Bool("hasAutodiscovery", autodiscovery).Bool("hasConfigFile", configFile != nil).Bool("selfHostedConfigFile", selfHostedConfigFile).Str("url", project.WebURL).Msg("Identified renovate (bot) configuration")
+		autodiscovery := detectAutodiscovery(ciCdYml)
+		log.Warn().Str("pipelines", string(project.BuildsAccessLevel)).Bool("hasAutodiscovery", autodiscovery).Bool("hasConfigFile", configFile != nil).Bool("selfHostedConfigFile", selfHostedConfigFile).Str("url", project.WebURL).Msg("Identified Renovate (bot) configuration")
 
-		if verbose && hasRenovateConfig {
-			yml, err := helper.PrettyPrintYAML(res.MergedYaml)
+		if verbose && hasCiCdRenovateConfig {
+			yml, err := helper.PrettyPrintYAML(ciCdYml)
 			if err != nil {
-				log.Error().Stack().Err(err).Msg("Failed pretty printing project ci/cd yml")
+				log.Error().Stack().Err(err).Msg("Failed pretty printing project CI/CD YML")
 				return
 			}
 			log.Info().Msg(helper.GetPlatformAgnosticNewline() + yml)
@@ -141,7 +127,7 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 
 func detectRenovateBotJob(cicdConf string, git *gitlab.Client, project *gitlab.Project) (bool, *gitlab.File) {
 	// Check for common Renovate bot job identifiers in CI/CD configuration
-	hasRenovateConfig := helper.ContainsI(cicdConf, "renovate/renovate") ||
+	hasCiCdRenovateConfig := helper.ContainsI(cicdConf, "renovate/renovate") ||
 		helper.ContainsI(cicdConf, "renovatebot/renovate") ||
 		helper.ContainsI(cicdConf, "renovate-bot/renovate-runner") ||
 		helper.ContainsI(cicdConf, "RENOVATE_")
@@ -151,10 +137,10 @@ func detectRenovateBotJob(cicdConf string, git *gitlab.Client, project *gitlab.P
 		configFile = detectRenovateConfigFile(git, project)
 	}
 
-	return hasRenovateConfig, configFile
+	return hasCiCdRenovateConfig, configFile
 }
 
-func detectAutodiscover(cicdConf string) bool {
+func detectAutodiscovery(cicdConf string) bool {
 	// Check for autodiscover flag: https://docs.renovatebot.com/self-hosted-configuration/#autodiscover
 	return (helper.ContainsI(cicdConf, "--autodiscover") || helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER")) &&
 		(!helper.ContainsI(cicdConf, "--autodiscover=false") && !helper.ContainsI(cicdConf, "--autodiscover false") && !helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER: false") && !helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER=false"))
@@ -246,4 +232,22 @@ func isSelfHostedConfig(renovateConfigB64 string) bool {
 		}
 	}
 	return false
+}
+
+func fetchCICDYml(git *gitlab.Client, pid int) string {
+	lintOpts := &gitlab.ProjectLintOptions{
+		IncludeJobs: gitlab.Ptr(true),
+	}
+	res, response, err := git.Validate.ProjectLint(pid, lintOpts)
+
+	if response.StatusCode == 404 || response.StatusCode == 403 {
+		return "" // Project does not have a CI/CD configuration or is not accessible
+	}
+
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Failed fetching project CI/CD YML")
+		return ""
+	}
+
+	return res.MergedYaml
 }
