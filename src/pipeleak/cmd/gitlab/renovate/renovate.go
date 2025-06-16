@@ -8,7 +8,7 @@ import (
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"gitlab.com/gitlab-org/api/client-go"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 	"gopkg.in/yaml.v3"
 )
 
@@ -19,6 +19,7 @@ var (
 	owned              bool
 	member             bool
 	projectSearchQuery string
+	fast               bool
 )
 
 func NewRenovateCmd() *cobra.Command {
@@ -44,6 +45,7 @@ func NewRenovateCmd() *cobra.Command {
 	renovateCmd.PersistentFlags().BoolVarP(&owned, "owned", "o", false, "Scan user onwed projects only")
 	renovateCmd.PersistentFlags().BoolVarP(&member, "member", "m", false, "Scan projects the user is member of")
 	renovateCmd.Flags().StringVarP(&projectSearchQuery, "search", "s", "", "Query string for searching projects")
+	renovateCmd.Flags().BoolVarP(&fast, "fast", "f", false, "Fast mode (skip renovate config file detection, only check CIDC yml for renovate bot job)")
 
 	renovateCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 
@@ -84,7 +86,7 @@ func fetchProjects(git *gitlab.Client) {
 		}
 
 		for _, project := range projects {
-			log.Debug().Str("url", project.WebURL).Msg("Fetch project jobs")
+			log.Debug().Str("url", project.WebURL).Msg("Check project")
 			identifyRenovateBotJob(git, project)
 		}
 
@@ -115,18 +117,81 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 		return
 	}
 
-	if strings.Contains(res.MergedYaml, "renovate/renovate") || strings.Contains(res.MergedYaml, "--autodiscover=true") {
-		log.Info().Str("project", project.Name).Str("url", project.WebURL).Msg("Found renovate bot job image")
-		yml, err := prettyPrintYAML(res.MergedYaml)
+	hasRenovateConfig, configFile := detectRenovateBotJob(res.MergedYaml, git, project)
+	if hasRenovateConfig || configFile != nil {
+		log.Warn().Str("pipelines", string(project.BuildsAccessLevel)).Str("url", project.WebURL).Msg("Identified potential self-hosted renovate bot configuration")
 
-		if err != nil {
-			log.Error().Stack().Err(err).Msg("Failed pretty printing project ci/cd yml")
-			return
+		if detectAutodiscover(res.MergedYaml) {
+			log.Warn().Str("url", project.WebURL).Msg("Identified potential self-hosted renovate bot configuration with autodiscovery enabled")
 		}
 
-		// make windows compatible
-		log.Info().Msg("\n" + yml)
+		if verbose && hasRenovateConfig {
+			yml, err := prettyPrintYAML(res.MergedYaml)
+			if err != nil {
+				log.Error().Stack().Err(err).Msg("Failed pretty printing project ci/cd yml")
+				return
+			}
+			// make windows compatible
+			log.Info().Msg("\n" + yml)
+		}
 	}
+}
+
+func detectRenovateBotJob(cicdConf string, git *gitlab.Client, project *gitlab.Project) (bool, *gitlab.File) {
+	// Check for common Renovate bot job identifiers
+	hasRenovateConfig := strings.Contains(cicdConf, "renovate/renovate") ||
+		strings.Contains(cicdConf, "renovatebot/renovate") ||
+		strings.Contains(cicdConf, "renovate-bot/renovate-runner") ||
+		strings.Contains(cicdConf, "RENOVATE_")
+
+	if hasRenovateConfig {
+		return true, nil
+	}
+
+	if !fast && !hasRenovateConfig {
+		configFile := detectRenovateConfigFile(git, project)
+		if configFile != nil {
+			log.Info().Str("file", configFile.FilePath).Str("url", project.WebURL).Msg("Found renovate config file")
+			return false, configFile
+		}
+	}
+
+	return false, nil
+}
+
+func detectAutodiscover(cicdConf string) bool {
+	// Check for autodiscover flag: https://docs.renovatebot.com/self-hosted-configuration/#autodiscover
+	return strings.Contains(cicdConf, "--autodiscover=") ||
+		strings.Contains(cicdConf, "RENOVATE_AUTODISCOVER=true")
+}
+
+func detectRenovateConfigFile(git *gitlab.Client, project *gitlab.Project) *gitlab.File {
+	// https://docs.renovatebot.com/configuration-options/
+	configFiles := []string{
+		"renovate.json",
+		"renovate.json5",
+		".github/renovate.json",
+		".github/renovate.json5",
+		".gitlab/renovate.json",
+		".gitlab/renovate.json5",
+		".renovaterc",
+		".renovaterc.json",
+		".renovaterc.json5",
+	}
+
+	opts := gitlab.GetFileOptions{Ref: gitlab.Ptr(project.DefaultBranch)}
+	for _, configFile := range configFiles {
+		file, _, err := git.RepositoryFiles.GetFile(project.ID, configFile, &opts)
+		if err != nil {
+			continue
+		}
+
+		if file != nil {
+			return file
+		}
+	}
+
+	return nil
 }
 
 func prettyPrintYAML(yamlStr string) (string, error) {
