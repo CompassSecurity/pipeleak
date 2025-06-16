@@ -1,7 +1,9 @@
 package renovate
 
 import (
-	"bytes"
+	b64 "encoding/base64"
+	"io"
+	"regexp"
 	"strings"
 
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
@@ -9,7 +11,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
-	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -20,6 +21,7 @@ var (
 	member             bool
 	projectSearchQuery string
 	fast               bool
+	selfHostedOptions  []string
 )
 
 func NewRenovateCmd() *cobra.Command {
@@ -119,14 +121,12 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 
 	hasRenovateConfig, configFile := detectRenovateBotJob(res.MergedYaml, git, project)
 	if hasRenovateConfig || configFile != nil {
-		log.Warn().Str("pipelines", string(project.BuildsAccessLevel)).Str("url", project.WebURL).Msg("Identified potential self-hosted renovate bot configuration")
-
-		if detectAutodiscover(res.MergedYaml) {
-			log.Warn().Str("url", project.WebURL).Msg("Identified potential self-hosted renovate bot configuration with autodiscovery enabled")
-		}
+		isSelfHostedConfig := isSelfHostedConfig(configFile.Content)
+		autodiscovery := detectAutodiscover(res.MergedYaml)
+		log.Warn().Str("pipelines", string(project.BuildsAccessLevel)).Bool("autodiscovery", autodiscovery).Bool("hasConfigFile", configFile != nil).Bool("selfHostedConfig", isSelfHostedConfig).Str("url", project.WebURL).Msg("Identified potential renovate (bot) configuration")
 
 		if verbose && hasRenovateConfig {
-			yml, err := prettyPrintYAML(res.MergedYaml)
+			yml, err := helper.PrettyPrintYAML(res.MergedYaml)
 			if err != nil {
 				log.Error().Stack().Err(err).Msg("Failed pretty printing project ci/cd yml")
 				return
@@ -138,31 +138,27 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 }
 
 func detectRenovateBotJob(cicdConf string, git *gitlab.Client, project *gitlab.Project) (bool, *gitlab.File) {
-	// Check for common Renovate bot job identifiers
-	hasRenovateConfig := strings.Contains(cicdConf, "renovate/renovate") ||
-		strings.Contains(cicdConf, "renovatebot/renovate") ||
-		strings.Contains(cicdConf, "renovate-bot/renovate-runner") ||
-		strings.Contains(cicdConf, "RENOVATE_")
+	// Check for common Renovate bot job identifiers in CI/CD configuration
+	hasRenovateConfig := helper.ContainsI(cicdConf, "renovate/renovate") ||
+		helper.ContainsI(cicdConf, "renovatebot/renovate") ||
+		helper.ContainsI(cicdConf, "renovate-bot/renovate-runner") ||
+		helper.ContainsI(cicdConf, "RENOVATE_")
 
-	if hasRenovateConfig {
-		return true, nil
-	}
-
-	if !fast && !hasRenovateConfig {
-		configFile := detectRenovateConfigFile(git, project)
+	var configFile *gitlab.File = nil
+	if !fast {
+		configFile = detectRenovateConfigFile(git, project)
 		if configFile != nil {
 			log.Info().Str("file", configFile.FilePath).Str("url", project.WebURL).Msg("Found renovate config file")
-			return false, configFile
 		}
 	}
 
-	return false, nil
+	return hasRenovateConfig, configFile
 }
 
 func detectAutodiscover(cicdConf string) bool {
 	// Check for autodiscover flag: https://docs.renovatebot.com/self-hosted-configuration/#autodiscover
-	return strings.Contains(cicdConf, "--autodiscover=") ||
-		strings.Contains(cicdConf, "RENOVATE_AUTODISCOVER=true")
+	return (helper.ContainsI(cicdConf, "--autodiscover") || helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER")) &&
+		(!helper.ContainsI(cicdConf, "--autodiscover=false") && !helper.ContainsI(cicdConf, "--autodiscover false") && !helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER: false") && !helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER=false"))
 }
 
 func detectRenovateConfigFile(git *gitlab.Client, project *gitlab.Project) *gitlab.File {
@@ -194,22 +190,60 @@ func detectRenovateConfigFile(git *gitlab.Client, project *gitlab.Project) *gitl
 	return nil
 }
 
-func prettyPrintYAML(yamlStr string) (string, error) {
-	var node yaml.Node
-
-	err := yaml.Unmarshal([]byte(yamlStr), &node)
-	if err != nil {
-		return "", err
+func fetchCurrentSelfHostedOptions() []string {
+	if len(selfHostedOptions) > 0 {
+		return selfHostedOptions
 	}
 
-	var buf bytes.Buffer
-	encoder := yaml.NewEncoder(&buf)
-	encoder.SetIndent(2)
+	log.Debug().Msg("Fetching current self-hosted configuration from GitHub")
 
-	err = encoder.Encode(&node)
+	client := helper.GetPipeleakHTTPClient()
+	res, err := client.Get("https://raw.githubusercontent.com/renovatebot/renovate/refs/heads/main/docs/usage/self-hosted-configuration.md")
 	if err != nil {
-		return "", err
+		log.Fatal().Stack().Err(err).Msg("Failed fetching self-hosted configuration documentation")
+		return []string{}
+	}
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		log.Fatal().Int("status", res.StatusCode).Msg("Failed fetching self-hosted configuration documentation")
+		return []string{}
+	}
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		log.Fatal().Stack().Err(err).Msg("Failed reading self-hosted configuration documentation")
+		return []string{}
 	}
 
-	return buf.String(), nil
+	selfHostedOptions = extractSelfHostedOptions(data)
+	return selfHostedOptions
+}
+
+func extractSelfHostedOptions(data []byte) []string {
+	var re = regexp.MustCompile(`(?m)## .*`)
+	matches := re.FindAllString(string(data), -1)
+
+	var options []string
+	for _, match := range matches {
+		options = append(options, strings.ReplaceAll(strings.TrimSpace(match), "## ", ""))
+	}
+
+	return options
+}
+
+func isSelfHostedConfig(renovateConfigB64 string) bool {
+	conf, err := b64.StdEncoding.DecodeString(renovateConfigB64)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Failed decoding renovate config base64 content")
+		return false
+	}
+
+	plainRenovateConfig := string(conf)
+	selfHostedOptions := fetchCurrentSelfHostedOptions()
+	for _, option := range selfHostedOptions {
+		// Check if the content contains any of the self-hosted options
+		if helper.ContainsI(plainRenovateConfig, option) {
+			return true
+		}
+	}
+	return false
 }

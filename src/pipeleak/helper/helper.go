@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"atomicgo.dev/keyboard/keys"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"gopkg.in/yaml.v3"
 )
 
 func SetLogLevel(verbose bool) {
@@ -134,4 +136,31 @@ func ParseISO8601(dateStr string) time.Time {
 	}
 
 	return t
+}
+
+func PrettyPrintYAML(yamlStr string) (string, error) {
+	var node yaml.Node
+
+	err := yaml.Unmarshal([]byte(yamlStr), &node)
+	if err != nil {
+		return "", err
+	}
+
+	var buf bytes.Buffer
+	encoder := yaml.NewEncoder(&buf)
+	encoder.SetIndent(2)
+
+	err = encoder.Encode(&node)
+	if err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
+}
+
+func ContainsI(a string, b string) bool {
+	return strings.Contains(
+		strings.ToLower(a),
+		strings.ToLower(b),
+	)
 }
