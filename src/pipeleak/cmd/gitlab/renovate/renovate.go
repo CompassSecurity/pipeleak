@@ -105,13 +105,19 @@ func fetchProjects(git *gitlab.Client) {
 
 func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 	ciCdYml := fetchCICDYml(git, project.ID)
-	hasCiCdRenovateConfig, configFile := detectRenovateBotJob(ciCdYml, git, project)
+	hasCiCdRenovateConfig := detectCiCdConfig(ciCdYml)
+	var configFile *gitlab.File = nil
+	var configFileContent string
+	if !fast {
+		configFile, configFileContent = detectRenovateConfigFile(git, project)
+	}
+
 	if hasCiCdRenovateConfig || configFile != nil {
 		selfHostedConfigFile := false
 		if configFile != nil {
-			selfHostedConfigFile = isSelfHostedConfig(configFile.Content)
+			selfHostedConfigFile = isSelfHostedConfig(configFileContent)
 		}
-		autodiscovery := detectAutodiscovery(ciCdYml)
+		autodiscovery := detectAutodiscovery(ciCdYml, configFileContent)
 		log.Warn().Str("pipelines", string(project.BuildsAccessLevel)).Bool("hasAutodiscovery", autodiscovery).Bool("hasConfigFile", configFile != nil).Bool("selfHostedConfigFile", selfHostedConfigFile).Str("url", project.WebURL).Msg("Identified Renovate (bot) configuration")
 
 		if verbose && hasCiCdRenovateConfig {
@@ -125,28 +131,25 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 	}
 }
 
-func detectRenovateBotJob(cicdConf string, git *gitlab.Client, project *gitlab.Project) (bool, *gitlab.File) {
+func detectCiCdConfig(cicdConf string) bool {
 	// Check for common Renovate bot job identifiers in CI/CD configuration
-	hasCiCdRenovateConfig := helper.ContainsI(cicdConf, "renovate/renovate") ||
+	return helper.ContainsI(cicdConf, "renovate/renovate") ||
 		helper.ContainsI(cicdConf, "renovatebot/renovate") ||
 		helper.ContainsI(cicdConf, "renovate-bot/renovate-runner") ||
 		helper.ContainsI(cicdConf, "RENOVATE_")
-
-	var configFile *gitlab.File = nil
-	if !fast {
-		configFile = detectRenovateConfigFile(git, project)
-	}
-
-	return hasCiCdRenovateConfig, configFile
 }
 
-func detectAutodiscovery(cicdConf string) bool {
+func detectAutodiscovery(cicdConf string, configFileContent string) bool {
 	// Check for autodiscover flag: https://docs.renovatebot.com/self-hosted-configuration/#autodiscover
-	return (helper.ContainsI(cicdConf, "--autodiscover") || helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER")) &&
+	hasAutodiscoveryInConfigFile := helper.ContainsI(configFileContent, "autodiscover")
+
+	hasAutodiscoveryinCiCD := (helper.ContainsI(cicdConf, "--autodiscover") || helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER")) &&
 		(!helper.ContainsI(cicdConf, "--autodiscover=false") && !helper.ContainsI(cicdConf, "--autodiscover false") && !helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER: false") && !helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER=false"))
+
+	return hasAutodiscoveryInConfigFile || hasAutodiscoveryinCiCD
 }
 
-func detectRenovateConfigFile(git *gitlab.Client, project *gitlab.Project) *gitlab.File {
+func detectRenovateConfigFile(git *gitlab.Client, project *gitlab.Project) (*gitlab.File, string) {
 	// https://docs.renovatebot.com/configuration-options/
 	configFiles := []string{
 		"renovate.json",
@@ -168,11 +171,17 @@ func detectRenovateConfigFile(git *gitlab.Client, project *gitlab.Project) *gitl
 		}
 
 		if file != nil {
-			return file
+			conf, err := b64.StdEncoding.DecodeString(file.Content)
+			if err != nil {
+				log.Error().Stack().Err(err).Msg("Failed decoding renovate config base64 content")
+				return file, ""
+			}
+
+			return file, string(conf)
 		}
 	}
 
-	return nil
+	return nil, ""
 }
 
 func fetchCurrentSelfHostedOptions() []string {
@@ -215,19 +224,11 @@ func extractSelfHostedOptions(data []byte) []string {
 	return options
 }
 
-func isSelfHostedConfig(renovateConfigB64 string) bool {
-
-	conf, err := b64.StdEncoding.DecodeString(renovateConfigB64)
-	if err != nil {
-		log.Error().Stack().Err(err).Msg("Failed decoding renovate config base64 content")
-		return false
-	}
-
-	plainRenovateConfig := string(conf)
+func isSelfHostedConfig(config string) bool {
 	selfHostedOptions := fetchCurrentSelfHostedOptions()
 	for _, option := range selfHostedOptions {
 		// Check if the content contains any of the self-hosted options
-		if helper.ContainsI(plainRenovateConfig, option) {
+		if helper.ContainsI(config, option) {
 			return true
 		}
 	}
