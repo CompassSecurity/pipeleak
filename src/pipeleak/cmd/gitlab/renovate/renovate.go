@@ -48,7 +48,7 @@ func NewRenovateCmd() *cobra.Command {
 	renovateCmd.PersistentFlags().BoolVarP(&owned, "owned", "o", false, "Scan user onwed projects only")
 	renovateCmd.PersistentFlags().BoolVarP(&member, "member", "m", false, "Scan projects the user is member of")
 	renovateCmd.Flags().StringVarP(&projectSearchQuery, "search", "s", "", "Query string for searching projects")
-	renovateCmd.Flags().BoolVarP(&fast, "fast", "f", false, "Fast mode (skip renovate config file detection, only check CIDC yml for renovate bot job)")
+	renovateCmd.Flags().BoolVarP(&fast, "fast", "f", false, "Fast mode - skip renovate config file detection, only check CIDC yml for renovate bot job (default false)")
 
 	renovateCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 
@@ -270,13 +270,18 @@ func fetchCICDYml(git *gitlab.Client, pid int) string {
 	}
 	res, response, err := git.Validate.ProjectLint(pid, lintOpts)
 
-	if response.StatusCode == 404 || response.StatusCode == 403 {
-		return "" // Project does not have a CI/CD configuration or is not accessible
-	}
-
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("Failed fetching project CI/CD YML")
 		return ""
+	}
+
+	if response == nil || res == nil {
+		log.Debug().Msg("No response received while fetching project CI/CD YML")
+		return ""
+	}
+
+	if response.StatusCode == 404 || response.StatusCode == 403 {
+		return "" // Project does not have a CI/CD configuration or is not accessible
 	}
 
 	return res.MergedYaml
