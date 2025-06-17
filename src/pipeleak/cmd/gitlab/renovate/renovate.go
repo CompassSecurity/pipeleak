@@ -149,7 +149,8 @@ func detectCiCdConfig(cicdConf string) bool {
 	return helper.ContainsI(cicdConf, "renovate/renovate") ||
 		helper.ContainsI(cicdConf, "renovatebot/renovate") ||
 		helper.ContainsI(cicdConf, "renovate-bot/renovate-runner") ||
-		helper.ContainsI(cicdConf, "RENOVATE_")
+		helper.ContainsI(cicdConf, "RENOVATE_") ||
+		helper.ContainsI(cicdConf, "npx renovate")
 }
 
 func detectAutodiscovery(cicdConf string, configFileContent string) bool {
