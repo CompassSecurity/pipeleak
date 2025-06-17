@@ -271,7 +271,6 @@ func fetchCICDYml(git *gitlab.Client, pid int) string {
 	res, response, err := git.Validate.ProjectLint(pid, lintOpts)
 
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("Failed fetching project CI/CD YML")
 		return ""
 	}
 
