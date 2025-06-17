@@ -5,6 +5,7 @@ import (
 	"io"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
 	"github.com/CompassSecurity/pipeleak/helper"
@@ -47,7 +48,7 @@ func NewRenovateCmd() *cobra.Command {
 	renovateCmd.PersistentFlags().BoolVarP(&owned, "owned", "o", false, "Scan user onwed projects only")
 	renovateCmd.PersistentFlags().BoolVarP(&member, "member", "m", false, "Scan projects the user is member of")
 	renovateCmd.Flags().StringVarP(&projectSearchQuery, "search", "s", "", "Query string for searching projects")
-	renovateCmd.Flags().BoolVarP(&fast, "fast", "f", false, "Fast mode (skip renovate config file detection, only check CIDC yml for renovate bot job)")
+	renovateCmd.Flags().BoolVarP(&fast, "fast", "f", false, "Fast mode - skip renovate config file detection, only check CIDC yml for renovate bot job (default false)")
 
 	renovateCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 
@@ -87,10 +88,16 @@ func fetchProjects(git *gitlab.Client) {
 			break
 		}
 
+		var wg sync.WaitGroup
 		for _, project := range projects {
-			log.Debug().Str("url", project.WebURL).Msg("Check project")
-			identifyRenovateBotJob(git, project)
+			wg.Add(1)
+			go func(proj *gitlab.Project) {
+				defer wg.Done()
+				log.Debug().Str("url", proj.WebURL).Msg("Check project")
+				identifyRenovateBotJob(git, proj)
+			}(project)
 		}
+		wg.Wait()
 
 		if resp.NextPage == 0 {
 			break
@@ -142,7 +149,8 @@ func detectCiCdConfig(cicdConf string) bool {
 	return helper.ContainsI(cicdConf, "renovate/renovate") ||
 		helper.ContainsI(cicdConf, "renovatebot/renovate") ||
 		helper.ContainsI(cicdConf, "renovate-bot/renovate-runner") ||
-		helper.ContainsI(cicdConf, "RENOVATE_")
+		helper.ContainsI(cicdConf, "RENOVATE_") ||
+		helper.ContainsI(cicdConf, "npx renovate")
 }
 
 func detectAutodiscovery(cicdConf string, configFileContent string) bool {
@@ -262,13 +270,17 @@ func fetchCICDYml(git *gitlab.Client, pid int) string {
 	}
 	res, response, err := git.Validate.ProjectLint(pid, lintOpts)
 
-	if response.StatusCode == 404 || response.StatusCode == 403 {
-		return "" // Project does not have a CI/CD configuration or is not accessible
+	if err != nil {
+		return ""
 	}
 
-	if err != nil {
-		log.Error().Stack().Err(err).Msg("Failed fetching project CI/CD YML")
+	if response == nil || res == nil {
+		log.Debug().Msg("No response received while fetching project CI/CD YML")
 		return ""
+	}
+
+	if response.StatusCode == 404 || response.StatusCode == 403 {
+		return "" // Project does not have a CI/CD configuration or is not accessible
 	}
 
 	return res.MergedYaml
