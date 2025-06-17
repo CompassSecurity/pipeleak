@@ -5,6 +5,7 @@ import (
 	"io"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
 	"github.com/CompassSecurity/pipeleak/helper"
@@ -87,10 +88,16 @@ func fetchProjects(git *gitlab.Client) {
 			break
 		}
 
+		var wg sync.WaitGroup
 		for _, project := range projects {
-			log.Debug().Str("url", project.WebURL).Msg("Check project")
-			identifyRenovateBotJob(git, project)
+			wg.Add(1)
+			go func(proj *gitlab.Project) {
+				defer wg.Done()
+				log.Debug().Str("url", proj.WebURL).Msg("Check project")
+				identifyRenovateBotJob(git, proj)
+			}(project)
 		}
+		wg.Wait()
 
 		if resp.NextPage == 0 {
 			break
