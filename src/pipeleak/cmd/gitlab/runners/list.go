@@ -7,7 +7,7 @@ import (
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"gitlab.com/gitlab-org/api/client-go"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
 func NewRunnersListCmd() *cobra.Command {
@@ -35,7 +35,7 @@ type runnerResult struct {
 func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
 	git, err := util.GetGitlabClient(apiToken, gitlabUrl)
 	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("failed creating gitlab client")
+		log.Fatal().Stack().Err(err).Msg("Failed creating gitlab client")
 	}
 	runnerMap := make(map[int]runnerResult)
 	runnerMap = listProjectRunners(git, runnerMap)

@@ -29,7 +29,7 @@ func NewGitLabRootCmd() *cobra.Command {
 	glCmd.AddCommand(NewVariablesCmd())
 	glCmd.AddCommand(securefiles.NewSecureFilesCmd())
 	glCmd.AddCommand(NewEnumCmd())
-	glCmd.AddCommand(renovate.NewRenovateCmd())
+	glCmd.AddCommand(renovate.NewRenovateRootCmd())
 
 	glCmd.PersistentFlags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
 	err := glCmd.MarkPersistentFlagRequired("gitlab")
