@@ -24,6 +24,7 @@ var (
 	fast               bool
 	selfHostedOptions  []string
 	page               int
+	repository         string
 )
 
 func NewRenovateCmd() *cobra.Command {
@@ -46,8 +47,9 @@ func NewRenovateCmd() *cobra.Command {
 	}
 	renovateCmd.MarkFlagsRequiredTogether("gitlab", "token")
 
-	renovateCmd.PersistentFlags().BoolVarP(&owned, "owned", "o", false, "Scan user onwed projects only")
+	renovateCmd.PersistentFlags().BoolVarP(&owned, "owned", "o", false, "Scan user owned projects only")
 	renovateCmd.PersistentFlags().BoolVarP(&member, "member", "m", false, "Scan projects the user is member of")
+	renovateCmd.Flags().StringVarP(&repository, "repo", "r", "", "Repository to scan for Renovate configuraiton (if not set, all projects will be scanned)")
 	renovateCmd.Flags().StringVarP(&projectSearchQuery, "search", "s", "", "Query string for searching projects")
 	renovateCmd.Flags().BoolVarP(&fast, "fast", "f", false, "Fast mode - skip renovate config file detection, only check CIDC yml for renovate bot job (default false)")
 	renovateCmd.Flags().IntVarP(&page, "page", "p", 1, "Page number to start fetching projects from (default 1, fetch all pages)")
@@ -64,9 +66,25 @@ func Enumerate(cmd *cobra.Command, args []string) {
 		log.Fatal().Stack().Err(err).Msg("failed creating gitlab client")
 	}
 
-	fetchProjects(git)
+	if repository != "" {
+		scanSingleProject(git, repository)
+	} else {
+		fetchProjects(git)
+	}
 
 	log.Info().Msg("Done, Bye Bye 🏳️‍🌈🔥")
+}
+
+func scanSingleProject(git *gitlab.Client, projectName string) {
+	log.Info().Str("repository", projectName).Msg("Scanning specific repository for Renovate configuration")
+	project, resp, err := git.Projects.GetProject(projectName, &gitlab.GetProjectOptions{})
+	if err != nil {
+		log.Fatal().Stack().Err(err).Msg("Failed fetching project by repository name")
+	}
+	if resp.StatusCode == 404 {
+		log.Fatal().Msg("Project not found")
+	}
+	identifyRenovateBotJob(git, project)
 }
 
 func fetchProjects(git *gitlab.Client) {
