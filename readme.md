@@ -89,7 +89,9 @@ You can tweak `--threads`, `--max-artifact-size` and `--job-limit` to obtain a c
 
 `enum` command: Enumerate user permissions and accesss
 
-`renovate` command: Enumerate Renovate configurations. More here on [Autodiscovery](https://blog.compass-security.com/2025/05/renovate-keeping-your-updates-secure/). Use `-v` to print CI/CD config.
+`renovate enum` command: Enumerate Renovate configurations including [Autodiscovery](https://blog.compass-security.com/2025/05/renovate-keeping-your-updates-secure/) configuration. Use `-v` to print CI/CD config.
+
+`renovate autodiscovery` command: Exploit vulnerable Renovate autodisovery configurations. Creates a PoC repo.
 
 ### GitLab Proxy Support
 
