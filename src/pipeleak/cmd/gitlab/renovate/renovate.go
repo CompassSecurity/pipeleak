@@ -23,6 +23,7 @@ var (
 	projectSearchQuery string
 	fast               bool
 	selfHostedOptions  []string
+	page               int
 )
 
 func NewRenovateCmd() *cobra.Command {
@@ -49,6 +50,7 @@ func NewRenovateCmd() *cobra.Command {
 	renovateCmd.PersistentFlags().BoolVarP(&member, "member", "m", false, "Scan projects the user is member of")
 	renovateCmd.Flags().StringVarP(&projectSearchQuery, "search", "s", "", "Query string for searching projects")
 	renovateCmd.Flags().BoolVarP(&fast, "fast", "f", false, "Fast mode - skip renovate config file detection, only check CIDC yml for renovate bot job (default false)")
+	renovateCmd.Flags().IntVarP(&page, "page", "p", 1, "Page number to start fetching projects from (default 1, fetch all pages)")
 
 	renovateCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 
@@ -73,7 +75,7 @@ func fetchProjects(git *gitlab.Client) {
 	projectOpts := &gitlab.ListProjectsOptions{
 		ListOptions: gitlab.ListOptions{
 			PerPage: 100,
-			Page:    1,
+			Page:    page,
 		},
 		OrderBy:    gitlab.Ptr("last_activity_at"),
 		Owned:      gitlab.Ptr(owned),
@@ -84,7 +86,7 @@ func fetchProjects(git *gitlab.Client) {
 	for {
 		projects, resp, err := git.Projects.ListProjects(projectOpts)
 		if err != nil {
-			log.Error().Stack().Err(err).Msg("Failed fetching projects")
+			log.Error().Stack().Err(err).Int("page", page).Msg("Failed fetching projects")
 			break
 		}
 
