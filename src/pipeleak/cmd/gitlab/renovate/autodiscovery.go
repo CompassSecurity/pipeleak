@@ -161,10 +161,14 @@ func Generate(cmd *cobra.Command, args []string) {
 func invite(git *gogitlab.Client, project *gogitlab.Project, username string) {
 	log.Info().Str("user", username).Msg("Inviting user to project")
 
-	git.ProjectMembers.AddProjectMember(project.ID, &gogitlab.AddProjectMemberOptions{
+	_, _, err := git.ProjectMembers.AddProjectMember(project.ID, &gogitlab.AddProjectMemberOptions{
 		Username:    gogitlab.Ptr(username),
 		AccessLevel: gogitlab.Ptr(gogitlab.DeveloperPermissions),
 	})
+
+	if err != nil {
+		log.Fatal().Stack().Err(err).Msg("Failed inviting user to project, do it manually")
+	}
 }
 
 func createFile(fileName string, content string, git *gogitlab.Client, projectId int, executable bool) {

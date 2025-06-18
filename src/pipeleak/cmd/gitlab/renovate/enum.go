@@ -22,7 +22,6 @@ var (
 	selfHostedOptions  []string
 	page               int
 	repository         string
-	org                string
 )
 
 func NewEnumCmd() *cobra.Command {
