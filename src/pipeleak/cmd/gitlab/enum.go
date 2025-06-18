@@ -47,7 +47,7 @@ func Enum(cmd *cobra.Command, args []string) {
 	helper.SetLogLevel(verbose)
 	git, err := util.GetGitlabClient(gitlabApiToken, gitlabUrl)
 	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("failed creating gitlab client")
+		log.Fatal().Stack().Err(err).Msg("Failed creating gitlab client")
 	}
 
 	user, _, err := git.Users.CurrentUser()

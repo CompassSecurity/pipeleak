@@ -5,7 +5,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"gitlab.com/gitlab-org/api/client-go"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
 func NewVariablesCmd() *cobra.Command {
@@ -41,7 +41,7 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 
 	git, err := util.GetGitlabClient(gitlabApiToken, gitlabUrl)
 	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("failed creating gitlab client")
+		log.Fatal().Stack().Err(err).Msg("Failed creating gitlab client")
 	}
 
 	projectOpts := &gitlab.ListProjectsOptions{

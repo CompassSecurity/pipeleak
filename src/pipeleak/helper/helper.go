@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"crypto/tls"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -173,4 +174,13 @@ func GetPlatformAgnosticNewline() string {
 	}
 
 	return newline
+}
+
+func RandomStringN(n int) string {
+	letterBytes := "abcdefghijklmnopqrstuvwxyz"
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
 }
