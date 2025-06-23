@@ -128,7 +128,12 @@ func fetchProjects(git *gitlab.Client) {
 }
 
 func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
-	ciCdYml := util.FetchCICDYml(git, project.ID)
+	ciCdYml, err := util.FetchCICDYml(git, project.ID)
+	if err != nil {
+		// silently skip
+		return
+	}
+
 	hasCiCdRenovateConfig := detectCiCdConfig(ciCdYml)
 	var configFile *gitlab.File = nil
 	var configFileContent string

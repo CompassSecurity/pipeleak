@@ -1,6 +1,7 @@
 package util
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -149,24 +150,21 @@ func RegisterNewAccount(targetUrl string, username string, password string, emai
 	}
 }
 
-func FetchCICDYml(git *gitlab.Client, pid int) string {
+func FetchCICDYml(git *gitlab.Client, pid int) (string, error) {
 	lintOpts := &gitlab.ProjectLintOptions{
 		IncludeJobs: gitlab.Ptr(true),
 	}
-	res, response, err := git.Validate.ProjectLint(pid, lintOpts)
+	res, _, err := git.Validate.ProjectLint(pid, lintOpts)
 
 	if err != nil {
-		return ""
+		return "", err
 	}
 
-	if response == nil || res == nil {
-		log.Debug().Msg("No response received while fetching project CI/CD YML")
-		return ""
+	if len(res.Errors) > 0 {
+		return "", errors.New(strings.Join(res.Errors, ", "))
 	}
 
-	if response.StatusCode == 404 || response.StatusCode == 403 {
-		return "" // Project does not have a CI/CD configuration or is not accessible
-	}
+	log.Debug().Bool("valid", res.Valid).Str("warnings", strings.Join(res.Warnings, ", ")).Msg(".gitlab-ci.yaml")
 
-	return res.MergedYaml
+	return res.MergedYaml, nil
 }
