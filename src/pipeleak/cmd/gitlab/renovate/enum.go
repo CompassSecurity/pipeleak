@@ -128,7 +128,7 @@ func fetchProjects(git *gitlab.Client) {
 }
 
 func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
-	ciCdYml := fetchCICDYml(git, project.ID)
+	ciCdYml := util.FetchCICDYml(git, project.ID)
 	hasCiCdRenovateConfig := detectCiCdConfig(ciCdYml)
 	var configFile *gitlab.File = nil
 	var configFileContent string
@@ -279,26 +279,4 @@ func isSelfHostedConfig(config string) bool {
 		}
 	}
 	return false
-}
-
-func fetchCICDYml(git *gitlab.Client, pid int) string {
-	lintOpts := &gitlab.ProjectLintOptions{
-		IncludeJobs: gitlab.Ptr(true),
-	}
-	res, response, err := git.Validate.ProjectLint(pid, lintOpts)
-
-	if err != nil {
-		return ""
-	}
-
-	if response == nil || res == nil {
-		log.Debug().Msg("No response received while fetching project CI/CD YML")
-		return ""
-	}
-
-	if response.StatusCode == 404 || response.StatusCode == 403 {
-		return "" // Project does not have a CI/CD configuration or is not accessible
-	}
-
-	return res.MergedYaml
 }
