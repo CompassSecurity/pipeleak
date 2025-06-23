@@ -1,0 +1,38 @@
+package cicd
+
+import (
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
+)
+
+var (
+	gitlabApiToken string
+	gitlabUrl      string
+	verbose        bool
+)
+
+func NewCiCdCmd() *cobra.Command {
+	renovateCmd := &cobra.Command{
+		Use:   "cicd -r mygroup/myrepo",
+		Short: "CI/CD related commands",
+	}
+
+	renovateCmd.PersistentFlags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
+	err := renovateCmd.MarkPersistentFlagRequired("gitlab")
+	if err != nil {
+		log.Fatal().Stack().Err(err).Msg("Unable to require gitlab flag")
+	}
+
+	renovateCmd.PersistentFlags().StringVarP(&gitlabApiToken, "token", "t", "", "GitLab API Token")
+	err = renovateCmd.MarkPersistentFlagRequired("token")
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Unable to require token flag")
+	}
+	renovateCmd.MarkFlagsRequiredTogether("gitlab", "token")
+
+	renovateCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
+
+	renovateCmd.AddCommand(NewYamlCmd())
+
+	return renovateCmd
+}

@@ -1,6 +1,7 @@
 package gitlab
 
 import (
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/cicd"
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/renovate"
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/runners"
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/scan"
@@ -30,6 +31,7 @@ func NewGitLabRootCmd() *cobra.Command {
 	glCmd.AddCommand(securefiles.NewSecureFilesCmd())
 	glCmd.AddCommand(NewEnumCmd())
 	glCmd.AddCommand(renovate.NewRenovateRootCmd())
+	glCmd.AddCommand(cicd.NewCiCdCmd())
 
 	glCmd.PersistentFlags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
 	err := glCmd.MarkPersistentFlagRequired("gitlab")

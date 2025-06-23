@@ -148,3 +148,25 @@ func RegisterNewAccount(targetUrl string, username string, password string, emai
 		log.Info().Str("url", gitlabUrl.String()).Msg("Done! Check your inbox to confirm the account if needed or login directly")
 	}
 }
+
+func FetchCICDYml(git *gitlab.Client, pid int) string {
+	lintOpts := &gitlab.ProjectLintOptions{
+		IncludeJobs: gitlab.Ptr(true),
+	}
+	res, response, err := git.Validate.ProjectLint(pid, lintOpts)
+
+	if err != nil {
+		return ""
+	}
+
+	if response == nil || res == nil {
+		log.Debug().Msg("No response received while fetching project CI/CD YML")
+		return ""
+	}
+
+	if response.StatusCode == 404 || response.StatusCode == 403 {
+		return "" // Project does not have a CI/CD configuration or is not accessible
+	}
+
+	return res.MergedYaml
+}

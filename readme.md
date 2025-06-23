@@ -93,6 +93,8 @@ You can tweak `--threads`, `--max-artifact-size` and `--job-limit` to obtain a c
 
 `renovate autodiscovery` command: Exploit vulnerable Renovate autodisovery configurations. Creates a PoC repo.
 
+`cicd yaml` command: Fetch full CI/CD Yaml configuration (compiles all references)
+
 ### GitLab Proxy Support
 
 > **Note:** Proxying is currently supported only for GitLab commands.
