@@ -25,7 +25,6 @@ func NewYamlCmd() *cobra.Command {
 }
 
 func Fetch(cmd *cobra.Command, args []string) {
-	helper.SetLogLevel(verbose)
 	git, err := util.GetGitlabClient(gitlabApiToken, gitlabUrl)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed creating gitlab client")
@@ -42,10 +41,8 @@ func Fetch(cmd *cobra.Command, args []string) {
 	ciCdYml := util.FetchCICDYml(git, project.ID)
 	yml, err := helper.PrettyPrintYAML(ciCdYml)
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("Failed pretty printing project CI/CD YML")
-		return
+		log.Fatal().Stack().Err(err).Msg("Failed pretty printing project CI/CD YML")
 	}
-	log.Info().Msg(helper.GetPlatformAgnosticNewline() + yml)
 
-	log.Info().Msg("Done, Bye Bye 🏳️‍🌈🔥")
+	log.Info().Msg(helper.GetPlatformAgnosticNewline() + yml)
 }
