@@ -19,7 +19,7 @@ func NewYamlCmd() *cobra.Command {
 		Run:   Fetch,
 	}
 
-	yamlCmd.Flags().StringVarP(&projectName, "repo", "r", "", "Repository to scan for Renovate configuraiton (if not set, all projects will be scanned)")
+	yamlCmd.Flags().StringVarP(&projectName, "repo", "r", "", "Repository to fetch its fully compiled .gitlab-ci.yml")
 
 	return yamlCmd
 }

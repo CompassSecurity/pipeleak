@@ -12,27 +12,27 @@ var (
 )
 
 func NewCiCdCmd() *cobra.Command {
-	renovateCmd := &cobra.Command{
+	ciCdCmd := &cobra.Command{
 		Use:   "cicd -r mygroup/myrepo",
 		Short: "CI/CD related commands",
 	}
 
-	renovateCmd.PersistentFlags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
-	err := renovateCmd.MarkPersistentFlagRequired("gitlab")
+	ciCdCmd.PersistentFlags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
+	err := ciCdCmd.MarkPersistentFlagRequired("gitlab")
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Unable to require gitlab flag")
 	}
 
-	renovateCmd.PersistentFlags().StringVarP(&gitlabApiToken, "token", "t", "", "GitLab API Token")
-	err = renovateCmd.MarkPersistentFlagRequired("token")
+	ciCdCmd.PersistentFlags().StringVarP(&gitlabApiToken, "token", "t", "", "GitLab API Token")
+	err = ciCdCmd.MarkPersistentFlagRequired("token")
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("Unable to require token flag")
 	}
-	renovateCmd.MarkFlagsRequiredTogether("gitlab", "token")
+	ciCdCmd.MarkFlagsRequiredTogether("gitlab", "token")
 
-	renovateCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
+	ciCdCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 
-	renovateCmd.AddCommand(NewYamlCmd())
+	ciCdCmd.AddCommand(NewYamlCmd())
 
-	return renovateCmd
+	return ciCdCmd
 }
