@@ -26,7 +26,7 @@ func NewRenovateRootCmd() *cobra.Command {
 	renovateCmd.PersistentFlags().StringVarP(&gitlabApiToken, "token", "t", "", "GitLab API Token")
 	err = renovateCmd.MarkPersistentFlagRequired("token")
 	if err != nil {
-		log.Error().Stack().Err(err).Msg("Unable to require token flag")
+		log.Fatal().Stack().Err(err).Msg("Unable to require token flag")
 	}
 	renovateCmd.MarkFlagsRequiredTogether("gitlab", "token")
 
@@ -34,6 +34,7 @@ func NewRenovateRootCmd() *cobra.Command {
 
 	renovateCmd.AddCommand(NewEnumCmd())
 	renovateCmd.AddCommand(NewAutodiscoveryCmd())
+	renovateCmd.AddCommand(NewPrivescCmd())
 
 	return renovateCmd
 }
