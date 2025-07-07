@@ -93,6 +93,8 @@ You can tweak `--threads`, `--max-artifact-size` and `--job-limit` to obtain a c
 
 `renovate autodiscovery` command: Exploit vulnerable Renovate autodisovery configurations. Creates a PoC repo.
 
+`renovate privesc` command: Inject a malicious CI/CD Job into the protected default branch abusing Renovate Bot's access and [Auto-Merge](https://blog.compass-security.com/2025/05/renovate-keeping-your-updates-secure/).
+
 `cicd yaml` command: Fetch full CI/CD Yaml configuration (compiles all references)
 
 ### GitLab Proxy Support

