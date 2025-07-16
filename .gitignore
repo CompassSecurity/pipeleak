@@ -1,3 +1,4 @@
 rules.yml
 *.log
 dist
+src/pipeleak/pipeleak

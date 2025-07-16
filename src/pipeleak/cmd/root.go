@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/CompassSecurity/pipeleak/cmd/bitbucket"
@@ -35,6 +36,9 @@ func Execute() error {
 }
 
 func init() {
+	// Initialize logger early to handle log.Fatal calls during command construction
+	initLoggerFromArgs()
+	
 	rootCmd.AddCommand(github.NewGitHubRootCmd())
 	rootCmd.AddCommand(gitlab.NewGitLabRootCmd())
 	rootCmd.AddCommand(bitbucket.NewBitBucketRootCmd())
@@ -74,11 +78,33 @@ func (cw *CustomWriter) Write(p []byte) (n int, err error) {
 	return originalLen, nil
 }
 
-func initLogger() {
+func initLoggerFromArgs() {
+	// Parse command line arguments to determine if --json flag is present
+	// This is needed for early log.Fatal calls during command construction
+	jsonFlag := false
+	colorFlag := true
+	logFileFlag := ""
+	
+	for i, arg := range os.Args {
+		if arg == "--json" {
+			jsonFlag = true
+		} else if arg == "--coloredLog=false" {
+			colorFlag = false
+		} else if arg == "--logfile" && i+1 < len(os.Args) {
+			logFileFlag = os.Args[i+1]
+		} else if strings.HasPrefix(arg, "--logfile=") {
+			logFileFlag = strings.TrimPrefix(arg, "--logfile=")
+		}
+	}
+	
+	initLoggerWithSettings(jsonFlag, colorFlag, logFileFlag)
+}
+
+func initLoggerWithSettings(jsonOutput bool, colorOutput bool, logFile string) {
 	defaultOut := &CustomWriter{Writer: os.Stdout}
-	if LogFile != "" {
+	if logFile != "" {
 		runLogFile, err := os.OpenFile(
-			LogFile,
+			logFile,
 			os.O_APPEND|os.O_CREATE|os.O_WRONLY,
 			0664,
 		)
@@ -88,12 +114,17 @@ func initLogger() {
 		defaultOut = &CustomWriter{Writer: runLogFile}
 	}
 
-	if JsonLogoutput {
+	if jsonOutput {
 		log.Logger = zerolog.New(defaultOut).With().Timestamp().Logger()
 	} else {
-		output := zerolog.ConsoleWriter{Out: defaultOut, TimeFormat: time.RFC3339, NoColor: !LogColor}
+		output := zerolog.ConsoleWriter{Out: defaultOut, TimeFormat: time.RFC3339, NoColor: !colorOutput}
 		log.Logger = zerolog.New(output).With().Timestamp().Logger()
 	}
 
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+}
+
+func initLogger() {
+	// This is called from PersistentPreRun and uses the parsed flag values
+	initLoggerWithSettings(JsonLogoutput, LogColor, LogFile)
 }
