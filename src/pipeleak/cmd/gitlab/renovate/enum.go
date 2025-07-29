@@ -12,6 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -134,6 +135,35 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 		return
 	}
 
+	// Step 1: Parse the CI/CD YAML and look for jobs using Renovate images or commands
+	type gitlabJob struct {
+		Image  string   `yaml:"image"`
+		Script []string `yaml:"script"`
+	}
+	var parsed map[string]interface{}
+	if err := yaml.Unmarshal([]byte(ciCdYml), &parsed); err == nil {
+		for k, v := range parsed {
+			// Only look at job definitions (skip 'stages', 'variables', etc.)
+			job, ok := v.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			// Check for image
+			if img, ok := job["image"].(string); ok && (strings.Contains(strings.ToLower(img), "renovate")) {
+				log.Warn().Str("job", k).Str("image", img).Str("url", project.WebURL).Msg("Detected Renovate job by image")
+			}
+			// Check for script
+			if script, ok := job["script"].([]interface{}); ok {
+				for _, s := range script {
+					if str, ok := s.(string); ok && (strings.Contains(strings.ToLower(str), "renovate")) {
+						log.Warn().Str("job", k).Str("script", str).Str("url", project.WebURL).Msg("Detected Renovate job by script")
+					}
+				}
+			}
+		}
+	}
+
+	// ...existing detection logic...
 	hasCiCdRenovateConfig := detectCiCdConfig(ciCdYml)
 	var configFile *gitlab.File = nil
 	var configFileContent string
