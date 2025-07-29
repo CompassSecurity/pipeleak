@@ -2,7 +2,6 @@ package renovate
 
 import (
 	b64 "encoding/base64"
-	"io"
 	"regexp"
 	"strings"
 	"sync"
@@ -20,7 +19,6 @@ var (
 	member             bool
 	projectSearchQuery string
 	fast               bool
-	selfHostedOptions  []string
 	page               int
 	repository         string
 )
@@ -135,83 +133,144 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 		return
 	}
 
-	// Step 1: Parse the CI/CD YAML and look for jobs using Renovate images or commands
 	type gitlabJob struct {
 		Image  string   `yaml:"image"`
 		Script []string `yaml:"script"`
 	}
-   var parsed map[string]interface{}
-   if err := yaml.Unmarshal([]byte(ciCdYml), &parsed); err == nil {
-		   indicatorCount := 0
-		   found := false
-		   // Step 1: Job detection (already present)
-		   for k, v := range parsed {
-				   job, ok := v.(map[string]interface{})
-				   if !ok {
-						   continue
-				   }
-				   if img, ok := job["image"].(string); ok && (strings.Contains(strings.ToLower(img), "renovate")) {
-						   indicatorCount++
-						   if !found {
-								   log.Warn().Str("job", k).Str("image", img).Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate job by image or script/variable/tag")
-								   found = true
-						   }
-				   }
-				   if script, ok := job["script"].([]interface{}); ok {
-						   for _, s := range script {
-								   if str, ok := s.(string); ok && (strings.Contains(strings.ToLower(str), "renovate")) {
-										   indicatorCount++
-										   if !found {
-												   log.Warn().Str("job", k).Str("script", str).Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate job by image or script/variable/tag")
-												   found = true
-										   }
-								   }
-						   }
-				   }
-		   }
+	var parsed map[string]interface{}
+	found := false
+	indicatorCount := 0
 
-		   // Step 2: Variable and tag detection
-		   // Check global variables
-		   if variables, ok := parsed["variables"].(map[string]interface{}); ok {
-				   for varName := range variables {
-						   if strings.Contains(strings.ToUpper(varName), "RENOVATE") {
-								   indicatorCount++
-								   if !found {
-										   log.Warn().Str("variable", varName).Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate job by image or script/variable/tag")
-										   found = true
-								   }
-						   }
-				   }
-		   }
-		   // Check tags in jobs
-		   for k, v := range parsed {
-				   job, ok := v.(map[string]interface{})
-				   if !ok {
-						   continue
-				   }
-				   if tags, ok := job["tags"].([]interface{}); ok {
-						   for _, t := range tags {
-								   if tagStr, ok := t.(string); ok && strings.Contains(strings.ToLower(tagStr), "renovate") {
-										   indicatorCount++
-										   if !found {
-												   log.Warn().Str("job", k).Str("tag", tagStr).Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate job by image or script/variable/tag")
-												   found = true
-										   }
-								   }
-						   }
-				   }
-		   }
-   }
+	if err := yaml.Unmarshal([]byte(ciCdYml), &parsed); err == nil {
 
-	// ...existing detection logic...
-	hasCiCdRenovateConfig := detectCiCdConfig(ciCdYml)
+		// Job detection
+		for k, v := range parsed {
+			job, ok := v.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			// Heuristic: job name contains renovate or dependency
+			if strings.Contains(strings.ToLower(k), "renovate") || strings.Contains(strings.ToLower(k), "dependency") {
+				indicatorCount++
+				if !found {
+					log.Info().Str("job", k).Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate job by job name")
+					found = true
+				}
+			}
+
+			// Heuristic: stage name contains renovate or dependency
+			if stage, ok := job["stage"].(string); ok && (strings.Contains(strings.ToLower(stage), "renovate") || strings.Contains(strings.ToLower(stage), "dependency")) {
+				indicatorCount++
+				if !found {
+					log.Info().Str("job", k).Str("stage", stage).Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate job by stage")
+					found = true
+				}
+			}
+
+			if img, ok := job["image"].(string); ok && (strings.Contains(strings.ToLower(img), "renovate")) {
+				indicatorCount++
+				if !found {
+					log.Info().Str("job", k).Str("image", img).Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate job by image")
+					found = true
+				}
+			}
+			if script, ok := job["script"].([]interface{}); ok {
+				for _, s := range script {
+					if str, ok := s.(string); ok && (strings.Contains(strings.ToLower(str), "renovate")) {
+						indicatorCount++
+						if !found {
+							log.Info().Str("job", k).Str("script", str).Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate job by script")
+							found = true
+						}
+					}
+				}
+			}
+		}
+
+		// Variable and tag detection
+		if variables, ok := parsed["variables"].(map[string]interface{}); ok {
+			for varName := range variables {
+				if strings.Contains(strings.ToUpper(varName), "RENOVATE") {
+					indicatorCount++
+					if !found {
+						log.Info().Str("variable", varName).Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate job by variable")
+						found = true
+					}
+				}
+			}
+		}
+
+		// Check tags in jobs
+		for k, v := range parsed {
+			job, ok := v.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			if tags, ok := job["tags"].([]interface{}); ok {
+				for _, t := range tags {
+					if tagStr, ok := t.(string); ok && strings.Contains(strings.ToLower(tagStr), "renovate") {
+						indicatorCount++
+						if !found {
+							log.Info().Str("job", k).Str("tag", tagStr).Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate job by tag")
+							found = true
+						}
+					}
+				}
+			}
+		}
+
+		// Anchors/Aliases and Includes
+		// Simple regex for YAML anchors/aliases
+		anchorRegex := regexp.MustCompile(`&([a-zA-Z0-9_-]*renovate[a-zA-Z0-9_-]*)|&([a-zA-Z0-9_-]*dependency[a-zA-Z0-9_-]*)`)
+		aliasRegex := regexp.MustCompile(`\*([a-zA-Z0-9_-]*renovate[a-zA-Z0-9_-]*)|\*([a-zA-Z0-9_-]*dependency[a-zA-Z0-9_-]*)`)
+		if anchorRegex.MatchString(ciCdYml) || aliasRegex.MatchString(ciCdYml) {
+			indicatorCount++
+			if !found {
+				log.Info().Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate anchor/alias in CI/CD YAML")
+				found = true
+			}
+		}
+
+		// Check for includes
+		if includes, ok := parsed["include"]; ok {
+			// includes can be a string, a map, or a list
+			var checkInclude func(val interface{}) bool
+			checkInclude = func(val interface{}) bool {
+				switch v := val.(type) {
+				case string:
+					return strings.Contains(strings.ToLower(v), "renovate") || strings.Contains(strings.ToLower(v), "dependency")
+				case map[string]interface{}:
+					for _, vv := range v {
+						if checkInclude(vv) {
+							return true
+						}
+					}
+				case []interface{}:
+					for _, vv := range v {
+						if checkInclude(vv) {
+							return true
+						}
+					}
+				}
+				return false
+			}
+			if checkInclude(includes) {
+				indicatorCount++
+				if !found {
+					log.Info().Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate include in CI/CD YAML")
+					found = true
+				}
+			}
+		}
+	}
+
 	var configFile *gitlab.File = nil
 	var configFileContent string
 	if !fast {
 		configFile, configFileContent = detectRenovateConfigFile(git, project)
 	}
 
-	if hasCiCdRenovateConfig || configFile != nil {
+	if found || configFile != nil {
 		selfHostedConfigFile := false
 		if configFile != nil {
 			selfHostedConfigFile = isSelfHostedConfig(configFileContent)
@@ -223,9 +282,9 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 			autodiscoveryFilters = detectAutodiscoveryFilters(ciCdYml, configFileContent)
 		}
 
-		log.Warn().Str("pipelines", string(project.BuildsAccessLevel)).Bool("hasAutodiscovery", autodiscovery).Bool("hasAutodiscoveryFilters", autodiscoveryFilters).Bool("hasConfigFile", configFile != nil).Bool("selfHostedConfigFile", selfHostedConfigFile).Str("url", project.WebURL).Msg("Identified Renovate (bot) configuration")
+		log.Warn().Str("pipelines", string(project.BuildsAccessLevel)).Bool("vulnerable", autodiscovery && !autodiscoveryFilters).Bool("hasAutodiscovery", autodiscovery).Bool("hasAutodiscoveryFilters", autodiscoveryFilters).Bool("hasConfigFile", configFile != nil).Bool("selfHostedConfigFile", selfHostedConfigFile).Str("url", project.WebURL).Msg("Identified Renovate (bot) configuration")
 
-		if verbose && hasCiCdRenovateConfig {
+		if verbose && found {
 			yml, err := helper.PrettyPrintYAML(ciCdYml)
 			if err != nil {
 				log.Error().Stack().Err(err).Msg("Failed pretty printing project CI/CD YML")
@@ -236,37 +295,57 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 	}
 }
 
-func detectCiCdConfig(cicdConf string) bool {
-	// Check for common Renovate bot job identifiers in CI/CD configuration
-	return helper.ContainsI(cicdConf, "renovate/renovate") ||
-		helper.ContainsI(cicdConf, "renovatebot/renovate") ||
-		helper.ContainsI(cicdConf, "renovate-bot/renovate-runner") ||
-		helper.ContainsI(cicdConf, "RENOVATE_") ||
-		helper.ContainsI(cicdConf, "npx renovate")
-}
-
 func detectAutodiscovery(cicdConf string, configFileContent string) bool {
-	// Check for autodiscover flag: https://docs.renovatebot.com/self-hosted-configuration/#autodiscover
-	hasAutodiscoveryInConfigFile := helper.ContainsI(configFileContent, "autodiscover")
+	if helper.ContainsI(cicdConf, "autodiscover") {
+		// Exclude explicit disables
+		disables := []string{"autodiscover=false", "--autodiscover=false", "--autodiscover false", "RENOVATE_AUTODISCOVER: false", "RENOVATE_AUTODISCOVER=false"}
+		for _, d := range disables {
+			if helper.ContainsI(configFileContent, d) {
+				return false
+			}
+		}
+	}
 
-	hasAutodiscoveryinCiCD := (helper.ContainsI(cicdConf, "--autodiscover") || helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER")) &&
-		(!helper.ContainsI(cicdConf, "--autodiscover=false") && !helper.ContainsI(cicdConf, "--autodiscover false") && !helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER: false") && !helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER=false"))
+	// Check for Renovate CLI flags or env vars enabling autodiscover
+	cliFlags := []string{"--autodiscover", "--autodiscover=true", "--autodiscover true"}
+	for _, flag := range cliFlags {
+		if helper.ContainsI(cicdConf, flag) {
+			return true
+		}
+	}
 
-	return hasAutodiscoveryInConfigFile || hasAutodiscoveryinCiCD
+	envVars := []string{"RENOVATE_AUTODISCOVER=1", "RENOVATE_AUTODISCOVER=true", "RENOVATE_AUTODISCOVER: true"}
+	for _, env := range envVars {
+		if helper.ContainsI(cicdConf, env) {
+			return true
+		}
+	}
+
+	// Check for Renovate config keys that imply autodiscovery (e.g., autodiscoverFilter, autodiscoverNamespaces, etc.)
+	configKeys := []string{"autodiscoverFilter", "autodiscoverNamespaces", "autodiscoverProjects", "autodiscoverTopics"}
+	for _, key := range configKeys {
+		if helper.ContainsI(configFileContent, key) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func detectAutodiscoveryFilters(cicdConf string, configFileContent string) bool {
-	// https://docs.renovatebot.com/self-hosted-configuration/#autodiscoverfilter
-	// https://docs.renovatebot.com/self-hosted-configuration/#autodiscovernamespaces
-	// https://docs.renovatebot.com/self-hosted-configuration/#autodiscoverprojects
-	// https://docs.renovatebot.com/self-hosted-configuration/#autodiscovertopics
+	// Check for filter-related keys, env vars, or CLI flags in both config and CI/CD
+	filterKeys := []string{
+		"autodiscoverFilter", "autodiscoverFilters", "autodiscoverNamespaces", "autodiscoverProjects", "autodiscoverTopics",
+		"RENOVATE_AUTODISCOVER_FILTER", "RENOVATE_AUTODISCOVER_FILTERS", "RENOVATE_AUTODISCOVER_NAMESPACES", "RENOVATE_AUTODISCOVER_PROJECTS", "RENOVATE_AUTODISCOVER_TOPICS",
+		"--autodiscover-filter", "--autodiscover-filters", "--autodiscover-namespaces", "--autodiscover-projects", "--autodiscover-topics",
+	}
+	for _, key := range filterKeys {
+		if helper.ContainsI(configFileContent, key) || helper.ContainsI(cicdConf, key) {
+			return true
+		}
+	}
 
-	hasFilter := helper.ContainsI(configFileContent, "autodiscoverFilter") || helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER_FILTER") || helper.ContainsI(cicdConf, "--autodiscover-filter")
-	hasNamespaces := helper.ContainsI(configFileContent, "autodiscoverNamespaces") || helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER_NAMESPACES") || helper.ContainsI(cicdConf, "--autodiscover-namespaces")
-	hasProjects := helper.ContainsI(configFileContent, "autodiscoverProjects") || helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER_PROJECTS") || helper.ContainsI(cicdConf, "--autodiscover-projects")
-	hasTopics := helper.ContainsI(configFileContent, "autodiscoverTopics") || helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER_TOPICS") || helper.ContainsI(cicdConf, "--autodiscover-topics")
-
-	return hasFilter || hasNamespaces || hasProjects || hasTopics
+	return false
 }
 
 // detectRenovateConfigFile checks for common Renovate configuration files in the project repository
@@ -305,53 +384,111 @@ func detectRenovateConfigFile(git *gitlab.Client, project *gitlab.Project) (*git
 	return nil, ""
 }
 
-func fetchCurrentSelfHostedOptions() []string {
-	if len(selfHostedOptions) > 0 {
-		return selfHostedOptions
-	}
-
-	log.Debug().Msg("Fetching current self-hosted configuration from GitHub")
-
-	client := helper.GetPipeleakHTTPClient()
-	res, err := client.Get("https://raw.githubusercontent.com/renovatebot/renovate/refs/heads/main/docs/usage/self-hosted-configuration.md")
-	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("Failed fetching self-hosted configuration documentation")
-		return []string{}
-	}
-	defer res.Body.Close()
-	if res.StatusCode != 200 {
-		log.Fatal().Int("status", res.StatusCode).Msg("Failed fetching self-hosted configuration documentation")
-		return []string{}
-	}
-	data, err := io.ReadAll(res.Body)
-	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("Failed reading self-hosted configuration documentation")
-		return []string{}
-	}
-
-	selfHostedOptions = extractSelfHostedOptions(data)
-	return selfHostedOptions
-}
-
-func extractSelfHostedOptions(data []byte) []string {
-	var re = regexp.MustCompile(`(?m)## .*`)
-	matches := re.FindAllString(string(data), -1)
-
-	var options []string
-	for _, match := range matches {
-		options = append(options, strings.ReplaceAll(strings.TrimSpace(match), "## ", ""))
-	}
-
-	return options
-}
-
 func isSelfHostedConfig(config string) bool {
-	selfHostedOptions := fetchCurrentSelfHostedOptions()
-	for _, option := range selfHostedOptions {
-		// Check if the content contains any of the self-hosted options
-		if helper.ContainsI(config, option) {
+	// Look for common self-hosted Renovate config keys/flags
+	configLower := strings.ToLower(config)
+	keys := []string{
+		"allowCustomCrateRegistries",
+		"allowPlugins",
+		"allowScripts",
+		"allowedCommands",
+		"allowedEnv",
+		"allowedHeaders",
+		"autodiscover",
+		"autodiscoverFilter",
+		"autodiscoverNamespaces",
+		"autodiscoverProjects",
+		"autodiscoverRepoOrder",
+		"autodiscoverRepoSort",
+		"autodiscoverTopics",
+		"baseDir",
+		"bbUseDevelopmentBranch",
+		"binarySource",
+		"cacheDir",
+		"cacheHardTtlMinutes",
+		"cachePrivatePackages",
+		"cacheTtlOverride",
+		"checkedBranches",
+		"containerbaseDir",
+		"customEnvVariables",
+		"deleteConfigFile",
+		"detectGlobalManagerConfig",
+		"detectHostRulesFromEnv",
+		"dockerChildPrefix",
+		"dockerCliOptions",
+		"dockerMaxPages",
+		"dockerSidecarImage",
+		"dockerUser",
+		"dryRun",
+		"encryptedWarning",
+		"endpoint",
+		"executionTimeout",
+		"exposeAllEnv",
+		"force",
+		"forceCli",
+		"forkCreation",
+		"forkOrg",
+		"forkToken",
+		"gitNoVerify",
+		"gitPrivateKey",
+		"gitTimeout",
+		"gitUrl",
+		"githubTokenWarn",
+		"globalExtends",
+		"httpCacheTtlDays",
+		"includeMirrors",
+		"inheritConfig",
+		"inheritConfigFileName",
+		"inheritConfigRepoName",
+		"inheritConfigStrict",
+		"logContext",
+		"mergeConfidenceDatasources",
+		"mergeConfidenceEndpoint",
+		"migratePresets",
+		"onboarding",
+		"onboardingBranch",
+		"onboardingCommitMessage",
+		"onboardingConfig",
+		"onboardingConfigFileName",
+		"onboardingNoDeps",
+		"onboardingPrTitle",
+		"onboardingRebaseCheckbox",
+		"optimizeForDisabled",
+		"password",
+		"persistRepoData",
+		"platform",
+		"prCommitsPerRunLimit",
+		"presetCachePersistence",
+		"privateKey",
+		"privateKeyOld",
+		"privateKeyPath",
+		"privateKeyPathOld",
+		"processEnv",
+		"productLinks",
+		"redisPrefix",
+		"redisUrl",
+		"reportPath",
+		"reportType",
+		"repositories",
+		"repositoryCache",
+		"repositoryCacheType",
+		"requireConfig",
+		"s3Endpoint",
+		"s3PathStyle",
+		"secrets",
+		"token",
+		"unicodeEmoji",
+		"useCloudMetadataServices",
+		"userAgent",
+		"username",
+		"variables",
+		"writeDiscoveredRepo",
+	}
+	for _, key := range keys {
+		if strings.Contains(configLower, key) {
 			return true
 		}
 	}
+
 	return false
 }
