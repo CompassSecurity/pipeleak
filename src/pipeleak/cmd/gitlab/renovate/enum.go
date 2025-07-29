@@ -140,28 +140,68 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 		Image  string   `yaml:"image"`
 		Script []string `yaml:"script"`
 	}
-	var parsed map[string]interface{}
-	if err := yaml.Unmarshal([]byte(ciCdYml), &parsed); err == nil {
-		for k, v := range parsed {
-			// Only look at job definitions (skip 'stages', 'variables', etc.)
-			job, ok := v.(map[string]interface{})
-			if !ok {
-				continue
-			}
-			// Check for image
-			if img, ok := job["image"].(string); ok && (strings.Contains(strings.ToLower(img), "renovate")) {
-				log.Warn().Str("job", k).Str("image", img).Str("url", project.WebURL).Msg("Detected Renovate job by image")
-			}
-			// Check for script
-			if script, ok := job["script"].([]interface{}); ok {
-				for _, s := range script {
-					if str, ok := s.(string); ok && (strings.Contains(strings.ToLower(str), "renovate")) {
-						log.Warn().Str("job", k).Str("script", str).Str("url", project.WebURL).Msg("Detected Renovate job by script")
-					}
-				}
-			}
-		}
-	}
+   var parsed map[string]interface{}
+   if err := yaml.Unmarshal([]byte(ciCdYml), &parsed); err == nil {
+		   indicatorCount := 0
+		   found := false
+		   // Step 1: Job detection (already present)
+		   for k, v := range parsed {
+				   job, ok := v.(map[string]interface{})
+				   if !ok {
+						   continue
+				   }
+				   if img, ok := job["image"].(string); ok && (strings.Contains(strings.ToLower(img), "renovate")) {
+						   indicatorCount++
+						   if !found {
+								   log.Warn().Str("job", k).Str("image", img).Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate job by image or script/variable/tag")
+								   found = true
+						   }
+				   }
+				   if script, ok := job["script"].([]interface{}); ok {
+						   for _, s := range script {
+								   if str, ok := s.(string); ok && (strings.Contains(strings.ToLower(str), "renovate")) {
+										   indicatorCount++
+										   if !found {
+												   log.Warn().Str("job", k).Str("script", str).Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate job by image or script/variable/tag")
+												   found = true
+										   }
+								   }
+						   }
+				   }
+		   }
+
+		   // Step 2: Variable and tag detection
+		   // Check global variables
+		   if variables, ok := parsed["variables"].(map[string]interface{}); ok {
+				   for varName := range variables {
+						   if strings.Contains(strings.ToUpper(varName), "RENOVATE") {
+								   indicatorCount++
+								   if !found {
+										   log.Warn().Str("variable", varName).Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate job by image or script/variable/tag")
+										   found = true
+								   }
+						   }
+				   }
+		   }
+		   // Check tags in jobs
+		   for k, v := range parsed {
+				   job, ok := v.(map[string]interface{})
+				   if !ok {
+						   continue
+				   }
+				   if tags, ok := job["tags"].([]interface{}); ok {
+						   for _, t := range tags {
+								   if tagStr, ok := t.(string); ok && strings.Contains(strings.ToLower(tagStr), "renovate") {
+										   indicatorCount++
+										   if !found {
+												   log.Warn().Str("job", k).Str("tag", tagStr).Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate job by image or script/variable/tag")
+												   found = true
+										   }
+								   }
+						   }
+				   }
+		   }
+   }
 
 	// ...existing detection logic...
 	hasCiCdRenovateConfig := detectCiCdConfig(ciCdYml)
