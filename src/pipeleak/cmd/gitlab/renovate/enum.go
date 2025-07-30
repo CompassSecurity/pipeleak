@@ -3,7 +3,6 @@ package renovate
 import (
 	b64 "encoding/base64"
 	"regexp"
-	"strings"
 	"sync"
 
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
@@ -91,7 +90,7 @@ func fetchProjects(git *gitlab.Client) {
 			PerPage: 100,
 			Page:    page,
 		},
-		OrderBy:    gitlab.Ptr("last_activity_at"),
+		OrderBy:    gitlab.Ptr("created_at"),
 		Owned:      gitlab.Ptr(owned),
 		Membership: gitlab.Ptr(member),
 		Search:     gitlab.Ptr(projectSearchQuery),
@@ -133,13 +132,8 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 		return
 	}
 
-	type gitlabJob struct {
-		Image  string   `yaml:"image"`
-		Script []string `yaml:"script"`
-	}
 	var parsed map[string]interface{}
 	found := false
-	indicatorCount := 0
 
 	if err := yaml.Unmarshal([]byte(ciCdYml), &parsed); err == nil {
 
@@ -149,37 +143,33 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 			if !ok {
 				continue
 			}
-			// Heuristic: job name contains renovate or dependency
-			if strings.Contains(strings.ToLower(k), "renovate") || strings.Contains(strings.ToLower(k), "dependency") {
-				indicatorCount++
+			// Heuristic: job name contains renovate
+			if helper.ContainsI(k, "renovate") {
 				if !found {
-					log.Info().Str("job", k).Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate job by job name")
+					log.Info().Str("job", k).Str("url", project.WebURL).Msg("Detected Renovate job by job name")
 					found = true
 				}
 			}
 
-			// Heuristic: stage name contains renovate or dependency
-			if stage, ok := job["stage"].(string); ok && (strings.Contains(strings.ToLower(stage), "renovate") || strings.Contains(strings.ToLower(stage), "dependency")) {
-				indicatorCount++
+			// Heuristic: stage name contains renovate
+			if stage, ok := job["stage"].(string); ok && helper.ContainsI(stage, "renovate") {
 				if !found {
-					log.Info().Str("job", k).Str("stage", stage).Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate job by stage")
+					log.Info().Str("job", k).Str("stage", stage).Str("url", project.WebURL).Msg("Detected Renovate job by stage")
 					found = true
 				}
 			}
 
-			if img, ok := job["image"].(string); ok && (strings.Contains(strings.ToLower(img), "renovate")) {
-				indicatorCount++
+			if img, ok := job["image"].(string); ok && helper.ContainsI(img, "renovate") {
 				if !found {
-					log.Info().Str("job", k).Str("image", img).Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate job by image")
+					log.Info().Str("job", k).Str("image", img).Str("url", project.WebURL).Msg("Detected Renovate job by image")
 					found = true
 				}
 			}
 			if script, ok := job["script"].([]interface{}); ok {
 				for _, s := range script {
-					if str, ok := s.(string); ok && (strings.Contains(strings.ToLower(str), "renovate")) {
-						indicatorCount++
+					if str, ok := s.(string); ok && helper.ContainsI(str, "renovate") {
 						if !found {
-							log.Info().Str("job", k).Str("script", str).Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate job by script")
+							log.Info().Str("job", k).Str("script", str).Str("url", project.WebURL).Msg("Detected Renovate job by script")
 							found = true
 						}
 					}
@@ -190,10 +180,9 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 		// Variable and tag detection
 		if variables, ok := parsed["variables"].(map[string]interface{}); ok {
 			for varName := range variables {
-				if strings.Contains(strings.ToUpper(varName), "RENOVATE") {
-					indicatorCount++
+				if helper.ContainsI(varName, "renovate") {
 					if !found {
-						log.Info().Str("variable", varName).Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate job by variable")
+						log.Info().Str("variable", varName).Str("url", project.WebURL).Msg("Detected Renovate job by variable")
 						found = true
 					}
 				}
@@ -208,10 +197,9 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 			}
 			if tags, ok := job["tags"].([]interface{}); ok {
 				for _, t := range tags {
-					if tagStr, ok := t.(string); ok && strings.Contains(strings.ToLower(tagStr), "renovate") {
-						indicatorCount++
+					if tagStr, ok := t.(string); ok && helper.ContainsI(tagStr, "renovate") {
 						if !found {
-							log.Info().Str("job", k).Str("tag", tagStr).Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate job by tag")
+							log.Info().Str("job", k).Str("tag", tagStr).Str("url", project.WebURL).Msg("Detected Renovate job by tag")
 							found = true
 						}
 					}
@@ -221,12 +209,11 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 
 		// Anchors/Aliases and Includes
 		// Simple regex for YAML anchors/aliases
-		anchorRegex := regexp.MustCompile(`&([a-zA-Z0-9_-]*renovate[a-zA-Z0-9_-]*)|&([a-zA-Z0-9_-]*dependency[a-zA-Z0-9_-]*)`)
-		aliasRegex := regexp.MustCompile(`\*([a-zA-Z0-9_-]*renovate[a-zA-Z0-9_-]*)|\*([a-zA-Z0-9_-]*dependency[a-zA-Z0-9_-]*)`)
+		anchorRegex := regexp.MustCompile(`&([a-zA-Z0-9_-]*renovate[a-zA-Z0-9_-]*)`)
+		aliasRegex := regexp.MustCompile(`\*([a-zA-Z0-9_-]*renovate[a-zA-Z0-9_-]*)`)
 		if anchorRegex.MatchString(ciCdYml) || aliasRegex.MatchString(ciCdYml) {
-			indicatorCount++
 			if !found {
-				log.Info().Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate anchor/alias in CI/CD YAML")
+				log.Info().Str("url", project.WebURL).Msg("Detected Renovate anchor/alias in CI/CD YAML")
 				found = true
 			}
 		}
@@ -238,7 +225,7 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 			checkInclude = func(val interface{}) bool {
 				switch v := val.(type) {
 				case string:
-					return strings.Contains(strings.ToLower(v), "renovate") || strings.Contains(strings.ToLower(v), "dependency")
+					return helper.ContainsI(v, "renovate")
 				case map[string]interface{}:
 					for _, vv := range v {
 						if checkInclude(vv) {
@@ -255,9 +242,8 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 				return false
 			}
 			if checkInclude(includes) {
-				indicatorCount++
 				if !found {
-					log.Info().Str("url", project.WebURL).Int("indicators", indicatorCount).Msg("Detected Renovate include in CI/CD YAML")
+					log.Info().Str("url", project.WebURL).Msg("Detected Renovate include in CI/CD YAML")
 					found = true
 				}
 			}
@@ -386,7 +372,6 @@ func detectRenovateConfigFile(git *gitlab.Client, project *gitlab.Project) (*git
 
 func isSelfHostedConfig(config string) bool {
 	// Look for common self-hosted Renovate config keys/flags
-	configLower := strings.ToLower(config)
 	keys := []string{
 		"allowCustomCrateRegistries",
 		"allowPlugins",
@@ -485,7 +470,7 @@ func isSelfHostedConfig(config string) bool {
 		"writeDiscoveredRepo",
 	}
 	for _, key := range keys {
-		if strings.Contains(configLower, key) {
+		if helper.ContainsI(config, key) {
 			return true
 		}
 	}
