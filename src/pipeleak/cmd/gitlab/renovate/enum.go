@@ -92,7 +92,7 @@ func fetchProjects(git *gitlab.Client) {
 			PerPage: 100,
 			Page:    page,
 		},
-		OrderBy:    gitlab.Ptr("last_activity_at"),
+		OrderBy:    gitlab.Ptr("created_at"),
 		Owned:      gitlab.Ptr(owned),
 		Membership: gitlab.Ptr(member),
 		Search:     gitlab.Ptr(projectSearchQuery),
