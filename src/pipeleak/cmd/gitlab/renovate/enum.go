@@ -22,6 +22,7 @@ var (
 	selfHostedOptions  []string
 	page               int
 	repository         string
+	orderBy            string
 )
 
 func NewEnumCmd() *cobra.Command {
@@ -50,6 +51,7 @@ func NewEnumCmd() *cobra.Command {
 	enumCmd.Flags().StringVarP(&projectSearchQuery, "search", "s", "", "Query string for searching projects")
 	enumCmd.Flags().BoolVarP(&fast, "fast", "f", false, "Fast mode - skip renovate config file detection, only check CIDC yml for renovate bot job (default false)")
 	enumCmd.Flags().IntVarP(&page, "page", "p", 1, "Page number to start fetching projects from (default 1, fetch all pages)")
+	enumCmd.Flags().StringVar(&orderBy, "order-by", "created_at", "Order projects by: id, name, path, created_at, updated_at, star_count, last_activity_at, or similarity")
 
 	enumCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 
@@ -87,12 +89,19 @@ func scanSingleProject(git *gitlab.Client, projectName string) {
 func fetchProjects(git *gitlab.Client) {
 	log.Info().Msg("Fetching projects")
 
+	allowedOrderBy := map[string]struct{}{
+		"id": {}, "name": {}, "path": {}, "created_at": {}, "updated_at": {}, "star_count": {}, "last_activity_at": {}, "similarity": {},
+	}
+	if _, ok := allowedOrderBy[orderBy]; !ok {
+		log.Fatal().Str("orderBy", orderBy).Msg("Invalid value for --order-by. Allowed: id, name, path, created_at, updated_at, star_count, last_activity_at, similarity")
+	}
+
 	projectOpts := &gitlab.ListProjectsOptions{
 		ListOptions: gitlab.ListOptions{
 			PerPage: 100,
 			Page:    page,
 		},
-		OrderBy:    gitlab.Ptr("last_activity_at"),
+		OrderBy:    gitlab.Ptr(orderBy),
 		Owned:      gitlab.Ptr(owned),
 		Membership: gitlab.Ptr(member),
 		Search:     gitlab.Ptr(projectSearchQuery),
