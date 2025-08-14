@@ -15,7 +15,7 @@ require (
 	github.com/rxwycdh/rxhash v0.0.0-20230131062142-10b7a38b400d
 	github.com/spf13/cobra v1.9.1
 	github.com/tidwall/gjson v1.18.0
-	github.com/trufflesecurity/trufflehog/v3 v3.90.3
+	github.com/trufflesecurity/trufflehog/v3 v3.90.5
 	gitlab.com/gitlab-org/api/client-go v0.137.0
 	gitlab.com/mitchenielsen/gitlab-ci-go v0.0.4
 	golang.org/x/term v0.33.0
@@ -50,7 +50,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.34.1 // indirect
 	github.com/aws/smithy-go v1.22.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bitfinexcom/bitfinex-api-go v0.0.0-20210608095005-9e0b26f200fb // indirect
 	github.com/bodgit/plumbing v1.3.0 // indirect
 	github.com/bodgit/sevenzip v1.6.0 // indirect
 	github.com/bodgit/windows v1.0.1 // indirect
