@@ -157,7 +157,7 @@ require (
 	github.com/nsqio/go-diskqueue v1.1.0
 	github.com/perimeterx/marshmallow v1.1.5
 	github.com/spf13/pflag v1.0.9 // indirect
-	github.com/wandb/parallel v0.2.2
+	github.com/wandb/parallel v0.2.3
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sys v0.36.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
