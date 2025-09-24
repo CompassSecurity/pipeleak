@@ -202,7 +202,7 @@ func analyzeDotenvArtifact(git *gitlab.Client, item QueueItem, options *ScanOpti
 		return
 	}
 	for _, finding := range findings {
-		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("jobUrl", item.Meta.JobWebUrl).Msg("HIT DOTENV: Check artifacts page which is the only place to download the dotenv file")
+		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", item.Meta.JobWebUrl).Msg("HIT DOTENV: Check artifacts page which is the only place to download the dotenv file")
 	}
 }
 
