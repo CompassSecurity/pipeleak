@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"crypto/tls"
+	"encoding/base64"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -18,6 +19,7 @@ import (
 	"atomicgo.dev/keyboard/keys"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/net/html"
 	"gopkg.in/yaml.v3"
 )
 
@@ -183,4 +185,38 @@ func RandomStringN(n int) string {
 		b[i] = letterBytes[rand.Intn(len(letterBytes))]
 	}
 	return string(b)
+}
+
+func ExtractHTMLTitleFromB64Html(body []byte) string {
+	decoded, err := base64.StdEncoding.DecodeString(string(body))
+	if err != nil {
+		decoded = body
+	}
+
+	content := string(decoded)
+	contentLower := strings.ToLower(content)
+
+	if !strings.Contains(contentLower, "<html") {
+		return ""
+	}
+
+	doc, err := html.Parse(strings.NewReader(content))
+	if err != nil {
+		return ""
+	}
+
+	var title string
+	var f func(*html.Node)
+	f = func(n *html.Node) {
+		if n.Type == html.ElementNode && n.Data == "title" && n.FirstChild != nil {
+			title = n.FirstChild.Data
+			return
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			f(c)
+		}
+	}
+	f(doc)
+
+	return title
 }

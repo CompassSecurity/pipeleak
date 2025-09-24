@@ -202,8 +202,7 @@ func analyzeDotenvArtifact(git *gitlab.Client, item QueueItem, options *ScanOpti
 		return
 	}
 	for _, finding := range findings {
-		artifactsBaseUrl, _ := url.JoinPath(item.Meta.JobWebUrl, "/-/artifacts")
-		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("artifactUrl", artifactsBaseUrl).Int("jobId", item.Meta.JobId).Str("jobName", item.Meta.JobName).Msg("HIT DOTENV: Check artifacts page which is the only place to download the dotenv file")
+		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("jobUrl", item.Meta.JobWebUrl).Msg("HIT DOTENV: Check artifacts page which is the only place to download the dotenv file")
 	}
 }
 
@@ -271,8 +270,11 @@ func getDotenvArtifact(git *gitlab.Client, projectId int, jobId int, projectPath
 
 // .env artifacts are not accessible over the API thus we must use session cookie and use the UI path
 func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, jobId int) []byte {
-
-	dotenvUrl, _ := url.JoinPath(gitlabUrl, prjectPath, "/-/jobs/", strconv.Itoa(jobId), "/artifacts/download")
+	dotenvUrl, err := url.JoinPath(gitlabUrl, prjectPath, "/-/jobs/", strconv.Itoa(jobId), "/artifacts/download")
+	if err != nil {
+		log.Debug().Stack().Err(err).Msg("Failed joining dotenv GET request URL")
+		return []byte{}
+	}
 
 	req, err := http.NewRequest("GET", dotenvUrl, nil)
 	if err != nil {
@@ -304,24 +306,41 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 	if statCode != 200 {
 		log.Error().Stack().Err(err).Int("HTTP", statCode).Msg("Invalid _gitlab_session detected")
 		return []byte{}
-	} else {
-		log.Debug().Msg("Checking .env.gz artifact")
 	}
 
 	body, err := io.ReadAll(resp.Body)
-
-	reader := bytes.NewReader(body)
-	gzreader, e1 := gzip.NewReader(reader)
-	if e1 != nil {
-		log.Debug().Msg(err.Error())
-		return []byte{}
-	}
-
-	envText, err := io.ReadAll(gzreader)
 	if err != nil {
-		log.Debug().Stack().Err(err).Msg("failed uncompressing dotenv archive")
+		log.Debug().Err(err).Msg("Failed reading dotenv response body")
 		return []byte{}
 	}
 
-	return envText
+	kind, err := filetype.Match(body)
+	if err != nil {
+		log.Debug().Err(err).Msg("Unable to match the filetype of the dotenv response body")
+		return []byte{}
+	}
+
+	if kind.Extension == "gz" {
+		reader := bytes.NewReader(body)
+		gzreader, err := gzip.NewReader(reader)
+		if err != nil {
+			log.Debug().Err(err).Msg("Failed gunzipping dotenv response body")
+			return []byte{}
+		}
+
+		envText, err := io.ReadAll(gzreader)
+		if err != nil {
+			log.Debug().Stack().Err(err).Msg("failed uncompressing dotenv archive")
+			return []byte{}
+		}
+
+		return envText
+	} else if filetype.Unknown == kind {
+		htmlPageTitle := helper.ExtractHTMLTitleFromB64Html(body)
+		log.Error().Str("filetype", kind.Extension).Str("url", dotenvUrl).Int("httpStatus", statCode).Str("htmlPageTitle", htmlPageTitle).Msg("Dotenv artifact file is unexpected. Check if the cookie and token have the same access!")
+	} else {
+		log.Error().Str("filetype", kind.Extension).Str("url", dotenvUrl).Int("httpStatus", statCode).Any("body", body).Msg("Dotenv file response is a weird file type, unexpected behavior, open a bug report if you see this")
+	}
+
+	return []byte{}
 }
