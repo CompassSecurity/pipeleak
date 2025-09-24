@@ -5,6 +5,7 @@ import (
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/renovate"
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/runners"
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/scan"
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/schedule"
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/secureFiles"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -32,6 +33,7 @@ func NewGitLabRootCmd() *cobra.Command {
 	glCmd.AddCommand(NewEnumCmd())
 	glCmd.AddCommand(renovate.NewRenovateRootCmd())
 	glCmd.AddCommand(cicd.NewCiCdCmd())
+	glCmd.AddCommand(schedule.NewScheduleCmd())
 
 	glCmd.PersistentFlags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
 	err := glCmd.MarkPersistentFlagRequired("gitlab")
