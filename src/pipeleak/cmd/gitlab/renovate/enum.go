@@ -2,7 +2,10 @@ package renovate
 
 import (
 	b64 "encoding/base64"
+	"encoding/json"
+	"fmt"
 	"io"
+	"net/url"
 	"regexp"
 	"strings"
 	"sync"
@@ -11,18 +14,21 @@ import (
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+	"github.com/yosuke-furukawa/json5/encoding/json5"
+
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
 var (
-	owned              bool
-	member             bool
-	projectSearchQuery string
-	fast               bool
-	selfHostedOptions  []string
-	page               int
-	repository         string
-	orderBy            string
+	owned                       bool
+	member                      bool
+	projectSearchQuery          string
+	fast                        bool
+	selfHostedOptions           []string
+	page                        int
+	repository                  string
+	orderBy                     string
+	extendRenovateConfigService string
 )
 
 func NewEnumCmd() *cobra.Command {
@@ -52,6 +58,7 @@ func NewEnumCmd() *cobra.Command {
 	enumCmd.Flags().BoolVarP(&fast, "fast", "f", false, "Fast mode - skip renovate config file detection, only check CIDC yml for renovate bot job (default false)")
 	enumCmd.Flags().IntVarP(&page, "page", "p", 1, "Page number to start fetching projects from (default 1, fetch all pages)")
 	enumCmd.Flags().StringVar(&orderBy, "order-by", "created_at", "Order projects by: id, name, path, created_at, updated_at, star_count, last_activity_at, or similarity")
+	enumCmd.Flags().StringVar(&extendRenovateConfigService, "extendRenovateConfigService", "", "Base URL of the resolver service e.g.  http://localhost:3000 (docker run -ti -p 3000:3000 jfrcomp/renovate-config-resolver:latest). Renovate configs can be extended by shareable preset, resolving them makes enumeration more accurate.")
 
 	enumCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 
@@ -63,6 +70,14 @@ func Enumerate(cmd *cobra.Command, args []string) {
 	git, err := util.GetGitlabClient(gitlabApiToken, gitlabUrl)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed creating gitlab client")
+	}
+
+	if extendRenovateConfigService != "" {
+		err := validateRenovateConfigService(extendRenovateConfigService)
+		if err != nil {
+			log.Fatal().Stack().Err(err).Msg("Invalid extendRenovateConfigService URL")
+		}
+		log.Info().Str("service", extendRenovateConfigService).Msg("Using renovate config extension service")
 	}
 
 	if repository != "" {
@@ -148,6 +163,12 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 	var configFileContent string
 	if !fast {
 		configFile, configFileContent = detectRenovateConfigFile(git, project)
+
+		if extendRenovateConfigService != "" {
+			// Replace any occurrence of "local>" with "gitlab>" this best effort
+			configFileContent = strings.ReplaceAll(configFileContent, "local>", "gitlab>")
+			configFileContent = extendRenovateConfig(configFileContent, project)
+		}
 	}
 
 	if hasCiCdRenovateConfig || configFile != nil {
@@ -237,6 +258,19 @@ func detectRenovateConfigFile(git *gitlab.Client, project *gitlab.Project) (*git
 				return file, ""
 			}
 
+			// Only parse JSON5 if the file name ends with .json5
+			if strings.HasSuffix(strings.ToLower(configFile), ".json5") {
+				var js interface{}
+				if err := json5.Unmarshal(conf, &js); err != nil {
+					log.Debug().Stack().Err(err).Msg("Failed parsing renovate config file as JSON5")
+					continue // skip if JSON5 parsing fails
+				}
+
+				// normalize to compact JSON (no indent)
+				normalized, _ := json.Marshal(js)
+				conf = normalized
+			}
+
 			return file, string(conf)
 		}
 	}
@@ -293,4 +327,62 @@ func isSelfHostedConfig(config string) bool {
 		}
 	}
 	return false
+}
+
+func extendRenovateConfig(renovateConfig string, project *gitlab.Project) string {
+	client := helper.GetPipeleakHTTPClient()
+
+	u, err := url.Parse(extendRenovateConfigService)
+	if err != nil {
+		log.Error().Stack().Err(err).Str("project", project.WebURL).Msg("Failed to parse renovate config service URL")
+		return renovateConfig
+	}
+	u = u.JoinPath("resolve")
+
+	resp, err := client.Post(u.String(), "application/json", strings.NewReader(renovateConfig))
+
+	if err != nil {
+		log.Error().Stack().Err(err).Str("project", project.WebURL).Msg("Failed to extend renovate config")
+		return renovateConfig
+	}
+
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Error().Stack().Err(err).Str("project", project.WebURL).Msg("Failed to read response body of renovate config expansion")
+		return renovateConfig
+	}
+
+	if resp.StatusCode != 200 {
+		log.Debug().Int("status", resp.StatusCode).Str("msg", string(bodyBytes)).Str("project", project.WebURL).Msg("Failed to extend renovate config")
+		return renovateConfig
+	}
+
+	return string(bodyBytes)
+}
+
+func validateRenovateConfigService(serviceUrl string) error {
+	client := helper.GetPipeleakHTTPClient()
+
+	u, err := url.Parse(serviceUrl)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Failed to parse renovate config service URL")
+		return err
+	}
+	u = u.JoinPath("health")
+
+	resp, err := client.Get(u.String())
+
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Renovate config service healthcheck failed")
+		return err
+	}
+
+	if resp.StatusCode != 200 {
+		log.Error().Int("status", resp.StatusCode).Str("endpoint", u.String()).Msg("Renovate config service healthcheck failed")
+		return fmt.Errorf("Renovate config service healthcheck failed: %d", resp.StatusCode)
+	}
+
+	return nil
 }
