@@ -178,12 +178,23 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 		}
 
 		autodiscovery := detectAutodiscovery(ciCdYml, configFileContent)
-		autodiscoveryFilters := false
+		filterType := ""
+		filterValue := ""
+		hasAutodiscoveryFilters := false
 		if autodiscovery {
-			autodiscoveryFilters = detectAutodiscoveryFilters(ciCdYml, configFileContent)
+			hasAutodiscoveryFilters, filterType, filterValue = detectAutodiscoveryFilters(ciCdYml, configFileContent)
 		}
 
-		log.Warn().Str("pipelines", string(project.BuildsAccessLevel)).Bool("hasAutodiscovery", autodiscovery).Bool("hasAutodiscoveryFilters", autodiscoveryFilters).Bool("hasConfigFile", configFile != nil).Bool("selfHostedConfigFile", selfHostedConfigFile).Str("url", project.WebURL).Msg("Identified Renovate (bot) configuration")
+		log.Warn().
+			Str("pipelines", string(project.BuildsAccessLevel)).
+			Bool("hasAutodiscovery", autodiscovery).
+			Bool("hasAutodiscoveryFilters", hasAutodiscoveryFilters).
+			Str("autodiscoveryFilterType", filterType).
+			Str("autodiscoveryFilterValue", filterValue).
+			Bool("hasConfigFile", configFile != nil).
+			Bool("selfHostedConfigFile", selfHostedConfigFile).
+			Str("url", project.WebURL).
+			Msg("Identified Renovate (bot) configuration")
 
 		if verbose && hasCiCdRenovateConfig {
 			yml, err := helper.PrettyPrintYAML(ciCdYml)
@@ -215,18 +226,37 @@ func detectAutodiscovery(cicdConf string, configFileContent string) bool {
 	return hasAutodiscoveryInConfigFile || hasAutodiscoveryinCiCD
 }
 
-func detectAutodiscoveryFilters(cicdConf string, configFileContent string) bool {
-	// https://docs.renovatebot.com/self-hosted-configuration/#autodiscoverfilter
-	// https://docs.renovatebot.com/self-hosted-configuration/#autodiscovernamespaces
-	// https://docs.renovatebot.com/self-hosted-configuration/#autodiscoverprojects
-	// https://docs.renovatebot.com/self-hosted-configuration/#autodiscovertopics
+func detectAutodiscoveryFilters(cicdConf, configFileContent string) (bool, string, string) {
+	type groupDef struct {
+		name string
+		keys []string
+	}
 
-	hasFilter := helper.ContainsI(configFileContent, "autodiscoverFilter") || helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER_FILTER") || helper.ContainsI(cicdConf, "--autodiscover-filter")
-	hasNamespaces := helper.ContainsI(configFileContent, "autodiscoverNamespaces") || helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER_NAMESPACES") || helper.ContainsI(cicdConf, "--autodiscover-namespaces")
-	hasProjects := helper.ContainsI(configFileContent, "autodiscoverProjects") || helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER_PROJECTS") || helper.ContainsI(cicdConf, "--autodiscover-projects")
-	hasTopics := helper.ContainsI(configFileContent, "autodiscoverTopics") || helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER_TOPICS") || helper.ContainsI(cicdConf, "--autodiscover-topics")
+	groups := []groupDef{
+		{"autodiscoverFilter", []string{"autodiscoverFilter", "RENOVATE_AUTODISCOVER_FILTER", "--autodiscover-filter"}},
+		{"autodiscoverNamespaces", []string{"autodiscoverNamespaces", "RENOVATE_AUTODISCOVER_NAMESPACES", "--autodiscover-namespaces"}},
+		{"autodiscoverProjects", []string{"autodiscoverProjects", "RENOVATE_AUTODISCOVER_PROJECTS", "--autodiscover-projects"}},
+		{"autodiscoverTopics", []string{"autodiscoverTopics", "RENOVATE_AUTODISCOVER_TOPICS", "--autodiscover-topics"}},
+	}
 
-	return hasFilter || hasNamespaces || hasProjects || hasTopics
+	sources := []string{configFileContent, cicdConf}
+
+	for _, g := range groups {
+		for _, key := range g.keys {
+			re := regexp.MustCompile(`(?is)` + regexp.QuoteMeta(key) + `\s*[:= ]\s*(\[[^\]]*\]|\{[^\}]*\}|".*?"|'.*?'|[^\s,]+)`)
+			for _, src := range sources {
+				if m := re.FindStringSubmatch(src); len(m) > 1 {
+					val := strings.TrimSpace(m[1])
+					if (strings.HasPrefix(val, `"`) && strings.HasSuffix(val, `"`)) ||
+						(strings.HasPrefix(val, `'`) && strings.HasSuffix(val, `'`)) {
+						val = val[1 : len(val)-1]
+					}
+					return true, g.name, val
+				}
+			}
+		}
+	}
+	return false, "", ""
 }
 
 // detectRenovateConfigFile checks for common Renovate configuration files in the project repository
@@ -242,6 +272,7 @@ func detectRenovateConfigFile(git *gitlab.Client, project *gitlab.Project) (*git
 		".renovaterc",
 		".renovaterc.json",
 		".renovaterc.json5",
+		"config.js",
 	}
 
 	opts := gitlab.GetFileOptions{Ref: gitlab.Ptr(project.DefaultBranch)}
@@ -258,15 +289,13 @@ func detectRenovateConfigFile(git *gitlab.Client, project *gitlab.Project) (*git
 				return file, ""
 			}
 
-			// Only parse JSON5 if the file name ends with .json5
 			if strings.HasSuffix(strings.ToLower(configFile), ".json5") {
 				var js interface{}
 				if err := json5.Unmarshal(conf, &js); err != nil {
 					log.Debug().Stack().Err(err).Msg("Failed parsing renovate config file as JSON5")
-					continue // skip if JSON5 parsing fails
+					continue
 				}
 
-				// normalize to compact JSON (no indent)
 				normalized, _ := json.Marshal(js)
 				conf = normalized
 			}

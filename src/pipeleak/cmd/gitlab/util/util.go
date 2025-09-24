@@ -164,7 +164,7 @@ func FetchCICDYml(git *gitlab.Client, pid int) (string, error) {
 		return "", errors.New(strings.Join(res.Errors, ", "))
 	}
 
-	log.Debug().Bool("valid", res.Valid).Str("warnings", strings.Join(res.Warnings, ", ")).Msg(".gitlab-ci.yaml")
+	log.Trace().Bool("valid", res.Valid).Str("warnings", strings.Join(res.Warnings, ", ")).Msg(".gitlab-ci.yaml")
 
 	return res.MergedYaml, nil
 }
