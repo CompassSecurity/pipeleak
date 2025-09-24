@@ -6,7 +6,6 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"math"
 	"net/http"
@@ -53,28 +52,43 @@ func setupQueue(options *ScanOptions) (diskqueue.Interface, string) {
 	log.Debug().Msg("Setting up queue on disk")
 
 	queueDirectory := options.QueueFolder
-	if len(options.QueueFolder) > 0 {
+	if queueDirectory == "" {
+		queueDirectory = os.TempDir()
+	} else if !filepath.IsAbs(queueDirectory) {
 		cwd, err := os.Getwd()
 		if err != nil {
-			log.Fatal().Err(err).Msg("Could not determine CWD")
+			log.Fatal().Err(err).Msg("Could not determine current working directory")
 		}
-		relative := filepath.Join(cwd, queueDirectory)
-		absPath, err := filepath.Abs(relative)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed parsing absolute path")
-		}
-		queueDirectory = absPath
+		queueDirectory = filepath.Join(cwd, queueDirectory)
+	}
+
+	if err := os.MkdirAll(queueDirectory, 0700); err != nil {
+		log.Fatal().Err(err).Msg("Failed to create queue directory")
 	}
 
 	tmpfile, err := os.CreateTemp(queueDirectory, "pipeleak-queue-db-")
 	if err != nil {
-		log.Fatal().Err(err).Msg("Creating Temp DB file failed")
+		log.Fatal().Err(err).Msg("Creating temp DB file failed")
 	}
-	defer os.Remove(tmpfile.Name())
 
-	return diskqueue.New(tmpfile.Name(), queueDirectory, 512, 0, math.MaxInt32, 2500, 2*time.Second, func(lvl diskqueue.LogLevel, f string, args ...interface{}) {
-		log.Trace().Msg("Queue Log: " + fmt.Sprintf(lvl.String()+": "+f, args...))
-	}), tmpfile.Name()
+	queueFile := tmpfile.Name()
+	tmpfile.Close()
+
+	q := diskqueue.New(
+		filepath.Base(queueFile),
+		queueDirectory,
+		512,           // max segment size
+		0,             // min segment size
+		math.MaxInt32, // max messages
+		2500,          // max buffer size
+		2*time.Second, // flush interval
+		func(lvl diskqueue.LogLevel, f string, args ...interface{}) {
+			log.Trace().Msgf("Queue Log: "+lvl.String()+": "+f, args...)
+		},
+	)
+
+	log.Debug().Str("queueFile", queueFile).Msg("Queue setup complete")
+	return q, queueFile
 }
 
 func analyzeQueueItem(serializeditem []byte, git *gitlab.Client, options *ScanOptions, wg *sync.WaitGroup) {
