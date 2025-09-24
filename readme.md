@@ -87,6 +87,8 @@ You can tweak `--threads`, `--max-artifact-size` and `--job-limit` to obtain a c
 
 `secureFiles` command: Enumerate secure files
 
+`schedule` command: Enumerate Pipeline Schedules and their variables
+
 `enum` command: Enumerate user permissions and accesss
 
 `renovate enum` command: Enumerate Renovate configurations including [Autodiscovery](https://blog.compass-security.com/2025/05/renovate-keeping-your-updates-secure/) configuration. Use `-v` to print CI/CD config.
