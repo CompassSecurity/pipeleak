@@ -253,6 +253,10 @@ func detectRenovateConfigFile(git *gitlab.Client, project *gitlab.Project) (*git
 
 		if file != nil {
 			conf, err := b64.StdEncoding.DecodeString(file.Content)
+			if err != nil {
+				log.Error().Stack().Err(err).Msg("Failed decoding renovate config base64 content")
+				return file, ""
+			}
 
 			// Only parse JSON5 if the file name ends with .json5
 			if strings.HasSuffix(strings.ToLower(configFile), ".json5") {
@@ -265,11 +269,6 @@ func detectRenovateConfigFile(git *gitlab.Client, project *gitlab.Project) (*git
 				// normalize to compact JSON (no indent)
 				normalized, _ := json.Marshal(js)
 				conf = normalized
-			}
-
-			if err != nil {
-				log.Error().Stack().Err(err).Msg("Failed decoding renovate config base64 content")
-				return file, ""
 			}
 
 			return file, string(conf)
