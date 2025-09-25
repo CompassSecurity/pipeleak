@@ -5,6 +5,15 @@ on:
   push:
 
 jobs:
+  dummy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start dummy job
+        run: |
+          echo "🧪 Dummy job started. Simulating some work..."
+          sleep 90
+          echo "✅ Dummy job finished."
+
   wait-for-siblings:
     runs-on: ubuntu-latest
     steps:
