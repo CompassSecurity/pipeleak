@@ -30,6 +30,7 @@ var (
 	selfHostedOptions           []string
 	page                        int
 	repository                  string
+	namespace                   string
 	orderBy                     string
 	extendRenovateConfigService string
 )
@@ -57,6 +58,7 @@ func NewEnumCmd() *cobra.Command {
 	enumCmd.PersistentFlags().BoolVarP(&owned, "owned", "o", false, "Scan user owned projects only")
 	enumCmd.PersistentFlags().BoolVarP(&member, "member", "m", false, "Scan projects the user is member of")
 	enumCmd.Flags().StringVarP(&repository, "repo", "r", "", "Repository to scan for Renovate configuraiton (if not set, all projects will be scanned)")
+	enumCmd.Flags().StringVarP(&namespace, "namespace", "n", "", "Namespace to scan")
 	enumCmd.Flags().StringVarP(&projectSearchQuery, "search", "s", "", "Query string for searching projects")
 	enumCmd.Flags().BoolVarP(&fast, "fast", "f", false, "Fast mode - skip renovate config file detection, only check CIDC yml for renovate bot job (default false)")
 	enumCmd.Flags().BoolVarP(&dump, "dump", "d", false, "Dump mode - save all config files to renovate-enum-out folder (default false)")
@@ -84,8 +86,12 @@ func Enumerate(cmd *cobra.Command, args []string) {
 		log.Info().Str("service", extendRenovateConfigService).Msg("Using renovate config extension service")
 	}
 
+	validateOrderBy(orderBy)
+
 	if repository != "" {
 		scanSingleProject(git, repository)
+	} else if namespace != "" {
+		scanNamespace(git, namespace)
 	} else {
 		fetchProjects(git)
 	}
@@ -105,15 +111,56 @@ func scanSingleProject(git *gitlab.Client, projectName string) {
 	identifyRenovateBotJob(git, project)
 }
 
+func scanNamespace(git *gitlab.Client, namespace string) {
+	log.Info().Str("namespace", namespace).Msg("Scanning specific namespace for Renovate configuration")
+	group, _, err := git.Groups.GetGroup(namespace, &gitlab.GetGroupOptions{})
+	if err != nil {
+		log.Fatal().Stack().Err(err).Msg("Failed fetching namespace")
+	}
+
+	projectOpts := &gitlab.ListGroupProjectsOptions{
+		ListOptions: gitlab.ListOptions{
+			PerPage: 100,
+			Page:    page,
+		},
+		OrderBy:          gitlab.Ptr(orderBy),
+		Owned:            gitlab.Ptr(owned),
+		Search:           gitlab.Ptr(projectSearchQuery),
+		WithShared:       gitlab.Ptr(true),
+		IncludeSubGroups: gitlab.Ptr(true),
+	}
+
+	for {
+		projects, resp, err := git.Groups.ListGroupProjects(group.ID, projectOpts)
+		if err != nil {
+			log.Error().Stack().Err(err).Int("page", page).Msg("Failed fetching projects")
+			break
+		}
+
+		var wg sync.WaitGroup
+		for _, project := range projects {
+			wg.Add(1)
+			go func(proj *gitlab.Project) {
+				defer wg.Done()
+				log.Debug().Str("url", proj.WebURL).Msg("Check project")
+				identifyRenovateBotJob(git, proj)
+			}(project)
+		}
+		wg.Wait()
+
+		if resp.NextPage == 0 {
+			break
+		}
+
+		projectOpts.Page = resp.NextPage
+		log.Info().Int("currentPage", projectOpts.Page).Msg("Fetched projects page")
+	}
+
+	log.Info().Msg("Fetched all namespace projects")
+}
+
 func fetchProjects(git *gitlab.Client) {
 	log.Info().Msg("Fetching projects")
-
-	allowedOrderBy := map[string]struct{}{
-		"id": {}, "name": {}, "path": {}, "created_at": {}, "updated_at": {}, "star_count": {}, "last_activity_at": {}, "similarity": {},
-	}
-	if _, ok := allowedOrderBy[orderBy]; !ok {
-		log.Fatal().Str("orderBy", orderBy).Msg("Invalid value for --order-by. Allowed: id, name, path, created_at, updated_at, star_count, last_activity_at, similarity")
-	}
 
 	projectOpts := &gitlab.ListProjectsOptions{
 		ListOptions: gitlab.ListOptions{
@@ -450,5 +497,14 @@ func dumpConfigFileContents(project *gitlab.Project, ciCdYml string, renovateCon
 				log.Error().Err(err).Str("file", configPath).Msg("Failed to write Renovate config to disk")
 			}
 		}
+	}
+}
+
+func validateOrderBy(orderBy string) {
+	allowedOrderBy := map[string]struct{}{
+		"id": {}, "name": {}, "path": {}, "created_at": {}, "updated_at": {}, "star_count": {}, "last_activity_at": {}, "similarity": {},
+	}
+	if _, ok := allowedOrderBy[orderBy]; !ok {
+		log.Fatal().Str("orderBy", orderBy).Msg("Invalid value for --order-by. Allowed: id, name, path, created_at, updated_at, star_count, last_activity_at, similarity")
 	}
 }
