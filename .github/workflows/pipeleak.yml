@@ -1,4 +1,4 @@
-name: Wait for Sibling Runs
+name: Wait for All Sibling Jobs
 
 on:
   workflow_dispatch:
@@ -20,7 +20,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Wait until all runs for this commit finish
+      - name: Wait until all jobs in sibling runs finish
         id: wait
         env:
           GH_TOKEN: ${{ github.token }}
@@ -29,55 +29,67 @@ jobs:
           RUN_ID: ${{ github.run_id }}
         run: |
           echo "🔎 Looking for runs triggered by commit $SHA in $REPO"
-          echo "⚠️  Current run id is $RUN_ID (will be excluded from wait list)"
+          echo "⚠️ Current run id is $RUN_ID (will be excluded from wait list)"
           echo ""
 
           while true; do
-            runs=$(gh api repos/$REPO/actions/runs \
+            sibling_runs=$(gh api repos/$REPO/actions/runs \
               --paginate \
               --jq ".workflow_runs[] 
                 | select(.head_sha==\"$SHA\" and .id != $RUN_ID) 
-                | {id: .id, name: .name, status: .status, conclusion: .conclusion, url: .html_url}")
+                | {id: .id, name: .name, url: .html_url}")
 
-            if [ -z "$runs" ]; then
+            if [ -z "$sibling_runs" ]; then
               echo "ℹ️ No sibling runs found for this commit."
               break
             fi
 
-            echo "📋 Sibling runs status:"
-            echo "$runs" | jq -r '"- \(.name) [\(.id)] status=\(.status) conclusion=\(.conclusion) url=\(.url)"'
+            all_done=true
+            echo "📋 Checking sibling runs and their jobs:"
 
-            # Show explicitly which ones are still running
-            running=$(echo "$runs" | jq -r 'select(.status != "completed") | "- \(.name) [\(.id)] url=\(.url)"')
-            if [ -n "$running" ]; then
+            for run_id in $(echo "$sibling_runs" | jq -r '.id'); do
+              run_name=$(echo "$sibling_runs" | jq -r "select(.id==$run_id) | .name")
+              run_url=$(echo "$sibling_runs" | jq -r "select(.id==$run_id) | .url")
+
+              echo "🔎 Run: $run_name [$run_id] $run_url"
+
+              jobs=$(gh api repos/$REPO/actions/runs/$run_id/jobs \
+                --jq '.jobs[] | {id: .id, name: .name, status: .status, conclusion: .conclusion, url: .html_url}')
+
+              echo "$jobs" | jq -r '"  - Job: \(.name) [\(.id)] status=\(.status) conclusion=\(.conclusion) url=\(.url)"'
+
+              still_running=$(echo "$jobs" | jq -r 'select(.status != "completed") | .id')
+              if [ -n "$still_running" ]; then
+                all_done=false
+              fi
+            done
+
+            if [ "$all_done" = true ]; then
               echo ""
-              echo "⏳ Still running:"
-              echo "$running"
-            fi
-
-            in_progress=$(echo "$runs" | jq -r 'select(.status != "completed") | .id' | wc -l)
-
-            if [ "$in_progress" -eq 0 ]; then
-              echo ""
-              echo "✅ All sibling runs are completed."
+              echo "✅ All sibling jobs in all runs are finished (success, failure, or cancelled)."
               break
             fi
 
             echo ""
-            echo "⏳ Waiting for $in_progress run(s) to finish..."
-            echo "Sleeping 30s..."
+            echo "⏳ Some jobs are still running... sleeping 30s..."
             echo ""
             sleep 30
           done
 
-          # Collect run IDs
-          run_ids=$(echo "$runs" | jq -r '.id' | tr '\n' ' ')
-          echo "🎯 Completed sibling run IDs: $run_ids"
+          # Collect job summary (id + status + conclusion)
+          job_info=$(for run_id in $(echo "$sibling_runs" | jq -r '.id'); do
+            gh api repos/$REPO/actions/runs/$run_id/jobs \
+              --jq '.jobs[] | {id: .id, name: .name, status: .status, conclusion: .conclusion, url: .html_url}'
+          done | jq -s .)
 
-          # Expose IDs as output
-          echo "run_ids=$run_ids" >> $GITHUB_OUTPUT
+          echo "🎯 Final sibling job info:"
+          echo "$job_info" | jq .
+
+          # Expose job info as output (JSON string)
+          job_info_json=$(echo "$job_info" | jq -c .)
+          echo "job_info=$job_info_json" >> $GITHUB_OUTPUT
 
       - name: Run custom command
         run: |
-          echo "🚀 All sibling workflows finished. Run IDs:"
-          echo "${{ steps.wait.outputs.run_ids }}"
+          echo "🚀 All sibling jobs finished. Details:"
+          echo '${{ steps.wait.outputs.job_info }}' | jq .
