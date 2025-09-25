@@ -53,7 +53,7 @@ jobs:
             echo "📋 All sibling jobs:"
             echo "$sibling_jobs" | jq -r '.[] | "- \(.name) [\(.id)] status=\(.status) conclusion=\(.conclusion) url=\(.url)"'
 
-            # Extract currently running jobs correctly
+            # Extract currently running jobs properly
             running_jobs=$(echo "$sibling_jobs" | jq '[.[] | select(.status != "completed")]')
 
             if [ "$(echo "$running_jobs" | jq 'length')" -gt 0 ]; then
@@ -71,8 +71,8 @@ jobs:
             fi
 
             echo ""
-            echo "Sleeping 30s before checking again..."
-            sleep 30
+            echo "Sleeping 3s before checking again..."
+            sleep 3
           done
 
           # Get current job info
