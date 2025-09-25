@@ -17,7 +17,7 @@ jobs:
         name: Set up Go
         uses: actions/setup-go@v5
 
-      - run: go run main.go docs
+      - run: cd src/pipeleak/ && go run main.go docs
 
       - uses: actions/setup-python@v6
         with:
