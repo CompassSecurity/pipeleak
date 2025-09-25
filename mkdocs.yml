@@ -1,0 +1,9 @@
+site_name: Pipeleak CLI Docs
+docs_dir: src/pipeleak/cli-docs
+site_dir: site
+theme:
+  name: material
+  palette:
+    scheme: slate
+extra:
+  highlightjs: true

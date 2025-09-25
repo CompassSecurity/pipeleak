@@ -1,3 +1,6 @@
 rules.yml
 *.log
 dist
+renovate-enum-out
+cli-docs
+site
