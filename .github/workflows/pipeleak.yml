@@ -19,35 +19,47 @@ jobs:
           REPO: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
         run: |
-          echo "Checking for runs triggered by commit $SHA in $REPO"
+          echo "🔎 Looking for runs triggered by commit $SHA in $REPO"
+          echo "⚠️  Current run id is $RUN_ID (will be excluded from wait list)"
+          echo ""
 
           while true; do
             runs=$(gh api repos/$REPO/actions/runs \
               --paginate \
-              --jq ".workflow_runs[] | select(.head_sha==\"$SHA\" and .id != $RUN_ID) | {id: .id, name: .name, status: .status, conclusion: .conclusion}")
+              --jq ".workflow_runs[] 
+                | select(.head_sha==\"$SHA\" and .id != $RUN_ID) 
+                | {id: .id, name: .name, status: .status, conclusion: .conclusion, url: .html_url}")
 
-            echo "Current runs:"
-            echo "$runs" | jq .
+            if [ -z "$runs" ]; then
+              echo "ℹ️ No sibling runs found for this commit."
+              break
+            fi
+
+            echo "📋 Current sibling runs:"
+            echo "$runs" | jq -r '"- \(.name) [\(.id)] status=\(.status) conclusion=\(.conclusion) url=\(.url)"'
 
             in_progress=$(echo "$runs" | jq -r 'select(.status != "completed") | .id' | wc -l)
 
             if [ "$in_progress" -eq 0 ]; then
-              echo "✅ All runs are completed."
+              echo "✅ All sibling runs are completed."
               break
             fi
 
             echo "⏳ Still waiting for $in_progress run(s) to finish..."
+            echo "Sleeping 30s..."
             sleep 30
+            echo ""
           done
 
-          # Extract just the IDs into a space-separated string
+          # Collect run IDs
           run_ids=$(echo "$runs" | jq -r '.id' | tr '\n' ' ')
-          echo "Runs completed: $run_ids"
+          echo "🎯 Completed sibling run IDs: $run_ids"
 
           # Expose IDs as output
           echo "run_ids=$run_ids" >> $GITHUB_OUTPUT
 
       - name: Run custom command
         run: |
-          echo "🚀 All workflows finished. Run IDs:"
+          echo "🚀 All sibling workflows finished. Run IDs:"
           echo "${{ steps.wait.outputs.run_ids }}"
+        
