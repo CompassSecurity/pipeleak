@@ -44,20 +44,30 @@ jobs:
               break
             fi
 
-            echo "📋 Current sibling runs:"
+            echo "📋 Sibling runs status:"
             echo "$runs" | jq -r '"- \(.name) [\(.id)] status=\(.status) conclusion=\(.conclusion) url=\(.url)"'
+
+            # Show explicitly which ones are still running
+            running=$(echo "$runs" | jq -r 'select(.status != "completed") | "- \(.name) [\(.id)] url=\(.url)"')
+            if [ -n "$running" ]; then
+              echo ""
+              echo "⏳ Still running:"
+              echo "$running"
+            fi
 
             in_progress=$(echo "$runs" | jq -r 'select(.status != "completed") | .id' | wc -l)
 
             if [ "$in_progress" -eq 0 ]; then
+              echo ""
               echo "✅ All sibling runs are completed."
               break
             fi
 
-            echo "⏳ Still waiting for $in_progress run(s) to finish..."
-            echo "Sleeping 30s..."
-            sleep 30
             echo ""
+            echo "⏳ Waiting for $in_progress run(s) to finish..."
+            echo "Sleeping 30s..."
+            echo ""
+            sleep 30
           done
 
           # Collect run IDs
@@ -71,4 +81,3 @@ jobs:
         run: |
           echo "🚀 All sibling workflows finished. Run IDs:"
           echo "${{ steps.wait.outputs.run_ids }}"
-        
