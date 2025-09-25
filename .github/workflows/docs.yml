@@ -1,0 +1,32 @@
+name: Deploy CLI Docs
+
+on:
+  push:
+
+jobs:
+  build-and-deploy-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      -
+        name: Set up Go
+        uses: actions/setup-go@v5
+
+      - run: go run main.go docs
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+      - run: pip install mkdocs mkdocs-material
+
+      - run: mkdocs build
+
+      - uses: peaceiris/actions-gh-pages@v6
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site

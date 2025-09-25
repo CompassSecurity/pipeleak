@@ -1,0 +1,7 @@
+site_name: Pipeleak CLI Docs
+docs_dir: cli-docs   # <- This is where your Cobra docs are generated
+site_dir: site       # <- This is where HTML output will go
+theme:
+  name: material
+nav:
+  - Home: pipeleak.md
