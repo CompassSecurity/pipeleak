@@ -92,6 +92,3 @@ jobs:
         run: |
           echo "🚀 All jobs for this commit finished."
           echo '${{ steps.wait.outputs.job_info }}' | jq .
-
-          # Example: pass to script
-          ./scripts/my_custom_task.sh '${{ steps.wait.outputs.job_info }}'

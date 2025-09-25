@@ -1,0 +1,15 @@
+name: Dummy workflow
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  dummy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start workflow job
+        run: |
+          echo "🧪 Dummy workflow started. Simulating some work..."
+          sleep 90
+          echo "✅ Dummy workflow finished."
