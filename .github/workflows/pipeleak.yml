@@ -27,10 +27,10 @@ jobs:
           SHA: ${{ github.sha }}
           REPO: ${{ github.repository }}
           CURRENT_RUN_ID: ${{ github.run_id }}
-          CURRENT_JOB_ID: ${{ github.job }}
+          CURRENT_JOB_NAME: ${{ github.job }}
         run: |
           echo "🔎 Looking for all jobs for commit $SHA"
-          echo "⚠️ Will exclude current job ($CURRENT_JOB_ID) from waiting, but include in final output."
+          echo "⚠️ Will exclude current job ($CURRENT_JOB_NAME) from waiting, but include in final output."
           echo ""
 
           while true; do
@@ -41,7 +41,7 @@ jobs:
                 | select(.head_sha==\"$SHA\")
                 | .id" \
               | xargs -I {} gh api repos/$REPO/actions/runs/{}/jobs \
-                  --jq '.jobs[] | select(.name != "'"$CURRENT_JOB_ID"'") | {id: .id, name: .name, status: .status, conclusion: .conclusion, url: .html_url}' \
+                  --jq '.jobs[] | select(.name != "'"$CURRENT_JOB_NAME"'") | {id: .id, name: .name, status: .status, conclusion: .conclusion, url: .html_url}' \
               | jq -s .)
 
             if [ -z "$sibling_jobs" ] || [ "$sibling_jobs" = "[]" ]; then
@@ -49,21 +49,29 @@ jobs:
               break
             fi
 
-            # Show sibling job status
-            echo "📋 Current sibling jobs:"
-            echo "$sibling_jobs" | jq -r '"- \(.name) [\(.id)] status=\(.status) conclusion=\(.conclusion) url=\(.url)"'
+            # Show all sibling jobs
+            echo "📋 All sibling jobs:"
+            echo "$sibling_jobs" | jq -r '.[] | "- \(.name) [\(.id)] status=\(.status) conclusion=\(.conclusion) url=\(.url)"'
 
-            # Check for unfinished jobs
-            unfinished=$(echo "$sibling_jobs" | jq -r 'select(.status != "completed") | .id')
-            if [ -z "$unfinished" ]; then
+            # Extract currently running jobs correctly
+            running_jobs=$(echo "$sibling_jobs" | jq '[.[] | select(.status != "completed")]')
+
+            if [ "$(echo "$running_jobs" | jq 'length')" -gt 0 ]; then
+              echo ""
+              echo "⏳ Currently running jobs:"
+              echo "$running_jobs" | jq -r '.[] | "- \(.name) [\(.id)] url=\(.url)"'
+            fi
+
+            # Check if any jobs are still running
+            unfinished_count=$(echo "$running_jobs" | jq 'length')
+            if [ "$unfinished_count" -eq 0 ]; then
               echo ""
               echo "✅ All sibling jobs are finished (success, failure, or cancelled)."
               break
             fi
 
             echo ""
-            echo "⏳ Waiting for ${#unfinished[@]} job(s)... sleeping 30s"
-            echo ""
+            echo "Sleeping 30s before checking again..."
             sleep 30
           done
 
@@ -84,3 +92,6 @@ jobs:
         run: |
           echo "🚀 All jobs for this commit finished."
           echo '${{ steps.wait.outputs.job_info }}' | jq .
+
+          # Example: pass to script
+          ./scripts/my_custom_task.sh '${{ steps.wait.outputs.job_info }}'
