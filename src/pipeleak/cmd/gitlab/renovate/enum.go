@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -24,6 +26,7 @@ var (
 	member                      bool
 	projectSearchQuery          string
 	fast                        bool
+	dump                        bool
 	selfHostedOptions           []string
 	page                        int
 	repository                  string
@@ -56,6 +59,7 @@ func NewEnumCmd() *cobra.Command {
 	enumCmd.Flags().StringVarP(&repository, "repo", "r", "", "Repository to scan for Renovate configuraiton (if not set, all projects will be scanned)")
 	enumCmd.Flags().StringVarP(&projectSearchQuery, "search", "s", "", "Query string for searching projects")
 	enumCmd.Flags().BoolVarP(&fast, "fast", "f", false, "Fast mode - skip renovate config file detection, only check CIDC yml for renovate bot job (default false)")
+	enumCmd.Flags().BoolVarP(&dump, "dump", "d", false, "Dump mode - save all config files to renovate-enum-out folder (default false)")
 	enumCmd.Flags().IntVarP(&page, "page", "p", 1, "Page number to start fetching projects from (default 1, fetch all pages)")
 	enumCmd.Flags().StringVar(&orderBy, "order-by", "created_at", "Order projects by: id, name, path, created_at, updated_at, star_count, last_activity_at, or similarity")
 	enumCmd.Flags().StringVar(&extendRenovateConfigService, "extendRenovateConfigService", "", "Base URL of the resolver service e.g.  http://localhost:3000 (docker run -ti -p 3000:3000 jfrcomp/renovate-config-resolver:latest). Renovate configs can be extended by shareable preset, resolving them makes enumeration more accurate.")
@@ -172,6 +176,14 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 	}
 
 	if hasCiCdRenovateConfig || configFile != nil {
+		if dump {
+			filename := ""
+			if configFile != nil {
+				filename = configFile.FileName
+			}
+			dumpConfigFileContents(project, ciCdYml, configFileContent, filename)
+		}
+
 		selfHostedConfigFile := false
 		if configFile != nil {
 			selfHostedConfigFile = isSelfHostedConfig(configFileContent)
@@ -414,4 +426,29 @@ func validateRenovateConfigService(serviceUrl string) error {
 	}
 
 	return nil
+}
+
+func dumpConfigFileContents(project *gitlab.Project, ciCdYml string, renovateConfigFile string, renovateConfigFileName string) {
+	projectDir := filepath.Join("renovate-enum-out", project.PathWithNamespace)
+	if err := os.MkdirAll(projectDir, 0700); err != nil {
+		log.Fatal().Err(err).Str("dir", projectDir).Msg("Failed to create project directory")
+	} else {
+		if len(ciCdYml) > 0 {
+			ciCdPath := filepath.Join(projectDir, "gitlab-ci.yml")
+			if err := os.WriteFile(ciCdPath, []byte(ciCdYml), 0700); err != nil {
+				log.Error().Err(err).Str("file", ciCdPath).Msg("Failed to write CI/CD YAML to disk")
+			}
+		}
+
+		if len(renovateConfigFile) > 0 {
+			safeFilename := renovateConfigFileName
+			if safeFilename == "" {
+				safeFilename = "renovate.json"
+			}
+			configPath := filepath.Join(projectDir, safeFilename)
+			if err := os.WriteFile(configPath, []byte(renovateConfigFile), 0700); err != nil {
+				log.Error().Err(err).Str("file", configPath).Msg("Failed to write Renovate config to disk")
+			}
+		}
+	}
 }
