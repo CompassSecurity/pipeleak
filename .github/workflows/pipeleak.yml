@@ -1,0 +1,53 @@
+name: Wait for Sibling Runs
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  wait-for-siblings:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Wait until all runs for this commit finish
+        id: wait
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          echo "Checking for runs triggered by commit $SHA in $REPO"
+
+          while true; do
+            runs=$(gh api repos/$REPO/actions/runs \
+              --paginate \
+              --jq ".workflow_runs[] | select(.head_sha==\"$SHA\" and .id != $RUN_ID) | {id: .id, name: .name, status: .status, conclusion: .conclusion}")
+
+            echo "Current runs:"
+            echo "$runs" | jq .
+
+            in_progress=$(echo "$runs" | jq -r 'select(.status != "completed") | .id' | wc -l)
+
+            if [ "$in_progress" -eq 0 ]; then
+              echo "✅ All runs are completed."
+              break
+            fi
+
+            echo "⏳ Still waiting for $in_progress run(s) to finish..."
+            sleep 30
+          done
+
+          # Extract just the IDs into a space-separated string
+          run_ids=$(echo "$runs" | jq -r '.id' | tr '\n' ' ')
+          echo "Runs completed: $run_ids"
+
+          # Expose IDs as output
+          echo "run_ids=$run_ids" >> $GITHUB_OUTPUT
+
+      - name: Run custom command
+        run: |
+          echo "🚀 All workflows finished. Run IDs:"
+          echo "${{ steps.wait.outputs.run_ids }}"
