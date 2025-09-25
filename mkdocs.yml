@@ -3,5 +3,3 @@ docs_dir: src/pipeleak/cli-docs
 site_dir: site
 theme:
   name: material
-nav:
-  - Home: pipeleak.md
