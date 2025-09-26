@@ -16,8 +16,9 @@ require (
 	github.com/spf13/cobra v1.10.1
 	github.com/tidwall/gjson v1.18.0
 	github.com/trufflesecurity/trufflehog/v3 v3.90.8
-	gitlab.com/gitlab-org/api/client-go v0.148.0
+	gitlab.com/gitlab-org/api/client-go v0.148.1
 	gitlab.com/mitchenielsen/gitlab-ci-go v0.0.4
+	golang.org/x/net v0.43.0
 	golang.org/x/term v0.35.0
 	golift.io/xtractr v0.2.2
 	resty.dev/v3 v3.0.0-beta.3
@@ -136,7 +137,6 @@ require (
 	golang.org/x/crypto v0.41.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
 	golang.org/x/mod v0.26.0 // indirect
-	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
 	golang.org/x/tools v0.35.0 // indirect
