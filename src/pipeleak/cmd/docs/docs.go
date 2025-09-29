@@ -69,6 +69,12 @@ func generateDocs(cmd *cobra.Command, dir string, level int) error {
 		s = strings.TrimPrefix(s, "pipeleak_")
 		s = strings.TrimSuffix(s, ".md")
 		s = strings.ReplaceAll(s, "_", "/")
+
+		// For GitHub Pages, all links need to be prefixed with "pipeleak"
+		if githubPages {
+			return "/pipeleak/" + s
+		}
+
 		return "/" + s
 	}
 
@@ -142,7 +148,6 @@ func convertNavToYaml(entries []*NavEntry) []map[string]interface{} {
 func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 	rootEntry := buildNav(rootCmd, 0, "")
 	nav := convertNavToYaml(rootEntry.Children)
-	// Add hardcoded Introduction entry at the top
 	introEntry := map[string]interface{}{"Introduction": "/introduction/getting_started/"}
 	methodologyEntry := map[string]interface{}{
 		"Methodology": []map[string]interface{}{
@@ -195,6 +200,7 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 
 var serve bool
 var rootCmd *cobra.Command
+var githubPages bool
 
 func NewDocsCmd(root *cobra.Command) *cobra.Command {
 	cmd := &cobra.Command{
@@ -209,6 +215,7 @@ pipeleak docs --serve
 	}
 
 	cmd.Flags().BoolVarP(&serve, "serve", "s", false, "Run 'mkdocs build' in the output folder after generating docs")
+	cmd.Flags().BoolVarP(&githubPages, "github-pages", "g", false, "Build for GitHub Pages")
 	rootCmd = root
 	return cmd
 }
@@ -272,6 +279,10 @@ func copyFile(src, dst string) error {
 func Docs(cmd *cobra.Command, args []string) {
 	if _, err := os.Stat("main.go"); os.IsNotExist(err) {
 		log.Fatal().Msg("Run this command from the project src/pipeleak directory.")
+	}
+
+	if githubPages {
+		log.Info().Msg("Generating for GitHub Pages")
 	}
 
 	outputDir := "./cli-docs"
