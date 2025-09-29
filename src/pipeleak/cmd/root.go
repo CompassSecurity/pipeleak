@@ -44,6 +44,11 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&JsonLogoutput, "json", "", false, "Use JSON as log output format")
 	rootCmd.PersistentFlags().BoolVarP(&LogColor, "coloredLog", "", true, "Output the human-readable log in color")
 	rootCmd.PersistentFlags().StringVarP(&LogFile, "logfile", "l", "", "Log output to a file")
+
+	rootCmd.AddGroup(&cobra.Group{ID: "GitHub", Title: "GitHub Commands"})
+	rootCmd.AddGroup(&cobra.Group{ID: "GitLab", Title: "GitLab Commands"})
+	rootCmd.AddGroup(&cobra.Group{ID: "BitBucket", Title: "BitBucket Commands"})
+	rootCmd.AddGroup(&cobra.Group{ID: "AzureDevOps", Title: "Azure DevOps Commands"})	
 }
 
 type CustomWriter struct {

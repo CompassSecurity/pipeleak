@@ -6,6 +6,9 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
+
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
@@ -18,7 +21,7 @@ func getFileName(cmd *cobra.Command, level int) string {
 	case 0:
 		return cmd.Name() + ".md" // root command
 	case 1:
-		return cmd.Short + ".md" // first-level commands
+		return cmd.GroupID + ".md" // first-level commands
 	default:
 		return cmd.Name() + ".md" // deeper subcommands
 	}
@@ -26,13 +29,17 @@ func getFileName(cmd *cobra.Command, level int) string {
 
 // displayName returns the navigation label based on level
 func displayName(cmd *cobra.Command, level int) string {
+	titleCaser := cases.Title(language.Und, cases.NoLower)
 	switch level {
 	case 0:
-		return cmd.Name() // root
+		return titleCaser.String(cmd.Name()) // root
 	case 1:
-		return cmd.Short // first-level
+		if cmd.GroupID != "" {
+			return titleCaser.String(cmd.GroupID)
+		}
+		return titleCaser.String(cmd.Name()) // first-level
 	default:
-		return cmd.Name() // subcommands
+		return titleCaser.String(cmd.Name()) // subcommands
 	}
 }
 
@@ -184,6 +191,7 @@ func NewDocsCmd(root *cobra.Command) *cobra.Command {
 				log.Fatal().Err(err).Msg("Failed to create pipeleak directory")
 			}
 
+			root.DisableAutoGenTag = true
 			if err := generateDocs(root, outputDir, 0); err != nil {
 				log.Fatal().Err(err).Msg("Failed to generate CLI docs")
 			}

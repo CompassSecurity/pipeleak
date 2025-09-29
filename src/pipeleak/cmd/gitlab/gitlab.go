@@ -21,6 +21,7 @@ func NewGitLabRootCmd() *cobra.Command {
 	glCmd := &cobra.Command{
 		Use:   "gl [command]",
 		Short: "GitLab related commands",
+		GroupID: "GitLab",
 	}
 
 	glCmd.AddCommand(scan.NewScanCmd())
