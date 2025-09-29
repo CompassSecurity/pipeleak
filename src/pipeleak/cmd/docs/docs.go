@@ -164,24 +164,29 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 	if err := os.MkdirAll(assetsDir, os.ModePerm); err != nil {
 		return err
 	}
-	srcLogo := filepath.Join("..", "..", "docs", "logo.png")
-	dstLogo := filepath.Join(assetsDir, "logo.png")
-	logoData, err := os.ReadFile(srcLogo)
-	if err != nil {
-		return err
-	}
-	if err := os.WriteFile(dstLogo, logoData, 0644); err != nil {
-		return err
+
+	assetFiles := []string{"logo.png", "favicon.ico"}
+	for _, fname := range assetFiles {
+		src := filepath.Join("..", "..", "docs", fname)
+		dst := filepath.Join(assetsDir, fname)
+		data, err := os.ReadFile(src)
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(dst, data, 0644); err != nil {
+			return err
+		}
 	}
 
 	mkdocs := map[string]interface{}{
-		"site_name": "Pipeleak CLI Docs",
+		"site_name": "Pipeleak",
 		"docs_dir":  "pipeleak",
 		"site_dir":  "site",
+		"repo_url":  "https://github.com/CompassSecurity/pipeleak",
 		"theme": map[string]interface{}{
 			"name":    "material",
 			"logo":    "assets/logo.png",
-			"favicon": "assets/logo.png",
+			"favicon": "assets/favicon.ico",
 			"palette": map[string]string{
 				"scheme":  "slate",
 				"primary": "green",
