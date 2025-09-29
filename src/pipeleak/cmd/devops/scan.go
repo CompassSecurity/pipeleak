@@ -35,7 +35,16 @@ var options = DevOpsScanOptions{}
 func NewScanCmd() *cobra.Command {
 	scanCmd := &cobra.Command{
 		Use:   "scan [no options!]",
-		Short: "Scan DevOps Actions",
+		Short: "Scan Azure DevOps Actions",
+		Long: `Scan Azure DevOps pipelines for secrets in logs and artifacts.
+
+### Authentication
+Create your personal access token here: https://dev.azure.com/{yourproject}/_usersSettings/tokens
+
+> In the top right corner you can choose the scope (Global, Project etc.). 
+> Global in that case means per tenant. If you have access to multiple tentants you need to run a scan per tenant.
+> Get you username from an HTTPS git clone url from the UI.
+		`,
 		Example: `
 # Scan all pipelines the current user has access to
 pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts
@@ -43,7 +52,7 @@ pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts
 # Scan all pipelines of an organization
 pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization myOrganization
 
-Scan all pipelines of a project e.g. https://dev.azure.com/PowerShell/PowerShell
+# Scan all pipelines of a project e.g. https://dev.azure.com/PowerShell/PowerShell
 pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization powershell --project PowerShell
 		`,
 		Run: Scan,

@@ -15,8 +15,10 @@ var (
 
 func NewRegisterCmd() *cobra.Command {
 	registerCmd := &cobra.Command{
-		Use:   "register [no options!]",
+		Use:   "register",
 		Short: "Register a new user to a Gitlab instance",
+		Long:  "Register a new user to a Gitlab instance that allows self-registration. This command is best effort and might not work.",
+		Example: `pipeleak gl register --gitlab https://gitlab.mydomain.com --username newuser --password newpassword --email newuser@example.com`,
 		Run:   Register,
 	}
 	registerCmd.Flags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")

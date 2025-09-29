@@ -10,8 +10,10 @@ import (
 
 func NewVariablesCmd() *cobra.Command {
 	variablesCmd := &cobra.Command{
-		Use:   "variables [no options!]",
+		Use:   "variables",
 		Short: "Print configured CI/CD variables",
+		Long:  "Fetch and print all configured CI/CD variables for projects, groups and instance (if admin) your token has access to.",
+		Example: `pipeleak gl variables --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com`,
 		Run:   FetchVariables,
 	}
 	variablesCmd.Flags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")

@@ -37,9 +37,21 @@ var options = BitBucketScanOptions{}
 
 func NewScanCmd() *cobra.Command {
 	scanCmd := &cobra.Command{
-		Use:   "scan [no options!]",
+		Use:   "scan",
 		Short: "Scan BitBucket Pipelines",
-		Run:   Scan,
+		Long:  "To scan artifacts internal APIs are called. Thus you need to extract the session cookie value `cloud.session.token` from https://bitbucket.org using your browser and supply it in the -c flag.",
+		Example: `
+# Scan your owned repositories and their artifacts
+pipeleak bb scan -t xxxxxxxxxxx -c eyJxxxxxxxxxxx -u auser --owned --artifacts
+
+# Scan a workspace (find public ones here: https://bitbucket.org/repo/all/) without artifacts
+pipeleak bb scan --token xxxxxxxxxxx --username auser --workspace bitbucketpipelines
+
+# Scan all public repositories without their artifacts
+> If using --after, the API becomes quite unreliable 👀
+pipeleak bb scan --token xxxxxxxxxxx --username auser --public --maxPipelines 5 --after 2025-03-01T15:00:00+00:00
+		`,
+		Run: Scan,
 	}
 	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "Bitbucket Application Password - https://bitbucket.org/account/settings/app-passwords/")
 	scanCmd.Flags().StringVarP(&options.Username, "username", "u", "", "Bitbucket Username")

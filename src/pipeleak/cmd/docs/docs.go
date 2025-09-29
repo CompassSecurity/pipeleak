@@ -191,8 +191,12 @@ func NewDocsCmd(root *cobra.Command) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "docs",
 		Short: "Generate CLI documentation",
-		Long:  "Generate Markdown documentation for all commands in this CLI application and mkdocs.yml.",
-		Run:   Docs,
+		Long:  "Generate Markdown documentation for all commands in this CLI application and mkdocs.yml. Must be run in an environment where 'mkdocs' is installed.",
+		Example: `
+# Generate docs and serve them at http://localhost:8000
+pipeleak docs --serve
+		`,
+		Run: Docs,
 	}
 
 	cmd.Flags().BoolVarP(&serve, "serve", "s", false, "Run 'mkdocs build' in the output folder after generating docs")

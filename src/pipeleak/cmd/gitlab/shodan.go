@@ -35,9 +35,11 @@ type result struct {
 
 func NewShodanCmd() *cobra.Command {
 	scanCmd := &cobra.Command{
-		Use:   "shodan [no options!]",
-		Short: "Find self-registerable gitlab instances from shodan output",
-		Run:   Shodan,
+		Use:     "shodan",
+		Short:   "Find self-registerable GitLab instances from Shodan search output",
+		Long:    "Use the Shodan command to identify GitLab instances that might allow for anyone to register. This command assumes a JSON file from a Shodan export. Example query: product:\"GitLab Self-Managed\"",
+		Example: "pipeleak gl shodan --json shodan-export.json",
+		Run:     Shodan,
 	}
 
 	scanCmd.Flags().StringVarP(&shodanJson, "json", "j", "", "Shodan search export JSON file path")

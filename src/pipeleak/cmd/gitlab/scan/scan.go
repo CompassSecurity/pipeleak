@@ -17,9 +17,34 @@ var maxArtifactSize string
 
 func NewScanCmd() *cobra.Command {
 	scanCmd := &cobra.Command{
-		Use:   "scan [no options!]",
+		Use:   "scan",
 		Short: "Scan a GitLab instance",
-		Run:   Scan,
+		Long: `Scan a GitLab instance for secrets in pipeline jobs and optionally artifacts
+### Dotenv
+[Dotenv artifacts](https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsdotenv) are not accessible through the GitLab API. To scan these, you need to manually provide your session cookie after logging in via a web browser. The session cookie name is _gitlab_session. The cookie should be valid for [two weeks](https://gitlab.com/gitlab-org/gitlab/-/issues/395038).
+
+### Memory Usage
+
+As the scanner processes a lot of resources (especially when using  --artifacts) memory, CPU and disk usage can become hard to manage.
+You can tweak --threads, --max-artifact-size and --job-limit to obtain a customized performance and achieve stable processing.
+`,
+		Example: `
+# Scan all accessible projects pipelines and their artifacts and dotenv artifacts on gitlab.com
+pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com -a -c [value-of-valid-_gitlab_session]
+
+# Scan all projects matching the search query kubernetes
+pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com --search kubernetes
+
+# Scan all pipelines of projects you own
+pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com --owned
+
+# Scan all pipelines of projects you are a member of
+pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com --member
+
+# Scan all accessible projects pipelines but limit the number of jobs scanned per project to 10, only scan artifacts smaller than 200MB and use 8 threads
+pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com --job-limit 10 -a --max-artifact-size 200Mb --threads 8
+		`,
+		Run: Scan,
 	}
 
 	scanCmd.Flags().StringVarP(&options.GitlabUrl, "gitlab", "g", "", "GitLab instance URL")

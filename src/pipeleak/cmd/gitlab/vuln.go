@@ -11,9 +11,11 @@ import (
 
 func NewVulnCmd() *cobra.Command {
 	vulnCmd := &cobra.Command{
-		Use:   "vuln [no options!]",
-		Short: "Check if the installed GitLab version is vulnerable",
-		Run:   CheckVulns,
+		Use:     "vuln",
+		Short:   "Check if the installed GitLab version is vulnerable",
+		Long:    "Check the installed GitLab instance version against the NIST vulnerability database to see if it is affected by any vulnerabilities.",
+		Example: `pipeleak gl vuln --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com`,
+		Run:     CheckVulns,
 	}
 	vulnCmd.Flags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
 	err := vulnCmd.MarkFlagRequired("gitlab")

@@ -20,9 +20,11 @@ var minAccessLevel int
 
 func NewEnumCmd() *cobra.Command {
 	enumCmd := &cobra.Command{
-		Use:   "enum [no options!]",
-		Short: "Enumerate access rights of a Gitlab access token",
-		Run:   Enum,
+		Use:     "enum",
+		Short:   "Enumerate access rights of a GitLab access token",
+		Long:    "Enumerate access rights of a GitLab access token by listing projects, groups and users the token has access to.",
+		Example: `pipeleak gl enum --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com --level 20`,
+		Run:     Enum,
 	}
 	enumCmd.Flags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
 	err := enumCmd.MarkFlagRequired("gitlab")

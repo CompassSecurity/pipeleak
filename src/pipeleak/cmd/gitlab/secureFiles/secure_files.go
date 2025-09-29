@@ -16,8 +16,10 @@ var (
 
 func NewSecureFilesCmd() *cobra.Command {
 	secureFilesCmd := &cobra.Command{
-		Use:   "secureFiles [no options!]",
+		Use:   "secureFiles",
 		Short: "Print CI/CD secure files",
+		Long:  "Fetch and print all CI/CD secure files for projects your token has access to.",
+		Example: `pipeleak gl secureFiles --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com`,
 		Run:   FetchSecureFiles,
 	}
 	secureFilesCmd.Flags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")

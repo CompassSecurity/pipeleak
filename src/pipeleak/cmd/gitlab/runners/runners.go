@@ -13,8 +13,9 @@ var (
 
 func NewRunnersRootCmd() *cobra.Command {
 	runnersCmd := &cobra.Command{
-		Use:   "runners [no options!]",
+		Use:   "runners",
 		Short: "runner related commands",
+		Long:  "Commands to enumerate and exploit GitLab runners.",
 	}
 
 	runnersCmd.PersistentFlags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
