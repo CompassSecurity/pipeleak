@@ -18,9 +18,13 @@ import (
 
 // getFileName returns the Markdown filename based on command level
 func getFileName(cmd *cobra.Command, level int) string {
+	log.Info().Int("l", level).Msg("Generating docs for command: " + cmd.Name())
 	switch level {
 	case 1:
-		return cmd.GroupID + ".md" // first-level commands
+		if cmd.GroupID != "" {
+			return cmd.GroupID + ".md" 
+		}
+		return cmd.Name() + ".md" // first-level commands
 	default:
 		return cmd.Name() + ".md" // deeper subcommands
 	}
@@ -174,61 +178,64 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 	return os.WriteFile(filename, yamlData, 0644)
 }
 
-// NewDocsCmd returns a Cobra command to generate CLI Markdown docs and mkdocs.yml
-func NewDocsCmd(root *cobra.Command) *cobra.Command {
 	var serve bool
+	var rootCmd *cobra.Command
+func NewDocsCmd(root *cobra.Command) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "docs",
 		Short: "Generate CLI documentation",
 		Long:  "Generate Markdown documentation for all commands in this CLI application and mkdocs.yml.",
-		Run: func(cmd *cobra.Command, args []string) {
-			outputDir := "./cli-docs"
-
-			// Check if outputDir exists, delete recursively if so
-			if _, err := os.Stat(outputDir); err == nil {
-				log.Info().Msg("Output directory exists, deleting...")
-				if err := os.RemoveAll(outputDir); err != nil {
-					log.Fatal().Err(err).Msg("Failed to delete existing outputDir")
-				}
-			}
-
-			if err := os.MkdirAll(outputDir, os.ModePerm); err != nil {
-				log.Fatal().Err(err).Msg("Failed to create pipeleak directory")
-			}
-
-			root.DisableAutoGenTag = true
-			if err := generateDocs(root, outputDir, 0); err != nil {
-				log.Fatal().Err(err).Msg("Failed to generate CLI docs")
-			}
-
-			if err := writeMkdocsYaml(root, outputDir); err != nil {
-				log.Fatal().Err(err).Msg("Failed to write mkdocs.yml")
-			}
-
-			log.Info().Str("folder", outputDir).Msg("Docs and mkdocs.yml successfully generated")
-
-			if serve {
-				log.Info().Msg("Running 'mkdocs build' in output folder...")
-				// Run mkdocs build in outputDir
-				cmdRun := exec.Command("mkdocs", "build")
-				cmdRun.Dir = outputDir
-				cmdRun.Stdout = os.Stdout
-				cmdRun.Stderr = os.Stderr
-				if err := cmdRun.Run(); err != nil {
-					log.Fatal().Err(err).Msg("Failed to run mkdocs build")
-				}
-
-				// Serve outputDir/site with built-in HTTP server
-				siteDir := filepath.Join(outputDir, "site")
-				log.Info().Msgf("Serving docs %s at http://localhost:8000 ... (Ctrl+C to quit)", siteDir)
-				http.Handle("/", http.FileServer(http.Dir(siteDir)))
-				if err := http.ListenAndServe(":8000", nil); err != nil {
-					log.Fatal().Err(err).Msg("Failed to start HTTP server")
-				}
-			}
-		},
+		Run:   Docs,
 	}
 
 	cmd.Flags().BoolVarP(&serve, "serve", "s", false, "Run 'mkdocs build' in the output folder after generating docs")
+	rootCmd = root
 	return cmd
+}
+
+func Docs(cmd *cobra.Command, args []string) {
+	outputDir := "./cli-docs"
+
+	// Check if outputDir exists, delete recursively if so
+	if _, err := os.Stat(outputDir); err == nil {
+		log.Info().Msg("Output directory exists, deleting...")
+		if err := os.RemoveAll(outputDir); err != nil {
+			log.Fatal().Err(err).Msg("Failed to delete existing outputDir")
+		}
+	}
+
+	if err := os.MkdirAll(outputDir, os.ModePerm); err != nil {
+		log.Fatal().Err(err).Msg("Failed to create pipeleak directory")
+	}
+
+	rootCmd.DisableAutoGenTag = true
+	if err := generateDocs(rootCmd, outputDir, 0); err != nil {
+		log.Fatal().Err(err).Msg("Failed to generate CLI docs")
+	}
+
+	if err := writeMkdocsYaml(rootCmd, outputDir); err != nil {
+		log.Fatal().Err(err).Msg("Failed to write mkdocs.yml")
+	}
+
+	log.Info().Str("folder", outputDir).Msg("Docs and mkdocs.yml successfully generated")
+
+	if serve {
+		log.Info().Msg("Running 'mkdocs build' in output folder...")
+		// Run mkdocs build in outputDir
+		cmdRun := exec.Command("mkdocs", "build")
+		cmdRun.Dir = outputDir
+		cmdRun.Stdout = os.Stdout
+		cmdRun.Stderr = os.Stderr
+		if err := cmdRun.Run(); err != nil {
+			log.Fatal().Err(err).Msg("Failed to run mkdocs build")
+		}
+
+		// Serve outputDir/site with built-in HTTP server
+		siteDir := filepath.Join(outputDir, "site")
+		log.Info().Msgf("Serving docs %s at http://localhost:8000 ... (Ctrl+C to quit)", siteDir)
+		http.Handle("/", http.FileServer(http.Dir(siteDir)))
+		if err := http.ListenAndServe(":8000", nil); err != nil {
+			log.Fatal().Err(err).Msg("Failed to start HTTP server")
+		}
+	}
 }
