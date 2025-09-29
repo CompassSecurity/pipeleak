@@ -14,11 +14,11 @@ var (
 
 func NewYamlCmd() *cobra.Command {
 	yamlCmd := &cobra.Command{
-		Use:   "yaml",
-		Short: "Fetch full CI/CD yaml of project",
-		Long:  "Fetch and print the fully compiled CI/CD yaml of a given project.",
+		Use:     "yaml",
+		Short:   "Fetch full CI/CD yaml of project",
+		Long:    "Fetch and print the fully compiled CI/CD yaml of a given project.",
 		Example: `pipeleak gl cicd yaml --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com --repo mygroup/myrepo`,
-		Run:   Fetch,
+		Run:     Fetch,
 	}
 
 	yamlCmd.Flags().StringVarP(&projectName, "repo", "r", "", "Repository to fetch its fully compiled .gitlab-ci.yml")

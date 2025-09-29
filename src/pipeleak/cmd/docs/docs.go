@@ -1,6 +1,7 @@
 package docs
 
 import (
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -141,6 +142,14 @@ func convertNavToYaml(entries []*NavEntry) []map[string]interface{} {
 func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 	rootEntry := buildNav(rootCmd, 0, "")
 	nav := convertNavToYaml(rootEntry.Children)
+	// Add hardcoded Introduction entry at the top
+	introEntry := map[string]interface{}{"Introduction": "/introduction/getting_started/"}
+	methodologyEntry := map[string]interface{}{
+		"Methodology": []map[string]interface{}{
+			{"GitLab": "/methodology/gitlab/"},
+		},
+	}
+	nav = append([]map[string]interface{}{introEntry, methodologyEntry}, nav...)
 
 	assetsDir := filepath.Join(outputDir, "pipeleak", "assets")
 	if err := os.MkdirAll(assetsDir, os.ModePerm); err != nil {
@@ -204,6 +213,62 @@ pipeleak docs --serve
 	return cmd
 }
 
+func copySubfolders(srcDir, dstDir string) error {
+	entries, err := os.ReadDir(srcDir)
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			srcPath := filepath.Join(srcDir, entry.Name())
+			dstPath := filepath.Join(dstDir, entry.Name())
+			if err := copyDir(srcPath, dstPath); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func copyDir(src, dst string) error {
+	entries, err := os.ReadDir(src)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(dst, os.ModePerm); err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		srcPath := filepath.Join(src, entry.Name())
+		dstPath := filepath.Join(dst, entry.Name())
+		if entry.IsDir() {
+			if err := copyDir(srcPath, dstPath); err != nil {
+				return err
+			}
+		} else {
+			if err := copyFile(srcPath, dstPath); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func copyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	_, err = io.Copy(out, in)
+	return err
+}
+
 func Docs(cmd *cobra.Command, args []string) {
 	outputDir := "./cli-docs"
 
@@ -216,6 +281,10 @@ func Docs(cmd *cobra.Command, args []string) {
 
 	if err := os.MkdirAll(outputDir, os.ModePerm); err != nil {
 		log.Fatal().Err(err).Msg("Failed to create pipeleak directory")
+	}
+
+	if err := copySubfolders("../../docs", filepath.Join(outputDir, "pipeleak")); err != nil {
+		log.Fatal().Err(err).Msg("Failed to copy docs subfolders")
 	}
 
 	rootCmd.DisableAutoGenTag = true
