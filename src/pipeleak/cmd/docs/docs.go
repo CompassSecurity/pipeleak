@@ -22,7 +22,7 @@ func getFileName(cmd *cobra.Command, level int) string {
 	switch level {
 	case 1:
 		if cmd.GroupID != "" {
-			return cmd.GroupID + ".md" 
+			return cmd.GroupID + ".md"
 		}
 		return cmd.Name() + ".md" // first-level commands
 	default:
@@ -153,12 +153,28 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 	rootEntry := buildNav(rootCmd, 0, "")
 	nav := convertNavToYaml(rootEntry.Children) // exclude root itself from nav
 
+	// Copy logo.png to outputDir/assets
+	assetsDir := filepath.Join(outputDir, "pipeleak", "assets")
+	if err := os.MkdirAll(assetsDir, os.ModePerm); err != nil {
+		return err
+	}
+	srcLogo := filepath.Join("..", "..", "docs", "logo.png")
+	dstLogo := filepath.Join(assetsDir, "logo.png")
+	logoData, err := os.ReadFile(srcLogo)
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(dstLogo, logoData, 0644); err != nil {
+		return err
+	}
+
 	mkdocs := map[string]interface{}{
 		"site_name": "Pipeleak CLI Docs",
 		"docs_dir":  "pipeleak",
 		"site_dir":  "site",
 		"theme": map[string]interface{}{
 			"name": "material",
+			"logo": "assets/logo.png",
 			"palette": map[string]string{
 				"scheme": "slate",
 			},
@@ -178,8 +194,9 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 	return os.WriteFile(filename, yamlData, 0644)
 }
 
-	var serve bool
-	var rootCmd *cobra.Command
+var serve bool
+var rootCmd *cobra.Command
+
 func NewDocsCmd(root *cobra.Command) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "docs",
