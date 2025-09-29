@@ -61,6 +61,10 @@ func generateDocs(cmd *cobra.Command, dir string, level int) error {
 	defer f.Close()
 
 	customLinkHandler := func(s string) string {
+		if s == "pipeleak.md" {
+			return "/"
+		}
+
 		s = strings.TrimPrefix(s, "pipeleak_")
 		s = strings.TrimSuffix(s, ".md")
 		s = strings.ReplaceAll(s, "_", "/")
@@ -161,7 +165,8 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 			"logo":    "assets/logo.png",
 			"favicon": "assets/logo.png",
 			"palette": map[string]string{
-				"scheme": "slate",
+				"scheme":  "slate",
+				"primary": "green",
 			},
 		},
 		"extra": map[string]interface{}{
