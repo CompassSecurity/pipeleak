@@ -270,6 +270,10 @@ func copyFile(src, dst string) error {
 }
 
 func Docs(cmd *cobra.Command, args []string) {
+	if _, err := os.Stat("main.go"); os.IsNotExist(err) {
+		log.Fatal().Msg("Run this command from the project src/pipeleak directory.")
+	}
+
 	outputDir := "./cli-docs"
 
 	if _, err := os.Stat(outputDir); err == nil {
@@ -296,18 +300,18 @@ func Docs(cmd *cobra.Command, args []string) {
 		log.Fatal().Err(err).Msg("Failed to write mkdocs.yml")
 	}
 
-	log.Info().Str("folder", outputDir).Msg("Docs and mkdocs.yml successfully generated")
+	log.Info().Str("folder", outputDir).Msg("Markdown successfully generated")
+
+	log.Info().Msg("Running 'mkdocs build' in output folder...")
+	cmdRun := exec.Command("mkdocs", "build")
+	cmdRun.Dir = outputDir
+	cmdRun.Stdout = os.Stdout
+	cmdRun.Stderr = os.Stderr
+	if err := cmdRun.Run(); err != nil {
+		log.Fatal().Err(err).Msg("Failed to run mkdocs build")
+	}
 
 	if serve {
-		log.Info().Msg("Running 'mkdocs build' in output folder...")
-		cmdRun := exec.Command("mkdocs", "build")
-		cmdRun.Dir = outputDir
-		cmdRun.Stdout = os.Stdout
-		cmdRun.Stderr = os.Stderr
-		if err := cmdRun.Run(); err != nil {
-			log.Fatal().Err(err).Msg("Failed to run mkdocs build")
-		}
-
 		siteDir := filepath.Join(outputDir, "site")
 		log.Info().Msgf("Serving docs %s at http://localhost:8000 ... (Ctrl+C to quit)", siteDir)
 		http.Handle("/", http.FileServer(http.Dir(siteDir)))
