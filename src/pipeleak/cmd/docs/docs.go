@@ -148,10 +148,14 @@ func convertNavToYaml(entries []*NavEntry) []map[string]interface{} {
 func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 	rootEntry := buildNav(rootCmd, 0, "")
 	nav := convertNavToYaml(rootEntry.Children)
-	introEntry := map[string]interface{}{"Introduction": "/introduction/getting_started/"}
+	prefix := ""
+	if githubPages {
+		prefix = "/pipeleak"
+	}
+	introEntry := map[string]interface{}{"Introduction": prefix + "/introduction/getting_started/"}
 	methodologyEntry := map[string]interface{}{
 		"Methodology": []map[string]interface{}{
-			{"GitLab": "/methodology/gitlab/"},
+			{"GitLab": prefix + "/methodology/gitlab/"},
 		},
 	}
 	nav = append([]map[string]interface{}{introEntry, methodologyEntry}, nav...)
