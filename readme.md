@@ -19,4 +19,4 @@ It supports the following platforms:
 
 To begin using Pipeleak, download the latest binary from the [Releases](https://github.com/CompassSecurity/pipeleak/releases) page.
 
-Detailed command documentation can be found in the [documentation](https://compasssecurity.github.io/pipeleak/pipeleak/).
+Detailed command documentation can be found in the [documentation](https://compasssecurity.github.io/pipeleak/).

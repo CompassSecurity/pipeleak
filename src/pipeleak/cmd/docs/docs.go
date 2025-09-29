@@ -69,6 +69,12 @@ func generateDocs(cmd *cobra.Command, dir string, level int) error {
 		s = strings.TrimPrefix(s, "pipeleak_")
 		s = strings.TrimSuffix(s, ".md")
 		s = strings.ReplaceAll(s, "_", "/")
+
+		// For GitHub Pages, all links need to be prefixed with "pipeleak"
+		if githubPages {
+			return "/pipeleak/" + s
+		}
+
 		return "/" + s
 	}
 
@@ -142,11 +148,14 @@ func convertNavToYaml(entries []*NavEntry) []map[string]interface{} {
 func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 	rootEntry := buildNav(rootCmd, 0, "")
 	nav := convertNavToYaml(rootEntry.Children)
-	// Add hardcoded Introduction entry at the top
-	introEntry := map[string]interface{}{"Introduction": "/introduction/getting_started/"}
+	prefix := ""
+	if githubPages {
+		prefix = "/pipeleak"
+	}
+	introEntry := map[string]interface{}{"Introduction": prefix + "/introduction/getting_started/"}
 	methodologyEntry := map[string]interface{}{
 		"Methodology": []map[string]interface{}{
-			{"GitLab": "/methodology/gitlab/"},
+			{"GitLab": prefix + "/methodology/gitlab/"},
 		},
 	}
 	nav = append([]map[string]interface{}{introEntry, methodologyEntry}, nav...)
@@ -195,6 +204,7 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 
 var serve bool
 var rootCmd *cobra.Command
+var githubPages bool
 
 func NewDocsCmd(root *cobra.Command) *cobra.Command {
 	cmd := &cobra.Command{
@@ -209,6 +219,7 @@ pipeleak docs --serve
 	}
 
 	cmd.Flags().BoolVarP(&serve, "serve", "s", false, "Run 'mkdocs build' in the output folder after generating docs")
+	cmd.Flags().BoolVarP(&githubPages, "github-pages", "g", false, "Build for GitHub Pages")
 	rootCmd = root
 	return cmd
 }
@@ -270,6 +281,14 @@ func copyFile(src, dst string) error {
 }
 
 func Docs(cmd *cobra.Command, args []string) {
+	if _, err := os.Stat("main.go"); os.IsNotExist(err) {
+		log.Fatal().Msg("Run this command from the project src/pipeleak directory.")
+	}
+
+	if githubPages {
+		log.Info().Msg("Generating for GitHub Pages")
+	}
+
 	outputDir := "./cli-docs"
 
 	if _, err := os.Stat(outputDir); err == nil {
@@ -296,18 +315,18 @@ func Docs(cmd *cobra.Command, args []string) {
 		log.Fatal().Err(err).Msg("Failed to write mkdocs.yml")
 	}
 
-	log.Info().Str("folder", outputDir).Msg("Docs and mkdocs.yml successfully generated")
+	log.Info().Str("folder", outputDir).Msg("Markdown successfully generated")
+
+	log.Info().Msg("Running 'mkdocs build' in output folder...")
+	cmdRun := exec.Command("mkdocs", "build")
+	cmdRun.Dir = outputDir
+	cmdRun.Stdout = os.Stdout
+	cmdRun.Stderr = os.Stderr
+	if err := cmdRun.Run(); err != nil {
+		log.Fatal().Err(err).Msg("Failed to run mkdocs build")
+	}
 
 	if serve {
-		log.Info().Msg("Running 'mkdocs build' in output folder...")
-		cmdRun := exec.Command("mkdocs", "build")
-		cmdRun.Dir = outputDir
-		cmdRun.Stdout = os.Stdout
-		cmdRun.Stderr = os.Stderr
-		if err := cmdRun.Run(); err != nil {
-			log.Fatal().Err(err).Msg("Failed to run mkdocs build")
-		}
-
 		siteDir := filepath.Join(outputDir, "site")
 		log.Info().Msgf("Serving docs %s at http://localhost:8000 ... (Ctrl+C to quit)", siteDir)
 		http.Handle("/", http.FileServer(http.Dir(siteDir)))
