@@ -111,9 +111,17 @@ func buildNav(cmd *cobra.Command, level int, parentPath string) *NavEntry {
 func convertNavToYaml(entries []*NavEntry) []map[string]interface{} {
 	yamlList := []map[string]interface{}{}
 	for _, e := range entries {
+		// Strip .md extension and 'pipeleak/' prefix for mkdocs nav
+		navPath := e.FilePath
+		if len(navPath) >= 9 && navPath[:9] == "pipeleak/" {
+			navPath = navPath[9:]
+		}
 		if len(e.Children) == 0 {
+			if filepath.Ext(navPath) == ".md" {
+				navPath = navPath[:len(navPath)-3] // remove .md
+			}
 			yamlList = append(yamlList, map[string]interface{}{
-				e.Label: e.FilePath,
+				e.Label: navPath,
 			})
 		} else {
 			yamlList = append(yamlList, map[string]interface{}{
