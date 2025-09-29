@@ -16,21 +16,18 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// getFileName returns the Markdown filename based on command level
 func getFileName(cmd *cobra.Command, level int) string {
-	log.Info().Int("l", level).Msg("Generating docs for command: " + cmd.Name())
 	switch level {
 	case 1:
 		if cmd.GroupID != "" {
 			return cmd.GroupID + ".md"
 		}
-		return cmd.Name() + ".md" // first-level commands
+		return cmd.Name() + ".md"
 	default:
-		return cmd.Name() + ".md" // deeper subcommands
+		return cmd.Name() + ".md"
 	}
 }
 
-// displayName returns the navigation label based on level
 func displayName(cmd *cobra.Command, level int) string {
 	titleCaser := cases.Title(language.Und, cases.NoLower)
 	switch level {
@@ -38,25 +35,22 @@ func displayName(cmd *cobra.Command, level int) string {
 		if cmd.GroupID != "" {
 			return titleCaser.String(cmd.GroupID)
 		}
-		return titleCaser.String(cmd.Name()) // first-level
+		return titleCaser.String(cmd.Name())
 	default:
-		return titleCaser.String(cmd.Name()) // subcommands
+		return titleCaser.String(cmd.Name())
 	}
 }
 
-// generateDocs recursively generates Markdown files
 func generateDocs(cmd *cobra.Command, dir string, level int) error {
 	var filename string
 
 	if len(cmd.Commands()) > 0 {
-		// Command has subcommands → create folder with index.md
 		dir = filepath.Join(dir, cmd.Name())
 		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 			return err
 		}
 		filename = filepath.Join(dir, "index.md")
 	} else {
-		// Leaf command → file in parent folder
 		filename = filepath.Join(dir, getFileName(cmd, level))
 	}
 
@@ -66,7 +60,6 @@ func generateDocs(cmd *cobra.Command, dir string, level int) error {
 	}
 	defer f.Close()
 
-	// Improved custom link handler to avoid duplicated parent directories
 	customLinkHandler := func(s string) string {
 		s = strings.TrimPrefix(s, "pipeleak_")
 		s = strings.TrimSuffix(s, ".md")
@@ -78,7 +71,6 @@ func generateDocs(cmd *cobra.Command, dir string, level int) error {
 		return err
 	}
 
-	// Recursively generate subcommands only if any
 	for _, c := range cmd.Commands() {
 		if !c.IsAvailableCommand() || c.IsAdditionalHelpTopicCommand() {
 			continue
@@ -91,21 +83,18 @@ func generateDocs(cmd *cobra.Command, dir string, level int) error {
 	return nil
 }
 
-// NavEntry represents a single MkDocs navigation entry
 type NavEntry struct {
 	Label    string
 	FilePath string
 	Children []*NavEntry
 }
 
-// buildNav recursively builds the navigation tree with correct relative paths
 func buildNav(cmd *cobra.Command, level int, parentPath string) *NavEntry {
 	entry := &NavEntry{
 		Label: displayName(cmd, level),
 	}
 
 	if len(cmd.Commands()) > 0 {
-		// Command has subcommands → folder with index.md
 		folder := filepath.Join(parentPath, cmd.Name())
 		entry.FilePath = filepath.ToSlash(filepath.Join(folder, "index.md"))
 		entry.Children = []*NavEntry{}
@@ -116,25 +105,22 @@ func buildNav(cmd *cobra.Command, level int, parentPath string) *NavEntry {
 			entry.Children = append(entry.Children, buildNav(c, level+1, folder))
 		}
 	} else {
-		// Leaf command → file in parent folder
 		entry.FilePath = filepath.ToSlash(filepath.Join(parentPath, getFileName(cmd, level)))
 	}
 
 	return entry
 }
 
-// convertNavToYaml recursively converts NavEntry to YAML-friendly format
 func convertNavToYaml(entries []*NavEntry) []map[string]interface{} {
 	yamlList := []map[string]interface{}{}
 	for _, e := range entries {
-		// Strip .md extension and 'pipeleak/' prefix for mkdocs nav
 		navPath := e.FilePath
 		if len(navPath) >= 9 && navPath[:9] == "pipeleak/" {
 			navPath = navPath[9:]
 		}
 		if len(e.Children) == 0 {
 			if filepath.Ext(navPath) == ".md" {
-				navPath = navPath[:len(navPath)-3] // remove .md
+				navPath = navPath[:len(navPath)-3]
 			}
 			yamlList = append(yamlList, map[string]interface{}{
 				e.Label: navPath,
@@ -148,12 +134,10 @@ func convertNavToYaml(entries []*NavEntry) []map[string]interface{} {
 	return yamlList
 }
 
-// writeMkdocsYaml generates mkdocs.yml in outputDir
 func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 	rootEntry := buildNav(rootCmd, 0, "")
-	nav := convertNavToYaml(rootEntry.Children) // exclude root itself from nav
+	nav := convertNavToYaml(rootEntry.Children)
 
-	// Copy logo.png to outputDir/assets
 	assetsDir := filepath.Join(outputDir, "pipeleak", "assets")
 	if err := os.MkdirAll(assetsDir, os.ModePerm); err != nil {
 		return err
@@ -173,8 +157,9 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 		"docs_dir":  "pipeleak",
 		"site_dir":  "site",
 		"theme": map[string]interface{}{
-			"name": "material",
-			"logo": "assets/logo.png",
+			"name":    "material",
+			"logo":    "assets/logo.png",
+			"favicon": "assets/logo.png",
 			"palette": map[string]string{
 				"scheme": "slate",
 			},
@@ -213,7 +198,6 @@ func NewDocsCmd(root *cobra.Command) *cobra.Command {
 func Docs(cmd *cobra.Command, args []string) {
 	outputDir := "./cli-docs"
 
-	// Check if outputDir exists, delete recursively if so
 	if _, err := os.Stat(outputDir); err == nil {
 		log.Info().Msg("Output directory exists, deleting...")
 		if err := os.RemoveAll(outputDir); err != nil {
@@ -238,7 +222,6 @@ func Docs(cmd *cobra.Command, args []string) {
 
 	if serve {
 		log.Info().Msg("Running 'mkdocs build' in output folder...")
-		// Run mkdocs build in outputDir
 		cmdRun := exec.Command("mkdocs", "build")
 		cmdRun.Dir = outputDir
 		cmdRun.Stdout = os.Stdout
@@ -247,7 +230,6 @@ func Docs(cmd *cobra.Command, args []string) {
 			log.Fatal().Err(err).Msg("Failed to run mkdocs build")
 		}
 
-		// Serve outputDir/site with built-in HTTP server
 		siteDir := filepath.Join(outputDir, "site")
 		log.Info().Msgf("Serving docs %s at http://localhost:8000 ... (Ctrl+C to quit)", siteDir)
 		http.Handle("/", http.FileServer(http.Dir(siteDir)))
