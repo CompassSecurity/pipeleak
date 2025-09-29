@@ -36,8 +36,17 @@ func NewScanCmd() *cobra.Command {
 	scanCmd := &cobra.Command{
 		Use:   "scan [no options!]",
 		Short: "Scan DevOps Actions",
-		Example: "# This is a markdown **example**",
-		Run:   Scan,
+		Example: `
+# Scan all pipelines the current user has access to
+pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts
+
+# Scan all pipelines of an organization
+pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization myOrganization
+
+Scan all pipelines of a project e.g. https://dev.azure.com/PowerShell/PowerShell
+pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization powershell --project PowerShell
+		`,
+		Run: Scan,
 	}
 	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "Azure DevOps Personal Access Token - https://dev.azure.com/{yourUsername}/_usersSettings/tokens")
 	err := scanCmd.MarkFlagRequired("token")

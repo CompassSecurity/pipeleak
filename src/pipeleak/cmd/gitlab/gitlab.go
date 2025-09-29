@@ -19,8 +19,8 @@ var (
 
 func NewGitLabRootCmd() *cobra.Command {
 	glCmd := &cobra.Command{
-		Use:   "gl [command]",
-		Short: "GitLab related commands",
+		Use:     "gl [command]",
+		Short:   "GitLab related commands",
 		GroupID: "GitLab",
 	}
 
