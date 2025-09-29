@@ -111,9 +111,14 @@ echo "This script is executed by Renovate during the renovation process. Exploit
 
 func NewAutodiscoveryCmd() *cobra.Command {
 	autodiscoveryCmd := &cobra.Command{
-		Use:   "autodiscovery [no options!]",
+		Use:   "autodiscovery",
 		Short: "Create a PoC for Renovate Autodiscovery misconfigurations exploitation",
-		Run:   Generate,
+		Long:  "Create a project with a Renovate Bot configuration that will be picked up by an existing Renovate Bot user. The Renovate Bot will then execute the 'prepare' script defined in package.json which you can customize in exploit.sh.",
+		Example: `
+# Create a project and invite the victim Renovate Bot user to it. Adds a malicious prepare script to package.json which is executed by the Renovate Bot during the renovation process.    
+pipeleak gl renovate autodiscovery --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com --repoName my-exploit-repo --username renovate-bot-user
+    `,
+		Run: Generate,
 	}
 	autodiscoveryCmd.Flags().StringVarP(&repoName, "repoName", "r", "", "The name for the created repository")
 	autodiscoveryCmd.Flags().StringVarP(&username, "username", "u", "", "The username of the victim Renovate Bot user to invite")

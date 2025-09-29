@@ -6,8 +6,9 @@ import (
 
 func NewGitHubRootCmd() *cobra.Command {
 	ghCmd := &cobra.Command{
-		Use:   "gh [command]",
-		Short: "GitHub related commands",
+		Use:     "gh [command]",
+		Short:   "GitHub related commands",
+		GroupID: "GitHub",
 	}
 
 	ghCmd.AddCommand(NewScanCmd())

@@ -46,7 +46,24 @@ func NewScanCmd() *cobra.Command {
 	scanCmd := &cobra.Command{
 		Use:   "scan [no options!]",
 		Short: "Scan GitHub Actions",
-		Run:   Scan,
+		Long:  `Scan GitHub Actions workflow runs and artifacts for secrets`,
+		Example: `
+# Scan owned repositories including their artifacts
+pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --owned
+
+# Scan repositories of an organization
+pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --maxWorkflows 10 --org apache
+
+# Scan public repositories
+pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --maxWorkflows 10 --public
+
+# Scan by search term
+pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --maxWorkflows 10 --search iac
+
+# Scan repositories of a user
+pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --user firefart
+		`,
+		Run: Scan,
 	}
 	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "GitHub Personal Access Token")
 	err := scanCmd.MarkFlagRequired("token")

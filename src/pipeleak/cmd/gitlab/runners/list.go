@@ -12,9 +12,11 @@ import (
 
 func NewRunnersListCmd() *cobra.Command {
 	runnersCmd := &cobra.Command{
-		Use:   "list [no options!]",
-		Short: "List available runners",
-		Run:   ListRunners,
+		Use:     "list",
+		Short:   "List available runners",
+		Long:    "List all available runners for projects and groups your token has access to.",
+		Example: `pipeleak gl runners list --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com`,
+		Run:     ListRunners,
 	}
 
 	return runnersCmd

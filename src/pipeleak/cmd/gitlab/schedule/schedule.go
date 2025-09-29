@@ -16,9 +16,11 @@ var (
 
 func NewScheduleCmd() *cobra.Command {
 	scheduleCmd := &cobra.Command{
-		Use:   "schedule [no options!]",
-		Short: "Enumerate scheduled pipelines and dump their variables",
-		Run:   FetchSchedules,
+		Use:     "schedule",
+		Short:   "Enumerate scheduled pipelines and dump their variables",
+		Long:    "Fetch and print all scheduled pipelines and their variables for projects your token has access to.",
+		Example: `pipeleak gl schedule --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com`,
+		Run:     FetchSchedules,
 	}
 	scheduleCmd.Flags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
 	err := scheduleCmd.MarkFlagRequired("gitlab")

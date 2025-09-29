@@ -13,8 +13,9 @@ var (
 
 func NewRenovateRootCmd() *cobra.Command {
 	renovateCmd := &cobra.Command{
-		Use:   "renovate [no options!]",
+		Use:   "renovate",
 		Short: "Renovate related commands",
+		Long:  "Commands to enumerate and exploit GitLab Renovate bot configurations.",
 	}
 
 	renovateCmd.PersistentFlags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")

@@ -6,7 +6,7 @@ import (
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/runners"
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/scan"
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/schedule"
-	"github.com/CompassSecurity/pipeleak/cmd/gitlab/secureFiles"
+	securefiles "github.com/CompassSecurity/pipeleak/cmd/gitlab/secureFiles"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -21,6 +21,20 @@ func NewGitLabRootCmd() *cobra.Command {
 	glCmd := &cobra.Command{
 		Use:   "gl [command]",
 		Short: "GitLab related commands",
+		Long: `Commands to enumerate and exploit GitLab instances.
+### GitLab Proxy Support
+
+> **Note:** Proxying is currently supported only for GitLab commands.
+
+Since Go binaries aren't compatible with Proxychains, you can set a proxy using the HTTP_PROXY environment variable.
+
+For HTTP proxy (e.g., Burp Suite):
+<code>HTTP_PROXY=http://127.0.0.1:8080 pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com</code>
+
+For SOCKS5 proxy:
+<code>HTTP_PROXY=socks5://127.0.0.1:8080 pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com</code>
+		`,
+		GroupID: "GitLab",
 	}
 
 	glCmd.AddCommand(scan.NewScanCmd())
@@ -49,9 +63,6 @@ func NewGitLabRootCmd() *cobra.Command {
 	glCmd.MarkFlagsRequiredTogether("gitlab", "token")
 
 	glCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
-
-	glCmd.AddCommand(runners.NewRunnersListCmd())
-	glCmd.AddCommand(runners.NewRunnersExploitCmd())
 
 	return glCmd
 }

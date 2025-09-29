@@ -6,8 +6,9 @@ import (
 
 func NewAzureDevOpsRootCmd() *cobra.Command {
 	dvoCmd := &cobra.Command{
-		Use:   "ad [command]",
-		Short: "Azure DevOps related commands",
+		Use:     "ad [command]",
+		Short:   "Azure DevOps related commands",
+		GroupID: "AzureDevOps",
 	}
 
 	dvoCmd.AddCommand(NewScanCmd())

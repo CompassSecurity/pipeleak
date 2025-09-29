@@ -6,8 +6,9 @@ import (
 
 func NewBitBucketRootCmd() *cobra.Command {
 	bbCmd := &cobra.Command{
-		Use:   "bb [command]",
-		Short: "BitBucket related commands",
+		Use:     "bb [command]",
+		Short:   "BitBucket related commands",
+		GroupID: "BitBucket",
 	}
 
 	bbCmd.AddCommand(NewScanCmd())

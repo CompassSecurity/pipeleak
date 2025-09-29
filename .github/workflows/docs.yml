@@ -7,6 +7,9 @@ on:
 jobs:
   build-and-deploy-docs:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/pipeleak
     permissions:
       contents: read
       pages: write
@@ -24,10 +27,6 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
 
-      - name: Generate Docs with Go
-        working-directory: src/pipeleak
-        run: go run main.go docs
-
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -36,8 +35,8 @@ jobs:
       - name: Install MkDocs
         run: pip install mkdocs mkdocs-material
 
-      - name: Build Docs
-        run: mkdocs build
+      - name: Generate Docs
+        run: go run main.go docs
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -45,7 +44,7 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: 'site/'
+          path: 'cli-docs/site/'
 
       - name: Deploy to GitHub Pages
         id: deployment

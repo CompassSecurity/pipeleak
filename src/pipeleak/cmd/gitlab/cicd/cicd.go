@@ -13,7 +13,7 @@ var (
 
 func NewCiCdCmd() *cobra.Command {
 	ciCdCmd := &cobra.Command{
-		Use:   "cicd -r mygroup/myrepo",
+		Use:   "cicd",
 		Short: "CI/CD related commands",
 	}
 
