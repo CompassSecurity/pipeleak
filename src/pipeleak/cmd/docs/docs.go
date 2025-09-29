@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -18,8 +19,6 @@ import (
 // getFileName returns the Markdown filename based on command level
 func getFileName(cmd *cobra.Command, level int) string {
 	switch level {
-	case 0:
-		return cmd.Name() + ".md" // root command
 	case 1:
 		return cmd.GroupID + ".md" // first-level commands
 	default:
@@ -31,8 +30,6 @@ func getFileName(cmd *cobra.Command, level int) string {
 func displayName(cmd *cobra.Command, level int) string {
 	titleCaser := cases.Title(language.Und, cases.NoLower)
 	switch level {
-	case 0:
-		return titleCaser.String(cmd.Name()) // root
 	case 1:
 		if cmd.GroupID != "" {
 			return titleCaser.String(cmd.GroupID)
@@ -65,7 +62,15 @@ func generateDocs(cmd *cobra.Command, dir string, level int) error {
 	}
 	defer f.Close()
 
-	if err := doc.GenMarkdown(cmd, f); err != nil {
+	// Improved custom link handler to avoid duplicated parent directories
+	customLinkHandler := func(s string) string {
+		s = strings.TrimPrefix(s, "pipeleak_")
+		s = strings.TrimSuffix(s, ".md")
+		s = strings.ReplaceAll(s, "_", "/")
+		return "/" + s
+	}
+
+	if err := doc.GenMarkdownCustom(cmd, f, customLinkHandler); err != nil {
 		return err
 	}
 
