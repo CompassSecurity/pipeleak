@@ -156,6 +156,7 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 	methodologyEntry := map[string]interface{}{
 		"Methodology": []map[string]interface{}{
 			{"GitLab": prefix + "/methodology/gitlab/"},
+			{"Renovate (GitLab)": prefix + "/methodology/renovate/"},
 		},
 	}
 	nav = append([]map[string]interface{}{introEntry, methodologyEntry}, nav...)
@@ -178,39 +179,39 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 		}
 	}
 
-       mkdocs := map[string]interface{}{
-	       "site_name": "Pipeleak",
-	       "docs_dir":  "pipeleak",
-	       "site_dir":  "site",
-	       "repo_url":  "https://github.com/CompassSecurity/pipeleak",
-	       "theme": map[string]interface{}{
-		       "name":    "material",
-		       "logo":    "assets/logo.png",
-		       "favicon": "assets/favicon.ico",
-		       "palette": map[string]string{
-			       "scheme":  "slate",
-			       "primary": "green",
-		       },
-			   "features": []string{"content.code.copy"},
-	       },
-	       "extra": map[string]interface{}{
-		       "highlightjs": true,
-	       },
-	       "markdown_extensions": []interface{}{
-		       map[string]interface{}{
-			       "pymdownx.highlight": map[string]interface{}{
-				       "anchor_linenums":      true,
-				       "line_spans":           "__span",
-				       "pygments_lang_class":  true,
-					   "linenums": true,
-			       },
-		       },
-		       "pymdownx.inlinehilite",
-		       "pymdownx.snippets",
-		       "pymdownx.superfences",
-	       },
-	       "nav": nav,
-       }
+	mkdocs := map[string]interface{}{
+		"site_name": "Pipeleak",
+		"docs_dir":  "pipeleak",
+		"site_dir":  "site",
+		"repo_url":  "https://github.com/CompassSecurity/pipeleak",
+		"theme": map[string]interface{}{
+			"name":    "material",
+			"logo":    "assets/logo.png",
+			"favicon": "assets/favicon.ico",
+			"palette": map[string]string{
+				"scheme":  "slate",
+				"primary": "green",
+			},
+			"features": []string{"content.code.copy"},
+		},
+		"extra": map[string]interface{}{
+			"highlightjs": true,
+		},
+		"markdown_extensions": []interface{}{
+			map[string]interface{}{
+				"pymdownx.highlight": map[string]interface{}{
+					"anchor_linenums":     true,
+					"line_spans":          "__span",
+					"pygments_lang_class": true,
+					"linenums":            true,
+				},
+			},
+			"pymdownx.inlinehilite",
+			"pymdownx.snippets",
+			"pymdownx.superfences",
+		},
+		"nav": nav,
+	}
 
 	yamlData, err := yaml.Marshal(mkdocs)
 	if err != nil {
