@@ -15,6 +15,8 @@ It supports the following platforms:
 * BitBucket
 * Azure DevOps
 
+Once secrets are discovered, further exploitation often requires additional tooling. Pipeleak provides several helper commands to assist with this process.
+
 ## Getting Started
 
 To begin using Pipeleak, download the latest binary from the [Releases](https://github.com/CompassSecurity/pipeleak/releases) page.

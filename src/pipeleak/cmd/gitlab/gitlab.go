@@ -38,9 +38,7 @@ For SOCKS5 proxy:
 	}
 
 	glCmd.AddCommand(scan.NewScanCmd())
-	glCmd.AddCommand(NewShodanCmd())
 	glCmd.AddCommand(runners.NewRunnersRootCmd())
-	glCmd.AddCommand(NewRegisterCmd())
 	glCmd.AddCommand(NewVulnCmd())
 	glCmd.AddCommand(NewVariablesCmd())
 	glCmd.AddCommand(securefiles.NewSecureFilesCmd())

@@ -48,7 +48,6 @@ func NewShodanCmd() *cobra.Command {
 		log.Fatal().Stack().Err(err).Msg("Unable to parse shodan json flag")
 	}
 
-	scanCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 	return scanCmd
 }
 
