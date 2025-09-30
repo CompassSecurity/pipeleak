@@ -45,7 +45,6 @@ func NewRegisterCmd() *cobra.Command {
 		log.Fatal().Stack().Err(err).Msg("Unable to require email flag")
 	}
 
-	registerCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 	return registerCmd
 }
 

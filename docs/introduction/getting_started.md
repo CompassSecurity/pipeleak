@@ -4,8 +4,8 @@
 
 # The Why
 
-Scanning for credentials in CI/CD pipelines is interesting because secrets often end up in pipeline logs or build artifacts that traditional git scanners won’t check. 
-This means you can catch leaked secrets that are injected or generated at runtime, not just those committed to git.
+Scanning for credentials in CI/CD pipelines is interesting because secrets often end up in pipeline logs or build artifacts that traditional Git scanners won’t check. 
+This means you can catch leaked secrets that are injected or generated at runtime, not just those committed to Git.
 
 Once secrets are discovered, further exploitation often requires additional tooling. Pipeleak provides several helper commands to assist with this process.
 

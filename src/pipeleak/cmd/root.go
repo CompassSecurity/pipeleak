@@ -39,6 +39,7 @@ func Execute() error {
 func init() {
 	rootCmd.AddCommand(github.NewGitHubRootCmd())
 	rootCmd.AddCommand(gitlab.NewGitLabRootCmd())
+	rootCmd.AddCommand(gitlab.NewGitLabRootUnauthenticatedCmd())
 	rootCmd.AddCommand(bitbucket.NewBitBucketRootCmd())
 	rootCmd.AddCommand(devops.NewAzureDevOpsRootCmd())
 	rootCmd.AddCommand(docs.NewDocsCmd(rootCmd))
@@ -48,6 +49,7 @@ func init() {
 
 	rootCmd.AddGroup(&cobra.Group{ID: "GitHub", Title: "GitHub Commands"})
 	rootCmd.AddGroup(&cobra.Group{ID: "GitLab", Title: "GitLab Commands"})
+	rootCmd.AddGroup(&cobra.Group{ID: "Helper", Title: "Various Helper Commands"})
 	rootCmd.AddGroup(&cobra.Group{ID: "BitBucket", Title: "BitBucket Commands"})
 	rootCmd.AddGroup(&cobra.Group{ID: "AzureDevOps", Title: "Azure DevOps Commands"})
 }
