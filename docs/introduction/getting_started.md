@@ -26,7 +26,7 @@ To get started with Pipeleak:
 
 The most basic example to scan e.g. GitLab pipeline logs for secrets, check the docs for other platforms and more options.
 
-```bash
+```shell
 pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com
 ```
 
@@ -66,7 +66,7 @@ In the `scan` mode you can change interactively between log levels by pressing `
 
 Todo: add main pages as well!!
 
-# ELK Integration
+### ELK Integration
 
 To easily analyze the results you can [redirect the pipeleak](https://github.com/deviantony/docker-elk?tab=readme-ov-file#injecting-data) output using `nc` into Logstash.
 
