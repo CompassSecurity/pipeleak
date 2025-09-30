@@ -158,6 +158,7 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 			{"Secret Scanning": prefix + "/methodology/scanning/"},
 			{"GitLab Pentest": prefix + "/methodology/gitlab/"},
 			{"Renovate Pentest (GitLab)": prefix + "/methodology/renovate/"},
+			{"ELK Logging": prefix + "/methodology/elk/"},
 		},
 	}
 	nav = append([]map[string]interface{}{introEntry, methodologyEntry}, nav...)

