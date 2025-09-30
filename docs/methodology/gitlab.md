@@ -1,4 +1,4 @@
-# Pipeleak - A Guide To (self-hosted) GitLab Pentesting
+# A Starter Guide To GitLab Pentesting
 
 Many companies use (self-hosted) GitLab instances to manage their source codes. In times when a lot of infrastructure is deployed as code (IaC) these configurations must be source-controlled as well, putting a lot of responsibility on the source code platform used.
 

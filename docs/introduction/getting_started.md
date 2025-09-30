@@ -2,6 +2,14 @@
   <img style="max-height: 10rem" src="https://github.com/CompassSecurity/pipeleak/blob/main/docs/logo.png?raw=true">
 </p>
 
+# The Why
+
+Scanning for credentials in CI/CD pipelines is interesting because secrets often end up in pipeline configs, environment variables, or build artifacts—places that traditional git scanners like TruffleHog won’t check. 
+
+Unlike tools like TruffleHog, which scan the git history for secrets, Pipeleak can scan pipeline logs and build artifacts produced during job runs. This means you can catch secrets that are injected or generated at runtime, not just those committed to git.
+
+Artifacts (like zipped build outputs or logs) may contain credentials from failed jobs, debug output, or misconfigured scripts. Scanning these with Pipeleak might uncover more secrets as well.
+
 # Getting Started
 
 To get started with Pipeleak:

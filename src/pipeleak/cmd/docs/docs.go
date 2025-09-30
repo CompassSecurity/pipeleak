@@ -155,8 +155,9 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 	introEntry := map[string]interface{}{"Introduction": prefix + "/introduction/getting_started/"}
 	methodologyEntry := map[string]interface{}{
 		"Methodology": []map[string]interface{}{
-			{"GitLab": prefix + "/methodology/gitlab/"},
-			{"Renovate (GitLab)": prefix + "/methodology/renovate/"},
+			{"Secret Scanning": prefix + "/methodology/scanning/"},
+			{"GitLab Pentest": prefix + "/methodology/gitlab/"},
+			{"Renovate Pentest (GitLab)": prefix + "/methodology/renovate/"},
 		},
 	}
 	nav = append([]map[string]interface{}{introEntry, methodologyEntry}, nav...)
