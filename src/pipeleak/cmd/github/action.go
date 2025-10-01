@@ -54,15 +54,20 @@ func scanWorkflowRuns() {
 	}
 
 	owner, repo := parts[0], parts[1]
+	log.Info().Str("owner", owner).Str("repo", repo).Msg("Repository to scan")
 
 	sha := os.Getenv("GITHUB_SHA")
 	if sha == "" {
 		log.Fatal().Msg("GITHUB_SHA not set")
+	} else {
+		log.Info().Str("sha", sha).Msg("Current commit sha")
 	}
 
 	runIDStr := os.Getenv("GITHUB_RUN_ID")
 	if runIDStr == "" {
 		log.Fatal().Msg("GITHUB_RUN_ID not set")
+	} else {
+		log.Info().Str("runID", runIDStr).Msg("Current run ID")
 	}
 
 	currentRunID, _ := strconv.ParseInt(runIDStr, 10, 64)
