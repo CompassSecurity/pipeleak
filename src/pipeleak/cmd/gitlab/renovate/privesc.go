@@ -56,7 +56,7 @@ func Exploit(cmd *cobra.Command, args []string) {
 
 	projectAccessLevel := getUserAccessLevel(project)
 	if projectAccessLevel < gogitlab.DeveloperPermissions {
-		log.Fatal().Any("currentAccessLevel", projectAccessLevel).Msg("You (probably) need at least Developer permissions to exploit this vulnerability, you must be able to push to the Renovate Bot created branches branches")
+		log.Fatal().Any("projectAccessLevel", projectAccessLevel).Msg("You (probably) need at least Developer permissions to exploit this vulnerability, you must be able to push to the Renovate Bot created branches branches")
 	}
 
 	ciCdYml, err := util.FetchCICDYml(git, project.ID)
@@ -85,11 +85,22 @@ func Exploit(cmd *cobra.Command, args []string) {
 }
 
 func getUserAccessLevel(project *gogitlab.Project) gogitlab.AccessLevelValue {
-	if project.Permissions == nil || project.Permissions.ProjectAccess == nil {
-		return -1
+	var groupAccess, projectAccess gogitlab.AccessLevelValue = -1, -1
+
+	if project.Permissions != nil {
+		if project.Permissions.GroupAccess != nil {
+			groupAccess = project.Permissions.GroupAccess.AccessLevel
+		}
+		if project.Permissions.ProjectAccess != nil {
+			projectAccess = project.Permissions.ProjectAccess.AccessLevel
+		}
 	}
 
-	return project.Permissions.ProjectAccess.AccessLevel
+	if groupAccess > projectAccess {
+		return groupAccess
+	}
+
+	return projectAccess
 }
 
 func checkDefaultBranchProtections(git *gogitlab.Client, project *gogitlab.Project, currentAccessLevel gogitlab.AccessLevelValue) {
