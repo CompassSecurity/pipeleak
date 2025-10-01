@@ -4,6 +4,10 @@ name: Wait for Other Runs testing
 on:
   push:
 
+permissions:
+  actions: read
+  contents: read
+
 jobs:
   scan-secrets:
     runs-on: ubuntu-latest
