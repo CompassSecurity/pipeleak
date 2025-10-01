@@ -36,15 +36,16 @@ func ScanAction(cmd *cobra.Command, args []string) {
 func scanWorkflowRuns() {
 	log.Info().Msg("Scanning GitHub Actions workflow runs for secrets")
 	ctx := context.WithValue(context.Background(), github.BypassRateLimitCheck, true)
-	client := setupClient(options.AccessToken)
 
 	token := os.Getenv("GITHUB_TOKEN")
 	if token == "" {
 		log.Fatal().Msg("GITHUB_TOKEN not set")
 	}
 
+	client := setupClient(token)
+
 	repoFull := os.Getenv("GITHUB_REPOSITORY")
-	if token == "" {
+	if repoFull == "" {
 		log.Fatal().Msg("GITHUB_REPOSITORY not set")
 	}
 
