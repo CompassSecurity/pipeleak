@@ -1,0 +1,30 @@
+
+name: Wait for Other Runs testing
+
+on:
+  workflow_dispatch:
+
+jobs:
+  scan-secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Wait for other runs on same commit
+        working-directory: src/pipeleak
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: go run main.go gh action
+  dummy-wait:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait 3 minutes, echo test, then wait 2 more minutes
+        run: |
+          sleep 180
+          echo test
+          sleep 120
