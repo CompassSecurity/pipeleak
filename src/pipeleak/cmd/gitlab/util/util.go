@@ -39,7 +39,7 @@ func CookieSessionValid(gitlabUrl string, cookieVal string) {
 	statCode := resp.StatusCode
 
 	if statCode != 200 {
-		log.Fatal().Int("http", statCode).Msg("Negative _gitlab_session test")
+		log.Fatal().Int("http", statCode).Str("testUrl", gitlabSessionsUrl).Msg("Invalid _gitlab_session, not auhthorized to access user sessions page for session validation")
 	} else {
 		log.Info().Msg("Provided GitLab session cookie is valid")
 	}
