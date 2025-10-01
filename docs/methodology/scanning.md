@@ -23,7 +23,7 @@ As shown, Pipeleak can detect secrets in job logs, dotenv files, and build artif
 If you find a repository that looks particularly interesting e.g. `secret-pipelines`, you can scan all its job logs, not just the most recent ones:
 
 ```bash
-pipeleak gl scan -g https://gitlab.com -t glpat-[redacted] --cookie [redacted] --artifacts --search secret-pipelines
+pipeleak gl scan -g https://gitlab.com -t glpat-[redacted] --cookie [redacted] --artifacts --repo mygroup/my-secret-pipelines-project
 ```
 
 ## Quiet(er) Scanning
@@ -32,7 +32,6 @@ Sometimes you need to scan through a proxy and avoid making too much noise. Disa
 
 ```bash
 HTTP_PROXY=http://127.0.0.1:8080 pipeleak gl scan -g https://gitlab.internal-company.com -t glpat-[redacted] --threads 1 --max-artifact-size 5mb --truffleHogVerification=false --verbose --logfile pipeleak_out --coloredLog=false --job-limit 10
-cat pipeleak_out
 ```
 
 ## Custom Rules

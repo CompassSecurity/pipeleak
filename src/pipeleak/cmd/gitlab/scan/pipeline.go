@@ -26,6 +26,8 @@ type ScanOptions struct {
 	Artifacts              bool
 	Owned                  bool
 	Member                 bool
+	Repository             string
+	Namespace              string
 	JobLimit               int
 	Verbose                bool
 	ConfidenceFilter       []string
@@ -53,7 +55,22 @@ func ScanGitLabPipelines(options *ScanOptions) {
 	// dont kill the queue before the jobs have been fetched
 	waitGroup = new(sync.WaitGroup)
 	waitGroup.Add(1)
-	go fetchProjects(git, options, waitGroup)
+
+	if len(options.GitlabCookie) > 0 {
+		util.CookieSessionValid(options.GitlabUrl, options.GitlabCookie)
+	}
+
+	if len(options.ProjectSearchQuery) > 0 && options.Repository == "" {
+		log.Info().Str("query", options.ProjectSearchQuery).Msg("Filtering scanned projects by")
+	}
+
+	if options.Repository != "" {
+		go scanRepository(git, options, waitGroup)
+	} else if options.Namespace != "" {
+		go scanNamespace(git, options, waitGroup)
+	} else {
+		go fetchProjects(git, options, waitGroup)
+	}
 
 	go func() {
 		queueChan := globQueue.ReadChan()
@@ -64,6 +81,69 @@ func ScanGitLabPipelines(options *ScanOptions) {
 
 	waitGroup.Wait()
 	cleanUp()
+}
+
+func scanRepository(git *gitlab.Client, options *ScanOptions, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	log.Info().Str("repository", options.Repository).Msg("Scanning repository pipelines")
+
+	project, resp, err := git.Projects.GetProject(options.Repository, &gitlab.GetProjectOptions{})
+	if err != nil {
+		log.Fatal().Stack().Err(err).Str("repository", options.Repository).Msg("Failed fetching project by repository name")
+	}
+
+	if resp.StatusCode == 404 {
+		log.Fatal().Str("repository", options.Repository).Msg("Project not found")
+	}
+
+	getAllJobs(git, project, options)
+	log.Info().Msg("Done scanning repository")
+}
+
+func scanNamespace(git *gitlab.Client, options *ScanOptions, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	log.Info().Str("namespace", options.Namespace).Msg("Scanning namespace pipelines")
+	group, _, err := git.Groups.GetGroup(options.Namespace, &gitlab.GetGroupOptions{})
+
+	if err != nil {
+		log.Fatal().Stack().Err(err).Msg("Failed fetching namespace")
+	}
+
+	projectOpts := &gitlab.ListGroupProjectsOptions{
+		ListOptions: gitlab.ListOptions{
+			PerPage: 100,
+			Page:    1,
+		},
+		OrderBy:          gitlab.Ptr("last_activity_at"),
+		Owned:            gitlab.Ptr(options.Owned),
+		Search:           gitlab.Ptr(options.ProjectSearchQuery),
+		WithShared:       gitlab.Ptr(true),
+		IncludeSubGroups: gitlab.Ptr(true),
+	}
+
+	for {
+		projects, resp, err := git.Groups.ListGroupProjects(group.ID, projectOpts)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("Failed fetching projects in namespace")
+			break
+		}
+
+		for _, project := range projects {
+			log.Debug().Str("url", project.WebURL).Msg("Fetch project jobs")
+			getAllJobs(git, project, options)
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+
+		projectOpts.Page = resp.NextPage
+		log.Info().Int("currentPage", projectOpts.Page).Msg("Fetched projects page")
+	}
+
+	log.Info().Msg("Fetched all namespace projects")
 }
 
 func cleanUp() {
@@ -89,15 +169,8 @@ func cleanUp() {
 
 func fetchProjects(git *gitlab.Client, options *ScanOptions, wg *sync.WaitGroup) {
 	defer wg.Done()
+
 	log.Info().Msg("Fetching projects")
-
-	if len(options.GitlabCookie) > 0 {
-		util.CookieSessionValid(options.GitlabUrl, options.GitlabCookie)
-	}
-
-	if len(options.ProjectSearchQuery) > 0 {
-		log.Info().Str("query", options.ProjectSearchQuery).Msg("Filtering scanned projects by")
-	}
 
 	projectOpts := &gitlab.ListProjectsOptions{
 		ListOptions: gitlab.ListOptions{

@@ -30,19 +30,25 @@ You can tweak --threads, --max-artifact-size and --job-limit to obtain a customi
 `,
 		Example: `
 # Scan all accessible projects pipelines and their artifacts and dotenv artifacts on gitlab.com
-pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com -a -c [value-of-valid-_gitlab_session]
+pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com -a -c [value-of-valid-_gitlab_session]
 
 # Scan all projects matching the search query kubernetes
-pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com --search kubernetes
+pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com --search kubernetes
 
 # Scan all pipelines of projects you own
-pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com --owned
+pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com --owned
 
 # Scan all pipelines of projects you are a member of
-pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com --member
+pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com --member
 
 # Scan all accessible projects pipelines but limit the number of jobs scanned per project to 10, only scan artifacts smaller than 200MB and use 8 threads
-pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com --job-limit 10 -a --max-artifact-size 200Mb --threads 8
+pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com --job-limit 10 -a --max-artifact-size 200Mb --threads 8
+
+# Scan a single repository
+pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com --repo mygroup/myproject
+
+# Scan all repositories in a namespace
+pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com --namespace mygroup
 		`,
 		Run: Scan,
 	}
@@ -67,6 +73,8 @@ pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com --job-lim
 	scanCmd.PersistentFlags().BoolVarP(&options.Artifacts, "artifacts", "a", false, "Scan job artifacts")
 	scanCmd.PersistentFlags().BoolVarP(&options.Owned, "owned", "o", false, "Scan user onwed projects only")
 	scanCmd.PersistentFlags().BoolVarP(&options.Member, "member", "m", false, "Scan projects the user is member of")
+	scanCmd.PersistentFlags().StringVarP(&options.Repository, "repo", "r", "", "Single repository to scan, format: namespace/repo")
+	scanCmd.PersistentFlags().StringVarP(&options.Namespace, "namespace", "n", "", "Namespace to scan (all repos in the namespace will be scanned)")
 	scanCmd.PersistentFlags().IntVarP(&options.JobLimit, "job-limit", "j", 0, "Scan a max number of pipeline jobs - trade speed vs coverage. 0 scans all and is the default.")
 	scanCmd.PersistentFlags().StringVarP(&maxArtifactSize, "max-artifact-size", "", "500Mb", "Max file size of an artifact to be included in scanning. Larger files are skipped. Format: https://pkg.go.dev/github.com/docker/go-units#FromHumanSize")
 	scanCmd.PersistentFlags().IntVarP(&options.MaxScanGoRoutines, "threads", "", 4, "Nr of threads used to scan")
