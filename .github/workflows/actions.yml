@@ -2,7 +2,7 @@
 name: Wait for Other Runs testing
 
 on:
-  workflow_dispatch:
+  push:
 
 jobs:
   scan-secrets:
