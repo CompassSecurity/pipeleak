@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/CompassSecurity/pipeleak/helper"
+	"github.com/CompassSecurity/pipeleak/scanner"
 	"github.com/google/go-github/v69/github"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -28,7 +29,9 @@ func NewActionScanCmd() *cobra.Command {
 }
 
 func ScanAction(cmd *cobra.Command, args []string) {
+	options.HttpClient = helper.GetPipeleakHTTPClient()
 	helper.SetLogLevel(options.Verbose)
+	scanner.InitRules(options.ConfidenceFilter)
 	scanWorkflowRuns()
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
 }
@@ -43,6 +46,7 @@ func scanWorkflowRuns() {
 	}
 
 	client := setupClient(token)
+	options.Client = client
 
 	repoFull := os.Getenv("GITHUB_REPOSITORY")
 	if repoFull == "" {
@@ -56,6 +60,11 @@ func scanWorkflowRuns() {
 
 	owner, repo := parts[0], parts[1]
 	log.Info().Str("owner", owner).Str("repo", repo).Msg("Repository to scan")
+
+	repository, _, err := client.Repositories.Get(ctx, owner, repo)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to fetch repository")
+	}
 
 	sha := os.Getenv("GITHUB_SHA")
 	if sha == "" {
@@ -78,22 +87,36 @@ func scanWorkflowRuns() {
 
 		opts := &github.ListWorkflowRunsOptions{
 			ListOptions: github.ListOptions{PerPage: 100},
+			HeadSHA:     sha,
 		}
 
 		for {
 			runs, resp, err := client.Actions.ListRepositoryWorkflowRuns(ctx, owner, repo, opts)
+
+			log.Info().Int("count", len(runs.WorkflowRuns)).Msg("Fetched workflow runs")
+
 			if err != nil {
 				log.Fatal().Stack().Err(err).Msg("Failed listing workflow runs")
 			}
 
 			for _, run := range runs.WorkflowRuns {
-				log.Info().Int64("run", run.GetID()).Str("commit", run.GetHeadSHA()).Str("name", run.GetName()).Msg("Check run")
-				if run.GetHeadSHA() == sha && run.GetID() != currentRunID {
+				if run.GetID() != currentRunID {
+					log.Info().Int64("run", run.GetID()).Str("commit", run.GetHeadSHA()).Str("name", run.GetName()).Msg("Check run")
 					status := run.GetStatus()
 					log.Info().Int64("run", run.GetID()).Str("status", status).Str("name", run.GetName()).Msgf("Run")
 
 					if status != "completed" {
 						allCompleted = false
+						if _, scanned := scannedRuns[run.GetID()]; !scanned {
+							if status == "completed" {
+								scannedRuns[run.GetID()] = struct{}{}
+								wg.Add(1)
+								go func(runCopy *github.WorkflowRun) {
+									defer wg.Done()
+									scanRun(client, repository, runCopy)
+								}(run)
+							}
+						}
 					}
 				}
 			}
@@ -113,4 +136,9 @@ func scanWorkflowRuns() {
 		log.Info().Msg("⏳ Still waiting... retrying in 30s")
 		time.Sleep(30 * time.Second)
 	}
+}
+
+func scanRun(client *github.Client, repo *github.Repository, workflowRun *github.WorkflowRun) {
+	downloadWorkflowRunLog(client, repo, workflowRun)
+	listArtifacts(client, workflowRun)
 }

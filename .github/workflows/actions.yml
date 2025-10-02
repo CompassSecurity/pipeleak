@@ -29,6 +29,6 @@ jobs:
     steps:
       - name: Wait 3 minutes, echo test, then wait 2 more minutes
         run: |
-          sleep 180
+          sleep 20
           echo test
           sleep 120
