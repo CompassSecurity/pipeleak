@@ -39,7 +39,7 @@ func ScanAction(cmd *cobra.Command, args []string) {
 
 func scanWorkflowRuns() {
 	log.Info().Msg("Scanning GitHub Actions workflow runs for secrets")
-	ctx := context.WithValue(context.Background(), github.BypassRateLimitCheck, true)
+	options.Context = context.WithValue(context.Background(), github.BypassRateLimitCheck, true)
 
 	var wg sync.WaitGroup
 	scannedRuns := make(map[int64]struct{})
@@ -65,7 +65,7 @@ func scanWorkflowRuns() {
 	owner, repo := parts[0], parts[1]
 	log.Info().Str("owner", owner).Str("repo", repo).Msg("Repository to scan")
 
-	repository, _, err := client.Repositories.Get(ctx, owner, repo)
+	repository, _, err := client.Repositories.Get(options.Context, owner, repo)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to fetch repository")
 	}
@@ -93,7 +93,7 @@ func scanWorkflowRuns() {
 		}
 
 		for {
-			runs, resp, err := client.Actions.ListRepositoryWorkflowRuns(ctx, owner, repo, opts)
+			runs, resp, err := client.Actions.ListRepositoryWorkflowRuns(options.Context, owner, repo, opts)
 
 			log.Info().Int("count", len(runs.WorkflowRuns)).Msg("Fetched workflow runs")
 
@@ -104,7 +104,7 @@ func scanWorkflowRuns() {
 			for _, run := range runs.WorkflowRuns {
 				if run.GetID() != currentRunID {
 					status := run.GetStatus()
-					log.Info().Int64("run", run.GetID()).Str("status", status).Str("name", run.GetName()).Msgf("Running workflow run")
+					log.Info().Int64("run", run.GetID()).Str("status", status).Str("name", run.GetName()).Str("url", *run.URL).Msgf("Workflow run")
 
 					if status == "completed" {
 						if _, scanned := scannedRuns[run.GetID()]; !scanned {
