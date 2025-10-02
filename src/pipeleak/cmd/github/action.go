@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/CompassSecurity/pipeleak/helper"
@@ -39,6 +40,9 @@ func ScanAction(cmd *cobra.Command, args []string) {
 func scanWorkflowRuns() {
 	log.Info().Msg("Scanning GitHub Actions workflow runs for secrets")
 	ctx := context.WithValue(context.Background(), github.BypassRateLimitCheck, true)
+
+	var wg sync.WaitGroup
+	scannedRuns := make(map[int64]struct{})
 
 	token := os.Getenv("GITHUB_TOKEN")
 	if token == "" {
@@ -83,8 +87,6 @@ func scanWorkflowRuns() {
 	currentRunID, _ := strconv.ParseInt(runIDStr, 10, 64)
 
 	for {
-		allCompleted := true
-
 		opts := &github.ListWorkflowRunsOptions{
 			ListOptions: github.ListOptions{PerPage: 100},
 			HeadSHA:     sha,
@@ -101,21 +103,18 @@ func scanWorkflowRuns() {
 
 			for _, run := range runs.WorkflowRuns {
 				if run.GetID() != currentRunID {
-					log.Info().Int64("run", run.GetID()).Str("commit", run.GetHeadSHA()).Str("name", run.GetName()).Msg("Check run")
 					status := run.GetStatus()
-					log.Info().Int64("run", run.GetID()).Str("status", status).Str("name", run.GetName()).Msgf("Run")
+					log.Info().Int64("run", run.GetID()).Str("status", status).Str("name", run.GetName()).Msgf("Running workflow run")
 
-					if status != "completed" {
-						allCompleted = false
+					if status == "completed" {
 						if _, scanned := scannedRuns[run.GetID()]; !scanned {
-							if status == "completed" {
-								scannedRuns[run.GetID()] = struct{}{}
-								wg.Add(1)
-								go func(runCopy *github.WorkflowRun) {
-									defer wg.Done()
-									scanRun(client, repository, runCopy)
-								}(run)
-							}
+							scannedRuns[run.GetID()] = struct{}{}
+							wg.Add(1)
+							go func(runCopy *github.WorkflowRun) {
+								defer wg.Done()
+								log.Warn().Int64("run", run.GetID()).Str("status", status).Str("name", run.GetName()).Msgf("Running scan for workflow run")
+								scanRun(client, repository, runCopy)
+							}(run)
 						}
 					}
 				}
@@ -125,16 +124,12 @@ func scanWorkflowRuns() {
 				break
 			}
 
-			opts.Page = resp.NextPage
+			log.Info().Msg("⏳ Some runs are still running")
+			time.Sleep(3 * time.Second)
 		}
 
-		if allCompleted {
-			log.Info().Msg("✅ All *other* runs for this commit are completed")
-			break
-		}
-
-		log.Info().Msg("⏳ Still waiting... retrying in 30s")
-		time.Sleep(30 * time.Second)
+		log.Info().Msg("⏳ Waiting for any remaining scans to finish...")
+		wg.Wait()
 	}
 }
 
