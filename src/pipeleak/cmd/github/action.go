@@ -85,8 +85,10 @@ func scanWorkflowRuns() {
 	}
 
 	currentRunID, _ := strconv.ParseInt(runIDStr, 10, 64)
+	allRunsCompleted := true
 
 	for {
+
 		opts := &github.ListWorkflowRunsOptions{
 			ListOptions: github.ListOptions{PerPage: 100},
 			HeadSHA:     sha,
@@ -102,9 +104,10 @@ func scanWorkflowRuns() {
 			}
 
 			for _, run := range runs.WorkflowRuns {
+
 				if run.GetID() != currentRunID {
 					status := run.GetStatus()
-					log.Info().Int64("run", run.GetID()).Str("status", status).Str("name", run.GetName()).Str("url", *run.URL).Msgf("Workflow run")
+					log.Info().Int64("run", run.GetID()).Str("status", status).Str("name", run.GetName()).Str("url", *run.HTMLURL).Msgf("Workflow run")
 
 					if status == "completed" {
 						if _, scanned := scannedRuns[run.GetID()]; !scanned {
@@ -112,11 +115,15 @@ func scanWorkflowRuns() {
 							wg.Add(1)
 							go func(runCopy *github.WorkflowRun) {
 								defer wg.Done()
-								log.Warn().Int64("run", run.GetID()).Str("status", status).Str("name", run.GetName()).Msgf("Running scan for workflow run")
+								log.Warn().Int64("run", run.GetID()).Str("status", status).Str("name", run.GetName()).Str("url", *run.HTMLURL).Msgf("Running scan for workflow run")
 								scanRun(client, repository, runCopy)
 							}(run)
 						}
 					}
+				}
+
+				if *run.Status != "completed" {
+					allRunsCompleted = false
 				}
 			}
 
@@ -124,13 +131,19 @@ func scanWorkflowRuns() {
 				break
 			}
 
+			opts.Page = resp.NextPage
+		}
+
+		if allRunsCompleted {
+			log.Info().Msg("⏳ Waiting for any remaining scans to finish...")
+			break
+		} else {
 			log.Info().Msg("⏳ Some runs are still running")
 			time.Sleep(3 * time.Second)
 		}
-
-		log.Info().Msg("⏳ Waiting for any remaining scans to finish...")
-		wg.Wait()
 	}
+
+	wg.Wait()
 }
 
 func scanRun(client *github.Client, repo *github.Repository, workflowRun *github.WorkflowRun) {
