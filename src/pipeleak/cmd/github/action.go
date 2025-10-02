@@ -104,9 +104,12 @@ func scanWorkflowRuns() {
 			}
 
 			for _, run := range runs.WorkflowRuns {
+				status := run.GetStatus()
+				if status != "completed" {
+					allRunsCompleted = false
+				}
 
 				if run.GetID() != currentRunID {
-					status := run.GetStatus()
 					log.Info().Int64("run", run.GetID()).Str("status", status).Str("name", run.GetName()).Str("url", *run.HTMLURL).Msgf("Workflow run")
 
 					if status == "completed" {
@@ -120,10 +123,6 @@ func scanWorkflowRuns() {
 							}(run)
 						}
 					}
-				}
-
-				if *run.Status != "completed" {
-					allRunsCompleted = false
 				}
 			}
 
