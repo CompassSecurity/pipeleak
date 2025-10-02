@@ -193,18 +193,8 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 			"favicon": "assets/favicon.ico",
 			"palette": []map[string]interface{}{
 				{
-					"scheme": "pipeleak-light",
-					"toggle": map[string]interface{}{
-						"icon": "material/weather-night",
-						"name": "Switch to dark mode",
-					},
-				},
-				{
-					"scheme": "pipeleak-dark",
-					"toggle": map[string]interface{}{
-						"icon": "material/weather-night",
-						"name": "Switch to dark mode",
-					},
+					"primary": "custom",
+					"scheme":  "slate",
 				},
 			},
 			"features": []string{"content.code.copy"},
