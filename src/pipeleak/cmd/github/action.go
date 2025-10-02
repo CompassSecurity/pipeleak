@@ -128,7 +128,7 @@ func scanWorkflowRuns() {
 			if resp.NextPage == 0 {
 				break
 			}
-			opt.Page = resp.NextPage
+			opts.Page = resp.NextPage
 		}
 
 		if allRunsCompleted {
