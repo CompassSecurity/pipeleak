@@ -85,14 +85,13 @@ func scanWorkflowRuns() {
 	}
 
 	currentRunID, _ := strconv.ParseInt(runIDStr, 10, 64)
+	opts := &github.ListWorkflowRunsOptions{
+		ListOptions: github.ListOptions{PerPage: 100},
+		HeadSHA:     sha,
+	}
 
 	for {
 		allRunsCompleted := true
-
-		opts := &github.ListWorkflowRunsOptions{
-			ListOptions: github.ListOptions{PerPage: 100},
-			HeadSHA:     sha,
-		}
 
 		for {
 			runs, resp, err := client.Actions.ListRepositoryWorkflowRuns(options.Context, owner, repo, opts)
@@ -129,8 +128,7 @@ func scanWorkflowRuns() {
 			if resp.NextPage == 0 {
 				break
 			}
-
-			opts.Page = resp.NextPage
+			opt.Page = resp.NextPage
 		}
 
 		if allRunsCompleted {
