@@ -1,0 +1,6 @@
+/* ─────────────── Light mode ─────────────── */
+:root  > * {
+  --md-primary-fg-color:        #406B36;
+  --md-primary-fg-color--light: #B9CF7E;
+  --md-primary-fg-color--dark:  #2A4A25;
+}

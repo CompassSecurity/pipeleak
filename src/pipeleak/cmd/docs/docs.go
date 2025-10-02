@@ -186,13 +186,16 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 		"docs_dir":  "pipeleak",
 		"site_dir":  "site",
 		"repo_url":  "https://github.com/CompassSecurity/pipeleak",
+		"extra_css": []string{"assets/custom.css"},
 		"theme": map[string]interface{}{
 			"name":    "material",
 			"logo":    "assets/logo.png",
 			"favicon": "assets/favicon.ico",
-			"palette": map[string]string{
-				"scheme":  "slate",
-				"primary": "green",
+			"palette": []map[string]interface{}{
+				{
+					"primary": "custom",
+					"scheme":  "slate",
+				},
 			},
 			"features": []string{"content.code.copy"},
 		},
