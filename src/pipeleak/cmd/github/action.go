@@ -85,9 +85,9 @@ func scanWorkflowRuns() {
 	}
 
 	currentRunID, _ := strconv.ParseInt(runIDStr, 10, 64)
-	allRunsCompleted := true
 
 	for {
+		allRunsCompleted := true
 
 		opts := &github.ListWorkflowRunsOptions{
 			ListOptions: github.ListOptions{PerPage: 100},
