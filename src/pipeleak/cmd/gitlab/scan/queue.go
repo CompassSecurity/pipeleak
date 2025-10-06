@@ -223,8 +223,11 @@ func getJobTrace(git *gitlab.Client, projectId int, jobId int) []byte {
 
 func getJobArtifacts(git *gitlab.Client, projectId int, jobId int, jobWebUrl string, options *ScanOptions) []byte {
 	artifactsReader, resp, err := git.Jobs.GetJobArtifacts(projectId, jobId)
-	if resp.StatusCode == 404 {
-		return nil
+
+	if resp != nil {
+		if resp.StatusCode == 404 {
+			return nil
+		}
 	}
 
 	if err != nil {
