@@ -168,12 +168,6 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 		return err
 	}
 
-	// Create social assets directory
-	socialDir := filepath.Join(assetsDir, "social")
-	if err := os.MkdirAll(socialDir, os.ModePerm); err != nil {
-		return err
-	}
-
 	assetFiles := []string{"logo.png", "favicon.ico", "social.png"}
 	for _, fname := range assetFiles {
 		src := filepath.Join("..", "..", "docs", fname)
@@ -244,12 +238,6 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 					"icon": "fontawesome/brands/github",
 					"link": "https://github.com/CompassSecurity/pipeleak",
 					"name": "Pipeleak on GitHub",
-				},
-			},
-			"meta": []map[string]interface{}{
-				{
-					"property": "og:description",
-					"content":  "Phackers",
 				},
 			},
 			"generator": false,
