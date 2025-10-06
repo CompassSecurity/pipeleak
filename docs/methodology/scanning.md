@@ -1,3 +1,14 @@
+---
+title: Credentials Scanning in GitLab Pipelines
+description: Learn how to scan GitLab CI/CD pipelines for exposed secrets and credentials using Pipeleak.
+keywords:
+  - GitLab pipeline scanning
+  - credential scanning
+  - secrets detection
+  - pipeline security
+  - CI/CD security
+---
+
 # Credentials Scanning in GitLab Pipelines
 
 > This example focuses on GitLab, but Pipeleak also supports other platforms. Refer to the documentation for details on additional integrations.

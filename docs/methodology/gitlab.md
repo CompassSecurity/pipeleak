@@ -1,6 +1,17 @@
+---
+title: A Starter Guide To GitLab Pentesting
+description: An introduction to performing a basic penetration test against a GitLab instance.
+keywords:
+  - GitLab basic pentest
+  - pipeline secrets scanning
+  - GitLab credential leaks
+  - CI/CD secrets discovery
+  - pipeline secrets testing
+---
+
 # A Starter Guide To GitLab Pentesting
 
-Many companies use (self-hosted) GitLab instances to manage their source codes. In times when a lot of infrastructure is deployed as code (IaC) these configurations must be source-controlled as well, putting a lot of responsibility on the source code platform used.
+Many companies use (self-hosted) GitLab instances to manage their source codes, often exposing sensitive data through CI/CD pipelines. In times when a lot of infrastructure is deployed as code (IaC) these configurations must be source-controlled as well, putting a lot of responsibility on the source code platform used.
 
 # Anonymous Access 
 If you do not have credentials for the GitLab instance you might want to look at the public repositories and test if you can sign up for an account.

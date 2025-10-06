@@ -1,4 +1,15 @@
-### ELK Integration
+---
+title: Analyzing Pipeline Secrets with ELK Stack
+description: Learn how to analyze pipeline secrets scanning results using ELK stack for better visualization and analysis.
+keywords:
+  - ELK integration
+  - pipeline secrets analysis
+  - secrets visualization
+  - Kibana dashboard
+  - log analysis
+---
+
+# ELK Integration for Pipeline Secrets Analysis
 
 To easily analyze the results you can [redirect the pipeleak](https://github.com/deviantony/docker-elk?tab=readme-ov-file#injecting-data) output using `nc` into Logstash.
 

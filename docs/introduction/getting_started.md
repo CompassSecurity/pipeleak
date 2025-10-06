@@ -1,8 +1,20 @@
+---
+title: Getting Started with Pipelak
+description: Learn how to install and use Pipeleak to scan your CI/CD pipelines for secrets.
+keywords:
+  - pipeline secrets scanner
+  - CI/CD secrets detection
+  - secret detection
+  - credential scanning
+  - pipeline secrets guide
+  - secrets scanning tutorial
+---
+
 <p align="center">
-  <img style="max-height: 10rem" src="https://github.com/CompassSecurity/pipeleak/blob/main/docs/logo.png?raw=true">
+  <img style="max-height: 10rem" src="https://github.com/CompassSecurity/pipeleak/blob/main/docs/logo.png?raw=true" alt="Pipeleak Logo - CI/CD Pipeline Secrets Scanner">
 </p>
 
-# The Why
+## Why Pipeleak? {#why}
 
 Scanning for credentials in CI/CD pipelines is interesting because secrets often end up in pipeline logs or build artifacts that traditional Git scanners won’t check. 
 This means you can catch leaked secrets that are injected or generated at runtime, not just those committed to Git.
