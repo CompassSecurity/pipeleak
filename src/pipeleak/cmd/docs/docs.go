@@ -10,11 +10,11 @@ import (
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+	"gopkg.in/yaml.v3"
 
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
-	"gopkg.in/yaml.v3"
 )
 
 func getFileName(cmd *cobra.Command, level int) string {
@@ -168,7 +168,13 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 		return err
 	}
 
-	assetFiles := []string{"logo.png", "favicon.ico"}
+	// Create social assets directory
+	socialDir := filepath.Join(assetsDir, "social")
+	if err := os.MkdirAll(socialDir, os.ModePerm); err != nil {
+		return err
+	}
+
+	assetFiles := []string{"logo.png", "favicon.ico", "social.png"}
 	for _, fname := range assetFiles {
 		src := filepath.Join("..", "..", "docs", fname)
 		dst := filepath.Join(assetsDir, fname)
@@ -182,25 +188,81 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 	}
 
 	mkdocs := map[string]interface{}{
-		"site_name": "Pipeleak",
-		"docs_dir":  "pipeleak",
-		"site_dir":  "site",
-		"repo_url":  "https://github.com/CompassSecurity/pipeleak",
-		"extra_css": []string{"assets/custom.css"},
+		"site_name":        "Pipeleak - Pipeline Secrets Scanner",
+		"site_description": "Pipeleak scans CI/CD logs and artifacts to detect leaked secrets and pivot from them",
+		"site_author":      "FRJ @ Compass Security",
+		"site_url":         "https://compasssecurity.github.io/pipeleak/",
+		"docs_dir":         "pipeleak",
+		"site_dir":         "site",
+		"repo_url":         "https://github.com/CompassSecurity/pipeleak",
+		"repo_name":        "CompassSecurity/pipeleak",
+		"extra_css":        []string{"assets/custom.css"},
 		"theme": map[string]interface{}{
-			"name":    "material",
-			"logo":    "assets/logo.png",
-			"favicon": "assets/favicon.ico",
+			"name":       "material",
+			"custom_dir": "pipeleak/overrides",
+			"logo":       "assets/logo.png",
+			"favicon":    "assets/favicon.ico",
 			"palette": []map[string]interface{}{
 				{
-					"primary": "custom",
+					"media":   "(prefers-color-scheme: light)",
+					"scheme":  "default",
+					"primary": "indigo",
+					"accent":  "indigo",
+					"toggle": map[string]interface{}{
+						"icon": "material/brightness-7",
+						"name": "Switch to dark mode",
+					},
+				},
+				{
+					"media":   "(prefers-color-scheme: dark)",
 					"scheme":  "slate",
+					"primary": "indigo",
+					"accent":  "indigo",
+					"toggle": map[string]interface{}{
+						"icon": "material/brightness-4",
+						"name": "Switch to light mode",
+					},
 				},
 			},
-			"features": []string{"content.code.copy"},
+			"features": []string{
+				"content.code.copy",
+				"content.tabs.link",
+				"navigation.instant",
+				"navigation.tracking",
+				"navigation.sections",
+				"navigation.expand",
+				"navigation.indexes",
+				"search.highlight",
+				"search.share",
+				"search.suggest",
+				"toc.follow",
+			},
 		},
 		"extra": map[string]interface{}{
-			"highlightjs": true,
+			"social": []map[string]interface{}{
+				{
+					"icon": "fontawesome/brands/github",
+					"link": "https://github.com/CompassSecurity/pipeleak",
+					"name": "Pipeleak on GitHub",
+				},
+			},
+			"meta": []map[string]interface{}{
+				{
+					"property": "og:description",
+					"content":  "Phackers",
+				},
+			},
+			"generator": false,
+		},
+		"plugins": []map[string]interface{}{
+			{"search": map[string]interface{}{
+				"separator": "[\\s\\-\\_]",
+			}},
+			{"minify": map[string]interface{}{
+				"minify_html": true,
+				"minify_js":   true,
+				"minify_css":  true,
+			}},
 		},
 		"markdown_extensions": []interface{}{
 			map[string]interface{}{
@@ -214,6 +276,15 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 			"pymdownx.inlinehilite",
 			"pymdownx.snippets",
 			"pymdownx.superfences",
+			"meta",
+			"attr_list",
+			"def_list",
+			"tables",
+			"footnotes",
+			"admonition",
+			"toc",
+			"pymdownx.details",
+			"pymdownx.tabbed",
 		},
 		"nav": nav,
 	}

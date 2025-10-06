@@ -1,5 +1,12 @@
-
-
+---
+title: Attacking Renovate Bots - A Practical Guide
+description: Learn how to discover and exploit common misconfigurations in Renovate bot setups, including autodiscovery exploits and privilege escalation.
+keywords:
+  - renovate bot security
+  - CI/CD security
+  - pipeline security
+  - privilege escalation
+---
 
 # Attacking Renovate Bots: A Practical Guide
 
