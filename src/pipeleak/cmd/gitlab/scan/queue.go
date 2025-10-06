@@ -223,11 +223,12 @@ func getJobTrace(git *gitlab.Client, projectId int, jobId int) []byte {
 
 func getJobArtifacts(git *gitlab.Client, projectId int, jobId int, jobWebUrl string, options *ScanOptions) []byte {
 	artifactsReader, resp, err := git.Jobs.GetJobArtifacts(projectId, jobId)
-	if resp.StatusCode == 404 {
-		return nil
-	}
 
 	if err != nil {
+		if resp.StatusCode == 404 {
+			return nil
+		}
+
 		log.Error().Err(err).Str("url", jobWebUrl).Msg("Failed downloading job artifacts zip")
 		return nil
 	}
