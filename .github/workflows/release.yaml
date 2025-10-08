@@ -33,6 +33,20 @@ jobs:
           args: release --clean --verbose -f goreleaser.yaml ${{ env.flags }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - 
+        name: Install binst (binstaller)
+        run: |
+          go install github.com/binary-install/binstaller@latest
+      - 
+        name: Embed checksums for generated release assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          binst embed-checksums --config binstaller.yml --tag "${GITHUB_REF##*/}"
+      - 
+        name: Generate installer script
+        run: |
+          binst gen --config binstaller.yml --output dist/install-pipeleak.sh
       -
         name: Upload assets
         uses: actions/upload-artifact@v4
