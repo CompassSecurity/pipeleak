@@ -36,7 +36,7 @@ jobs:
       - 
         name: Install binst (binstaller)
         run: |
-          go install github.com/binary-install/binstaller@latest
+          go install github.com/binary-install/binstaller/cmd/binst@latest
       - 
         name: Embed checksums for generated release assets
         env:
