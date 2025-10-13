@@ -20,8 +20,6 @@ func NewGiteaRootCmd() *cobra.Command {
 
 	giteaCmd.AddCommand(NewEnumCmd())
 
-	giteaCmd.PersistentFlags().StringVarP(&giteaUrl, "gitea", "g", "https://gitea.com", "Gitea instance URL")
-	giteaCmd.PersistentFlags().StringVarP(&giteaApiToken, "token", "t", "", "Gitea API Token")
 	giteaCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 
 	return giteaCmd
