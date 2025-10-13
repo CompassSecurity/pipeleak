@@ -11,7 +11,7 @@ func NewEnumCmd() *cobra.Command {
 	enumCmd := &cobra.Command{
 		Use:     "enum",
 		Short:   "Enumerate access rights of a Gitea access token",
-		Long:    "Enumerate access rights of a Gitea access token by retrieving the authenticated user's information.",
+		Long:    "Enumerate access rights of a Gitea access token by retrieving the authenticated user's information, organizations with access levels, and all accessible repositories with permissions.",
 		Example: `pipeleak gitea enum --token $GITEA_TOKEN --gitea https://gitea.mycompany.com`,
 		Run:     Enum,
 	}
@@ -31,7 +31,7 @@ func Enum(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch user info
+	// Step 1: Fetch user info
 	log.Info().Msg("Enumerating User")
 	user, _, err := client.GetMyUserInfo()
 	if err != nil {
@@ -53,6 +53,96 @@ func Enum(cmd *cobra.Command, args []string) {
 		Bool("isActive", user.IsActive).
 		Bool("restricted", user.Restricted).
 		Msg("Current user")
+
+	// Step 2: Enumerate organizations and their repositories
+	log.Info().Msg("Enumerating Organizations")
+	orgs, _, err := client.ListMyOrgs(gitea.ListOrgsOptions{})
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Failed fetching organizations")
+	} else {
+		for _, org := range orgs {
+			// Get organization permissions
+			orgPerms, _, err := client.GetOrgPermissions(org.UserName, user.UserName)
+			if err != nil {
+				log.Debug().Str("org", org.UserName).Err(err).Msg("Failed to get org permissions")
+			}
+
+			// Log organization with permissions
+			logEvent := log.Warn().
+				Int64("id", org.ID).
+				Str("name", org.UserName).
+				Str("fullName", org.FullName).
+				Str("description", org.Description).
+				Str("visibility", org.Visibility)
+
+			if orgPerms != nil {
+				logEvent = logEvent.
+					Bool("isOwner", orgPerms.IsOwner).
+					Bool("isAdmin", orgPerms.IsAdmin).
+					Bool("canWrite", orgPerms.CanWrite).
+					Bool("canRead", orgPerms.CanRead).
+					Bool("canCreateRepo", orgPerms.CanCreateRepository)
+			}
+
+			logEvent.Msg("Organization")
+
+			// List organization repositories
+			orgRepos, _, err := client.ListOrgRepos(org.UserName, gitea.ListOrgReposOptions{})
+			if err != nil {
+				log.Debug().Str("org", org.UserName).Err(err).Msg("Failed to list org repositories")
+				continue
+			}
+
+			for _, repo := range orgRepos {
+				logRepo := log.Warn().
+					Int64("id", repo.ID).
+					Str("name", repo.Name).
+					Str("fullName", repo.FullName).
+					Str("owner", repo.Owner.UserName).
+					Str("description", repo.Description).
+					Bool("private", repo.Private).
+					Bool("archived", repo.Archived).
+					Str("url", repo.HTMLURL)
+
+				if repo.Permissions != nil {
+					logRepo = logRepo.
+						Bool("admin", repo.Permissions.Admin).
+						Bool("push", repo.Permissions.Push).
+						Bool("pull", repo.Permissions.Pull)
+				}
+
+				logRepo.Msg("Organization Repository")
+			}
+		}
+	}
+
+	// Step 3: Enumerate user's personal repositories
+	log.Info().Msg("Enumerating User Repositories")
+	repos, _, err := client.ListMyRepos(gitea.ListReposOptions{})
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Failed fetching user repositories")
+	} else {
+		for _, repo := range repos {
+			logRepo := log.Warn().
+				Int64("id", repo.ID).
+				Str("name", repo.Name).
+				Str("fullName", repo.FullName).
+				Str("owner", repo.Owner.UserName).
+				Str("description", repo.Description).
+				Bool("private", repo.Private).
+				Bool("archived", repo.Archived).
+				Str("url", repo.HTMLURL)
+
+			if repo.Permissions != nil {
+				logRepo = logRepo.
+					Bool("admin", repo.Permissions.Admin).
+					Bool("push", repo.Permissions.Push).
+					Bool("pull", repo.Permissions.Pull)
+			}
+
+			logRepo.Msg("User Repository")
+		}
+	}
 
 	log.Info().Msg("Done")
 }
