@@ -1,0 +1,27 @@
+name: Go Tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+      
+      - name: Install dependencies
+        run: go mod tidy
+        working-directory: src/pipeleak
+      
+      - name: Run tests
+        run: go test ./... -v -coverprofile=coverage.out
+        working-directory: src/pipeleak
+      
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: src/pipeleak/coverage.out
