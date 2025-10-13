@@ -24,14 +24,12 @@ func NewEnumCmd() *cobra.Command {
 func Enum(cmd *cobra.Command, args []string) {
 	helper.SetLogLevel(verbose)
 
-	// Initialize Gitea client
 	client, err := gitea.NewClient(giteaUrl, gitea.SetToken(giteaApiToken))
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed creating gitea client")
 		return
 	}
 
-	// Step 1: Fetch user info
 	log.Info().Msg("Enumerating User")
 	user, _, err := client.GetMyUserInfo()
 	if err != nil {
@@ -39,10 +37,8 @@ func Enum(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	// Log user data structure for debug visibility
 	log.Debug().Interface("user", user).Msg("Full user data structure")
 
-	// Also log with structured logging
 	log.Warn().
 		Int64("id", user.ID).
 		Str("username", user.UserName).
@@ -54,20 +50,17 @@ func Enum(cmd *cobra.Command, args []string) {
 		Bool("restricted", user.Restricted).
 		Msg("Current user")
 
-	// Step 2: Enumerate organizations and their repositories
 	log.Info().Msg("Enumerating Organizations")
 	orgs, _, err := client.ListMyOrgs(gitea.ListOrgsOptions{})
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("Failed fetching organizations")
 	} else {
 		for _, org := range orgs {
-			// Get organization permissions
 			orgPerms, _, err := client.GetOrgPermissions(org.UserName, user.UserName)
 			if err != nil {
 				log.Debug().Str("org", org.UserName).Err(err).Msg("Failed to get org permissions")
 			}
 
-			// Log organization with permissions
 			logEvent := log.Warn().
 				Int64("id", org.ID).
 				Str("name", org.UserName).
@@ -86,7 +79,6 @@ func Enum(cmd *cobra.Command, args []string) {
 
 			logEvent.Msg("Organization")
 
-			// List organization repositories
 			orgRepos, _, err := client.ListOrgRepos(org.UserName, gitea.ListOrgReposOptions{})
 			if err != nil {
 				log.Debug().Str("org", org.UserName).Err(err).Msg("Failed to list org repositories")
@@ -116,7 +108,6 @@ func Enum(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	// Step 3: Enumerate user's personal repositories
 	log.Info().Msg("Enumerating User Repositories")
 	repos, _, err := client.ListMyRepos(gitea.ListReposOptions{})
 	if err != nil {
@@ -143,6 +134,4 @@ func Enum(cmd *cobra.Command, args []string) {
 			logRepo.Msg("User Repository")
 		}
 	}
-
-	log.Info().Msg("Done")
 }
