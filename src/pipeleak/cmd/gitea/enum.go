@@ -51,10 +51,20 @@ func Enum(cmd *cobra.Command, args []string) {
 		Msg("Current user")
 
 	log.Info().Msg("Enumerating Organizations")
-	orgs, _, err := client.ListMyOrgs(gitea.ListOrgsOptions{})
-	if err != nil {
-		log.Error().Stack().Err(err).Msg("Failed fetching organizations")
-	} else {
+	// Paginate through all organizations
+	orgPage := 1
+	for {
+		orgs, resp, err := client.ListMyOrgs(gitea.ListOrgsOptions{
+			ListOptions: gitea.ListOptions{
+				Page:     orgPage,
+				PageSize: 50,
+			},
+		})
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("Failed fetching organizations")
+			break
+		}
+
 		for _, org := range orgs {
 			orgPerms, _, err := client.GetOrgPermissions(org.UserName, user.UserName)
 			if err != nil {
@@ -79,40 +89,71 @@ func Enum(cmd *cobra.Command, args []string) {
 
 			logEvent.Msg("Organization")
 
-			orgRepos, _, err := client.ListOrgRepos(org.UserName, gitea.ListOrgReposOptions{})
-			if err != nil {
-				log.Debug().Str("org", org.UserName).Err(err).Msg("Failed to list org repositories")
-				continue
-			}
-
-			for _, repo := range orgRepos {
-				logRepo := log.Warn().
-					Int64("id", repo.ID).
-					Str("name", repo.Name).
-					Str("fullName", repo.FullName).
-					Str("owner", repo.Owner.UserName).
-					Str("description", repo.Description).
-					Bool("private", repo.Private).
-					Bool("archived", repo.Archived).
-					Str("url", repo.HTMLURL)
-
-				if repo.Permissions != nil {
-					logRepo = logRepo.
-						Bool("admin", repo.Permissions.Admin).
-						Bool("push", repo.Permissions.Push).
-						Bool("pull", repo.Permissions.Pull)
+			// Paginate through all repositories in this organization
+			repoPage := 1
+			for {
+				orgRepos, repoResp, err := client.ListOrgRepos(org.UserName, gitea.ListOrgReposOptions{
+					ListOptions: gitea.ListOptions{
+						Page:     repoPage,
+						PageSize: 50,
+					},
+				})
+				if err != nil {
+					log.Debug().Str("org", org.UserName).Err(err).Msg("Failed to list org repositories")
+					break
 				}
 
-				logRepo.Msg("Organization Repository")
+				for _, repo := range orgRepos {
+					logRepo := log.Warn().
+						Int64("id", repo.ID).
+						Str("name", repo.Name).
+						Str("fullName", repo.FullName).
+						Str("owner", repo.Owner.UserName).
+						Str("description", repo.Description).
+						Bool("private", repo.Private).
+						Bool("archived", repo.Archived).
+						Str("url", repo.HTMLURL)
+
+					if repo.Permissions != nil {
+						logRepo = logRepo.
+							Bool("admin", repo.Permissions.Admin).
+							Bool("push", repo.Permissions.Push).
+							Bool("pull", repo.Permissions.Pull)
+					}
+
+					logRepo.Msg("Organization Repository")
+				}
+
+				// Check if there are more pages
+				if repoResp == nil || repoResp.NextPage == 0 {
+					break
+				}
+				repoPage = repoResp.NextPage
 			}
 		}
+
+		// Check if there are more pages of organizations
+		if resp == nil || resp.NextPage == 0 {
+			break
+		}
+		orgPage = resp.NextPage
 	}
 
 	log.Info().Msg("Enumerating User Repositories")
-	repos, _, err := client.ListMyRepos(gitea.ListReposOptions{})
-	if err != nil {
-		log.Error().Stack().Err(err).Msg("Failed fetching user repositories")
-	} else {
+	// Paginate through all user repositories
+	repoPage := 1
+	for {
+		repos, resp, err := client.ListMyRepos(gitea.ListReposOptions{
+			ListOptions: gitea.ListOptions{
+				Page:     repoPage,
+				PageSize: 50,
+			},
+		})
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("Failed fetching user repositories")
+			break
+		}
+
 		for _, repo := range repos {
 			logRepo := log.Warn().
 				Int64("id", repo.ID).
@@ -133,5 +174,13 @@ func Enum(cmd *cobra.Command, args []string) {
 
 			logRepo.Msg("User Repository")
 		}
+
+		// Check if there are more pages
+		if resp == nil || resp.NextPage == 0 {
+			break
+		}
+		repoPage = resp.NextPage
 	}
+
+	log.Info().Msg("Done")
 }
