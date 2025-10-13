@@ -10,6 +10,7 @@ import (
 	"github.com/CompassSecurity/pipeleak/cmd/bitbucket"
 	"github.com/CompassSecurity/pipeleak/cmd/devops"
 	"github.com/CompassSecurity/pipeleak/cmd/docs"
+	"github.com/CompassSecurity/pipeleak/cmd/gitea"
 	"github.com/CompassSecurity/pipeleak/cmd/github"
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab"
 	"github.com/rs/zerolog"
@@ -42,6 +43,7 @@ func init() {
 	rootCmd.AddCommand(gitlab.NewGitLabRootUnauthenticatedCmd())
 	rootCmd.AddCommand(bitbucket.NewBitBucketRootCmd())
 	rootCmd.AddCommand(devops.NewAzureDevOpsRootCmd())
+	rootCmd.AddCommand(gitea.NewGiteaRootCmd())
 	rootCmd.AddCommand(docs.NewDocsCmd(rootCmd))
 	rootCmd.PersistentFlags().BoolVarP(&JsonLogoutput, "json", "", false, "Use JSON as log output format")
 	rootCmd.PersistentFlags().BoolVarP(&LogColor, "coloredLog", "", true, "Output the human-readable log in color")
@@ -52,6 +54,7 @@ func init() {
 	rootCmd.AddGroup(&cobra.Group{ID: "Helper", Title: "Various Helper Commands"})
 	rootCmd.AddGroup(&cobra.Group{ID: "BitBucket", Title: "BitBucket Commands"})
 	rootCmd.AddGroup(&cobra.Group{ID: "AzureDevOps", Title: "Azure DevOps Commands"})
+	rootCmd.AddGroup(&cobra.Group{ID: "Gitea", Title: "Gitea Commands"})
 }
 
 type CustomWriter struct {
