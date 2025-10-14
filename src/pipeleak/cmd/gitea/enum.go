@@ -10,9 +10,9 @@ import (
 func NewEnumCmd() *cobra.Command {
 	enumCmd := &cobra.Command{
 		Use:     "enum",
-		Short:   "Enumerate access rights of a Gitea access token",
+		Short:   "Enumerate access of a Gitea token",
 		Long:    "Enumerate access rights of a Gitea access token by retrieving the authenticated user's information, organizations with access levels, and all accessible repositories with permissions.",
-		Example: `pipeleak gitea enum --token $GITEA_TOKEN --gitea https://gitea.mycompany.com`,
+		Example: `pipeleak gitea enum --token [tokenval] --gitea https://gitea.mycompany.com`,
 		Run:     Enum,
 	}
 	enumCmd.Flags().StringVarP(&giteaUrl, "gitea", "g", "https://gitea.com", "Gitea instance URL")
@@ -51,7 +51,7 @@ func Enum(cmd *cobra.Command, args []string) {
 		Msg("Current user")
 
 	log.Info().Msg("Enumerating Organizations")
-	// Paginate through all organizations
+
 	orgPage := 1
 	for {
 		orgs, resp, err := client.ListMyOrgs(gitea.ListOrgsOptions{
@@ -60,6 +60,7 @@ func Enum(cmd *cobra.Command, args []string) {
 				PageSize: 50,
 			},
 		})
+
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("Failed fetching organizations")
 			break
@@ -67,6 +68,7 @@ func Enum(cmd *cobra.Command, args []string) {
 
 		for _, org := range orgs {
 			orgPerms, _, err := client.GetOrgPermissions(org.UserName, user.UserName)
+
 			if err != nil {
 				log.Debug().Str("org", org.UserName).Err(err).Msg("Failed to get org permissions")
 			}
@@ -75,6 +77,7 @@ func Enum(cmd *cobra.Command, args []string) {
 				Int64("id", org.ID).
 				Str("name", org.UserName).
 				Str("fullName", org.FullName).
+				Str("website", org.Website).
 				Str("description", org.Description).
 				Str("visibility", org.Visibility)
 
@@ -89,7 +92,6 @@ func Enum(cmd *cobra.Command, args []string) {
 
 			logEvent.Msg("Organization")
 
-			// Paginate through all repositories in this organization
 			repoPage := 1
 			for {
 				orgRepos, repoResp, err := client.ListOrgRepos(org.UserName, gitea.ListOrgReposOptions{
@@ -98,6 +100,7 @@ func Enum(cmd *cobra.Command, args []string) {
 						PageSize: 50,
 					},
 				})
+
 				if err != nil {
 					log.Debug().Str("org", org.UserName).Err(err).Msg("Failed to list org repositories")
 					break
@@ -124,23 +127,23 @@ func Enum(cmd *cobra.Command, args []string) {
 					logRepo.Msg("Organization Repository")
 				}
 
-				// Check if there are more pages
 				if repoResp == nil || repoResp.NextPage == 0 {
 					break
 				}
+
 				repoPage = repoResp.NextPage
 			}
 		}
 
-		// Check if there are more pages of organizations
 		if resp == nil || resp.NextPage == 0 {
 			break
 		}
+
 		orgPage = resp.NextPage
 	}
 
 	log.Info().Msg("Enumerating User Repositories")
-	// Paginate through all user repositories
+
 	repoPage := 1
 	for {
 		repos, resp, err := client.ListMyRepos(gitea.ListReposOptions{
@@ -175,7 +178,6 @@ func Enum(cmd *cobra.Command, args []string) {
 			logRepo.Msg("User Repository")
 		}
 
-		// Check if there are more pages
 		if resp == nil || resp.NextPage == 0 {
 			break
 		}
