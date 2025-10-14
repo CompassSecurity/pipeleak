@@ -28,6 +28,8 @@ type GiteaScanOptions struct {
 	ConfidenceFilter       []string
 	MaxScanGoRoutines      int
 	TruffleHogVerification bool
+	Owned                  bool
+	Organization           string
 	Context                context.Context
 	Client                 *gitea.Client
 	HttpClient             *http.Client
@@ -98,6 +100,12 @@ pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com 
 
 # Scan without downloading artifacts
 pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com
+
+# Scan only repositories owned by the user
+pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com --owned
+
+# Scan all repositories of a specific organization
+pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com --organization my-org
 		`,
 		Run: Scan,
 	}
@@ -111,6 +119,8 @@ pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com
 	scanCmd.Flags().StringVarP(&scanOptions.GiteaURL, "gitea", "g", "https://gitea.com", "Base Gitea URL (e.g. https://gitea.example.com)")
 
 	scanCmd.Flags().BoolVarP(&scanOptions.Artifacts, "artifacts", "a", false, "Download and scan workflow artifacts")
+	scanCmd.Flags().BoolVarP(&scanOptions.Owned, "owned", "o", false, "Scan only repositories owned by the user")
+	scanCmd.Flags().StringVarP(&scanOptions.Organization, "organization", "", "", "Scan all repositories of a specific organization")
 	scanCmd.Flags().StringSliceVarP(&scanOptions.ConfidenceFilter, "confidence", "", []string{}, "Filter for confidence level, separate by comma if multiple. See documentation for more info.")
 	scanCmd.PersistentFlags().IntVarP(&scanOptions.MaxScanGoRoutines, "threads", "", 4, "Nr of threads used to scan")
 	scanCmd.PersistentFlags().BoolVarP(&scanOptions.TruffleHogVerification, "truffleHogVerification", "", true, "Enable TruffleHog credential verification to actively test found credentials and only report verified ones (enabled by default, disable with --truffleHogVerification=false)")
@@ -150,6 +160,21 @@ func scanStatus() *zerolog.Event {
 }
 
 func scanRepositories(client *gitea.Client) {
+	if scanOptions.Organization != "" {
+		log.Info().Str("organization", scanOptions.Organization).Msg("Scanning organization repositories")
+		scanOrganizationRepositories(client, scanOptions.Organization)
+	} else if scanOptions.Owned {
+		log.Info().Msg("Scanning user owned repositories")
+		scanOwnedRepositories(client)
+	} else {
+		log.Info().Msg("Scanning all accessible repositories")
+		scanAllRepositories(client)
+	}
+
+	log.Info().Msg("Completed scanning all accessible repositories")
+}
+
+func scanAllRepositories(client *gitea.Client) {
 	opt := gitea.ListReposOptions{
 		ListOptions: gitea.ListOptions{
 			Page:     1,
@@ -169,6 +194,84 @@ func scanRepositories(client *gitea.Client) {
 		}
 
 		log.Info().Int("count", len(repos)).Int("page", opt.Page).Msg("Processing repositories page")
+
+		for _, repo := range repos {
+			log.Debug().Str("repo", repo.FullName).Str("url", repo.HTMLURL).Msg("Scanning repository")
+			scanRepository(client, repo)
+		}
+
+		if resp == nil || resp.NextPage == 0 {
+			break
+		}
+
+		opt.Page = resp.NextPage
+	}
+}
+
+func scanOwnedRepositories(client *gitea.Client) {
+	// Get current user info
+	user, _, err := client.GetMyUserInfo()
+	if err != nil {
+		log.Error().Err(err).Msg("failed to get user info")
+		return
+	}
+
+	opt := gitea.ListReposOptions{
+		ListOptions: gitea.ListOptions{
+			Page:     1,
+			PageSize: 50,
+		},
+	}
+
+	for {
+		repos, resp, err := client.ListMyRepos(opt)
+		if err != nil {
+			log.Error().Err(err).Int("page", opt.Page).Msg("failed to list repos")
+			break
+		}
+
+		if len(repos) == 0 {
+			break
+		}
+
+		log.Info().Int("count", len(repos)).Int("page", opt.Page).Msg("Processing repositories page")
+
+		for _, repo := range repos {
+			// Filter to only include repos owned by the current user
+			if repo.Owner != nil && repo.Owner.ID == user.ID {
+				log.Debug().Str("repo", repo.FullName).Str("url", repo.HTMLURL).Msg("Scanning repository")
+				scanRepository(client, repo)
+			}
+		}
+
+		if resp == nil || resp.NextPage == 0 {
+			break
+		}
+
+		opt.Page = resp.NextPage
+	}
+}
+
+func scanOrganizationRepositories(client *gitea.Client, orgName string) {
+	opt := gitea.ListOrgReposOptions{
+		ListOptions: gitea.ListOptions{
+			Page:     1,
+			PageSize: 50,
+		},
+	}
+
+	for {
+		repos, resp, err := client.ListOrgRepos(orgName, opt)
+		if err != nil {
+			log.Error().Err(err).Str("organization", orgName).Int("page", opt.Page).Msg("failed to list organization repos")
+			break
+		}
+
+		if len(repos) == 0 {
+			break
+		}
+
+		log.Info().Int("count", len(repos)).Int("page", opt.Page).Str("organization", orgName).Msg("Processing organization repositories page")
 
 		for _, repo := range repos {
 			log.Debug().Str("repo", repo.FullName).Str("url", repo.HTMLURL).Msg("Scanning repository")
