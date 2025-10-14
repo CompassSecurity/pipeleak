@@ -75,6 +75,24 @@ type ActionArtifactsResponse struct {
 	Artifacts  []ActionArtifact `json:"artifacts"`
 }
 
+// ActionJob represents a job in a workflow run
+type ActionJob struct {
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	Status      string `json:"status"`
+	Conclusion  string `json:"conclusion"`
+	StartedAt   string `json:"started_at"`
+	CompletedAt string `json:"completed_at"`
+	RunID       int64  `json:"run_id"`
+	TaskID      int64  `json:"task_id"`
+}
+
+// ActionJobsResponse represents the response from listing jobs
+type ActionJobsResponse struct {
+	TotalCount int64       `json:"total_count"`
+	Jobs       []ActionJob `json:"jobs"`
+}
+
 func NewScanCmd() *cobra.Command {
 	scanCmd := &cobra.Command{
 		Use:   "scan",
@@ -280,44 +298,109 @@ func listWorkflowRuns(client *gitea.Client, repo *gitea.Repository) ([]ActionWor
 }
 
 func scanWorkflowRunLogs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun) {
-	// Gitea Actions API: GET /repos/{owner}/{repo}/actions/runs/{run_id}/logs
-	apiPath := fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%d/logs", repo.Owner.UserName, repo.Name, run.ID)
+	// First, list all jobs for this workflow run
+	jobs, err := listWorkflowJobs(client, repo, run)
+	if err != nil {
+		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Msg("failed to list workflow jobs")
+		return
+	}
+
+	if len(jobs) == 0 {
+		log.Debug().Str("repo", repo.FullName).Int64("run_id", run.ID).Msg("No jobs found for workflow run")
+		return
+	}
+
+	// Scan logs for each job
+	for _, job := range jobs {
+		scanJobLogs(client, repo, run, job)
+	}
+}
+
+func listWorkflowJobs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun) ([]ActionJob, error) {
+	// Gitea Actions API: GET /repos/{owner}/{repo}/actions/runs/{run}/jobs
+	apiPath := fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%d/jobs", repo.Owner.UserName, repo.Name, run.ID)
 	fullURL := fmt.Sprintf("%s%s", scanOptions.GiteaURL, apiPath)
 
 	req, err := http.NewRequestWithContext(scanOptions.Context, "GET", fullURL, nil)
 	if err != nil {
-		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Msg("failed to create request for logs")
+		return nil, err
+	}
+	req.Header.Set("Authorization", "token "+scanOptions.Token)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := scanOptions.HttpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 404 {
+		// Jobs not found or Actions not enabled
+		return []ActionJob{}, nil
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var jobsResp ActionJobsResponse
+	if err := json.Unmarshal(body, &jobsResp); err != nil {
+		// Try parsing as array directly
+		var jobs []ActionJob
+		if err2 := json.Unmarshal(body, &jobs); err2 != nil {
+			return nil, fmt.Errorf("failed to parse jobs: %w", err)
+		}
+		return jobs, nil
+	}
+
+	return jobsResp.Jobs, nil
+}
+
+func scanJobLogs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun, job ActionJob) {
+	// Gitea Actions API: GET /repos/{owner}/{repo}/actions/tasks/{task}/logs
+	// Note: In Gitea, task_id is used for log retrieval, not job_id
+	apiPath := fmt.Sprintf("/api/v1/repos/%s/%s/actions/tasks/%d/logs", repo.Owner.UserName, repo.Name, job.TaskID)
+	fullURL := fmt.Sprintf("%s%s", scanOptions.GiteaURL, apiPath)
+
+	req, err := http.NewRequestWithContext(scanOptions.Context, "GET", fullURL, nil)
+	if err != nil {
+		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("failed to create request for logs")
 		return
 	}
 	req.Header.Set("Authorization", "token "+scanOptions.Token)
 
 	resp, err := scanOptions.HttpClient.Do(req)
 	if err != nil {
-		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Msg("failed to download logs")
+		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("failed to download logs")
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 404 {
-		log.Debug().Str("repo", repo.FullName).Int64("run_id", run.ID).Msg("Logs not found or expired")
+		log.Debug().Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("Logs not found or expired")
 		return
 	}
 
 	if resp.StatusCode != 200 {
-		log.Error().Int("status", resp.StatusCode).Str("repo", repo.FullName).Int64("run_id", run.ID).Msg("failed to download logs")
+		log.Error().Int("status", resp.StatusCode).Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("failed to download logs")
 		return
 	}
 
 	logBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Msg("failed to read log bytes")
+		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("failed to read log bytes")
 		return
 	}
 
 	// Scan the logs for secrets
 	findings, err := scanner.DetectHits(logBytes, scanOptions.MaxScanGoRoutines, scanOptions.TruffleHogVerification)
 	if err != nil {
-		log.Debug().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Msg("Failed detecting secrets in logs")
+		log.Debug().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("Failed detecting secrets in logs")
 		return
 	}
 
@@ -328,6 +411,8 @@ func scanWorkflowRunLogs(client *gitea.Client, repo *gitea.Repository, run Actio
 			Str("value", finding.Text).
 			Str("repo", repo.FullName).
 			Int64("run_id", run.ID).
+			Int64("job_id", job.ID).
+			Str("job_name", job.Name).
 			Str("url", run.HTMLURL).
 			Msg("HIT")
 	}
