@@ -3,4 +3,5 @@ rules.yml
 dist
 renovate-enum-out
 cli-docs
-sitesrc/pipeleak/pipeleak
+site
+src/pipeleak/pipeleak
