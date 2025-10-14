@@ -362,9 +362,8 @@ func listWorkflowJobs(client *gitea.Client, repo *gitea.Repository, run ActionWo
 }
 
 func scanJobLogs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun, job ActionJob) {
-	// Gitea Actions API: GET /repos/{owner}/{repo}/actions/tasks/{task}/logs
-	// Note: In Gitea, task_id is used for log retrieval, not job_id
-	apiPath := fmt.Sprintf("/api/v1/repos/%s/%s/actions/tasks/%d/logs", repo.Owner.UserName, repo.Name, job.TaskID)
+	// Gitea Actions API: GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs
+	apiPath := fmt.Sprintf("/api/v1/repos/%s/%s/actions/jobs/%d/logs", repo.Owner.UserName, repo.Name, job.ID)
 	fullURL := fmt.Sprintf("%s%s", scanOptions.GiteaURL, apiPath)
 
 	req, err := http.NewRequestWithContext(scanOptions.Context, "GET", fullURL, nil)
@@ -491,8 +490,9 @@ func listArtifacts(client *gitea.Client, repo *gitea.Repository, run ActionWorkf
 
 func downloadAndScanArtifact(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun, artifact ActionArtifact) {
 	// Download artifact as zip
-	// Gitea Actions API: GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}
-	apiPath := fmt.Sprintf("/api/v1/repos/%s/%s/actions/artifacts/%d", repo.Owner.UserName, repo.Name, artifact.ID)
+	// Gitea Actions API: GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip
+	// This endpoint returns a 302 redirect to the actual blob URL
+	apiPath := fmt.Sprintf("/api/v1/repos/%s/%s/actions/artifacts/%d/zip", repo.Owner.UserName, repo.Name, artifact.ID)
 	fullURL := fmt.Sprintf("%s%s", scanOptions.GiteaURL, apiPath)
 
 	req, err := http.NewRequestWithContext(scanOptions.Context, "GET", fullURL, nil)
@@ -514,7 +514,8 @@ func downloadAndScanArtifact(client *gitea.Client, repo *gitea.Repository, run A
 		return
 	}
 
-	if resp.StatusCode != 200 {
+	// Handle both 200 (direct download) and 302 (redirect) responses
+	if resp.StatusCode != 200 && resp.StatusCode != 302 {
 		log.Error().Int("status", resp.StatusCode).Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Msg("failed to download artifact")
 		return
 	}
