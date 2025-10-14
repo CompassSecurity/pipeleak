@@ -72,14 +72,14 @@ func downloadFile(url string, filepath string) error {
 	if err != nil {
 		return err
 	}
-	defer out.Close()
+	defer func() { _ = out.Close() }()
 
 	client := helper.GetPipeleakHTTPClient()
 	resp, err := client.Get(url)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
@@ -156,7 +156,7 @@ func DetectHits(text []byte, maxThreads int, enableTruffleHogVerification bool) 
 	select {
 	// Hit detection timeout
 	case <-time.After(30 * time.Second):
-		return nil, errors.New("Hit detection timed out")
+		return nil, errors.New("hit detection timed out")
 	case result := <-result:
 		return result.Findings, result.Error
 	}
@@ -346,14 +346,14 @@ func HandleArchiveArtifactWithDepth(archivefileName string, content []byte, jobW
 		log.Error().Stack().Err(err).Msg("Failed writing archive to disk")
 		return
 	}
-	defer os.Remove(tmpArchiveFile.Name())
+	defer func() { _ = os.Remove(tmpArchiveFile.Name()) }()
 
 	tmpArchiveFilesDirectory, err := os.MkdirTemp("", "pipeleak-artifact-archive-out-")
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("Cannot create artifact archive temp directory")
 		return
 	}
-	defer os.RemoveAll(tmpArchiveFilesDirectory)
+	defer func() { _ = os.RemoveAll(tmpArchiveFilesDirectory) }()
 
 	x := &xtractr.XFile{
 		FilePath:  tmpArchiveFile.Name(),

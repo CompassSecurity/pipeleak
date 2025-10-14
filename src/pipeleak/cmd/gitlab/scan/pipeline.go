@@ -164,7 +164,7 @@ func cleanUp() {
 		}
 		log.Trace().Str("file", f).Msg("Deleted")
 	}
-	os.Remove(queueFileName)
+	_ = os.Remove(queueFileName)
 }
 
 func fetchProjects(git *gitlab.Client, options *ScanOptions, wg *sync.WaitGroup) {

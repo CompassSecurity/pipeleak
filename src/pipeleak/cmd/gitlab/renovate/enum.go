@@ -379,7 +379,7 @@ func fetchCurrentSelfHostedOptions() []string {
 		log.Fatal().Stack().Err(err).Msg("Failed fetching self-hosted configuration documentation")
 		return []string{}
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 	if res.StatusCode != 200 {
 		log.Fatal().Int("status", res.StatusCode).Msg("Failed fetching self-hosted configuration documentation")
 		return []string{}
@@ -434,7 +434,7 @@ func extendRenovateConfig(renovateConfig string, project *gitlab.Project) string
 		return renovateConfig
 	}
 
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -469,7 +469,7 @@ func validateRenovateConfigService(serviceUrl string) error {
 
 	if resp.StatusCode != 200 {
 		log.Error().Int("status", resp.StatusCode).Str("endpoint", u.String()).Msg("Renovate config service healthcheck failed")
-		return fmt.Errorf("Renovate config service healthcheck failed: %d", resp.StatusCode)
+		return fmt.Errorf("renovate config service healthcheck failed: %d", resp.StatusCode)
 	}
 
 	return nil

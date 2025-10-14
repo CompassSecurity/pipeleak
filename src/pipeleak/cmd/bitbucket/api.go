@@ -38,7 +38,7 @@ func NewClient(username string, password string, bitBucketCookie string) BitBuck
 	bbClient := BitBucketApiClient{Client: client}
 	bbClient.Client.AddRetryHooks(
 		func(res *resty.Response, err error) {
-			if 429 == res.StatusCode() {
+			if res.StatusCode() == 429 {
 				log.Info().Int("status", res.StatusCode()).Msg("Retrying request, we are rate limited")
 			} else {
 				log.Info().Int("status", res.StatusCode()).Msg("Retrying request, not due to rate limit")

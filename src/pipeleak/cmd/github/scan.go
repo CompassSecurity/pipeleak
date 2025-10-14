@@ -225,11 +225,7 @@ func scanAllPublicRepositories(client *github.Client, latestProjectId int64) {
 	// thus we keep a temporary cache of the ids of the last 5 pages and check if we alredy scanned the repo id, or skip them.
 	tmpIdCache := make(map[int64]struct{})
 	pageCounter := 0
-	for {
-		if opt.Since < 0 {
-			break
-		}
-
+	for opt.Since >= 0 {
 		if pageCounter > 4 {
 			pageCounter = 0
 			tmpIdCache = deleteHighestXKeys(tmpIdCache, 100)
@@ -352,10 +348,11 @@ func downloadWorkflowRunLog(client *github.Client, repo *github.Repository, work
 	}
 
 	// already deleted, skip
-	if resp.StatusCode == 410 {
+	switch resp.StatusCode {
+	case 410:
 		log.Debug().Str("workflowRunName", *workflowRun.Name).Msg("Skipped expired")
 		return
-	} else if resp.StatusCode == 404 {
+	case 404:
 		return
 	}
 
@@ -420,7 +417,7 @@ func readZipFile(zf *zip.File) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	return io.ReadAll(f)
 }
 
@@ -545,7 +542,7 @@ func analyzeArtifact(client *github.Client, workflowRun *github.WorkflowRun, art
 				} else if filetype.IsArchive(content) {
 					scanner.HandleArchiveArtifact(file.Name, content, *workflowRun.HTMLURL, *workflowRun.Name, options.TruffleHogVerification)
 				}
-				fc.Close()
+				_ = fc.Close()
 			})
 		}
 

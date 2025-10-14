@@ -72,7 +72,7 @@ func setupQueue(options *ScanOptions) (diskqueue.Interface, string) {
 	}
 
 	queueFile := tmpfile.Name()
-	tmpfile.Close()
+	_ = tmpfile.Close()
 
 	q := diskqueue.New(
 		filepath.Base(queueFile),
@@ -183,7 +183,7 @@ func analyzeJobArtifact(git *gitlab.Client, item QueueItem, options *ScanOptions
 			} else if filetype.IsArchive(content) {
 				scanner.HandleArchiveArtifact(file.Name, content, item.Meta.JobWebUrl, item.Meta.JobName, options.TruffleHogVerification)
 			}
-			fc.Close()
+			_ = fc.Close()
 		})
 	}
 
@@ -297,7 +297,7 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 		log.Debug().Stack().Err(err).Msg("Failed requesting dotenv artifact")
 		return []byte{}
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	statCode := resp.StatusCode
 

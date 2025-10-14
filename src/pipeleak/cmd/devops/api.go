@@ -19,7 +19,7 @@ func NewClient(username string, password string) AzureDevOpsApiClient {
 	bbClient := AzureDevOpsApiClient{Client: *resty.New().SetBasicAuth(username, password).SetRedirectPolicy(resty.FlexibleRedirectPolicy(5))}
 	bbClient.Client.AddRetryHooks(
 		func(res *resty.Response, err error) {
-			if 429 == res.StatusCode() {
+			if res.StatusCode() == 429 {
 				log.Info().Int("status", res.StatusCode()).Msg("Retrying request, we are rate limited")
 			} else {
 				log.Info().Int("status", res.StatusCode()).Msg("Retrying request, not due to rate limit")

@@ -58,7 +58,7 @@ func Shodan(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("failed opening file")
 	}
-	defer jsonFile.Close()
+	defer func() { _ = jsonFile.Close() }()
 
 	data, _ := io.ReadAll(jsonFile)
 	ctx := context.Background()

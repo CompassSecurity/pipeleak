@@ -13,7 +13,7 @@ func FetchVulns(version string) (string, error) {
 	if err != nil {
 		return "{}", err
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if res.StatusCode == 200 {
 		resData, err := io.ReadAll(res.Body)
