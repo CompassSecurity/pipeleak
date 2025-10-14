@@ -114,16 +114,12 @@ pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com
 		log.Fatal().Msg("Unable to require token flag")
 	}
 
-	scanCmd.Flags().StringVarP(&scanOptions.GiteaURL, "gitea", "g", "", "Base Gitea URL (e.g. https://gitea.example.com)")
-	err = scanCmd.MarkFlagRequired("gitea")
-	if err != nil {
-		log.Fatal().Msg("Unable to require gitea flag")
-	}
+	scanCmd.Flags().StringVarP(&scanOptions.GiteaURL, "gitea", "g", "https://gitea.com", "Base Gitea URL (e.g. https://gitea.example.com)")
 
 	scanCmd.Flags().BoolVarP(&scanOptions.Artifacts, "artifacts", "a", false, "Download and scan workflow artifacts")
-	scanCmd.Flags().StringSliceVarP(&scanOptions.ConfidenceFilter, "confidence", "", []string{}, "Filter for confidence level, separate by comma if multiple. See readme for more info.")
+	scanCmd.Flags().StringSliceVarP(&scanOptions.ConfidenceFilter, "confidence", "", []string{}, "Filter for confidence level, separate by comma if multiple. See documentation for more info.")
 	scanCmd.PersistentFlags().IntVarP(&scanOptions.MaxScanGoRoutines, "threads", "", 4, "Nr of threads used to scan")
-	scanCmd.PersistentFlags().BoolVarP(&scanOptions.TruffleHogVerification, "truffleHogVerification", "", true, "Enable the TruffleHog credential verification, will actively test the found credentials and only report those. Disable with --truffleHogVerification=false")
+	scanCmd.PersistentFlags().BoolVarP(&scanOptions.TruffleHogVerification, "truffleHogVerification", "", true, "Enable TruffleHog credential verification to actively test found credentials and only report verified ones (enabled by default, disable with --truffleHogVerification=false)")
 	scanCmd.PersistentFlags().BoolVarP(&scanOptions.Verbose, "verbose", "v", false, "Verbose logging")
 
 	return scanCmd
@@ -233,14 +229,27 @@ func listWorkflowRuns(client *gitea.Client, repo *gitea.Repository) ([]ActionWor
 	// Note: This endpoint may not be available in all Gitea versions
 	// The SDK doesn't have this method yet, so we make a direct API call
 
-	apiPath := fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs", repo.Owner.UserName, repo.Name)
-
 	var allRuns []ActionWorkflowRun
+	page := 1
+	limit := 50
 
-	for page := 1; ; page++ {
-		pageURL := fmt.Sprintf("%s%s?page=%d&limit=50", scanOptions.GiteaURL, apiPath, page)
+	for {
+		// Construct URL using url.Parse
+		apiPath := fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs", repo.Owner.UserName, repo.Name)
+		link, err := url.Parse(apiPath)
+		if err != nil {
+			return nil, err
+		}
 		
-		req, err := http.NewRequestWithContext(scanOptions.Context, "GET", pageURL, nil)
+		// Set query parameters
+		q := link.Query()
+		q.Set("page", fmt.Sprintf("%d", page))
+		q.Set("limit", fmt.Sprintf("%d", limit))
+		link.RawQuery = q.Encode()
+		
+		fullURL := scanOptions.GiteaURL + link.String()
+		
+		req, err := http.NewRequestWithContext(scanOptions.Context, "GET", fullURL, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -277,21 +286,18 @@ func listWorkflowRuns(client *gitea.Client, repo *gitea.Repository) ([]ActionWor
 				return nil, fmt.Errorf("failed to parse workflow runs: %w", err)
 			}
 			allRuns = append(allRuns, runs...)
-			if len(runs) < 50 {
+			if len(runs) < limit {
 				break
 			}
 		} else {
 			allRuns = append(allRuns, runsResp.WorkflowRuns...)
-			if len(runsResp.WorkflowRuns) < 50 {
+			// Use total_count to determine if there are more pages
+			if len(allRuns) >= int(runsResp.TotalCount) || len(runsResp.WorkflowRuns) < limit {
 				break
 			}
 		}
 
-		// Safety check to avoid infinite loops
-		if page >= 100 {
-			log.Warn().Str("repo", repo.FullName).Msg("Reached maximum page limit for workflow runs")
-			break
-		}
+		page++
 	}
 
 	return allRuns, nil
@@ -318,53 +324,92 @@ func scanWorkflowRunLogs(client *gitea.Client, repo *gitea.Repository, run Actio
 
 func listWorkflowJobs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun) ([]ActionJob, error) {
 	// Gitea Actions API: GET /repos/{owner}/{repo}/actions/runs/{run}/jobs
-	apiPath := fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%d/jobs", repo.Owner.UserName, repo.Name, run.ID)
-	fullURL := fmt.Sprintf("%s%s", scanOptions.GiteaURL, apiPath)
+	// This endpoint is paginated, so we need to go through all pages
+	
+	var allJobs []ActionJob
+	page := 1
+	limit := 50
 
-	req, err := http.NewRequestWithContext(scanOptions.Context, "GET", fullURL, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Authorization", "token "+scanOptions.Token)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := scanOptions.HttpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == 404 {
-		// Jobs not found or Actions not enabled
-		return []ActionJob{}, nil
-	}
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var jobsResp ActionJobsResponse
-	if err := json.Unmarshal(body, &jobsResp); err != nil {
-		// Try parsing as array directly
-		var jobs []ActionJob
-		if err2 := json.Unmarshal(body, &jobs); err2 != nil {
-			return nil, fmt.Errorf("failed to parse jobs: %w", err)
+	for {
+		// Construct URL using url.Parse
+		apiPath := fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%d/jobs", repo.Owner.UserName, repo.Name, run.ID)
+		link, err := url.Parse(apiPath)
+		if err != nil {
+			return nil, err
 		}
-		return jobs, nil
+		
+		// Set query parameters
+		q := link.Query()
+		q.Set("page", fmt.Sprintf("%d", page))
+		q.Set("limit", fmt.Sprintf("%d", limit))
+		link.RawQuery = q.Encode()
+		
+		fullURL := scanOptions.GiteaURL + link.String()
+
+		req, err := http.NewRequestWithContext(scanOptions.Context, "GET", fullURL, nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Authorization", "token "+scanOptions.Token)
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := scanOptions.HttpClient.Do(req)
+		if err != nil {
+			return nil, err
+		}
+
+		if resp.StatusCode == 404 {
+			// Jobs not found or Actions not enabled
+			resp.Body.Close()
+			return allJobs, nil
+		}
+
+		if resp.StatusCode != 200 {
+			resp.Body.Close()
+			return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			return nil, err
+		}
+
+		var jobsResp ActionJobsResponse
+		if err := json.Unmarshal(body, &jobsResp); err != nil {
+			// Try parsing as array directly
+			var jobs []ActionJob
+			if err2 := json.Unmarshal(body, &jobs); err2 != nil {
+				return nil, fmt.Errorf("failed to parse jobs: %w", err)
+			}
+			allJobs = append(allJobs, jobs...)
+			if len(jobs) < limit {
+				break
+			}
+		} else {
+			allJobs = append(allJobs, jobsResp.Jobs...)
+			// Use total_count to determine if there are more pages
+			if len(allJobs) >= int(jobsResp.TotalCount) || len(jobsResp.Jobs) < limit {
+				break
+			}
+		}
+
+		page++
 	}
 
-	return jobsResp.Jobs, nil
+	return allJobs, nil
 }
 
 func scanJobLogs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun, job ActionJob) {
 	// Gitea Actions API: GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs
 	apiPath := fmt.Sprintf("/api/v1/repos/%s/%s/actions/jobs/%d/logs", repo.Owner.UserName, repo.Name, job.ID)
-	fullURL := fmt.Sprintf("%s%s", scanOptions.GiteaURL, apiPath)
+	link, err := url.Parse(apiPath)
+	if err != nil {
+		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("failed to parse URL")
+		return
+	}
+	
+	fullURL := scanOptions.GiteaURL + link.String()
 
 	req, err := http.NewRequestWithContext(scanOptions.Context, "GET", fullURL, nil)
 	if err != nil {
@@ -445,47 +490,80 @@ func scanWorkflowArtifacts(client *gitea.Client, repo *gitea.Repository, run Act
 
 func listArtifacts(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun) ([]ActionArtifact, error) {
 	// Gitea Actions API: GET /repos/{owner}/{repo}/actions/runs/{run_id}/artifacts
-	apiPath := fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%d/artifacts", repo.Owner.UserName, repo.Name, run.ID)
-	fullURL := fmt.Sprintf("%s%s", scanOptions.GiteaURL, apiPath)
+	// This endpoint is paginated, so we need to go through all pages
+	
+	var allArtifacts []ActionArtifact
+	page := 1
+	limit := 50
 
-	req, err := http.NewRequestWithContext(scanOptions.Context, "GET", fullURL, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Authorization", "token "+scanOptions.Token)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := scanOptions.HttpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == 404 {
-		// No artifacts or endpoint not available
-		return []ActionArtifact{}, nil
-	}
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var artifactsResp ActionArtifactsResponse
-	if err := json.Unmarshal(body, &artifactsResp); err != nil {
-		// Try parsing as array directly
-		var artifacts []ActionArtifact
-		if err2 := json.Unmarshal(body, &artifacts); err2 != nil {
-			return nil, fmt.Errorf("failed to parse artifacts: %w", err)
+	for {
+		// Construct URL using url.Parse
+		apiPath := fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%d/artifacts", repo.Owner.UserName, repo.Name, run.ID)
+		link, err := url.Parse(apiPath)
+		if err != nil {
+			return nil, err
 		}
-		return artifacts, nil
+		
+		// Set query parameters
+		q := link.Query()
+		q.Set("page", fmt.Sprintf("%d", page))
+		q.Set("limit", fmt.Sprintf("%d", limit))
+		link.RawQuery = q.Encode()
+		
+		fullURL := scanOptions.GiteaURL + link.String()
+
+		req, err := http.NewRequestWithContext(scanOptions.Context, "GET", fullURL, nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Authorization", "token "+scanOptions.Token)
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := scanOptions.HttpClient.Do(req)
+		if err != nil {
+			return nil, err
+		}
+
+		if resp.StatusCode == 404 {
+			// No artifacts or endpoint not available
+			resp.Body.Close()
+			return allArtifacts, nil
+		}
+
+		if resp.StatusCode != 200 {
+			resp.Body.Close()
+			return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			return nil, err
+		}
+
+		var artifactsResp ActionArtifactsResponse
+		if err := json.Unmarshal(body, &artifactsResp); err != nil {
+			// Try parsing as array directly
+			var artifacts []ActionArtifact
+			if err2 := json.Unmarshal(body, &artifacts); err2 != nil {
+				return nil, fmt.Errorf("failed to parse artifacts: %w", err)
+			}
+			allArtifacts = append(allArtifacts, artifacts...)
+			if len(artifacts) < limit {
+				break
+			}
+		} else {
+			allArtifacts = append(allArtifacts, artifactsResp.Artifacts...)
+			// Use total_count to determine if there are more pages
+			if len(allArtifacts) >= int(artifactsResp.TotalCount) || len(artifactsResp.Artifacts) < limit {
+				break
+			}
+		}
+
+		page++
 	}
 
-	return artifactsResp.Artifacts, nil
+	return allArtifacts, nil
 }
 
 func downloadAndScanArtifact(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun, artifact ActionArtifact) {
@@ -493,7 +571,13 @@ func downloadAndScanArtifact(client *gitea.Client, repo *gitea.Repository, run A
 	// Gitea Actions API: GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip
 	// This endpoint returns a 302 redirect to the actual blob URL
 	apiPath := fmt.Sprintf("/api/v1/repos/%s/%s/actions/artifacts/%d/zip", repo.Owner.UserName, repo.Name, artifact.ID)
-	fullURL := fmt.Sprintf("%s%s", scanOptions.GiteaURL, apiPath)
+	link, err := url.Parse(apiPath)
+	if err != nil {
+		log.Error().Err(err).Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Msg("failed to parse URL")
+		return
+	}
+	
+	fullURL := scanOptions.GiteaURL + link.String()
 
 	req, err := http.NewRequestWithContext(scanOptions.Context, "GET", fullURL, nil)
 	if err != nil {
