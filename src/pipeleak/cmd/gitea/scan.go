@@ -35,30 +35,27 @@ type GiteaScanOptions struct {
 
 var scanOptions = GiteaScanOptions{}
 
-// ActionWorkflowRun represents a Gitea Actions workflow run
 type ActionWorkflowRun struct {
-	ID          int64  `json:"id"`
-	Name        string `json:"name"`
-	Title       string `json:"title"`
-	Status      string `json:"status"`
-	Event       string `json:"event"`
-	CreatedAt   string `json:"created_at"`
-	UpdatedAt   string `json:"updated_at"`
-	RunNumber   int64  `json:"run_number"`
-	WorkflowID  string `json:"workflow_id"`
-	HeadBranch  string `json:"head_branch"`
-	HeadSha     string `json:"head_sha"`
-	URL         string `json:"url"`
-	HTMLURL     string `json:"html_url"`
+	ID         int64  `json:"id"`
+	Name       string `json:"name"`
+	Title      string `json:"title"`
+	Status     string `json:"status"`
+	Event      string `json:"event"`
+	CreatedAt  string `json:"created_at"`
+	UpdatedAt  string `json:"updated_at"`
+	RunNumber  int64  `json:"run_number"`
+	WorkflowID string `json:"workflow_id"`
+	HeadBranch string `json:"head_branch"`
+	HeadSha    string `json:"head_sha"`
+	URL        string `json:"url"`
+	HTMLURL    string `json:"html_url"`
 }
 
-// ActionWorkflowRunsResponse represents the response from listing workflow runs
 type ActionWorkflowRunsResponse struct {
 	TotalCount   int64               `json:"total_count"`
 	WorkflowRuns []ActionWorkflowRun `json:"workflow_runs"`
 }
 
-// ActionArtifact represents a workflow run artifact
 type ActionArtifact struct {
 	ID                 int64  `json:"id"`
 	Name               string `json:"name"`
@@ -69,13 +66,11 @@ type ActionArtifact struct {
 	ArchiveDownloadURL string `json:"archive_download_url"`
 }
 
-// ActionArtifactsResponse represents the response from listing artifacts
 type ActionArtifactsResponse struct {
 	TotalCount int64            `json:"total_count"`
 	Artifacts  []ActionArtifact `json:"artifacts"`
 }
 
-// ActionJob represents a job in a workflow run
 type ActionJob struct {
 	ID          int64  `json:"id"`
 	Name        string `json:"name"`
@@ -87,7 +82,6 @@ type ActionJob struct {
 	TaskID      int64  `json:"task_id"`
 }
 
-// ActionJobsResponse represents the response from listing jobs
 type ActionJobsResponse struct {
 	TotalCount int64       `json:"total_count"`
 	Jobs       []ActionJob `json:"jobs"`
@@ -129,7 +123,6 @@ func Scan(cmd *cobra.Command, args []string) {
 	helper.SetLogLevel(scanOptions.Verbose)
 	go helper.ShortcutListeners(scanStatus)
 
-	// Validate URL
 	_, err := url.ParseRequestURI(scanOptions.GiteaURL)
 	if err != nil {
 		log.Fatal().Err(err).Msg("The provided Gitea URL is not a valid URL")
@@ -140,6 +133,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed creating Gitea client")
 	}
+
 	scanOptions.HttpClient = helper.GetPipeleakHTTPClient()
 
 	scanner.InitRules(scanOptions.ConfidenceFilter)
@@ -147,13 +141,12 @@ func Scan(cmd *cobra.Command, args []string) {
 		log.Info().Msg("TruffleHog verification is disabled")
 	}
 
-	log.Info().Msg("Starting Gitea Actions scan")
 	scanRepositories(scanOptions.Client)
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
 }
 
 func scanStatus() *zerolog.Event {
-	return log.Info().Str("status", "scanning...")
+	return log.Info().Str("status", "scanning... ✨✨ nothing more yet ✨✨")
 }
 
 func scanRepositories(client *gitea.Client) {
@@ -185,14 +178,12 @@ func scanRepositories(client *gitea.Client) {
 		if resp == nil || resp.NextPage == 0 {
 			break
 		}
+
 		opt.Page = resp.NextPage
 	}
-
-	log.Info().Msg("Completed scanning all accessible repositories")
 }
 
 func scanRepository(client *gitea.Client, repo *gitea.Repository) {
-	// List workflow runs for this repository
 	workflowRuns, err := listWorkflowRuns(client, repo)
 	if err != nil {
 		log.Error().Err(err).Str("repo", repo.FullName).Msg("failed to list workflow runs")
@@ -207,17 +198,15 @@ func scanRepository(client *gitea.Client, repo *gitea.Repository) {
 	log.Info().Str("repo", repo.FullName).Int("runs", len(workflowRuns)).Msg("Found workflow runs")
 
 	for _, run := range workflowRuns {
-		log.Info().
+		log.Debug().
 			Str("repo", repo.FullName).
 			Int64("run_id", run.ID).
 			Str("status", run.Status).
 			Str("name", run.Name).
 			Msg("scanning pipeline run")
 
-		// Download and scan workflow run logs
 		scanWorkflowRunLogs(client, repo, run)
 
-		// If artifacts flag is set, download and scan artifacts
 		if scanOptions.Artifacts {
 			scanWorkflowArtifacts(client, repo, run)
 		}
@@ -234,25 +223,24 @@ func listWorkflowRuns(client *gitea.Client, repo *gitea.Repository) ([]ActionWor
 	limit := 50
 
 	for {
-		// Construct URL using url.Parse
 		apiPath := fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs", repo.Owner.UserName, repo.Name)
 		link, err := url.Parse(apiPath)
 		if err != nil {
 			return nil, err
 		}
-		
-		// Set query parameters
+
 		q := link.Query()
 		q.Set("page", fmt.Sprintf("%d", page))
 		q.Set("limit", fmt.Sprintf("%d", limit))
 		link.RawQuery = q.Encode()
-		
+
 		fullURL := scanOptions.GiteaURL + link.String()
-		
+
 		req, err := http.NewRequestWithContext(scanOptions.Context, "GET", fullURL, nil)
 		if err != nil {
 			return nil, err
 		}
+
 		req.Header.Set("Authorization", "token "+scanOptions.Token)
 		req.Header.Set("Content-Type", "application/json")
 
@@ -285,13 +273,13 @@ func listWorkflowRuns(client *gitea.Client, repo *gitea.Repository) ([]ActionWor
 			if err2 := json.Unmarshal(body, &runs); err2 != nil {
 				return nil, fmt.Errorf("failed to parse workflow runs: %w", err)
 			}
+
 			allRuns = append(allRuns, runs...)
 			if len(runs) < limit {
 				break
 			}
 		} else {
 			allRuns = append(allRuns, runsResp.WorkflowRuns...)
-			// Use total_count to determine if there are more pages
 			if len(allRuns) >= int(runsResp.TotalCount) || len(runsResp.WorkflowRuns) < limit {
 				break
 			}
@@ -304,7 +292,6 @@ func listWorkflowRuns(client *gitea.Client, repo *gitea.Repository) ([]ActionWor
 }
 
 func scanWorkflowRunLogs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun) {
-	// First, list all jobs for this workflow run
 	jobs, err := listWorkflowJobs(client, repo, run)
 	if err != nil {
 		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Msg("failed to list workflow jobs")
@@ -316,7 +303,6 @@ func scanWorkflowRunLogs(client *gitea.Client, repo *gitea.Repository, run Actio
 		return
 	}
 
-	// Scan logs for each job
 	for _, job := range jobs {
 		scanJobLogs(client, repo, run, job)
 	}
@@ -324,32 +310,30 @@ func scanWorkflowRunLogs(client *gitea.Client, repo *gitea.Repository, run Actio
 
 func listWorkflowJobs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun) ([]ActionJob, error) {
 	// Gitea Actions API: GET /repos/{owner}/{repo}/actions/runs/{run}/jobs
-	// This endpoint is paginated, so we need to go through all pages
-	
+
 	var allJobs []ActionJob
 	page := 1
 	limit := 50
 
 	for {
-		// Construct URL using url.Parse
 		apiPath := fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%d/jobs", repo.Owner.UserName, repo.Name, run.ID)
 		link, err := url.Parse(apiPath)
 		if err != nil {
 			return nil, err
 		}
-		
-		// Set query parameters
+
 		q := link.Query()
 		q.Set("page", fmt.Sprintf("%d", page))
 		q.Set("limit", fmt.Sprintf("%d", limit))
 		link.RawQuery = q.Encode()
-		
+
 		fullURL := scanOptions.GiteaURL + link.String()
 
 		req, err := http.NewRequestWithContext(scanOptions.Context, "GET", fullURL, nil)
 		if err != nil {
 			return nil, err
 		}
+
 		req.Header.Set("Authorization", "token "+scanOptions.Token)
 		req.Header.Set("Content-Type", "application/json")
 
@@ -359,7 +343,6 @@ func listWorkflowJobs(client *gitea.Client, repo *gitea.Repository, run ActionWo
 		}
 
 		if resp.StatusCode == 404 {
-			// Jobs not found or Actions not enabled
 			resp.Body.Close()
 			return allJobs, nil
 		}
@@ -377,7 +360,6 @@ func listWorkflowJobs(client *gitea.Client, repo *gitea.Repository, run ActionWo
 
 		var jobsResp ActionJobsResponse
 		if err := json.Unmarshal(body, &jobsResp); err != nil {
-			// Try parsing as array directly
 			var jobs []ActionJob
 			if err2 := json.Unmarshal(body, &jobs); err2 != nil {
 				return nil, fmt.Errorf("failed to parse jobs: %w", err)
@@ -388,7 +370,6 @@ func listWorkflowJobs(client *gitea.Client, repo *gitea.Repository, run ActionWo
 			}
 		} else {
 			allJobs = append(allJobs, jobsResp.Jobs...)
-			// Use total_count to determine if there are more pages
 			if len(allJobs) >= int(jobsResp.TotalCount) || len(jobsResp.Jobs) < limit {
 				break
 			}
@@ -408,7 +389,7 @@ func scanJobLogs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflo
 		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("failed to parse URL")
 		return
 	}
-	
+
 	fullURL := scanOptions.GiteaURL + link.String()
 
 	req, err := http.NewRequestWithContext(scanOptions.Context, "GET", fullURL, nil)
@@ -416,6 +397,7 @@ func scanJobLogs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflo
 		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("failed to create request for logs")
 		return
 	}
+
 	req.Header.Set("Authorization", "token "+scanOptions.Token)
 
 	resp, err := scanOptions.HttpClient.Do(req)
@@ -423,6 +405,7 @@ func scanJobLogs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflo
 		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("failed to download logs")
 		return
 	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 404 {
@@ -441,7 +424,6 @@ func scanJobLogs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflo
 		return
 	}
 
-	// Scan the logs for secrets
 	findings, err := scanner.DetectHits(logBytes, scanOptions.MaxScanGoRoutines, scanOptions.TruffleHogVerification)
 	if err != nil {
 		log.Debug().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("Failed detecting secrets in logs")
@@ -463,8 +445,7 @@ func scanJobLogs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflo
 }
 
 func scanWorkflowArtifacts(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun) {
-	// List artifacts for this workflow run
-	artifacts, err := listArtifacts(client, repo, run)
+	artifacts, err := listArtifacts(repo, run)
 	if err != nil {
 		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Msg("failed to fetch artifacts")
 		return
@@ -475,7 +456,7 @@ func scanWorkflowArtifacts(client *gitea.Client, repo *gitea.Repository, run Act
 		return
 	}
 
-	log.Info().Str("repo", repo.FullName).Int64("run_id", run.ID).Int("count", len(artifacts)).Msg("Found artifacts")
+	log.Debug().Str("repo", repo.FullName).Int64("run_id", run.ID).Int("count", len(artifacts)).Msg("Found artifacts")
 
 	for _, artifact := range artifacts {
 		log.Debug().
@@ -488,34 +469,31 @@ func scanWorkflowArtifacts(client *gitea.Client, repo *gitea.Repository, run Act
 	}
 }
 
-func listArtifacts(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun) ([]ActionArtifact, error) {
+func listArtifacts(repo *gitea.Repository, run ActionWorkflowRun) ([]ActionArtifact, error) {
 	// Gitea Actions API: GET /repos/{owner}/{repo}/actions/runs/{run_id}/artifacts
-	// This endpoint is paginated, so we need to go through all pages
-	
 	var allArtifacts []ActionArtifact
 	page := 1
 	limit := 50
 
 	for {
-		// Construct URL using url.Parse
 		apiPath := fmt.Sprintf("/api/v1/repos/%s/%s/actions/runs/%d/artifacts", repo.Owner.UserName, repo.Name, run.ID)
 		link, err := url.Parse(apiPath)
 		if err != nil {
 			return nil, err
 		}
-		
-		// Set query parameters
+
 		q := link.Query()
 		q.Set("page", fmt.Sprintf("%d", page))
 		q.Set("limit", fmt.Sprintf("%d", limit))
 		link.RawQuery = q.Encode()
-		
+
 		fullURL := scanOptions.GiteaURL + link.String()
 
 		req, err := http.NewRequestWithContext(scanOptions.Context, "GET", fullURL, nil)
 		if err != nil {
 			return nil, err
 		}
+
 		req.Header.Set("Authorization", "token "+scanOptions.Token)
 		req.Header.Set("Content-Type", "application/json")
 
@@ -525,7 +503,6 @@ func listArtifacts(client *gitea.Client, repo *gitea.Repository, run ActionWorkf
 		}
 
 		if resp.StatusCode == 404 {
-			// No artifacts or endpoint not available
 			resp.Body.Close()
 			return allArtifacts, nil
 		}
@@ -543,7 +520,6 @@ func listArtifacts(client *gitea.Client, repo *gitea.Repository, run ActionWorkf
 
 		var artifactsResp ActionArtifactsResponse
 		if err := json.Unmarshal(body, &artifactsResp); err != nil {
-			// Try parsing as array directly
 			var artifacts []ActionArtifact
 			if err2 := json.Unmarshal(body, &artifacts); err2 != nil {
 				return nil, fmt.Errorf("failed to parse artifacts: %w", err)
@@ -554,7 +530,6 @@ func listArtifacts(client *gitea.Client, repo *gitea.Repository, run ActionWorkf
 			}
 		} else {
 			allArtifacts = append(allArtifacts, artifactsResp.Artifacts...)
-			// Use total_count to determine if there are more pages
 			if len(allArtifacts) >= int(artifactsResp.TotalCount) || len(artifactsResp.Artifacts) < limit {
 				break
 			}
@@ -567,7 +542,6 @@ func listArtifacts(client *gitea.Client, repo *gitea.Repository, run ActionWorkf
 }
 
 func downloadAndScanArtifact(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun, artifact ActionArtifact) {
-	// Download artifact as zip
 	// Gitea Actions API: GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip
 	// This endpoint returns a 302 redirect to the actual blob URL
 	apiPath := fmt.Sprintf("/api/v1/repos/%s/%s/actions/artifacts/%d/zip", repo.Owner.UserName, repo.Name, artifact.ID)
@@ -576,7 +550,7 @@ func downloadAndScanArtifact(client *gitea.Client, repo *gitea.Repository, run A
 		log.Error().Err(err).Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Msg("failed to parse URL")
 		return
 	}
-	
+
 	fullURL := scanOptions.GiteaURL + link.String()
 
 	req, err := http.NewRequestWithContext(scanOptions.Context, "GET", fullURL, nil)
@@ -584,6 +558,7 @@ func downloadAndScanArtifact(client *gitea.Client, repo *gitea.Repository, run A
 		log.Error().Err(err).Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Msg("failed to create artifact download request")
 		return
 	}
+
 	req.Header.Set("Authorization", "token "+scanOptions.Token)
 
 	resp, err := scanOptions.HttpClient.Do(req)
@@ -591,6 +566,7 @@ func downloadAndScanArtifact(client *gitea.Client, repo *gitea.Repository, run A
 		log.Error().Err(err).Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Msg("failed to download artifact")
 		return
 	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 404 || resp.StatusCode == 410 {
@@ -598,7 +574,6 @@ func downloadAndScanArtifact(client *gitea.Client, repo *gitea.Repository, run A
 		return
 	}
 
-	// Handle both 200 (direct download) and 302 (redirect) responses
 	if resp.StatusCode != 200 && resp.StatusCode != 302 {
 		log.Error().Int("status", resp.StatusCode).Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Msg("failed to download artifact")
 		return
@@ -610,21 +585,17 @@ func downloadAndScanArtifact(client *gitea.Client, repo *gitea.Repository, run A
 		return
 	}
 
-	// Try to parse as ZIP archive
 	zipReader, err := zip.NewReader(bytes.NewReader(artifactBytes), int64(len(artifactBytes)))
 	if err != nil {
 		log.Debug().Err(err).Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Msg("Artifact is not a zip, scanning directly")
-		// Not a zip, scan directly
 		scanArtifactContent(artifactBytes, repo, run, artifact.Name, "")
 		return
 	}
 
-	// Process files in the zip
 	ctx := scanOptions.Context
 	group := parallel.Limited(ctx, scanOptions.MaxScanGoRoutines)
 
 	for _, file := range zipReader.File {
-		file := file // capture for closure
 		group.Go(func(ctx context.Context) {
 			fc, err := file.Open()
 			if err != nil {
@@ -654,14 +625,12 @@ func scanArtifactContent(content []byte, repo *gitea.Repository, run ActionWorkf
 		displayName = fmt.Sprintf("%s/%s", artifactName, fileName)
 	}
 
-	// Skip known binary file types
-	if kind == filetype.Unknown {
-		// Scan for secrets
-		scanner.DetectFileHits(content, run.HTMLURL, run.Name, displayName, repo.FullName, scanOptions.TruffleHogVerification)
-	} else if filetype.IsArchive(content) {
-		// Handle nested archives
+	if filetype.IsArchive(content) {
 		scanner.HandleArchiveArtifact(displayName, content, run.HTMLURL, run.Name, scanOptions.TruffleHogVerification)
+	} else if kind != filetype.Unknown {
+		log.Trace().Str("file", displayName).Str("type", kind.MIME.Value).Msg("Skipping unknown file type")
 	} else {
-		log.Trace().Str("file", displayName).Str("type", kind.MIME.Value).Msg("Skipping known file type")
+		log.Info().Str("file", displayName).Str("type", kind.MIME.Value).Msg("Not an archive file type, scanning as text")
+		scanner.DetectFileHits(content, run.HTMLURL, run.Name, displayName, repo.FullName, scanOptions.TruffleHogVerification)
 	}
 }
