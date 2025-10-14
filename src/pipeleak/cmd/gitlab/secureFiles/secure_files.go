@@ -70,14 +70,14 @@ func FetchSecureFiles(cmd *cobra.Command, args []string) {
 
 		for _, project := range projects {
 			log.Debug().Str("project", project.WebURL).Msg("Fetch project secure files")
-			err, fileIds := GetSecureFiles(project.ID, gitlabUrl, gitlabApiToken)
+			fileIds, err := GetSecureFiles(project.ID, gitlabUrl, gitlabApiToken)
 			if err != nil {
 				log.Error().Stack().Err(err).Str("project", project.WebURL).Msg("Failed fetching secure files list")
 				continue
 			}
 
 			for _, id := range fileIds {
-				err, secureFile, downloadUrl := DownloadSecureFile(project.ID, id, gitlabUrl, gitlabApiToken)
+				secureFile, downloadUrl, err := DownloadSecureFile(project.ID, id, gitlabUrl, gitlabApiToken)
 				if err != nil {
 					log.Error().Stack().Err(err).Str("project", project.WebURL).Int64("fileId", id).Msg("Failed fetching secure file")
 					continue

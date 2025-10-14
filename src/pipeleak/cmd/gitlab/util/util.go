@@ -34,7 +34,7 @@ func CookieSessionValid(gitlabUrl string, cookieVal string) {
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed GitLab session test")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	statCode := resp.StatusCode
 

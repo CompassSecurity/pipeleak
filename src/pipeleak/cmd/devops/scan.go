@@ -277,7 +277,7 @@ func analyzeArtifact(client AzureDevOpsApiClient, artifact Artifact, buildWebUrl
 			} else if filetype.IsArchive(content) {
 				scanner.HandleArchiveArtifact(file.Name, content, buildWebUrl, artifact.Name, options.TruffleHogVerification)
 			}
-			fc.Close()
+			_ = fc.Close()
 		})
 	}
 

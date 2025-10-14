@@ -11,10 +11,10 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-func GetSecureFiles(projectId int, base string, token string) (error, []int64) {
+func GetSecureFiles(projectId int, base string, token string) ([]int64, error) {
 	u, err := url.Parse(base)
 	if err != nil {
-		return err, []int64{}
+		return []int64{}, err
 	}
 
 	client := helper.GetPipeleakHTTPClient()
@@ -24,17 +24,17 @@ func GetSecureFiles(projectId int, base string, token string) (error, []int64) {
 	s := u.String()
 	req, err := http.NewRequest("GET", s, nil)
 	if err != nil {
-		return err, []int64{}
+		return []int64{}, err
 	}
 	req.Header.Add("PRIVATE-TOKEN", token)
 	res, err := client.Do(req)
 	if err != nil {
-		return err, []int64{}
+		return []int64{}, err
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return err, []int64{}
+		return []int64{}, err
 	}
 
 	fileIds := []int64{}
@@ -46,16 +46,16 @@ func GetSecureFiles(projectId int, base string, token string) (error, []int64) {
 			return true
 		})
 
-		return nil, fileIds
+		return fileIds, nil
 	}
 
-	return errors.New("unable to fetch secure files"), []int64{}
+	return []int64{}, errors.New("unable to fetch secure files")
 }
 
-func DownloadSecureFile(projectId int, fileId int64, base string, token string) (error, []byte, string) {
+func DownloadSecureFile(projectId int, fileId int64, base string, token string) ([]byte, string, error) {
 	u, err := url.Parse(base)
 	if err != nil {
-		return err, []byte{}, ""
+		return []byte{}, "", err
 	}
 
 	client := helper.GetPipeleakHTTPClient()
@@ -64,18 +64,18 @@ func DownloadSecureFile(projectId int, fileId int64, base string, token string) 
 	s := u.String()
 	req, err := http.NewRequest("GET", s, nil)
 	if err != nil {
-		return err, []byte{}, ""
+		return []byte{}, "", err
 	}
 	req.Header.Add("PRIVATE-TOKEN", token)
 	res, err := client.Do(req)
 	if err != nil {
-		return err, []byte{}, ""
+		return []byte{}, "", err
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return err, []byte{}, ""
+		return []byte{}, "", err
 	}
 
-	return nil, body, s
+	return body, s, nil
 }
