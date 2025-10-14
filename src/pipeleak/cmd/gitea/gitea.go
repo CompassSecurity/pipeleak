@@ -19,6 +19,7 @@ func NewGiteaRootCmd() *cobra.Command {
 	}
 
 	giteaCmd.AddCommand(NewEnumCmd())
+	giteaCmd.AddCommand(NewScanCmd())
 
 	giteaCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 
