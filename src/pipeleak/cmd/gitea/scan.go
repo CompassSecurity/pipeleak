@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/CompassSecurity/pipeleak/helper"
@@ -30,6 +31,7 @@ type GiteaScanOptions struct {
 	TruffleHogVerification bool
 	Owned                  bool
 	Organization           string
+	Repository             string
 	Context                context.Context
 	Client                 *gitea.Client
 	HttpClient             *http.Client
@@ -95,7 +97,7 @@ func NewScanCmd() *cobra.Command {
 		Short: "Scan Gitea Actions",
 		Long:  `Scan Gitea Actions workflow runs and artifacts for secrets`,
 		Example: `
-# Scan all accessible repositories and their artifacts
+# Scan all accessible repositories (including public) and their artifacts
 pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com --artifacts
 
 # Scan without downloading artifacts
@@ -106,6 +108,9 @@ pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com 
 
 # Scan all repositories of a specific organization
 pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com --organization my-org
+
+# Scan a specific repository
+pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com --repository owner/repo-name
 		`,
 		Run: Scan,
 	}
@@ -121,6 +126,7 @@ pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com 
 	scanCmd.Flags().BoolVarP(&scanOptions.Artifacts, "artifacts", "a", false, "Download and scan workflow artifacts")
 	scanCmd.Flags().BoolVarP(&scanOptions.Owned, "owned", "o", false, "Scan only repositories owned by the user")
 	scanCmd.Flags().StringVarP(&scanOptions.Organization, "organization", "", "", "Scan all repositories of a specific organization")
+	scanCmd.Flags().StringVarP(&scanOptions.Repository, "repository", "r", "", "Scan a specific repository (format: owner/repo)")
 	scanCmd.Flags().StringSliceVarP(&scanOptions.ConfidenceFilter, "confidence", "", []string{}, "Filter for confidence level, separate by comma if multiple. See documentation for more info.")
 	scanCmd.PersistentFlags().IntVarP(&scanOptions.MaxScanGoRoutines, "threads", "", 4, "Nr of threads used to scan")
 	scanCmd.PersistentFlags().BoolVarP(&scanOptions.TruffleHogVerification, "truffleHogVerification", "", true, "Enable TruffleHog credential verification to actively test found credentials and only report verified ones (enabled by default, disable with --truffleHogVerification=false)")
@@ -160,22 +166,49 @@ func scanStatus() *zerolog.Event {
 }
 
 func scanRepositories(client *gitea.Client) {
-	if scanOptions.Organization != "" {
+	if scanOptions.Repository != "" {
+		log.Info().Str("repository", scanOptions.Repository).Msg("Scanning specific repository")
+		scanSingleRepository(client, scanOptions.Repository)
+	} else if scanOptions.Organization != "" {
 		log.Info().Str("organization", scanOptions.Organization).Msg("Scanning organization repositories")
 		scanOrganizationRepositories(client, scanOptions.Organization)
 	} else if scanOptions.Owned {
 		log.Info().Msg("Scanning user owned repositories")
 		scanOwnedRepositories(client)
 	} else {
-		log.Info().Msg("Scanning all accessible repositories")
+		log.Info().Msg("Scanning all accessible repositories (including public)")
 		scanAllRepositories(client)
 	}
 
-	log.Info().Msg("Completed scanning all accessible repositories")
+	log.Info().Msg("Completed scanning")
+}
+
+func scanSingleRepository(client *gitea.Client, repoFullName string) {
+	// Parse owner/repo format
+	parts := strings.Split(repoFullName, "/")
+	if len(parts) != 2 {
+		log.Error().Str("repository", repoFullName).Msg("Invalid repository format, expected owner/repo")
+		return
+	}
+
+	owner := parts[0]
+	repoName := parts[1]
+
+	// Get the specific repository
+	repo, _, err := client.GetRepo(owner, repoName)
+	if err != nil {
+		log.Error().Err(err).Str("repository", repoFullName).Msg("failed to get repository")
+		return
+	}
+
+	log.Info().Str("repo", repo.FullName).Str("url", repo.HTMLURL).Msg("Scanning repository")
+	scanRepository(client, repo)
 }
 
 func scanAllRepositories(client *gitea.Client) {
-	opt := gitea.ListReposOptions{
+	// Use SearchRepos to get all accessible repositories (including public ones)
+	// Empty keyword searches all repositories accessible with the current token
+	opt := gitea.SearchRepoOptions{
 		ListOptions: gitea.ListOptions{
 			Page:     1,
 			PageSize: 50,
@@ -183,9 +216,9 @@ func scanAllRepositories(client *gitea.Client) {
 	}
 
 	for {
-		repos, resp, err := client.ListMyRepos(opt)
+		repos, resp, err := client.SearchRepos(opt)
 		if err != nil {
-			log.Error().Err(err).Int("page", opt.Page).Msg("failed to list repos")
+			log.Error().Err(err).Int("page", opt.Page).Msg("failed to search repos")
 			break
 		}
 
