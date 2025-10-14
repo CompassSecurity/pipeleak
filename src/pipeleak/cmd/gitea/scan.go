@@ -9,6 +9,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
@@ -32,6 +34,7 @@ type GiteaScanOptions struct {
 	Owned                  bool
 	Organization           string
 	Repository             string
+	Cookie                 string
 	Context                context.Context
 	Client                 *gitea.Client
 	HttpClient             *http.Client
@@ -127,6 +130,7 @@ pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com 
 	scanCmd.Flags().BoolVarP(&scanOptions.Owned, "owned", "o", false, "Scan only repositories owned by the user")
 	scanCmd.Flags().StringVarP(&scanOptions.Organization, "organization", "", "", "Scan all repositories of a specific organization")
 	scanCmd.Flags().StringVarP(&scanOptions.Repository, "repository", "r", "", "Scan a specific repository (format: owner/repo)")
+	scanCmd.Flags().StringVarP(&scanOptions.Cookie, "cookie", "", "", "Gitea session cookie (i_like_gitea) for fallback authentication when API returns 403")
 	scanCmd.Flags().StringSliceVarP(&scanOptions.ConfidenceFilter, "confidence", "", []string{}, "Filter for confidence level, separate by comma if multiple. See documentation for more info.")
 	scanCmd.PersistentFlags().IntVarP(&scanOptions.MaxScanGoRoutines, "threads", "", 4, "Nr of threads used to scan")
 	scanCmd.PersistentFlags().BoolVarP(&scanOptions.TruffleHogVerification, "truffleHogVerification", "", true, "Enable TruffleHog credential verification to actively test found credentials and only report verified ones (enabled by default, disable with --truffleHogVerification=false)")
@@ -322,6 +326,12 @@ func scanOrganizationRepositories(client *gitea.Client, orgName string) {
 func scanRepository(client *gitea.Client, repo *gitea.Repository) {
 	workflowRuns, err := listWorkflowRuns(client, repo)
 	if err != nil {
+		// Check if it's a 403 error and we have a cookie for fallback
+		if strings.Contains(err.Error(), "403") && scanOptions.Cookie != "" {
+			log.Warn().Str("repo", repo.FullName).Msg("API returned 403, falling back to HTML scraping with cookie")
+			scanRepositoryWithCookie(repo)
+			return
+		}
 		log.Error().Err(err).Str("repo", repo.FullName).Msg("failed to list workflow runs")
 		return
 	}
@@ -768,5 +778,219 @@ func scanArtifactContent(content []byte, repo *gitea.Repository, run ActionWorkf
 	} else {
 		log.Info().Str("file", displayName).Str("type", kind.MIME.Value).Msg("Not an archive file type, scanning as text")
 		scanner.DetectFileHits(content, run.HTMLURL, run.Name, displayName, repo.FullName, scanOptions.TruffleHogVerification)
+	}
+}
+
+// scanRepositoryWithCookie uses HTML scraping with cookie authentication as fallback when API returns 403
+func scanRepositoryWithCookie(repo *gitea.Repository) {
+	log.Info().Str("repo", repo.FullName).Msg("Using cookie-based HTML scraping for workflow runs")
+
+	// Get the first run ID from the HTML actions page
+	firstRunID, err := getFirstRunIDFromHTML(repo)
+	if err != nil {
+		log.Error().Err(err).Str("repo", repo.FullName).Msg("failed to get first run ID from HTML")
+		return
+	}
+
+	if firstRunID == 0 {
+		log.Debug().Str("repo", repo.FullName).Msg("No workflow runs found via HTML scraping")
+		return
+	}
+
+	log.Info().Str("repo", repo.FullName).Int64("first_run_id", firstRunID).Msg("Found first run ID, scanning backwards")
+
+	// Iterate backwards from the first run ID
+	scannedCount := 0
+	maxRuns := 100 // Limit to prevent infinite loops
+
+	for runID := firstRunID; runID > 0 && scannedCount < maxRuns; runID-- {
+		if scanRunWithCookie(repo, runID) {
+			scannedCount++
+		}
+		
+		// Stop if we've tried 20 consecutive failures
+		if scannedCount == 0 && (firstRunID - runID) > 20 {
+			log.Info().Str("repo", repo.FullName).Msg("No valid runs found in first 20 attempts, stopping")
+			break
+		}
+	}
+
+	log.Info().Str("repo", repo.FullName).Int("scanned", scannedCount).Msg("Completed cookie-based scanning")
+}
+
+// getFirstRunIDFromHTML fetches the actions page and extracts the first run ID
+func getFirstRunIDFromHTML(repo *gitea.Repository) (int64, error) {
+	// Construct URL: https://gitea.com/owner/repo/actions?page=1&actor=0&status=0
+	actionsURL := fmt.Sprintf("%s/%s/actions?page=1&actor=0&status=0", scanOptions.GiteaURL, repo.FullName)
+
+	req, err := http.NewRequestWithContext(scanOptions.Context, "GET", actionsURL, nil)
+	if err != nil {
+		return 0, err
+	}
+
+	// Set cookie for authentication
+	req.Header.Set("Cookie", fmt.Sprintf("i_like_gitea=%s", scanOptions.Cookie))
+
+	resp, err := scanOptions.HttpClient.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return 0, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, err
+	}
+
+	// Parse HTML to find run IDs
+	// Look for patterns like: /owner/repo/actions/runs/123
+	runIDPattern := regexp.MustCompile(fmt.Sprintf(`/%s/actions/runs/(\d+)`, regexp.QuoteMeta(repo.FullName)))
+	matches := runIDPattern.FindAllStringSubmatch(string(body), -1)
+
+	if len(matches) == 0 {
+		return 0, nil
+	}
+
+	// Get the first run ID
+	firstRunIDStr := matches[0][1]
+	firstRunID, err := strconv.ParseInt(firstRunIDStr, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return firstRunID, nil
+}
+
+// scanRunWithCookie attempts to fetch and scan logs for a specific run ID using cookie auth
+func scanRunWithCookie(repo *gitea.Repository, runID int64) bool {
+	// First, get the jobs for this run by scraping the run page
+	jobIDs, err := getJobIDsFromRunHTML(repo, runID)
+	if err != nil {
+		log.Debug().Err(err).Str("repo", repo.FullName).Int64("run_id", runID).Msg("failed to get job IDs")
+		return false
+	}
+
+	if len(jobIDs) == 0 {
+		return false
+	}
+
+	log.Debug().Str("repo", repo.FullName).Int64("run_id", runID).Int("jobs", len(jobIDs)).Msg("Found jobs for run")
+
+	// Scan each job's logs
+	for _, jobID := range jobIDs {
+		scanJobLogsWithCookie(repo, runID, jobID)
+	}
+
+	return true
+}
+
+// getJobIDsFromRunHTML fetches the run page and extracts job IDs
+func getJobIDsFromRunHTML(repo *gitea.Repository, runID int64) ([]int64, error) {
+	runURL := fmt.Sprintf("%s/%s/actions/runs/%d", scanOptions.GiteaURL, repo.FullName, runID)
+
+	req, err := http.NewRequestWithContext(scanOptions.Context, "GET", runURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Cookie", fmt.Sprintf("i_like_gitea=%s", scanOptions.Cookie))
+
+	resp, err := scanOptions.HttpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse HTML to find job IDs
+	// Look for patterns like: /owner/repo/actions/runs/123/jobs/456
+	jobIDPattern := regexp.MustCompile(fmt.Sprintf(`/%s/actions/runs/%d/jobs/(\d+)`, regexp.QuoteMeta(repo.FullName), runID))
+	matches := jobIDPattern.FindAllStringSubmatch(string(body), -1)
+
+	var jobIDs []int64
+	seen := make(map[int64]bool)
+
+	for _, match := range matches {
+		jobIDStr := match[1]
+		jobID, err := strconv.ParseInt(jobIDStr, 10, 64)
+		if err != nil {
+			continue
+		}
+		if !seen[jobID] {
+			jobIDs = append(jobIDs, jobID)
+			seen[jobID] = true
+		}
+	}
+
+	return jobIDs, nil
+}
+
+// scanJobLogsWithCookie fetches and scans job logs using cookie authentication
+func scanJobLogsWithCookie(repo *gitea.Repository, runID int64, jobID int64) {
+	// Construct log URL: https://gitea.com/owner/repo/actions/runs/<RUN_ID>/jobs/<JOB_ID>/logs
+	logURL := fmt.Sprintf("%s/%s/actions/runs/%d/jobs/%d/logs", scanOptions.GiteaURL, repo.FullName, runID, jobID)
+
+	req, err := http.NewRequestWithContext(scanOptions.Context, "GET", logURL, nil)
+	if err != nil {
+		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", runID).Int64("job_id", jobID).Msg("failed to create request for logs")
+		return
+	}
+
+	req.Header.Set("Cookie", fmt.Sprintf("i_like_gitea=%s", scanOptions.Cookie))
+
+	resp, err := scanOptions.HttpClient.Do(req)
+	if err != nil {
+		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", runID).Int64("job_id", jobID).Msg("failed to download logs")
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 404 {
+		log.Debug().Str("repo", repo.FullName).Int64("run_id", runID).Int64("job_id", jobID).Msg("Logs not found")
+		return
+	}
+
+	if resp.StatusCode != 200 {
+		log.Error().Int("status", resp.StatusCode).Str("repo", repo.FullName).Int64("run_id", runID).Int64("job_id", jobID).Msg("failed to download logs")
+		return
+	}
+
+	logBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", runID).Int64("job_id", jobID).Msg("failed to read log bytes")
+		return
+	}
+
+	// Scan the logs for secrets
+	findings, err := scanner.DetectHits(logBytes, scanOptions.MaxScanGoRoutines, scanOptions.TruffleHogVerification)
+	if err != nil {
+		log.Debug().Err(err).Str("repo", repo.FullName).Int64("run_id", runID).Int64("job_id", jobID).Msg("Failed detecting secrets in logs")
+		return
+	}
+
+	runURL := fmt.Sprintf("%s/%s/actions/runs/%d", scanOptions.GiteaURL, repo.FullName, runID)
+
+	for _, finding := range findings {
+		log.Warn().
+			Str("confidence", finding.Pattern.Pattern.Confidence).
+			Str("ruleName", finding.Pattern.Pattern.Name).
+			Str("value", finding.Text).
+			Str("repo", repo.FullName).
+			Int64("run_id", runID).
+			Int64("job_id", jobID).
+			Str("url", runURL).
+			Msg("HIT")
 	}
 }
