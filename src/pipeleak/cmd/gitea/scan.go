@@ -836,7 +836,7 @@ func scanRepositoryWithCookie(repo *gitea.Repository) {
 
 		// stop early if too many failures
 		if atomic.LoadInt32(&failedCounter) > 5 {
-			log.Warn().Msg("Too many failures, aborting scan loop.")
+			log.Debug().Msg("Too many failures, aborting scan loop.")
 			cancel()
 			break
 		}
@@ -850,7 +850,7 @@ func scanRepositoryWithCookie(repo *gitea.Repository) {
 			default:
 			}
 
-			log.Printf("Scanning repo=%s run_id=%d\n", repo.FullName, runID)
+			log.Trace().Str("repo", repo.FullName).Int64("run_id", runID).Msg("Checking run ID")
 
 			ok := scanJobLogsWithCookie(repo, runID, 0)
 			if ok {
@@ -862,8 +862,6 @@ func scanRepositoryWithCookie(repo *gitea.Repository) {
 	}
 
 	group.Wait()
-
-	log.Info().Str("repo", repo.FullName).Int("scanned", int(scannedCounter)).Msg("Completed cookie-based scanning")
 }
 
 // getLatestRunIDFromHTML fetches the actions page and extracts the latest run ID
