@@ -799,24 +799,33 @@ func scanRepositoryWithCookie(repo *gitea.Repository) {
 		return
 	}
 
-	log.Debug().Str("repo", repo.FullName).Int64("latest_run_id", latestRunID).Msg("Found latest run ID, scanning backwards")
+	log.Debug().Str("repo", repo.FullName).Int64("latest_run_id", latestRunID).Msg("Found latest run ID, scanning backwards in parallel")
 
-	// Iterate backwards from the latest run ID
-	failCount := 0
-	for runID := latestRunID; runID > 0; runID-- {
-		log.Trace().Str("repo", repo.FullName).Int64("run_id", runID).Msg("Scanning run ID")
-		if failCount >= 5 {
-			log.Info().Str("repo", repo.FullName).Msg("Stopping cookie-based scanning after multiple failures, due to likely no more runs")
+	// Iterate backwards from the latest run ID in parallel
+	// Limit the number of run IDs to scan to prevent excessive API calls
+	maxRunsToScan := 100
+	if latestRunID < int64(maxRunsToScan) {
+		maxRunsToScan = int(latestRunID)
+	}
+
+	ctx := scanOptions.Context
+	group := parallel.Limited(ctx, scanOptions.MaxScanGoRoutines)
+
+	for i := 0; i < maxRunsToScan; i++ {
+		runID := latestRunID - int64(i)
+		if runID <= 0 {
 			break
 		}
 
-		success := scanJobLogsWithCookie(repo, runID, 0)
-		if !success {
-			failCount++
-		}
+		group.Go(func(ctx context.Context) {
+			log.Trace().Str("repo", repo.FullName).Int64("run_id", runID).Msg("Scanning run ID")
+			scanJobLogsWithCookie(repo, runID, 0)
+		})
 	}
 
-	log.Info().Str("repo", repo.FullName).Int("failed", failCount).Msg("Completed cookie-based scanning")
+	group.Wait()
+
+	log.Info().Str("repo", repo.FullName).Msg("Completed cookie-based scanning")
 }
 
 // getLatestRunIDFromHTML fetches the actions page and extracts the latest run ID
