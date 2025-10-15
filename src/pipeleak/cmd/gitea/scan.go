@@ -159,6 +159,11 @@ func Scan(cmd *cobra.Command, args []string) {
 
 	scanOptions.HttpClient = helper.GetPipeleakHTTPClient()
 
+	// Validate cookie if provided
+	if scanOptions.Cookie != "" {
+		validateCookie()
+	}
+
 	scanner.InitRules(scanOptions.ConfidenceFilter)
 	if !scanOptions.TruffleHogVerification {
 		log.Info().Msg("TruffleHog verification is disabled")
@@ -170,6 +175,38 @@ func Scan(cmd *cobra.Command, args []string) {
 
 func scanStatus() *zerolog.Event {
 	return log.Info().Str("status", "scanning... ✨✨ nothing more yet ✨✨")
+}
+
+func validateCookie() {
+	// Construct the /issues URL
+	issuesURL, err := url.Parse(scanOptions.GiteaURL)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed parsing Gitea URL for cookie validation")
+	}
+	issuesURL.Path = "/issues"
+
+	// Create request with cookie
+	req, err := http.NewRequest("GET", issuesURL.String(), nil)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed creating cookie validation request")
+	}
+
+	// Set cookie header
+	req.Header.Set("Cookie", fmt.Sprintf("i_like_gitea=%s", scanOptions.Cookie))
+
+	// Make request
+	resp, err := scanOptions.HttpClient.Do(req)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed validating cookie")
+	}
+	defer resp.Body.Close()
+
+	// Check status code
+	if resp.StatusCode == http.StatusOK {
+		log.Info().Msg("Cookie validation successful")
+	} else {
+		log.Fatal().Int("status_code", resp.StatusCode).Msg("Cookie validation failed - invalid or expired cookie")
+	}
 }
 
 func scanRepositories(client *gitea.Client) {
