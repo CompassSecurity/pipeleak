@@ -36,6 +36,7 @@ type GiteaScanOptions struct {
 	Organization           string
 	Repository             string
 	Cookie                 string
+	RunsLimit              int
 	Context                context.Context
 	Client                 *gitea.Client
 	HttpClient             *http.Client
@@ -132,6 +133,7 @@ pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com 
 	scanCmd.Flags().StringVarP(&scanOptions.Organization, "organization", "", "", "Scan all repositories of a specific organization")
 	scanCmd.Flags().StringVarP(&scanOptions.Repository, "repository", "r", "", "Scan a specific repository (format: owner/repo)")
 	scanCmd.Flags().StringVarP(&scanOptions.Cookie, "cookie", "", "", "Gitea session cookie (i_like_gitea) for fallback authentication when API returns 403")
+	scanCmd.Flags().IntVarP(&scanOptions.RunsLimit, "runs-limit", "", 0, "Limit the number of workflow runs to scan per repository (0 = unlimited)")
 	scanCmd.Flags().StringSliceVarP(&scanOptions.ConfidenceFilter, "confidence", "", []string{}, "Filter for confidence level, separate by comma if multiple. See documentation for more info.")
 	scanCmd.PersistentFlags().IntVarP(&scanOptions.MaxScanGoRoutines, "threads", "", 4, "Nr of threads used to scan")
 	scanCmd.PersistentFlags().BoolVarP(&scanOptions.TruffleHogVerification, "truffleHogVerification", "", true, "Enable TruffleHog credential verification to actively test found credentials and only report verified ones (enabled by default, disable with --truffleHogVerification=false)")
@@ -424,11 +426,25 @@ func listWorkflowRuns(client *gitea.Client, repo *gitea.Repository) ([]ActionWor
 			}
 
 			allRuns = append(allRuns, runs...)
+			
+			// Check if we've reached the runs limit
+			if scanOptions.RunsLimit > 0 && len(allRuns) >= scanOptions.RunsLimit {
+				log.Debug().Str("repo", repo.FullName).Int("limit", scanOptions.RunsLimit).Msg("Reached runs limit, stopping pagination")
+				return allRuns[:scanOptions.RunsLimit], nil
+			}
+			
 			if len(runs) < limit {
 				break
 			}
 		} else {
 			allRuns = append(allRuns, runsResp.WorkflowRuns...)
+			
+			// Check if we've reached the runs limit
+			if scanOptions.RunsLimit > 0 && len(allRuns) >= scanOptions.RunsLimit {
+				log.Debug().Str("repo", repo.FullName).Int("limit", scanOptions.RunsLimit).Msg("Reached runs limit, stopping pagination")
+				return allRuns[:scanOptions.RunsLimit], nil
+			}
+			
 			if len(allRuns) >= int(runsResp.TotalCount) || len(runsResp.WorkflowRuns) < limit {
 				break
 			}
@@ -805,11 +821,19 @@ func scanRepositoryWithCookie(repo *gitea.Repository) {
 	ctx := context.Background()
 	group := parallel.Limited(ctx, scanOptions.MaxScanGoRoutines)
 	var failedCounter int32
+	var scannedCounter int32
 
 	_, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	for i := latestRunID; i > 0; i-- {
+		// Check if we've reached the runs limit
+		if scanOptions.RunsLimit > 0 && int(atomic.LoadInt32(&scannedCounter)) >= scanOptions.RunsLimit {
+			log.Debug().Str("repo", repo.FullName).Int("limit", scanOptions.RunsLimit).Msg("Reached runs limit, stopping scan")
+			cancel()
+			break
+		}
+
 		// stop early if too many failures
 		if atomic.LoadInt32(&failedCounter) > 5 {
 			log.Warn().Msg("Too many failures, aborting scan loop.")
@@ -829,7 +853,9 @@ func scanRepositoryWithCookie(repo *gitea.Repository) {
 			log.Printf("Scanning repo=%s run_id=%d\n", repo.FullName, runID)
 
 			ok := scanJobLogsWithCookie(repo, runID, 0)
-			if !ok {
+			if ok {
+				atomic.AddInt32(&scannedCounter, 1)
+			} else {
 				atomic.AddInt32(&failedCounter, 1)
 			}
 		})
@@ -837,7 +863,7 @@ func scanRepositoryWithCookie(repo *gitea.Repository) {
 
 	group.Wait()
 
-	log.Info().Str("repo", repo.FullName).Msg("Completed cookie-based scanning")
+	log.Info().Str("repo", repo.FullName).Int("scanned", int(scannedCounter)).Msg("Completed cookie-based scanning")
 }
 
 // getLatestRunIDFromHTML fetches the actions page and extracts the latest run ID
