@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/CompassSecurity/pipeleak/helper"
@@ -213,7 +214,7 @@ func scanAllRepositories(client *gitea.Client) {
 	// Use SearchRepos to get all accessible repositories (including public ones)
 	// Empty keyword searches all repositories accessible with the current token
 	opt := gitea.SearchRepoOptions{
-		Sort: "updated",
+		Sort:  "updated",
 		Order: "desc",
 		ListOptions: gitea.ListOptions{
 			Page:     1,
@@ -801,25 +802,36 @@ func scanRepositoryWithCookie(repo *gitea.Repository) {
 
 	log.Debug().Str("repo", repo.FullName).Int64("latest_run_id", latestRunID).Msg("Found latest run ID, scanning backwards in parallel")
 
-	// Iterate backwards from the latest run ID in parallel
-	// Limit the number of run IDs to scan to prevent excessive API calls
-	maxRunsToScan := 100
-	if latestRunID < int64(maxRunsToScan) {
-		maxRunsToScan = int(latestRunID)
-	}
-
-	ctx := scanOptions.Context
+	ctx := context.Background()
 	group := parallel.Limited(ctx, scanOptions.MaxScanGoRoutines)
+	var failedCounter int32
 
-	for i := 0; i < maxRunsToScan; i++ {
-		runID := latestRunID - int64(i)
-		if runID <= 0 {
+	_, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	for i := latestRunID; i > 0; i-- {
+		// stop early if too many failures
+		if atomic.LoadInt32(&failedCounter) > 5 {
+			log.Warn().Msg("Too many failures, aborting scan loop.")
+			cancel()
 			break
 		}
 
+		runID := i
 		group.Go(func(ctx context.Context) {
-			log.Trace().Str("repo", repo.FullName).Int64("run_id", runID).Msg("Scanning run ID")
-			scanJobLogsWithCookie(repo, runID, 0)
+			select {
+			case <-ctx.Done():
+				// canceled: stop early
+				return
+			default:
+			}
+
+			log.Printf("Scanning repo=%s run_id=%d\n", repo.FullName, runID)
+
+			ok := scanJobLogsWithCookie(repo, runID, 0)
+			if !ok {
+				atomic.AddInt32(&failedCounter, 1)
+			}
 		})
 	}
 
