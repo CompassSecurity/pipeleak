@@ -6,6 +6,7 @@ toolchain go1.24.1
 
 require (
 	atomicgo.dev/keyboard v0.2.9
+	code.gitea.io/sdk/gitea v0.22.0
 	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/docker/go-units v0.5.0
 	github.com/gofri/go-github-ratelimit/v2 v2.0.2
@@ -15,7 +16,7 @@ require (
 	github.com/rxwycdh/rxhash v0.0.0-20230131062142-10b7a38b400d
 	github.com/spf13/cobra v1.10.1
 	github.com/tidwall/gjson v1.18.0
-	github.com/trufflesecurity/trufflehog/v3 v3.90.8
+	github.com/trufflesecurity/trufflehog/v3 v3.90.11
 	gitlab.com/gitlab-org/api/client-go v0.157.0
 	gitlab.com/mitchenielsen/gitlab-ci-go v0.0.4
 	golang.org/x/net v0.46.0
@@ -31,7 +32,6 @@ require (
 	cloud.google.com/go/compute/metadata v0.8.0 // indirect
 	cloud.google.com/go/iam v1.5.2 // indirect
 	cloud.google.com/go/secretmanager v1.15.0 // indirect
-	code.gitea.io/sdk/gitea v0.22.0 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/42wim/httpsig v1.2.3 // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
@@ -64,7 +64,7 @@ require (
 	github.com/couchbase/gocbcoreps v0.1.3 // indirect
 	github.com/couchbase/goprotostellar v1.0.2 // indirect
 	github.com/couchbaselabs/gocbconnstr/v2 v2.0.0-20240607131231-fb385523de28 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/davidmz/go-pageant v1.0.2 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
