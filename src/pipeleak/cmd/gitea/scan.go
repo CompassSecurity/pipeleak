@@ -194,8 +194,15 @@ func validateCookie() {
 	// Set cookie header
 	req.Header.Set("Cookie", fmt.Sprintf("i_like_gitea=%s", scanOptions.Cookie))
 
-	// Make request
+	// Make request without following redirects
+	originalCheckRedirect := scanOptions.HttpClient.CheckRedirect
+	scanOptions.HttpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+
 	resp, err := scanOptions.HttpClient.Do(req)
+	// Restore original redirect behavior
+	scanOptions.HttpClient.CheckRedirect = originalCheckRedirect
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed validating cookie")
 	}
@@ -204,8 +211,10 @@ func validateCookie() {
 	// Check status code
 	if resp.StatusCode == http.StatusOK {
 		log.Info().Msg("Cookie validation successful")
+	} else if resp.StatusCode == http.StatusSeeOther {
+		log.Fatal().Str("location", resp.Header.Get("Location")).Msg("Cookie validation failed - invalid or expired cookie")
 	} else {
-		log.Fatal().Int("status_code", resp.StatusCode).Msg("Cookie validation failed - invalid or expired cookie")
+		log.Fatal().Int("status", resp.StatusCode).Msg("Cookie validation failed - unexpected status code")
 	}
 }
 
@@ -463,25 +472,25 @@ func listWorkflowRuns(client *gitea.Client, repo *gitea.Repository) ([]ActionWor
 			}
 
 			allRuns = append(allRuns, runs...)
-			
+
 			// Check if we've reached the runs limit
 			if scanOptions.RunsLimit > 0 && len(allRuns) >= scanOptions.RunsLimit {
 				log.Debug().Str("repo", repo.FullName).Int("limit", scanOptions.RunsLimit).Msg("Reached runs limit, stopping pagination")
 				return allRuns[:scanOptions.RunsLimit], nil
 			}
-			
+
 			if len(runs) < limit {
 				break
 			}
 		} else {
 			allRuns = append(allRuns, runsResp.WorkflowRuns...)
-			
+
 			// Check if we've reached the runs limit
 			if scanOptions.RunsLimit > 0 && len(allRuns) >= scanOptions.RunsLimit {
 				log.Debug().Str("repo", repo.FullName).Int("limit", scanOptions.RunsLimit).Msg("Reached runs limit, stopping pagination")
 				return allRuns[:scanOptions.RunsLimit], nil
 			}
-			
+
 			if len(allRuns) >= int(runsResp.TotalCount) || len(runsResp.WorkflowRuns) < limit {
 				break
 			}
