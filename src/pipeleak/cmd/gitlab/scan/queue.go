@@ -291,8 +291,8 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 
 	req.AddCookie(&http.Cookie{Name: "_gitlab_session", Value: cookieVal})
 
-	client := helper.GetPipeleakHTTPClient()
-	resp, err := client.Do(req)
+	client := helper.GetPipeleakHTTPClient("", nil, nil)
+	resp, err := client.StandardClient().Do(req)
 	if err != nil {
 		log.Debug().Stack().Err(err).Msg("Failed requesting dotenv artifact")
 		return []byte{}

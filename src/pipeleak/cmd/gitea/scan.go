@@ -24,91 +24,7 @@ import (
 	"github.com/wandb/parallel"
 )
 
-type GiteaScanOptions struct {
-	Token                  string
-	GiteaURL               string
-	Artifacts              bool
-	Verbose                bool
-	ConfidenceFilter       []string
-	MaxScanGoRoutines      int
-	TruffleHogVerification bool
-	Owned                  bool
-	Organization           string
-	Repository             string
-	Cookie                 string
-	RunsLimit              int
-	Context                context.Context
-	Client                 *gitea.Client
-	HttpClient             *http.Client
-}
-
-// cookieTransport wraps http.RoundTripper to automatically add cookie to all requests
-type cookieTransport struct {
-	Base   http.RoundTripper
-	Cookie string
-}
-
-func (t *cookieTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if t.Base == nil {
-		t.Base = http.DefaultTransport
-	}
-	req.Header.Set("Cookie", fmt.Sprintf("i_like_gitea=%s", t.Cookie))
-	return t.Base.RoundTrip(req)
-}
-
 var scanOptions = GiteaScanOptions{}
-
-type ActionWorkflowRun struct {
-	ID         int64  `json:"id"`
-	Name       string `json:"name"`
-	Title      string `json:"title"`
-	Status     string `json:"status"`
-	Event      string `json:"event"`
-	CreatedAt  string `json:"created_at"`
-	UpdatedAt  string `json:"updated_at"`
-	RunNumber  int64  `json:"run_number"`
-	WorkflowID string `json:"workflow_id"`
-	HeadBranch string `json:"head_branch"`
-	HeadSha    string `json:"head_sha"`
-	URL        string `json:"url"`
-	HTMLURL    string `json:"html_url"`
-}
-
-type ActionWorkflowRunsResponse struct {
-	TotalCount   int64               `json:"total_count"`
-	WorkflowRuns []ActionWorkflowRun `json:"workflow_runs"`
-}
-
-type ActionArtifact struct {
-	ID                 int64  `json:"id"`
-	Name               string `json:"name"`
-	Size               int64  `json:"size"`
-	CreatedAt          string `json:"created_at"`
-	ExpiredAt          string `json:"expired_at"`
-	WorkflowRunID      int64  `json:"workflow_run_id"`
-	ArchiveDownloadURL string `json:"archive_download_url"`
-}
-
-type ActionArtifactsResponse struct {
-	TotalCount int64            `json:"total_count"`
-	Artifacts  []ActionArtifact `json:"artifacts"`
-}
-
-type ActionJob struct {
-	ID          int64  `json:"id"`
-	Name        string `json:"name"`
-	Status      string `json:"status"`
-	Conclusion  string `json:"conclusion"`
-	StartedAt   string `json:"started_at"`
-	CompletedAt string `json:"completed_at"`
-	RunID       int64  `json:"run_id"`
-	TaskID      int64  `json:"task_id"`
-}
-
-type ActionJobsResponse struct {
-	TotalCount int64       `json:"total_count"`
-	Jobs       []ActionJob `json:"jobs"`
-}
 
 func NewScanCmd() *cobra.Command {
 	scanCmd := &cobra.Command{
@@ -184,18 +100,30 @@ func Scan(cmd *cobra.Command, args []string) {
 		log.Fatal().Err(err).Msg("Failed creating Gitea client")
 	}
 
-	scanOptions.HttpClient = helper.GetPipeleakHTTPClient()
-	
-	// Add cookie to HTTP client if provided
+	authHeaders := map[string]string{"Authorization": "token " + scanOptions.Token}
+	scanOptions.HttpClient = helper.GetPipeleakHTTPClient("", nil, authHeaders)
+
+	httpClient := &http.Client{
+		Transport: &AuthTransport{
+			Base:  http.DefaultTransport,
+			Token: scanOptions.Token,
+		},
+	}
+
+	scanOptions.HttpClient.StandardClient().Transport = httpClient.Transport
+
 	if scanOptions.Cookie != "" {
 		validateCookie()
-		// Wrap the client to automatically add cookie to all requests
-		scanOptions.HttpClient = &http.Client{
-			Transport: &cookieTransport{
-				Base:   scanOptions.HttpClient.Transport,
-				Cookie: scanOptions.Cookie,
+		scanOptions.HttpClient = helper.GetPipeleakHTTPClient(
+			scanOptions.GiteaURL,
+			[]*http.Cookie{
+				{Name: "i_like_gitea", Value: scanOptions.Cookie, Secure: true},
 			},
-			Timeout: scanOptions.HttpClient.Timeout,
+			authHeaders,
+		)
+
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to parse Gitea URL for cookie debugging")
 		}
 	}
 
@@ -211,16 +139,13 @@ func Scan(cmd *cobra.Command, args []string) {
 func scanStatus() *zerolog.Event {
 	return log.Info().Str("status", "scanning... ✨✨ nothing more yet ✨✨")
 }
-
 func validateCookie() {
-	// Construct the /issues URL
 	issuesURL, err := url.Parse(scanOptions.GiteaURL)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed parsing Gitea URL for cookie validation")
 	}
 	issuesURL.Path = "/issues"
 
-	// Create request (cookie will be added by cookieTransport)
 	req, err := http.NewRequest("GET", issuesURL.String(), nil)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed creating cookie validation request")
@@ -229,27 +154,38 @@ func validateCookie() {
 	// Temporarily add cookie for validation (before cookieTransport is set)
 	req.Header.Set("Cookie", fmt.Sprintf("i_like_gitea=%s", scanOptions.Cookie))
 
-	// Make request without following redirects
-	client := helper.GetPipeleakHTTPClient()
-	originalCheckRedirect := client.CheckRedirect
-	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
+	// Use a standard HTTP client that doesn't automatically retry to properly detect redirects
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			// Don't follow redirects, we want to examine them
+			return http.ErrUseLastResponse
+		},
 	}
 
 	resp, err := client.Do(req)
-	// Restore original redirect behavior
-	client.CheckRedirect = originalCheckRedirect
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed validating cookie")
 	}
 	defer resp.Body.Close()
 
+	log.Debug().Int("status", resp.StatusCode).Msg("Cookie validation response status code")
+
+	// Check for redirect to login page
+	if resp.StatusCode == http.StatusSeeOther || resp.StatusCode == http.StatusFound {
+		location := resp.Header.Get("Location")
+		if strings.Contains(location, "/user/login") {
+			log.Fatal().Str("location", location).Msg("Cookie validation failed - redirected to login page, cookie is invalid or expired")
+		}
+		log.Warn().Str("location", location).Msg("Unexpected redirect during cookie validation")
+	}
+
 	// Check status code
-	if resp.StatusCode == http.StatusOK {
+	switch resp.StatusCode {
+	case http.StatusOK:
 		log.Info().Msg("Cookie validation successful")
-	} else if resp.StatusCode == http.StatusSeeOther {
-		log.Fatal().Str("location", resp.Header.Get("Location")).Msg("Cookie validation failed - invalid or expired cookie")
-	} else {
+	case http.StatusSeeOther, http.StatusFound:
+		// Already handled above
+	default:
 		log.Fatal().Int("status", resp.StatusCode).Msg("Cookie validation failed - unexpected status code")
 	}
 }
@@ -469,15 +405,7 @@ func listWorkflowRuns(client *gitea.Client, repo *gitea.Repository) ([]ActionWor
 		q.Set("limit", strconv.Itoa(limit))
 		link.RawQuery = q.Encode()
 
-		req, err := http.NewRequestWithContext(scanOptions.Context, "GET", link.String(), nil)
-		if err != nil {
-			return nil, err
-		}
-
-		req.Header.Set("Authorization", "token "+scanOptions.Token)
-		req.Header.Set("Content-Type", "application/json")
-
-		resp, err := scanOptions.HttpClient.Do(req)
+		resp, err := scanOptions.HttpClient.Get(link.String())
 		if err != nil {
 			return nil, err
 		}
@@ -574,15 +502,7 @@ func listWorkflowJobs(client *gitea.Client, repo *gitea.Repository, run ActionWo
 		q.Set("limit", strconv.Itoa(limit))
 		link.RawQuery = q.Encode()
 
-		req, err := http.NewRequestWithContext(scanOptions.Context, "GET", link.String(), nil)
-		if err != nil {
-			return nil, err
-		}
-
-		req.Header.Set("Authorization", "token "+scanOptions.Token)
-		req.Header.Set("Content-Type", "application/json")
-
-		resp, err := scanOptions.HttpClient.Do(req)
+		resp, err := scanOptions.HttpClient.Get(link.String())
 		if err != nil {
 			return nil, err
 		}
@@ -635,15 +555,7 @@ func scanJobLogs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflo
 	}
 	link.Path = fmt.Sprintf("/api/v1/repos/%s/%s/actions/jobs/%d/logs", repo.Owner.UserName, repo.Name, job.ID)
 
-	req, err := http.NewRequestWithContext(scanOptions.Context, "GET", link.String(), nil)
-	if err != nil {
-		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("failed to create request for logs")
-		return
-	}
-
-	req.Header.Set("Authorization", "token "+scanOptions.Token)
-
-	resp, err := scanOptions.HttpClient.Do(req)
+	resp, err := scanOptions.HttpClient.Get(link.String())
 	if err != nil {
 		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("failed to download logs")
 		return
@@ -730,15 +642,7 @@ func listArtifacts(repo *gitea.Repository, run ActionWorkflowRun) ([]ActionArtif
 		q.Set("limit", strconv.Itoa(limit))
 		link.RawQuery = q.Encode()
 
-		req, err := http.NewRequestWithContext(scanOptions.Context, "GET", link.String(), nil)
-		if err != nil {
-			return nil, err
-		}
-
-		req.Header.Set("Authorization", "token "+scanOptions.Token)
-		req.Header.Set("Content-Type", "application/json")
-
-		resp, err := scanOptions.HttpClient.Do(req)
+		resp, err := scanOptions.HttpClient.Get(link.String())
 		if err != nil {
 			return nil, err
 		}
@@ -792,15 +696,7 @@ func downloadAndScanArtifact(client *gitea.Client, repo *gitea.Repository, run A
 	}
 	link.Path = fmt.Sprintf("/api/v1/repos/%s/%s/actions/artifacts/%d/zip", repo.Owner.UserName, repo.Name, artifact.ID)
 
-	req, err := http.NewRequestWithContext(scanOptions.Context, "GET", link.String(), nil)
-	if err != nil {
-		log.Error().Err(err).Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Msg("failed to create artifact download request")
-		return
-	}
-
-	req.Header.Set("Authorization", "token "+scanOptions.Token)
-
-	resp, err := scanOptions.HttpClient.Do(req)
+	resp, err := scanOptions.HttpClient.Get(link.String())
 	if err != nil {
 		log.Error().Err(err).Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Msg("failed to download artifact")
 		return
@@ -947,14 +843,7 @@ func getLatestRunIDFromHTML(repo *gitea.Repository) (int64, error) {
 	}
 	link.Path = fmt.Sprintf("/%s/actions", repo.FullName)
 
-	req, err := http.NewRequestWithContext(scanOptions.Context, "GET", link.String(), nil)
-	if err != nil {
-		return 0, err
-	}
-
-	// Cookie is automatically added by cookieTransport
-
-	resp, err := scanOptions.HttpClient.Do(req)
+	resp, err := scanOptions.HttpClient.Get(link.String())
 	if err != nil {
 		return 0, err
 	}
@@ -1005,15 +894,7 @@ func scanJobLogsWithCookie(repo *gitea.Repository, runID int64, jobID int64) boo
 	}
 	link.Path = fmt.Sprintf("/%s/actions/runs/%d/jobs/%d/logs", repo.FullName, runID, jobID)
 
-	req, err := http.NewRequestWithContext(scanOptions.Context, "GET", link.String(), nil)
-	if err != nil {
-		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", runID).Int64("job_id", jobID).Msg("failed to create request for logs")
-		return false
-	}
-
-	// Cookie is automatically added by cookieTransport
-
-	resp, err := scanOptions.HttpClient.Do(req)
+	resp, err := scanOptions.HttpClient.Get(link.String())
 	if err != nil {
 		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", runID).Int64("job_id", jobID).Msg("failed to download logs")
 		return false
@@ -1037,7 +918,6 @@ func scanJobLogsWithCookie(repo *gitea.Repository, runID int64, jobID int64) boo
 		return false
 	}
 
-	// Scan the logs for secrets
 	findings, err := scanner.DetectHits(logBytes, scanOptions.MaxScanGoRoutines, scanOptions.TruffleHogVerification)
 	if err != nil {
 		log.Debug().Err(err).Str("repo", repo.FullName).Int64("run_id", runID).Int64("job_id", jobID).Msg("Failed detecting secrets in logs")

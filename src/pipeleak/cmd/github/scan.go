@@ -16,6 +16,7 @@ import (
 	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit/github_secondary_ratelimit"
 	"github.com/google/go-github/v69/github"
 	"github.com/h2non/filetype"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -37,7 +38,7 @@ type GitHubScanOptions struct {
 	Artifacts              bool
 	Context                context.Context
 	Client                 *github.Client
-	HttpClient             *http.Client
+	HttpClient             *retryablehttp.Client
 }
 
 var options = GitHubScanOptions{}
@@ -94,7 +95,7 @@ func Scan(cmd *cobra.Command, args []string) {
 
 	options.Context = context.WithValue(context.Background(), github.BypassRateLimitCheck, true)
 	options.Client = setupClient(options.AccessToken)
-	options.HttpClient = helper.GetPipeleakHTTPClient()
+	options.HttpClient = helper.GetPipeleakHTTPClient("", nil, nil)
 	scan(options.Client)
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
 }

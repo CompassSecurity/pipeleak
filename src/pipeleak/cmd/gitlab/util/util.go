@@ -17,20 +17,14 @@ import (
 )
 
 func GetGitlabClient(token string, url string) (*gitlab.Client, error) {
-	return gitlab.NewClient(token, gitlab.WithBaseURL(url), gitlab.WithHTTPClient(helper.GetPipeleakHTTPClient()))
+	return gitlab.NewClient(token, gitlab.WithBaseURL(url), gitlab.WithHTTPClient(helper.GetPipeleakHTTPClient("", nil, nil).StandardClient()))
 }
 
 func CookieSessionValid(gitlabUrl string, cookieVal string) {
 	gitlabSessionsUrl, _ := url.JoinPath(gitlabUrl, "-/user_settings/active_sessions")
 
-	req, err := http.NewRequest("GET", gitlabSessionsUrl, nil)
-	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("Failed GitLab sessions request")
-		return
-	}
-	req.AddCookie(&http.Cookie{Name: "_gitlab_session", Value: cookieVal})
-	client := helper.GetPipeleakHTTPClient()
-	resp, err := client.Do(req)
+	client := helper.GetPipeleakHTTPClient(gitlabUrl, []*http.Cookie{{Name: "_gitlab_session", Value: cookieVal}}, nil)
+	resp, err := client.Get(gitlabSessionsUrl)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed GitLab session test")
 	}
@@ -64,7 +58,7 @@ func DetermineVersion(gitlabUrl string, apiToken string) *gitlab.Version {
 		}
 		u.Path = path.Join(u.Path, "/help")
 
-		client := helper.GetPipeleakHTTPClient()
+		client := helper.GetPipeleakHTTPClient("", nil, nil)
 		response, err := client.Get(u.String())
 
 		if err != nil {

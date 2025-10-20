@@ -8,7 +8,7 @@ import (
 )
 
 func FetchVulns(version string) (string, error) {
-	client := helper.GetPipeleakHTTPClient()
+	client := helper.GetPipeleakHTTPClient("", nil, nil)
 	res, err := client.Get("https://services.nvd.nist.gov/rest/json/cves/2.0?cpeName=cpe:2.3:a:gitlab:gitlab:" + version + ":*:*:*:*:*:*:*")
 	if err != nil {
 		return "{}", err

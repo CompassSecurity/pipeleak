@@ -3,10 +3,12 @@ package helper
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/base64"
 	"math/rand"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"os"
 	"os/signal"
@@ -17,6 +19,7 @@ import (
 
 	"atomicgo.dev/keyboard"
 	"atomicgo.dev/keyboard/keys"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/net/html"
@@ -106,12 +109,73 @@ func RegisterGracefulShutdownHandler(handler ShutdownHandler) {
 
 }
 
-func GetPipeleakHTTPClient() *http.Client {
-	proxyServer, useHttpProxy := os.LookupEnv("HTTP_PROXY")
+type headerRoundTripper struct {
+	headers map[string]string
+	next    http.RoundTripper
+}
+
+func (hrt *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	if hrt.headers == nil {
+		return hrt.next.RoundTrip(req)
+	}
+
+	for k, v := range hrt.headers {
+		if req.Header.Get(k) == "" {
+			req.Header.Set(k, v)
+		}
+	}
+	return hrt.next.RoundTrip(req)
+}
+
+func GetPipeleakHTTPClient(cookieUrl string, cookies []*http.Cookie, defaultHeaders map[string]string) *retryablehttp.Client {
+
+	jar := http.DefaultClient.Jar
+
+	if len(cookies) > 0 {
+		jar, err := cookiejar.New(nil)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed creating cookie jar")
+		}
+
+		urlParsed, err := url.Parse(cookieUrl)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed parsing URL for cookie jar")
+		}
+
+		jar.SetCookies(urlParsed, cookies)
+		log.Debug().Str("url", urlParsed.String()).Int("cookiesCount", len(cookies)).Msg("Added cookies for HTTP client")
+	}
+
+	client := retryablehttp.NewClient()
+
+	client.Logger = nil // Disable logging completely
+
+	client.HTTPClient.Jar = jar
+
+	client.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
+		if err != nil {
+			log.Error().Err(err).Msg("Retrying HTTP request, error occurred")
+			return true, nil
+		}
+
+		if resp == nil {
+			log.Error().Msg("Retrying HTTP request, no response")
+			return false, nil
+		}
+
+		if resp.StatusCode == 429 || (resp.StatusCode >= 500 && resp.StatusCode != 501) {
+			log.Trace().Int("statusCode", resp.StatusCode).Msg("Retrying HTTP request")
+			return true, nil
+		}
+
+		return false, nil
+	}
+
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 
+	proxyServer, useHttpProxy := os.LookupEnv("HTTP_PROXY")
 	if useHttpProxy {
 		proxyUrl, err := url.Parse(proxyServer)
 		if err != nil {
@@ -121,7 +185,12 @@ func GetPipeleakHTTPClient() *http.Client {
 		tr.Proxy = http.ProxyURL(proxyUrl)
 	}
 
-	return &http.Client{Transport: tr, Timeout: 60 * time.Second}
+	client.HTTPClient.Transport = &headerRoundTripper{
+		headers: defaultHeaders,
+		next:    tr,
+	}
+
+	return client
 }
 
 func IsDirectory(path string) bool {

@@ -74,7 +74,7 @@ func downloadFile(url string, filepath string) error {
 	}
 	defer func() { _ = out.Close() }()
 
-	client := helper.GetPipeleakHTTPClient()
+	client := helper.GetPipeleakHTTPClient("", nil, nil)
 	resp, err := client.Get(url)
 	if err != nil {
 		return err
