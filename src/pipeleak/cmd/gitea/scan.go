@@ -944,5 +944,163 @@ func scanJobLogsWithCookie(repo *gitea.Repository, runID int64, jobID int64) boo
 			Msg("HIT")
 	}
 
+	// Scan artifacts if --artifacts flag is set
+	if scanOptions.Artifacts {
+		scanArtifactsWithCookie(repo, runID, runURL)
+	}
+
 	return true
+}
+
+// scanArtifactsWithCookie downloads and scans artifacts for a workflow run using cookie authentication
+func scanArtifactsWithCookie(repo *gitea.Repository, runID int64, runURL string) {
+	// Get the run HTML page to extract artifact URLs
+	artifactURLs, err := getArtifactURLsFromRunHTML(repo, runID)
+	if err != nil {
+		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", runID).Msg("failed to get artifact URLs from HTML")
+		return
+	}
+
+	if len(artifactURLs) == 0 {
+		log.Debug().Str("repo", repo.FullName).Int64("run_id", runID).Msg("No artifacts found in run")
+		return
+	}
+
+	log.Debug().Str("repo", repo.FullName).Int64("run_id", runID).Int("count", len(artifactURLs)).Msg("Found artifacts in run")
+
+	// Create a minimal ActionWorkflowRun for scanArtifactContent
+	run := ActionWorkflowRun{
+		ID:      runID,
+		Name:    fmt.Sprintf("Run %d", runID),
+		HTMLURL: runURL,
+	}
+
+	ctx := scanOptions.Context
+	group := parallel.Limited(ctx, scanOptions.MaxScanGoRoutines)
+
+	for artifactName, artifactURL := range artifactURLs {
+		name := artifactName
+		url := artifactURL
+		group.Go(func(ctx context.Context) {
+			downloadAndScanArtifactWithCookie(repo, run, name, url)
+		})
+	}
+
+	group.Wait()
+}
+
+// getArtifactURLsFromRunHTML parses the run HTML page and extracts artifact download URLs
+func getArtifactURLsFromRunHTML(repo *gitea.Repository, runID int64) (map[string]string, error) {
+	// Construct URL: https://gitea.com/owner/repo/actions/runs/{run_id}
+	link, err := url.Parse(scanOptions.GiteaURL)
+	if err != nil {
+		return nil, err
+	}
+	link.Path = fmt.Sprintf("/%s/actions/runs/%d", repo.FullName, runID)
+
+	resp, err := scanOptions.HttpClient.Get(link.String())
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 404 {
+		return nil, fmt.Errorf("run not found")
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse HTML to find artifact download links
+	// Pattern: <a href="/owner/repo/actions/runs/{run_id}/artifacts/{artifact_name}">
+	// Example: <a href="/frj/secret-actions/actions/runs/123/artifacts/my-artifact">
+	artifactPattern := regexp.MustCompile(fmt.Sprintf(`<a[^>]+href="(/%s/actions/runs/%d/artifacts/([^"]+))"`, regexp.QuoteMeta(repo.FullName), runID))
+	matches := artifactPattern.FindAllStringSubmatch(string(body), -1)
+
+	artifactURLs := make(map[string]string)
+	for _, match := range matches {
+		if len(match) >= 3 {
+			artifactPath := match[1]
+			artifactName := match[2]
+			// Construct full URL
+			fullURL, err := url.Parse(scanOptions.GiteaURL)
+			if err != nil {
+				log.Error().Err(err).Msg("failed to parse Gitea URL")
+				continue
+			}
+			fullURL.Path = artifactPath
+			artifactURLs[artifactName] = fullURL.String()
+		}
+	}
+
+	return artifactURLs, nil
+}
+
+// downloadAndScanArtifactWithCookie downloads and scans a single artifact using cookie authentication
+func downloadAndScanArtifactWithCookie(repo *gitea.Repository, run ActionWorkflowRun, artifactName string, artifactURL string) {
+	log.Debug().Str("repo", repo.FullName).Int64("run_id", run.ID).Str("artifact", artifactName).Msg("Downloading artifact with cookie")
+
+	resp, err := scanOptions.HttpClient.Get(artifactURL)
+	if err != nil {
+		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Str("artifact", artifactName).Msg("failed to download artifact")
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 404 || resp.StatusCode == 410 {
+		log.Debug().Str("repo", repo.FullName).Int64("run_id", run.ID).Str("artifact", artifactName).Msg("Artifact expired or not found")
+		return
+	}
+
+	if resp.StatusCode != 200 {
+		log.Error().Int("status", resp.StatusCode).Str("repo", repo.FullName).Int64("run_id", run.ID).Str("artifact", artifactName).Msg("failed to download artifact")
+		return
+	}
+
+	artifactBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Str("artifact", artifactName).Msg("failed to read artifact bytes")
+		return
+	}
+
+	// Try to read as ZIP first
+	zipReader, err := zip.NewReader(bytes.NewReader(artifactBytes), int64(len(artifactBytes)))
+	if err != nil {
+		// Not a ZIP file, scan directly
+		log.Debug().Str("repo", repo.FullName).Int64("run_id", run.ID).Str("artifact", artifactName).Msg("Artifact is not a zip, scanning directly")
+		scanArtifactContent(artifactBytes, repo, run, artifactName, "")
+		return
+	}
+
+	// Process ZIP file contents
+	ctx := scanOptions.Context
+	group := parallel.Limited(ctx, scanOptions.MaxScanGoRoutines)
+
+	for _, file := range zipReader.File {
+		f := file
+		group.Go(func(ctx context.Context) {
+			fc, err := f.Open()
+			if err != nil {
+				log.Debug().Err(err).Str("file", f.Name).Msg("Unable to open file in artifact zip")
+				return
+			}
+			defer fc.Close()
+
+			content, err := io.ReadAll(fc)
+			if err != nil {
+				log.Debug().Err(err).Str("file", f.Name).Msg("Unable to read file in artifact zip")
+				return
+			}
+
+			scanArtifactContent(content, repo, run, artifactName, f.Name)
+		})
+	}
+
+	group.Wait()
 }
