@@ -131,17 +131,23 @@ func listWorkflowRuns(client *gitea.Client, repo *gitea.Repository) ([]ActionWor
 		}
 
 		if resp.StatusCode == 404 {
-			_ = resp.Body.Close()
+			if err := resp.Body.Close(); err != nil {
+				log.Debug().Err(err).Msg("Failed to close response body")
+			}
 			return allRuns, nil
 		}
 
 		if resp.StatusCode != 200 {
-			_ = resp.Body.Close()
+			if err := resp.Body.Close(); err != nil {
+				log.Debug().Err(err).Msg("Failed to close response body")
+			}
 			return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 		}
 
 		body, err := io.ReadAll(resp.Body)
-		_ = resp.Body.Close()
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			log.Debug().Err(closeErr).Msg("Failed to close response body")
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -235,17 +241,23 @@ func listWorkflowJobs(client *gitea.Client, repo *gitea.Repository, run ActionWo
 		}
 
 		if resp.StatusCode == 404 {
-			resp.Body.Close()
+			if err := resp.Body.Close(); err != nil {
+				log.Debug().Err(err).Msg("Failed to close response body")
+			}
 			return allJobs, nil
 		}
 
 		if resp.StatusCode != 200 {
-			resp.Body.Close()
+			if err := resp.Body.Close(); err != nil {
+				log.Debug().Err(err).Msg("Failed to close response body")
+			}
 			return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 		}
 
 		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			log.Debug().Err(closeErr).Msg("Failed to close response body")
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -367,17 +379,23 @@ func listArtifacts(repo *gitea.Repository, run ActionWorkflowRun) ([]ActionArtif
 		}
 
 		if resp.StatusCode == 404 {
-			resp.Body.Close()
+			if err := resp.Body.Close(); err != nil {
+				log.Debug().Err(err).Msg("Failed to close response body")
+			}
 			return allArtifacts, nil
 		}
 
 		if resp.StatusCode != 200 {
-			resp.Body.Close()
+			if err := resp.Body.Close(); err != nil {
+				log.Debug().Err(err).Msg("Failed to close response body")
+			}
 			return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 		}
 
 		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			log.Debug().Err(closeErr).Msg("Failed to close response body")
+		}
 		if err != nil {
 			return nil, err
 		}

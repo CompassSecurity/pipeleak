@@ -30,7 +30,11 @@ func makeHTTPRequest(url string) (*httpResponse, error) {
 		return nil, fmt.Errorf("HTTP response is nil")
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Debug().Err(err).Msg("Failed to close HTTP response body")
+		}
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -76,7 +80,11 @@ func makeHTTPPostRequest(urlStr string, body []byte, headers map[string]string) 
 		return nil, fmt.Errorf("HTTP response is nil")
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Debug().Err(err).Msg("Failed to close HTTP POST response body")
+		}
+	}()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
