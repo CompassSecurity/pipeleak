@@ -1,8 +1,6 @@
 package gitea
 
 import (
-	"archive/zip"
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -12,10 +10,8 @@ import (
 	"strconv"
 
 	"code.gitea.io/sdk/gitea"
-	"github.com/CompassSecurity/pipeleak/scanner"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog/log"
-	"github.com/wandb/parallel"
 )
 
 type GiteaScanOptions struct {
@@ -263,55 +259,31 @@ func listWorkflowJobs(client *gitea.Client, repo *gitea.Repository, run ActionWo
 
 func scanJobLogs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun, job ActionJob) {
 	// Gitea Actions API: GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs
-	link, err := url.Parse(scanOptions.GiteaURL)
+	urlStr, err := buildAPIURL(repo, "/actions/jobs/%d/logs", job.ID)
 	if err != nil {
-		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("failed to parse URL")
+		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("failed to build URL")
 		return
 	}
-	link.Path = fmt.Sprintf("/api/v1/repos/%s/%s/actions/jobs/%d/logs", repo.Owner.UserName, repo.Name, job.ID)
 
-	resp, err := scanOptions.HttpClient.Get(link.String())
+	resp, err := makeHTTPRequest(urlStr)
 	if err != nil {
 		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("failed to download logs")
 		return
 	}
 
-	defer resp.Body.Close()
+	ctx := logContext{Repo: repo.FullName, RunID: run.ID, JobID: job.ID}
 
 	if resp.StatusCode == 404 {
 		log.Debug().Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("Logs not found or expired")
 		return
 	}
 
-	if resp.StatusCode != 200 {
-		log.Error().Int("status", resp.StatusCode).Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("failed to download logs")
+	if err := checkHTTPStatus(resp.StatusCode, "download logs"); err != nil {
+		logHTTPError(resp.StatusCode, "download logs", ctx)
 		return
 	}
 
-	logBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("failed to read log bytes")
-		return
-	}
-
-	findings, err := scanner.DetectHits(logBytes, scanOptions.MaxScanGoRoutines, scanOptions.TruffleHogVerification)
-	if err != nil {
-		log.Debug().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("Failed detecting secrets in logs")
-		return
-	}
-
-	for _, finding := range findings {
-		log.Warn().
-			Str("confidence", finding.Pattern.Pattern.Confidence).
-			Str("ruleName", finding.Pattern.Pattern.Name).
-			Str("value", finding.Text).
-			Str("repo", repo.FullName).
-			Int64("run_id", run.ID).
-			Int64("job_id", job.ID).
-			Str("job_name", job.Name).
-			Str("url", run.HTMLURL).
-			Msg("HIT")
-	}
+	scanLogs(resp.Body, repo, run, job.ID, job.Name)
 }
 
 func scanWorkflowArtifacts(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun) {
@@ -404,20 +376,17 @@ func listArtifacts(repo *gitea.Repository, run ActionWorkflowRun) ([]ActionArtif
 func downloadAndScanArtifact(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun, artifact ActionArtifact) {
 	// Gitea Actions API: GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip
 	// This endpoint returns a 302 redirect to the actual blob URL
-	link, err := url.Parse(scanOptions.GiteaURL)
+	urlStr, err := buildAPIURL(repo, "/actions/artifacts/%d/zip", artifact.ID)
 	if err != nil {
-		log.Error().Err(err).Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Msg("failed to parse URL")
+		log.Error().Err(err).Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Msg("failed to build URL")
 		return
 	}
-	link.Path = fmt.Sprintf("/api/v1/repos/%s/%s/actions/artifacts/%d/zip", repo.Owner.UserName, repo.Name, artifact.ID)
 
-	resp, err := scanOptions.HttpClient.Get(link.String())
+	resp, err := makeHTTPRequest(urlStr)
 	if err != nil {
 		log.Error().Err(err).Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Msg("failed to download artifact")
 		return
 	}
-
-	defer resp.Body.Close()
 
 	if resp.StatusCode == 404 || resp.StatusCode == 410 {
 		log.Debug().Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Msg("Artifact expired or not found")
@@ -429,40 +398,5 @@ func downloadAndScanArtifact(client *gitea.Client, repo *gitea.Repository, run A
 		return
 	}
 
-	artifactBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Error().Err(err).Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Msg("failed to read artifact bytes")
-		return
-	}
-
-	zipReader, err := zip.NewReader(bytes.NewReader(artifactBytes), int64(len(artifactBytes)))
-	if err != nil {
-		log.Debug().Err(err).Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Msg("Artifact is not a zip, scanning directly")
-		scanArtifactContent(artifactBytes, repo, run, artifact.Name, "")
-		return
-	}
-
-	ctx := scanOptions.Context
-	group := parallel.Limited(ctx, scanOptions.MaxScanGoRoutines)
-
-	for _, file := range zipReader.File {
-		group.Go(func(ctx context.Context) {
-			fc, err := file.Open()
-			if err != nil {
-				log.Debug().Err(err).Str("file", file.Name).Msg("Unable to open file in artifact zip")
-				return
-			}
-			defer fc.Close()
-
-			content, err := io.ReadAll(fc)
-			if err != nil {
-				log.Debug().Err(err).Str("file", file.Name).Msg("Unable to read file in artifact zip")
-				return
-			}
-
-			scanArtifactContent(content, repo, run, artifact.Name, file.Name)
-		})
-	}
-
-	group.Wait()
+	processZipArtifact(resp.Body, repo, run, artifact.Name)
 }

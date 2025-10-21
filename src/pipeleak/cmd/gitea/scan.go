@@ -2,7 +2,6 @@ package gitea
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -10,7 +9,6 @@ import (
 	"code.gitea.io/sdk/gitea"
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/CompassSecurity/pipeleak/scanner"
-	"github.com/h2non/filetype"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -327,23 +325,5 @@ func scanRepository(client *gitea.Client, repo *gitea.Repository) {
 		if scanOptions.Artifacts {
 			scanWorkflowArtifacts(client, repo, run)
 		}
-	}
-}
-
-func scanArtifactContent(content []byte, repo *gitea.Repository, run ActionWorkflowRun, artifactName string, fileName string) {
-	kind, _ := filetype.Match(content)
-
-	displayName := artifactName
-	if fileName != "" {
-		displayName = fmt.Sprintf("%s/%s", artifactName, fileName)
-	}
-
-	if filetype.IsArchive(content) {
-		scanner.HandleArchiveArtifact(displayName, content, run.HTMLURL, run.Name, scanOptions.TruffleHogVerification)
-	} else if kind != filetype.Unknown {
-		log.Trace().Str("file", displayName).Str("type", kind.MIME.Value).Msg("Skipping unknown file type")
-	} else {
-		log.Info().Str("file", displayName).Str("type", kind.MIME.Value).Msg("Not an archive file type, scanning as text")
-		scanner.DetectFileHits(content, run.HTMLURL, run.Name, displayName, repo.FullName, scanOptions.TruffleHogVerification)
 	}
 }

@@ -1,13 +1,9 @@
 package gitea
 
 import (
-	"archive/zip"
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -15,35 +11,25 @@ import (
 	"sync/atomic"
 
 	"code.gitea.io/sdk/gitea"
-	"github.com/CompassSecurity/pipeleak/scanner"
 	"github.com/rs/zerolog/log"
 	"github.com/wandb/parallel"
 )
 
 func validateCookie() {
-	issuesURL, err := url.Parse(scanOptions.GiteaURL)
+	urlStr, err := buildGiteaURL("/issues")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed parsing Gitea URL for cookie validation")
 	}
 
-	issuesURL.Path = "/issues"
-
-	resp, err := scanOptions.HttpClient.Get(issuesURL.String())
+	resp, err := makeHTTPRequest(urlStr)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed cookie validation request")
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed reading cookie validation response")
 	}
 
 	log.Debug().Int("status", resp.StatusCode).Msg("Cookie validation response status code")
 
 	// Check if response contains login page indicators
-	bodyStr := string(body)
-	if strings.Contains(bodyStr, "/user/login") {
+	if strings.Contains(string(resp.Body), "/user/login") {
 		log.Fatal().Msg("Cookie validation failed - redirected to login page, cookie is invalid or expired")
 	} else {
 		log.Info().Msg("Cookie validation succeeded")
@@ -117,39 +103,27 @@ func scanRepositoryWithCookie(repo *gitea.Repository) {
 // getLatestRunIDFromHTML fetches the actions page and extracts the latest run ID
 func getLatestRunIDFromHTML(repo *gitea.Repository) (int64, error) {
 	// Construct URL: https://gitea.com/owner/repo/actions
-	link, err := url.Parse(scanOptions.GiteaURL)
+	urlStr, err := buildGiteaURL("/%s/actions", repo.FullName)
 	if err != nil {
 		return 0, err
 	}
-	link.Path = fmt.Sprintf("/%s/actions", repo.FullName)
 
-	resp, err := scanOptions.HttpClient.Get(link.String())
+	resp, err := makeHTTPRequest(urlStr)
 	if err != nil {
 		return 0, err
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode == 403 {
-		return 0, fmt.Errorf("access forbidden, check your cookie")
-	}
-
-	if resp.StatusCode == 404 {
-		return 0, nil
-	}
-
-	if resp.StatusCode != 200 {
-		return 0, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
+	if err := checkHTTPStatus(resp.StatusCode, "fetch actions page"); err != nil {
+		if resp.StatusCode == 404 {
+			return 0, nil // Actions disabled
+		}
 		return 0, err
 	}
 
 	// Parse HTML to find run IDs
 	// Look for patterns like: /owner/repo/actions/runs/123
 	runIDPattern := regexp.MustCompile(fmt.Sprintf(`/%s/actions/runs/(\d+)`, regexp.QuoteMeta(repo.FullName)))
-	matches := runIDPattern.FindAllStringSubmatch(string(body), -1)
+	matches := runIDPattern.FindAllStringSubmatch(string(resp.Body), -1)
 
 	if len(matches) == 0 {
 		return 0, nil
@@ -167,43 +141,31 @@ func getLatestRunIDFromHTML(repo *gitea.Repository) (int64, error) {
 
 // scanJobLogsWithCookie fetches and scans job logs using cookie authentication
 func scanJobLogsWithCookie(repo *gitea.Repository, runID int64, jobID int64) bool {
-	link, err := url.Parse(scanOptions.GiteaURL)
+	urlStr, err := buildGiteaURL("/%s/actions/runs/%d/jobs/%d/logs", repo.FullName, runID, jobID)
 	if err != nil {
-		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", runID).Int64("job_id", jobID).Msg("failed to parse URL")
+		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", runID).Int64("job_id", jobID).Msg("failed to build URL")
 		return false
 	}
-	link.Path = fmt.Sprintf("/%s/actions/runs/%d/jobs/%d/logs", repo.FullName, runID, jobID)
 
-	resp, err := scanOptions.HttpClient.Get(link.String())
+	resp, err := makeHTTPRequest(urlStr)
 	if err != nil {
 		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", runID).Int64("job_id", jobID).Msg("failed to download logs")
 		return false
 	}
 
-	defer resp.Body.Close()
+	ctx := logContext{Repo: repo.FullName, RunID: runID, JobID: jobID}
 
 	if resp.StatusCode == 404 {
 		log.Debug().Str("repo", repo.FullName).Int64("run_id", runID).Int64("job_id", jobID).Msg("Logs not found")
 		return false
 	}
 
-	if resp.StatusCode != 200 {
-		log.Error().Int("status", resp.StatusCode).Str("repo", repo.FullName).Int64("run_id", runID).Int64("job_id", jobID).Msg("failed to download logs")
+	if err := checkHTTPStatus(resp.StatusCode, "download logs"); err != nil {
+		logHTTPError(resp.StatusCode, "download logs", ctx)
 		return false
 	}
 
-	logBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", runID).Int64("job_id", jobID).Msg("failed to read log bytes")
-		return false
-	}
-
-	findings, err := scanner.DetectHits(logBytes, scanOptions.MaxScanGoRoutines, scanOptions.TruffleHogVerification)
-	if err != nil {
-		log.Debug().Err(err).Str("repo", repo.FullName).Int64("run_id", runID).Int64("job_id", jobID).Msg("Failed detecting secrets in logs")
-		return false
-	}
-
+	// Build run URL for findings
 	runURLParsed, err := url.Parse(scanOptions.GiteaURL)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to parse Gitea URL")
@@ -212,19 +174,16 @@ func scanJobLogsWithCookie(repo *gitea.Repository, runID int64, jobID int64) boo
 	runURLParsed.Path = fmt.Sprintf("/%s/actions/runs/%d", repo.FullName, runID)
 	runURL := runURLParsed.String()
 
-	for _, finding := range findings {
-		log.Warn().
-			Str("confidence", finding.Pattern.Pattern.Confidence).
-			Str("ruleName", finding.Pattern.Pattern.Name).
-			Str("value", finding.Text).
-			Str("repo", repo.FullName).
-			Int64("run_id", runID).
-			Int64("job_id", jobID).
-			Str("url", runURL).
-			Msg("HIT")
+	// Create minimal run for scanning
+	run := ActionWorkflowRun{
+		ID:      runID,
+		Name:    fmt.Sprintf("Run %d", runID),
+		HTMLURL: runURL,
 	}
 
-	// Scan artifacts if --artifacts flag is set
+	log.Debug().Str("url", run.HTMLURL).Msg("Scanning logs")
+	scanLogs(resp.Body, repo, run, jobID, "")
+
 	if scanOptions.Artifacts {
 		scanArtifactsWithCookie(repo, runID, runURL)
 	}
@@ -242,7 +201,7 @@ func scanArtifactsWithCookie(repo *gitea.Repository, runID int64, runURL string)
 	}
 
 	if len(artifactURLs) == 0 {
-		log.Debug().Str("repo", repo.FullName).Int64("run_id", runID).Msg("No artifacts found in run")
+		log.Trace().Str("repo", repo.FullName).Int64("run_id", runID).Msg("No artifacts found in run")
 		return
 	}
 
@@ -279,47 +238,28 @@ func getArtifactURLsFromRunHTML(repo *gitea.Repository, runID int64) (map[string
 		return nil, fmt.Errorf("failed to fetch CSRF token: %w", err)
 	}
 
-	log.Debug().Str("csrf_token", csrfToken).Msg("Using CSRF token to fetch artifacts")
-
 	// Construct URL: https://gitea.com/owner/repo/actions/runs/{run_id}/jobs/0
 	// This endpoint returns job information including artifacts
-	link, err := url.Parse(scanOptions.GiteaURL)
+	urlStr, err := buildGiteaURL("/%s/actions/runs/%d/jobs/0", repo.FullName, runID)
 	if err != nil {
 		return nil, err
 	}
-	link.Path = fmt.Sprintf("/%s/actions/runs/%d/jobs/0", repo.FullName, runID)
 
-	// Create POST request body
+	// Create POST request with CSRF token
+	headers := map[string]string{
+		"Content-Type": "application/json",
+		"x-csrf-token": csrfToken,
+		"Accept":       "*/*",
+	}
 	requestBody := []byte(`{"logCursors":[]}`)
 
-	// Create custom request to add CSRF token header
-	client := scanOptions.HttpClient.StandardClient()
-	req, err := http.NewRequest("POST", link.String(), bytes.NewReader(requestBody))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-csrf-token", csrfToken)
-	req.Header.Set("Accept", "*/*")
-
-	resp, err := client.Do(req)
+	resp, err := makeHTTPPostRequest(urlStr, requestBody, headers)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch job data: %w", err)
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode == 404 {
-		return nil, fmt.Errorf("run not found")
-	}
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
+	if err := checkHTTPStatus(resp.StatusCode, "fetch job data"); err != nil {
+		return nil, err
 	}
 
 	// Parse JSON response to extract artifacts
@@ -331,8 +271,8 @@ func getArtifactURLsFromRunHTML(repo *gitea.Repository, runID int64) (map[string
 		} `json:"artifacts"`
 	}
 
-	if err := json.Unmarshal(body, &jobData); err != nil {
-		log.Debug().Err(err).Str("body", string(body)).Msg("Failed to parse job data JSON")
+	if err := json.Unmarshal(resp.Body, &jobData); err != nil {
+		log.Debug().Err(err).Str("body", string(resp.Body)).Msg("Failed to parse job data JSON")
 		return nil, fmt.Errorf("failed to parse job data: %w", err)
 	}
 
@@ -359,101 +299,52 @@ func getArtifactURLsFromRunHTML(repo *gitea.Repository, runID int64) (map[string
 func downloadAndScanArtifactWithCookie(repo *gitea.Repository, run ActionWorkflowRun, artifactName string, artifactURL string) {
 	log.Warn().Str("repo", repo.FullName).Int64("run_id", run.ID).Str("artifact", artifactName).Msg("Downloading artifact with cookie")
 
-	resp, err := scanOptions.HttpClient.Get(artifactURL)
+	resp, err := makeHTTPRequest(artifactURL)
 	if err != nil {
 		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Str("artifact", artifactName).Msg("failed to download artifact")
 		return
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode == 404 || resp.StatusCode == 410 {
 		log.Debug().Str("repo", repo.FullName).Int64("run_id", run.ID).Str("artifact", artifactName).Msg("Artifact expired or not found")
 		return
 	}
 
-	if resp.StatusCode != 200 {
+	if err := checkHTTPStatus(resp.StatusCode, "download artifact"); err != nil {
 		log.Error().Int("status", resp.StatusCode).Str("repo", repo.FullName).Int64("run_id", run.ID).Str("artifact", artifactName).Msg("failed to download artifact")
 		return
 	}
 
-	artifactBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Str("artifact", artifactName).Msg("failed to read artifact bytes")
-		return
-	}
-
-	// Try to read as ZIP first
-	zipReader, err := zip.NewReader(bytes.NewReader(artifactBytes), int64(len(artifactBytes)))
-	if err != nil {
-		// Not a ZIP file, scan directly
-		log.Debug().Str("repo", repo.FullName).Int64("run_id", run.ID).Str("artifact", artifactName).Msg("Artifact is not a zip, scanning directly")
-		scanArtifactContent(artifactBytes, repo, run, artifactName, "")
-		return
-	}
-
-	// Process ZIP file contents
-	ctx := scanOptions.Context
-	group := parallel.Limited(ctx, scanOptions.MaxScanGoRoutines)
-
-	for _, file := range zipReader.File {
-		f := file
-		group.Go(func(ctx context.Context) {
-			fc, err := f.Open()
-			if err != nil {
-				log.Debug().Err(err).Str("file", f.Name).Msg("Unable to open file in artifact zip")
-				return
-			}
-			defer fc.Close()
-
-			content, err := io.ReadAll(fc)
-			if err != nil {
-				log.Debug().Err(err).Str("file", f.Name).Msg("Unable to read file in artifact zip")
-				return
-			}
-
-			scanArtifactContent(content, repo, run, artifactName, f.Name)
-		})
-	}
-
-	group.Wait()
+	processZipArtifact(resp.Body, repo, run, artifactName)
 }
 
 // fetchCsrfToken fetches the CSRF token from the Gitea homepage
 func fetchCsrfToken() (string, error) {
-	// Construct the base Gitea URL
-	link, err := url.Parse(scanOptions.GiteaURL)
+	urlStr, err := buildGiteaURL("/issues")
 	if err != nil {
 		return "", fmt.Errorf("failed to parse Gitea URL: %w", err)
 	}
 
-	// Fetch the homepage
-	resp, err := scanOptions.HttpClient.Get(link.String() + "/issues")
+	resp, err := makeHTTPRequest(urlStr)
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch homepage: %w", err)
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-
-	// Read the response body
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("failed to read response body: %w", err)
+	if err := checkHTTPStatus(resp.StatusCode, "fetch CSRF token"); err != nil {
+		return "", err
 	}
 
 	// Extract CSRF token using regex
 	// Looking for: csrfToken: 'TOKEN_VALUE',
 	csrfPattern := regexp.MustCompile(`csrfToken:\s*['"]([^'"]+)['"]`)
-	matches := csrfPattern.FindSubmatch(body)
+	matches := csrfPattern.FindSubmatch(resp.Body)
 
 	if len(matches) < 2 {
 		return "", fmt.Errorf("CSRF token not found in response")
 	}
 
 	csrfToken := string(matches[1])
-	log.Debug().Str("csrf_token", csrfToken).Msg("Fetched CSRF token")
+	log.Trace().Str("csrf_token", csrfToken).Msg("Fetched CSRF token")
 
 	return csrfToken, nil
 }
