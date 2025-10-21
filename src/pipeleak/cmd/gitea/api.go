@@ -180,12 +180,12 @@ func listWorkflowRuns(client *gitea.Client, repo *gitea.Repository) ([]ActionWor
 func scanWorkflowRunLogs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun) {
 	jobs, err := listWorkflowJobs(client, repo, run)
 	if err != nil {
-		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Msg("failed to list workflow jobs")
+		log.Error().Err(err).Str("url", run.HTMLURL).Msg("failed to list workflow jobs")
 		return
 	}
 
 	if len(jobs) == 0 {
-		log.Debug().Str("repo", repo.FullName).Int64("run_id", run.ID).Msg("No jobs found for workflow run")
+		log.Debug().Str("url", run.HTMLURL).Msg("No jobs found for workflow run")
 		return
 	}
 
@@ -259,22 +259,23 @@ func listWorkflowJobs(client *gitea.Client, repo *gitea.Repository, run ActionWo
 
 func scanJobLogs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun, job ActionJob) {
 	// Gitea Actions API: GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs
+	jobURL := fmt.Sprintf("%s/%s/actions/runs/%d/jobs/%d", scanOptions.GiteaURL, repo.FullName, run.ID, job.ID)
 	urlStr, err := buildAPIURL(repo, "/actions/jobs/%d/logs", job.ID)
 	if err != nil {
-		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("failed to build URL")
+		log.Error().Err(err).Int64("job_id", job.ID).Str("url", jobURL).Msg("failed to build URL")
 		return
 	}
 
 	resp, err := makeHTTPRequest(urlStr)
 	if err != nil {
-		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("failed to download logs")
+		log.Error().Err(err).Int64("job_id", job.ID).Str("url", jobURL).Msg("failed to download logs")
 		return
 	}
 
 	ctx := logContext{Repo: repo.FullName, RunID: run.ID, JobID: job.ID}
 
 	if resp.StatusCode == 404 {
-		log.Debug().Str("repo", repo.FullName).Int64("run_id", run.ID).Int64("job_id", job.ID).Msg("Logs not found or expired")
+		log.Debug().Int64("job_id", job.ID).Str("url", jobURL).Msg("Logs not found or expired")
 		return
 	}
 
@@ -289,21 +290,20 @@ func scanJobLogs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflo
 func scanWorkflowArtifacts(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun) {
 	artifacts, err := listArtifacts(repo, run)
 	if err != nil {
-		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", run.ID).Msg("failed to fetch artifacts")
+		log.Error().Err(err).Str("url", run.HTMLURL).Msg("failed to fetch artifacts")
 		return
 	}
 
 	if len(artifacts) == 0 {
-		log.Debug().Str("repo", repo.FullName).Int64("run_id", run.ID).Msg("No artifacts found")
+		log.Debug().Str("url", run.HTMLURL).Msg("No artifacts found")
 		return
 	}
 
-	log.Debug().Str("repo", repo.FullName).Int64("run_id", run.ID).Int("count", len(artifacts)).Msg("Found artifacts")
+	log.Debug().Str("url", run.HTMLURL).Int("count", len(artifacts)).Msg("Found artifacts")
 
 	for _, artifact := range artifacts {
 		log.Debug().
-			Str("repo", repo.FullName).
-			Int64("run_id", run.ID).
+			Str("url", run.HTMLURL).
 			Str("artifact", artifact.Name).
 			Msg("Downloading and scanning artifact")
 
@@ -378,23 +378,23 @@ func downloadAndScanArtifact(client *gitea.Client, repo *gitea.Repository, run A
 	// This endpoint returns a 302 redirect to the actual blob URL
 	urlStr, err := buildAPIURL(repo, "/actions/artifacts/%d/zip", artifact.ID)
 	if err != nil {
-		log.Error().Err(err).Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Msg("failed to build URL")
+		log.Error().Err(err).Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Str("url", run.HTMLURL).Msg("failed to build URL")
 		return
 	}
 
 	resp, err := makeHTTPRequest(urlStr)
 	if err != nil {
-		log.Error().Err(err).Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Msg("failed to download artifact")
+		log.Error().Err(err).Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Str("url", run.HTMLURL).Msg("failed to download artifact")
 		return
 	}
 
 	if resp.StatusCode == 404 || resp.StatusCode == 410 {
-		log.Debug().Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Msg("Artifact expired or not found")
+		log.Debug().Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Str("url", run.HTMLURL).Msg("Artifact expired or not found")
 		return
 	}
 
 	if resp.StatusCode != 200 && resp.StatusCode != 302 {
-		log.Error().Int("status", resp.StatusCode).Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Msg("failed to download artifact")
+		log.Error().Int("status", resp.StatusCode).Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Str("url", run.HTMLURL).Msg("failed to download artifact")
 		return
 	}
 
