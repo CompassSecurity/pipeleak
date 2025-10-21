@@ -11,18 +11,25 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// httpResponse represents a generic HTTP response with common fields
 type httpResponse struct {
 	Body       []byte
 	StatusCode int
 }
 
-// makeHTTPRequest performs a GET request and returns the response
 func makeHTTPRequest(url string) (*httpResponse, error) {
+	if scanOptions.HttpClient == nil {
+		return nil, fmt.Errorf("HTTP client is not initialized")
+	}
+
 	resp, err := scanOptions.HttpClient.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("HTTP request failed: %w", err)
 	}
+
+	if resp == nil {
+		return nil, fmt.Errorf("HTTP response is nil")
+	}
+
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
@@ -36,9 +43,15 @@ func makeHTTPRequest(url string) (*httpResponse, error) {
 	}, nil
 }
 
-// makeHTTPPostRequest performs a POST request with custom headers
 func makeHTTPPostRequest(urlStr string, body []byte, headers map[string]string) (*httpResponse, error) {
+	if scanOptions.HttpClient == nil {
+		return nil, fmt.Errorf("HTTP client is not initialized")
+	}
+
 	client := scanOptions.HttpClient.StandardClient()
+	if client == nil {
+		return nil, fmt.Errorf("standard HTTP client is not initialized")
+	}
 
 	var bodyReader io.Reader
 	if body != nil {
@@ -58,6 +71,11 @@ func makeHTTPPostRequest(urlStr string, body []byte, headers map[string]string) 
 	if err != nil {
 		return nil, fmt.Errorf("HTTP POST request failed: %w", err)
 	}
+
+	if resp == nil {
+		return nil, fmt.Errorf("HTTP response is nil")
+	}
+
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
@@ -71,7 +89,6 @@ func makeHTTPPostRequest(urlStr string, body []byte, headers map[string]string) 
 	}, nil
 }
 
-// buildGiteaURL constructs a URL for Gitea API endpoints
 func buildGiteaURL(pathFormat string, args ...interface{}) (string, error) {
 	link, err := url.Parse(scanOptions.GiteaURL)
 	if err != nil {
@@ -81,28 +98,32 @@ func buildGiteaURL(pathFormat string, args ...interface{}) (string, error) {
 	return link.String(), nil
 }
 
-// buildAPIURL constructs a URL for Gitea API with query parameters
 func buildAPIURL(repo *gitea.Repository, pathFormat string, pathArgs ...interface{}) (string, error) {
+	if repo == nil {
+		return "", fmt.Errorf("repository is nil")
+	}
+
+	if repo.Owner == nil {
+		return "", fmt.Errorf("repository owner is nil")
+	}
+
 	link, err := url.Parse(scanOptions.GiteaURL)
 	if err != nil {
 		return "", err
 	}
 
-	// Build the path with repository info
 	basePath := fmt.Sprintf("/api/v1/repos/%s/%s", repo.Owner.UserName, repo.Name)
 	link.Path = basePath + fmt.Sprintf(pathFormat, pathArgs...)
 
 	return link.String(), nil
 }
 
-// logContext holds common logging fields
 type logContext struct {
 	Repo  string
 	RunID int64
 	JobID int64
 }
 
-// logHTTPError logs HTTP errors with consistent formatting
 func logHTTPError(statusCode int, operation string, ctx logContext) {
 	event := log.Error().Int("status", statusCode)
 
@@ -119,7 +140,6 @@ func logHTTPError(statusCode int, operation string, ctx logContext) {
 	event.Msgf("failed to %s", operation)
 }
 
-// checkHTTPStatus checks HTTP status codes and returns appropriate errors
 func checkHTTPStatus(statusCode int, operation string) error {
 	switch statusCode {
 	case 200:

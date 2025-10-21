@@ -83,7 +83,6 @@ func Scan(cmd *cobra.Command, args []string) {
 	helper.SetLogLevel(scanOptions.Verbose)
 	go helper.ShortcutListeners(scanStatus)
 
-	// Validate that --start-run-id is only used with --repository
 	if scanOptions.StartRunID > 0 && scanOptions.Repository == "" {
 		log.Fatal().Msg("--start-run-id can only be used with --repository flag")
 	}
@@ -117,7 +116,6 @@ func Scan(cmd *cobra.Command, args []string) {
 
 		validateCookie()
 	} else {
-		// Set up HTTP client without cookie
 		scanOptions.HttpClient = helper.GetPipeleakHTTPClient("", nil, authHeaders)
 
 		httpClient := &http.Client{
@@ -160,7 +158,6 @@ func scanRepositories(client *gitea.Client) {
 }
 
 func scanSingleRepository(client *gitea.Client, repoFullName string) {
-	// Parse owner/repo format
 	parts := strings.Split(repoFullName, "/")
 	if len(parts) != 2 {
 		log.Error().Str("repository", repoFullName).Msg("Invalid repository format, expected owner/repo")
@@ -170,10 +167,14 @@ func scanSingleRepository(client *gitea.Client, repoFullName string) {
 	owner := parts[0]
 	repoName := parts[1]
 
-	// Get the specific repository
 	repo, _, err := client.GetRepo(owner, repoName)
 	if err != nil {
 		log.Error().Err(err).Str("repository", repoFullName).Msg("failed to get repository")
+		return
+	}
+
+	if repo == nil {
+		log.Error().Str("repository", repoFullName).Msg("repository not found (nil response)")
 		return
 	}
 
@@ -182,8 +183,6 @@ func scanSingleRepository(client *gitea.Client, repoFullName string) {
 }
 
 func scanAllRepositories(client *gitea.Client) {
-	// Use SearchRepos to get all accessible repositories (including public ones)
-	// Empty keyword searches all repositories accessible with the current token
 	opt := gitea.SearchRepoOptions{
 		Sort:  "updated",
 		Order: "desc",
@@ -220,10 +219,14 @@ func scanAllRepositories(client *gitea.Client) {
 }
 
 func scanOwnedRepositories(client *gitea.Client) {
-	// Get current user info
 	user, _, err := client.GetMyUserInfo()
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get user info")
+		return
+	}
+
+	if user == nil {
+		log.Error().Msg("failed to get user info (nil response)")
 		return
 	}
 
@@ -248,7 +251,6 @@ func scanOwnedRepositories(client *gitea.Client) {
 		log.Info().Int("count", len(repos)).Int("page", opt.Page).Msg("Processing repositories page")
 
 		for _, repo := range repos {
-			// Filter to only include repos owned by the current user
 			if repo.Owner != nil && repo.Owner.ID == user.ID {
 				log.Debug().Str("url", repo.HTMLURL).Msg("Scanning repository")
 				scanRepository(client, repo)
@@ -300,6 +302,11 @@ func scanOrganizationRepositories(client *gitea.Client, orgName string) {
 }
 
 func scanRepository(client *gitea.Client, repo *gitea.Repository) {
+	if repo == nil {
+		log.Error().Msg("Cannot scan repository: repository is nil")
+		return
+	}
+
 	workflowRuns, err := listWorkflowRuns(client, repo)
 	if err != nil {
 		// Check if it's a 403 error - this indicates the current user doesn't have API access
@@ -319,7 +326,6 @@ func scanRepository(client *gitea.Client, repo *gitea.Repository) {
 		return
 	}
 
-	// Filter runs if StartRunID is specified - only scan runs with ID <= StartRunID
 	if scanOptions.StartRunID > 0 {
 		filteredRuns := make([]ActionWorkflowRun, 0)
 		for _, run := range workflowRuns {

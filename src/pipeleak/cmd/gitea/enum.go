@@ -37,6 +37,11 @@ func Enum(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	if user == nil {
+		log.Fatal().Msg("Failed fetching current user (nil response)")
+		return
+	}
+
 	log.Debug().Interface("user", user).Msg("Full user data structure")
 
 	log.Warn().

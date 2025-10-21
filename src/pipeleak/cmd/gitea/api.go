@@ -101,6 +101,14 @@ func listWorkflowRuns(client *gitea.Client, repo *gitea.Repository) ([]ActionWor
 	// Note: This endpoint may not be available in all Gitea versions
 	// The SDK doesn't have this method yet, so we make a direct API call
 
+	if repo == nil {
+		return nil, fmt.Errorf("repository is nil")
+	}
+
+	if repo.Owner == nil {
+		return nil, fmt.Errorf("repository owner is nil")
+	}
+
 	var allRuns []ActionWorkflowRun
 	page := 1
 	limit := 50
@@ -123,7 +131,6 @@ func listWorkflowRuns(client *gitea.Client, repo *gitea.Repository) ([]ActionWor
 		}
 
 		if resp.StatusCode == 404 {
-			// Actions not enabled or endpoint not available
 			resp.Body.Close()
 			return allRuns, nil
 		}
@@ -141,7 +148,6 @@ func listWorkflowRuns(client *gitea.Client, repo *gitea.Repository) ([]ActionWor
 
 		var runsResp ActionWorkflowRunsResponse
 		if err := json.Unmarshal(body, &runsResp); err != nil {
-			// Try parsing as array directly (older API format)
 			var runs []ActionWorkflowRun
 			if err2 := json.Unmarshal(body, &runs); err2 != nil {
 				return nil, fmt.Errorf("failed to parse workflow runs: %w", err)
@@ -149,7 +155,6 @@ func listWorkflowRuns(client *gitea.Client, repo *gitea.Repository) ([]ActionWor
 
 			allRuns = append(allRuns, runs...)
 
-			// Check if we've reached the runs limit
 			if scanOptions.RunsLimit > 0 && len(allRuns) >= scanOptions.RunsLimit {
 				log.Debug().Str("repo", repo.FullName).Int("limit", scanOptions.RunsLimit).Msg("Reached runs limit, stopping pagination")
 				return allRuns[:scanOptions.RunsLimit], nil
@@ -161,7 +166,6 @@ func listWorkflowRuns(client *gitea.Client, repo *gitea.Repository) ([]ActionWor
 		} else {
 			allRuns = append(allRuns, runsResp.WorkflowRuns...)
 
-			// Check if we've reached the runs limit
 			if scanOptions.RunsLimit > 0 && len(allRuns) >= scanOptions.RunsLimit {
 				log.Debug().Str("repo", repo.FullName).Int("limit", scanOptions.RunsLimit).Msg("Reached runs limit, stopping pagination")
 				return allRuns[:scanOptions.RunsLimit], nil
@@ -179,6 +183,11 @@ func listWorkflowRuns(client *gitea.Client, repo *gitea.Repository) ([]ActionWor
 }
 
 func scanWorkflowRunLogs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun) {
+	if repo == nil {
+		log.Error().Msg("Cannot scan workflow run logs: repository is nil")
+		return
+	}
+
 	jobs, err := listWorkflowJobs(client, repo, run)
 	if err != nil {
 		log.Error().Err(err).Str("url", run.HTMLURL).Msg("failed to list workflow jobs")
@@ -196,7 +205,13 @@ func scanWorkflowRunLogs(client *gitea.Client, repo *gitea.Repository, run Actio
 }
 
 func listWorkflowJobs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun) ([]ActionJob, error) {
-	// Gitea Actions API: GET /repos/{owner}/{repo}/actions/runs/{run}/jobs
+	if repo == nil {
+		return nil, fmt.Errorf("repository is nil")
+	}
+
+	if repo.Owner == nil {
+		return nil, fmt.Errorf("repository owner is nil")
+	}
 
 	var allJobs []ActionJob
 	page := 1
@@ -259,7 +274,11 @@ func listWorkflowJobs(client *gitea.Client, repo *gitea.Repository, run ActionWo
 }
 
 func scanJobLogs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun, job ActionJob) {
-	// Gitea Actions API: GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs
+	if repo == nil {
+		log.Error().Msg("Cannot scan job logs: repository is nil")
+		return
+	}
+
 	jobURL := fmt.Sprintf("%s/%s/actions/runs/%d/jobs/%d", scanOptions.GiteaURL, repo.FullName, run.ID, job.ID)
 	urlStr, err := buildAPIURL(repo, "/actions/jobs/%d/logs", job.ID)
 	if err != nil {
@@ -289,6 +308,11 @@ func scanJobLogs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflo
 }
 
 func scanWorkflowArtifacts(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun) {
+	if repo == nil {
+		log.Error().Msg("Cannot scan workflow artifacts: repository is nil")
+		return
+	}
+
 	artifacts, err := listArtifacts(repo, run)
 	if err != nil {
 		log.Error().Err(err).Str("url", run.HTMLURL).Msg("failed to fetch artifacts")
@@ -313,7 +337,14 @@ func scanWorkflowArtifacts(client *gitea.Client, repo *gitea.Repository, run Act
 }
 
 func listArtifacts(repo *gitea.Repository, run ActionWorkflowRun) ([]ActionArtifact, error) {
-	// Gitea Actions API: GET /repos/{owner}/{repo}/actions/runs/{run_id}/artifacts
+	if repo == nil {
+		return nil, fmt.Errorf("repository is nil")
+	}
+
+	if repo.Owner == nil {
+		return nil, fmt.Errorf("repository owner is nil")
+	}
+
 	var allArtifacts []ActionArtifact
 	page := 1
 	limit := 50
@@ -375,8 +406,11 @@ func listArtifacts(repo *gitea.Repository, run ActionWorkflowRun) ([]ActionArtif
 }
 
 func downloadAndScanArtifact(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun, artifact ActionArtifact) {
-	// Gitea Actions API: GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/zip
-	// This endpoint returns a 302 redirect to the actual blob URL
+	if repo == nil {
+		log.Error().Msg("Cannot download artifact: repository is nil")
+		return
+	}
+
 	urlStr, err := buildAPIURL(repo, "/actions/artifacts/%d/zip", artifact.ID)
 	if err != nil {
 		log.Error().Err(err).Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Str("url", run.HTMLURL).Msg("failed to build URL")

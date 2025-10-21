@@ -14,8 +14,12 @@ import (
 	"github.com/wandb/parallel"
 )
 
-// scanLogs scans log content for secrets and reports findings
 func scanLogs(logBytes []byte, repo *gitea.Repository, run ActionWorkflowRun, jobID int64, jobName string) {
+	if repo == nil {
+		log.Error().Msg("Cannot scan logs: repository is nil")
+		return
+	}
+
 	findings, err := scanner.DetectHits(logBytes, scanOptions.MaxScanGoRoutines, scanOptions.TruffleHogVerification)
 	if err != nil {
 		log.Debug().Err(err).
@@ -31,7 +35,6 @@ func scanLogs(logBytes []byte, repo *gitea.Repository, run ActionWorkflowRun, jo
 	}
 }
 
-// logFinding logs a secret finding with consistent formatting
 func logFinding(finding scanner.Finding, repoFullName string, runID, jobID int64, jobName, url string) {
 	event := log.Warn().
 		Str("confidence", finding.Pattern.Pattern.Confidence).
@@ -52,11 +55,14 @@ func logFinding(finding scanner.Finding, repoFullName string, runID, jobID int64
 	event.Msg("HIT")
 }
 
-// processZipArtifact processes a ZIP archive artifact
 func processZipArtifact(zipBytes []byte, repo *gitea.Repository, run ActionWorkflowRun, artifactName string) {
+	if repo == nil {
+		log.Error().Msg("Cannot process artifact: repository is nil")
+		return
+	}
+
 	zipReader, err := zip.NewReader(bytes.NewReader(zipBytes), int64(len(zipBytes)))
 	if err != nil {
-		// Not a ZIP file, scan directly
 		log.Debug().
 			Str("repo", repo.FullName).
 			Int64("run_id", run.ID).
@@ -66,7 +72,6 @@ func processZipArtifact(zipBytes []byte, repo *gitea.Repository, run ActionWorkf
 		return
 	}
 
-	// Process ZIP file contents in parallel
 	ctx := scanOptions.Context
 	group := parallel.Limited(ctx, scanOptions.MaxScanGoRoutines)
 
@@ -93,7 +98,6 @@ func processZipArtifact(zipBytes []byte, repo *gitea.Repository, run ActionWorkf
 	group.Wait()
 }
 
-// determineFileAction determines how to handle a file based on its type
 func determineFileAction(content []byte, displayName string) (action string, fileType string) {
 	kind, _ := filetype.Match(content)
 
@@ -108,7 +112,6 @@ func determineFileAction(content []byte, displayName string) (action string, fil
 	return "scan", kind.MIME.Value
 }
 
-// scanArtifactContent scans artifact content based on file type
 func scanArtifactContent(content []byte, repo *gitea.Repository, run ActionWorkflowRun, artifactName string, fileName string) {
 	displayName := artifactName
 	if fileName != "" {
@@ -124,7 +127,8 @@ func scanArtifactContent(content []byte, repo *gitea.Repository, run ActionWorkf
 		log.Trace().
 			Str("file", displayName).
 			Str("type", fileType).
-			Msg("Skipping unknown file type")
+			Msg("Unknown file type, scanning as text")
+		scanner.DetectFileHits(content, run.HTMLURL, run.Name, displayName, repo.FullName, scanOptions.TruffleHogVerification)
 	case "scan":
 		log.Debug().
 			Str("file", displayName).

@@ -28,7 +28,6 @@ func validateCookie() {
 
 	log.Debug().Int("status", resp.StatusCode).Msg("Cookie validation response status code")
 
-	// Check if response contains login page indicators
 	if strings.Contains(string(resp.Body), "/user/login") {
 		log.Fatal().Msg("Cookie validation failed - redirected to login page, cookie is invalid or expired")
 	} else {
@@ -36,18 +35,20 @@ func validateCookie() {
 	}
 }
 
-// scanRepositoryWithCookie uses HTML scraping with cookie authentication as fallback when API returns 403
 func scanRepositoryWithCookie(repo *gitea.Repository) {
+	if repo == nil {
+		log.Error().Msg("Cannot scan repository: repository is nil")
+		return
+	}
+
 	log.Debug().Str("repo", repo.FullName).Msg("Using cookie-based HTML scraping for workflow runs")
 
 	var startRunID int64
 
-	// Use StartRunID if provided, otherwise get the latest run ID from HTML
 	if scanOptions.StartRunID > 0 {
 		startRunID = scanOptions.StartRunID
 		log.Debug().Str("repo", repo.FullName).Int64("start_run_id", startRunID).Msg("Starting from specified run ID")
 	} else {
-		// Get the latest run ID from the HTML actions page
 		latestRunID, err := getLatestRunIDFromHTML(repo)
 		if err != nil {
 			log.Error().Err(err).Str("repo", repo.FullName).Msg("failed to get latest run ID from HTML")
@@ -79,38 +80,31 @@ func scanRepositoryWithCookie(repo *gitea.Repository) {
 		runID   int64
 		success bool
 	}
-	resultsChan := make(chan runResult, 100) // Buffer to handle bursts
+	resultsChan := make(chan runResult, 100)
 
-	// Start a goroutine to monitor consecutive failures
 	monitorDone := make(chan struct{})
 	go func() {
 		defer close(monitorDone)
 		consecutiveCount := 0
-		nextExpectedRunID := startRunID // Start with the specified/latest run ID, expecting results in descending order
+		nextExpectedRunID := startRunID
 		resultBuffer := make(map[int64]bool)
 
 		for result := range resultsChan {
-			// Store result in buffer
 			resultBuffer[result.runID] = result.success
 
-			// Process results in order (descending run IDs)
 			for {
 				success, exists := resultBuffer[nextExpectedRunID]
 				if !exists {
-					// Still waiting for this run ID
 					break
 				}
 
-				// Process this result
 				delete(resultBuffer, nextExpectedRunID)
 
 				if success {
-					// Success resets the consecutive failure counter
 					consecutiveCount = 0
 					atomic.StoreInt64(&lastSuccessfulRunID, nextExpectedRunID)
 					atomic.StoreInt32(&consecutiveFailures, 0)
 				} else {
-					// Failure increments the counter
 					consecutiveCount++
 					atomic.StoreInt32(&consecutiveFailures, int32(consecutiveCount))
 
@@ -122,7 +116,6 @@ func scanRepositoryWithCookie(repo *gitea.Repository) {
 							Int64("failed_at_run", nextExpectedRunID).
 							Msg("Too many consecutive failures, aborting scan loop")
 						cancel()
-						// Continue processing to drain the channel
 					}
 				}
 
@@ -132,14 +125,12 @@ func scanRepositoryWithCookie(repo *gitea.Repository) {
 	}()
 
 	for i := startRunID; i > 0; i-- {
-		// Check if we've reached the runs limit
 		if scanOptions.RunsLimit > 0 && int(atomic.LoadInt32(&scannedCounter)) >= scanOptions.RunsLimit {
 			log.Debug().Str("repo", repo.FullName).Int("limit", scanOptions.RunsLimit).Msg("Reached runs limit, stopping scan")
 			cancel()
 			break
 		}
 
-		// Check if we should stop due to consecutive failures
 		if atomic.LoadInt32(&consecutiveFailures) >= 5 {
 			log.Debug().Str("repo", repo.FullName).Msg("Stopping due to consecutive failures")
 			cancel()
@@ -150,7 +141,6 @@ func scanRepositoryWithCookie(repo *gitea.Repository) {
 		group.Go(func(ctx context.Context) {
 			select {
 			case <-ctx.Done():
-				// canceled: stop early
 				return
 			default:
 			}
@@ -163,7 +153,6 @@ func scanRepositoryWithCookie(repo *gitea.Repository) {
 				atomic.AddInt32(&scannedCounter, 1)
 			}
 
-			// Send result to monitor
 			select {
 			case resultsChan <- runResult{runID: runID, success: ok}:
 			case <-ctx.Done():
@@ -176,9 +165,11 @@ func scanRepositoryWithCookie(repo *gitea.Repository) {
 	<-monitorDone
 }
 
-// getLatestRunIDFromHTML fetches the actions page and extracts the latest run ID
 func getLatestRunIDFromHTML(repo *gitea.Repository) (int64, error) {
-	// Construct URL: https://gitea.com/owner/repo/actions
+	if repo == nil {
+		return 0, fmt.Errorf("repository is nil")
+	}
+
 	urlStr, err := buildGiteaURL("/%s/actions", repo.FullName)
 	if err != nil {
 		return 0, err
@@ -191,13 +182,11 @@ func getLatestRunIDFromHTML(repo *gitea.Repository) (int64, error) {
 
 	if err := checkHTTPStatus(resp.StatusCode, "fetch actions page"); err != nil {
 		if resp.StatusCode == 404 {
-			return 0, nil // Actions disabled
+			return 0, nil
 		}
 		return 0, err
 	}
 
-	// Parse HTML to find run IDs
-	// Look for patterns like: /owner/repo/actions/runs/123
 	runIDPattern := regexp.MustCompile(fmt.Sprintf(`/%s/actions/runs/(\d+)`, regexp.QuoteMeta(repo.FullName)))
 	matches := runIDPattern.FindAllStringSubmatch(string(resp.Body), -1)
 
@@ -205,7 +194,6 @@ func getLatestRunIDFromHTML(repo *gitea.Repository) (int64, error) {
 		return 0, nil
 	}
 
-	// Get the latest run ID
 	latestRunIDStr := matches[0][1]
 	latestRunID, err := strconv.ParseInt(latestRunIDStr, 10, 64)
 	if err != nil {
@@ -215,25 +203,29 @@ func getLatestRunIDFromHTML(repo *gitea.Repository) (int64, error) {
 	return latestRunID, nil
 }
 
-// scanJobLogsWithCookie fetches and scans job logs using cookie authentication
 func scanJobLogsWithCookie(repo *gitea.Repository, runID int64, jobID int64) bool {
+	if repo == nil {
+		log.Error().Msg("Cannot scan job logs: repository is nil")
+		return false
+	}
+
 	jobURL := fmt.Sprintf("%s/%s/actions/runs/%d/jobs/%d", scanOptions.GiteaURL, repo.FullName, runID, jobID)
 	urlStr, err := buildGiteaURL("/%s/actions/runs/%d/jobs/%d/logs", repo.FullName, runID, jobID)
 	if err != nil {
-		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", runID).Int64("job_id", jobID).Str("url", jobURL).Msg("failed to build URL")
+		log.Error().Err(err).Str("url", jobURL).Msg("failed to build URL")
 		return false
 	}
 
 	resp, err := makeHTTPRequest(urlStr)
 	if err != nil {
-		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", runID).Int64("job_id", jobID).Str("url", jobURL).Msg("failed to download logs")
+		log.Error().Err(err).Str("url", jobURL).Msg("failed to download logs")
 		return false
 	}
 
 	ctx := logContext{Repo: repo.FullName, RunID: runID, JobID: jobID}
 
 	if resp.StatusCode == 404 {
-		log.Debug().Str("repo", repo.FullName).Int64("run_id", runID).Int64("job_id", jobID).Str("url", jobURL).Msg("Logs not found")
+		log.Debug().Str("url", jobURL).Msg("Logs not found")
 		return false
 	}
 
@@ -242,7 +234,6 @@ func scanJobLogsWithCookie(repo *gitea.Repository, runID int64, jobID int64) boo
 		return false
 	}
 
-	// Build run URL for findings
 	runURLParsed, err := url.Parse(scanOptions.GiteaURL)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to parse Gitea URL")
@@ -251,7 +242,6 @@ func scanJobLogsWithCookie(repo *gitea.Repository, runID int64, jobID int64) boo
 	runURLParsed.Path = fmt.Sprintf("/%s/actions/runs/%d", repo.FullName, runID)
 	runURL := runURLParsed.String()
 
-	// Create minimal run for scanning
 	run := ActionWorkflowRun{
 		ID:      runID,
 		Name:    fmt.Sprintf("Run %d", runID),
@@ -268,9 +258,12 @@ func scanJobLogsWithCookie(repo *gitea.Repository, runID int64, jobID int64) boo
 	return true
 }
 
-// scanArtifactsWithCookie downloads and scans artifacts for a workflow run using cookie authentication
 func scanArtifactsWithCookie(repo *gitea.Repository, runID int64, runURL string) {
-	// Get the run HTML page to extract artifact URLs
+	if repo == nil {
+		log.Error().Msg("Cannot scan artifacts: repository is nil")
+		return
+	}
+
 	artifactURLs, err := getArtifactURLsFromRunHTML(repo, runID)
 	if err != nil {
 		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", runID).Str("url", runURL).Msg("failed to get artifact URLs from HTML")
@@ -284,7 +277,6 @@ func scanArtifactsWithCookie(repo *gitea.Repository, runID int64, runURL string)
 
 	log.Debug().Str("url", runURL).Int("count", len(artifactURLs)).Msg("Found artifacts in run")
 
-	// Create a minimal ActionWorkflowRun for scanArtifactContent
 	run := ActionWorkflowRun{
 		ID:      runID,
 		Name:    fmt.Sprintf("Run %d", runID),
@@ -305,10 +297,11 @@ func scanArtifactsWithCookie(repo *gitea.Repository, runID int64, runURL string)
 	group.Wait()
 }
 
-// getArtifactURLsFromRunHTML parses the run HTML page and extracts artifact download URLs
 func getArtifactURLsFromRunHTML(repo *gitea.Repository, runID int64) (map[string]string, error) {
+	if repo == nil {
+		return nil, fmt.Errorf("repository is nil")
+	}
 
-	// Fetch CSRF token
 	runURL := fmt.Sprintf("%s/%s/actions/runs/%d", scanOptions.GiteaURL, repo.FullName, runID)
 	csrfToken, err := fetchCsrfToken()
 	if err != nil || len(csrfToken) == 0 {
@@ -316,14 +309,11 @@ func getArtifactURLsFromRunHTML(repo *gitea.Repository, runID int64) (map[string
 		return nil, fmt.Errorf("failed to fetch CSRF token: %w", err)
 	}
 
-	// Construct URL: https://gitea.com/owner/repo/actions/runs/{run_id}/jobs/0
-	// This endpoint returns job information including artifacts
 	urlStr, err := buildGiteaURL("/%s/actions/runs/%d/jobs/0", repo.FullName, runID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create POST request with CSRF token
 	headers := map[string]string{
 		"Content-Type": "application/json",
 		"x-csrf-token": csrfToken,
@@ -354,18 +344,14 @@ func getArtifactURLsFromRunHTML(repo *gitea.Repository, runID int64) (map[string
 		return nil, fmt.Errorf("failed to parse job data: %w", err)
 	}
 
-	// Build artifact URLs
 	artifactURLs := make(map[string]string)
 
 	for _, artifact := range jobData.Artifacts {
-		// Build download URL: /owner/repo/actions/runs/{run_id}/artifacts/{artifact_name}
 		artifactURL, err := url.Parse(scanOptions.GiteaURL)
 		if err != nil {
 			continue
 		}
-		// Use artifact name directly in the download URL
 		artifactURL.Path = fmt.Sprintf("/%s/actions/runs/%d/artifacts/%s", repo.FullName, runID, url.PathEscape(artifact.Name))
-
 		artifactURLs[artifact.Name] = artifactURL.String()
 		log.Debug().Str("name", artifact.Name).Int64("size", artifact.Size).Str("url", artifactURL.String()).Msg("Found artifact")
 	}
@@ -373,8 +359,12 @@ func getArtifactURLsFromRunHTML(repo *gitea.Repository, runID int64) (map[string
 	return artifactURLs, nil
 }
 
-// downloadAndScanArtifactWithCookie downloads and scans a single artifact using cookie authentication
 func downloadAndScanArtifactWithCookie(repo *gitea.Repository, run ActionWorkflowRun, artifactName string, artifactURL string) {
+	if repo == nil {
+		log.Error().Msg("Cannot download artifact: repository is nil")
+		return
+	}
+
 	log.Trace().Str("artifact", artifactName).Str("url", run.HTMLURL).Msg("Downloading artifact with cookie")
 
 	resp, err := makeHTTPRequest(artifactURL)
@@ -396,7 +386,6 @@ func downloadAndScanArtifactWithCookie(repo *gitea.Repository, run ActionWorkflo
 	processZipArtifact(resp.Body, repo, run, artifactName)
 }
 
-// fetchCsrfToken fetches the CSRF token from the Gitea homepage
 func fetchCsrfToken() (string, error) {
 	urlStr, err := buildGiteaURL("/issues")
 	if err != nil {
@@ -412,8 +401,6 @@ func fetchCsrfToken() (string, error) {
 		return "", err
 	}
 
-	// Extract CSRF token using regex
-	// Looking for: csrfToken: 'TOKEN_VALUE',
 	csrfPattern := regexp.MustCompile(`csrfToken:\s*['"]([^'"]+)['"]`)
 	matches := csrfPattern.FindSubmatch(resp.Body)
 
