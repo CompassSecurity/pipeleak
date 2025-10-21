@@ -56,11 +56,69 @@ func scanRepositoryWithCookie(repo *gitea.Repository) {
 
 	ctx := context.Background()
 	group := parallel.Limited(ctx, scanOptions.MaxScanGoRoutines)
-	var failedCounter int32
 	var scannedCounter int32
+	var consecutiveFailures int32
+	var lastSuccessfulRunID int64
 
 	_, cancel := context.WithCancel(ctx)
 	defer cancel()
+
+	// Track results by run ID to determine if failures are consecutive
+	type runResult struct {
+		runID   int64
+		success bool
+	}
+	resultsChan := make(chan runResult, 100) // Buffer to handle bursts
+
+	// Start a goroutine to monitor consecutive failures
+	monitorDone := make(chan struct{})
+	go func() {
+		defer close(monitorDone)
+		consecutiveCount := 0
+		nextExpectedRunID := latestRunID // Start with the latest, expecting results in descending order
+		resultBuffer := make(map[int64]bool)
+
+		for result := range resultsChan {
+			// Store result in buffer
+			resultBuffer[result.runID] = result.success
+
+			// Process results in order (descending run IDs)
+			for {
+				success, exists := resultBuffer[nextExpectedRunID]
+				if !exists {
+					// Still waiting for this run ID
+					break
+				}
+
+				// Process this result
+				delete(resultBuffer, nextExpectedRunID)
+
+				if success {
+					// Success resets the consecutive failure counter
+					consecutiveCount = 0
+					atomic.StoreInt64(&lastSuccessfulRunID, nextExpectedRunID)
+					atomic.StoreInt32(&consecutiveFailures, 0)
+				} else {
+					// Failure increments the counter
+					consecutiveCount++
+					atomic.StoreInt32(&consecutiveFailures, int32(consecutiveCount))
+
+					if consecutiveCount >= 5 {
+						log.Debug().
+							Str("repo", repo.FullName).
+							Int("consecutive_failures", consecutiveCount).
+							Int64("last_successful_run", atomic.LoadInt64(&lastSuccessfulRunID)).
+							Int64("failed_at_run", nextExpectedRunID).
+							Msg("Too many consecutive failures, aborting scan loop")
+						cancel()
+						// Continue processing to drain the channel
+					}
+				}
+
+				nextExpectedRunID--
+			}
+		}
+	}()
 
 	for i := latestRunID; i > 0; i-- {
 		// Check if we've reached the runs limit
@@ -70,9 +128,9 @@ func scanRepositoryWithCookie(repo *gitea.Repository) {
 			break
 		}
 
-		// stop early if too many failures
-		if atomic.LoadInt32(&failedCounter) > 5 {
-			log.Debug().Msg("Too many failures, aborting scan loop.")
+		// Check if we should stop due to consecutive failures
+		if atomic.LoadInt32(&consecutiveFailures) >= 5 {
+			log.Debug().Str("repo", repo.FullName).Msg("Stopping due to consecutive failures")
 			cancel()
 			break
 		}
@@ -91,13 +149,19 @@ func scanRepositoryWithCookie(repo *gitea.Repository) {
 			ok := scanJobLogsWithCookie(repo, runID, 0)
 			if ok {
 				atomic.AddInt32(&scannedCounter, 1)
-			} else {
-				atomic.AddInt32(&failedCounter, 1)
+			}
+
+			// Send result to monitor
+			select {
+			case resultsChan <- runResult{runID: runID, success: ok}:
+			case <-ctx.Done():
 			}
 		})
 	}
 
 	group.Wait()
+	close(resultsChan)
+	<-monitorDone
 }
 
 // getLatestRunIDFromHTML fetches the actions page and extracts the latest run ID
@@ -297,7 +361,7 @@ func getArtifactURLsFromRunHTML(repo *gitea.Repository, runID int64) (map[string
 
 // downloadAndScanArtifactWithCookie downloads and scans a single artifact using cookie authentication
 func downloadAndScanArtifactWithCookie(repo *gitea.Repository, run ActionWorkflowRun, artifactName string, artifactURL string) {
-	log.Warn().Str("repo", repo.FullName).Int64("run_id", run.ID).Str("artifact", artifactName).Msg("Downloading artifact with cookie")
+	log.Trace().Str("repo", repo.FullName).Int64("run_id", run.ID).Str("artifact", artifactName).Msg("Downloading artifact with cookie")
 
 	resp, err := makeHTTPRequest(artifactURL)
 	if err != nil {
@@ -344,7 +408,6 @@ func fetchCsrfToken() (string, error) {
 	}
 
 	csrfToken := string(matches[1])
-	log.Trace().Str("csrf_token", csrfToken).Msg("Fetched CSRF token")
 
 	return csrfToken, nil
 }
