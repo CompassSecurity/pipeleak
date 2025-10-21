@@ -131,17 +131,17 @@ func listWorkflowRuns(client *gitea.Client, repo *gitea.Repository) ([]ActionWor
 		}
 
 		if resp.StatusCode == 404 {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return allRuns, nil
 		}
 
 		if resp.StatusCode != 200 {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 		}
 
 		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if err != nil {
 			return nil, err
 		}

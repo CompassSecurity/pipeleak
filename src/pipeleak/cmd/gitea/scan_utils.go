@@ -83,7 +83,11 @@ func processZipArtifact(zipBytes []byte, repo *gitea.Repository, run ActionWorkf
 				log.Debug().Err(err).Str("file", f.Name).Msg("Unable to open file in artifact zip")
 				return
 			}
-			defer fc.Close()
+			defer func() {
+				if err := fc.Close(); err != nil {
+					log.Debug().Err(err).Str("file", f.Name).Msg("Failed to close file in artifact zip")
+				}
+			}()
 
 			content, err := io.ReadAll(fc)
 			if err != nil {
