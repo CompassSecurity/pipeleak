@@ -129,10 +129,11 @@ func (hrt *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, err
 
 func GetPipeleakHTTPClient(cookieUrl string, cookies []*http.Cookie, defaultHeaders map[string]string) *retryablehttp.Client {
 
-	jar := http.DefaultClient.Jar
+	var jar http.CookieJar
 
 	if len(cookies) > 0 {
-		jar, err := cookiejar.New(nil)
+		var err error
+		jar, err = cookiejar.New(nil)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed creating cookie jar")
 		}
