@@ -40,20 +40,30 @@ func validateCookie() {
 func scanRepositoryWithCookie(repo *gitea.Repository) {
 	log.Debug().Str("repo", repo.FullName).Msg("Using cookie-based HTML scraping for workflow runs")
 
-	// Get the latest run ID from the HTML actions page
-	latestRunID, err := getLatestRunIDFromHTML(repo)
-	if err != nil {
-		log.Error().Err(err).Str("repo", repo.FullName).Msg("failed to get latest run ID from HTML")
-		return
+	var startRunID int64
+
+	// Use StartRunID if provided, otherwise get the latest run ID from HTML
+	if scanOptions.StartRunID > 0 {
+		startRunID = scanOptions.StartRunID
+		log.Debug().Str("repo", repo.FullName).Int64("start_run_id", startRunID).Msg("Starting from specified run ID")
+	} else {
+		// Get the latest run ID from the HTML actions page
+		latestRunID, err := getLatestRunIDFromHTML(repo)
+		if err != nil {
+			log.Error().Err(err).Str("repo", repo.FullName).Msg("failed to get latest run ID from HTML")
+			return
+		}
+
+		if latestRunID == 0 {
+			log.Debug().Str("repo", repo.FullName).Msg("Actions disabled or no runs found")
+			return
+		}
+
+		startRunID = latestRunID
 	}
 
-	if latestRunID == 0 {
-		log.Debug().Str("repo", repo.FullName).Msg("Actions disabled or no runs found")
-		return
-	}
-
-	latestRunURL := fmt.Sprintf("%s/%s/actions/runs/%d", scanOptions.GiteaURL, repo.FullName, latestRunID)
-	log.Debug().Str("repo", repo.FullName).Int64("latest_run_id", latestRunID).Str("url", latestRunURL).Msg("Found latest run ID, scanning backwards in parallel")
+	startRunURL := fmt.Sprintf("%s/%s/actions/runs/%d", scanOptions.GiteaURL, repo.FullName, startRunID)
+	log.Debug().Str("repo", repo.FullName).Int64("start_run_id", startRunID).Str("url", startRunURL).Msg("Scanning from run ID")
 
 	ctx := context.Background()
 	group := parallel.Limited(ctx, scanOptions.MaxScanGoRoutines)
@@ -76,7 +86,7 @@ func scanRepositoryWithCookie(repo *gitea.Repository) {
 	go func() {
 		defer close(monitorDone)
 		consecutiveCount := 0
-		nextExpectedRunID := latestRunID // Start with the latest, expecting results in descending order
+		nextExpectedRunID := startRunID // Start with the specified/latest run ID, expecting results in descending order
 		resultBuffer := make(map[int64]bool)
 
 		for result := range resultsChan {
@@ -121,7 +131,7 @@ func scanRepositoryWithCookie(repo *gitea.Repository) {
 		}
 	}()
 
-	for i := latestRunID; i > 0; i-- {
+	for i := startRunID; i > 0; i-- {
 		// Check if we've reached the runs limit
 		if scanOptions.RunsLimit > 0 && int(atomic.LoadInt32(&scannedCounter)) >= scanOptions.RunsLimit {
 			log.Debug().Str("repo", repo.FullName).Int("limit", scanOptions.RunsLimit).Msg("Reached runs limit, stopping scan")

@@ -27,6 +27,7 @@ type GiteaScanOptions struct {
 	Repository             string
 	Cookie                 string
 	RunsLimit              int
+	StartRunID             int64
 	Context                context.Context
 	Client                 *gitea.Client
 	HttpClient             *retryablehttp.Client

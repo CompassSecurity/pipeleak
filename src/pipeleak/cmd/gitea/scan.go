@@ -49,6 +49,9 @@ pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com 
 
 # Scan a specific repository
 pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com --repository owner/repo-name --cookie your_cookie_value
+
+# Scan a specific repository starting from a specific run ID
+pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com --repository owner/repo-name --start-run-id 12345 --cookie your_cookie_value
 		`,
 		Run: Scan,
 	}
@@ -67,6 +70,7 @@ pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com 
 	scanCmd.Flags().StringVarP(&scanOptions.Repository, "repository", "r", "", "Scan a specific repository (format: owner/repo)")
 	scanCmd.Flags().StringVarP(&scanOptions.Cookie, "cookie", "", "", "Gitea session cookie (i_like_gitea) for fallback authentication when API returns 403")
 	scanCmd.Flags().IntVarP(&scanOptions.RunsLimit, "runs-limit", "", 0, "Limit the number of workflow runs to scan per repository (0 = unlimited)")
+	scanCmd.Flags().Int64VarP(&scanOptions.StartRunID, "start-run-id", "", 0, "Start scanning from a specific run ID (only valid with --repository flag, 0 = start from latest)")
 	scanCmd.Flags().StringSliceVarP(&scanOptions.ConfidenceFilter, "confidence", "", []string{}, "Filter for confidence level, separate by comma if multiple. See documentation for more info.")
 	scanCmd.PersistentFlags().IntVarP(&scanOptions.MaxScanGoRoutines, "threads", "", 4, "Nr of threads used to scan")
 	scanCmd.PersistentFlags().BoolVarP(&scanOptions.TruffleHogVerification, "truffleHogVerification", "", true, "Enable TruffleHog credential verification to actively test found credentials and only report verified ones (enabled by default, disable with --truffleHogVerification=false)")
@@ -78,6 +82,11 @@ pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com 
 func Scan(cmd *cobra.Command, args []string) {
 	helper.SetLogLevel(scanOptions.Verbose)
 	go helper.ShortcutListeners(scanStatus)
+
+	// Validate that --start-run-id is only used with --repository
+	if scanOptions.StartRunID > 0 && scanOptions.Repository == "" {
+		log.Fatal().Msg("--start-run-id can only be used with --repository flag")
+	}
 
 	_, err := url.ParseRequestURI(scanOptions.GiteaURL)
 	if err != nil {
@@ -310,7 +319,25 @@ func scanRepository(client *gitea.Client, repo *gitea.Repository) {
 		return
 	}
 
-	log.Info().Str("repo", repo.FullName).Int("runs", len(workflowRuns)).Msg("Found workflow runs")
+	// Filter runs if StartRunID is specified - only scan runs with ID <= StartRunID
+	if scanOptions.StartRunID > 0 {
+		filteredRuns := make([]ActionWorkflowRun, 0)
+		for _, run := range workflowRuns {
+			if run.ID <= scanOptions.StartRunID {
+				filteredRuns = append(filteredRuns, run)
+			}
+		}
+		workflowRuns = filteredRuns
+
+		if len(workflowRuns) == 0 {
+			log.Debug().Str("repo", repo.FullName).Int64("start_run_id", scanOptions.StartRunID).Msg("No workflow runs found with ID <= start-run-id")
+			return
+		}
+
+		log.Info().Str("repo", repo.FullName).Int("runs", len(workflowRuns)).Int64("start_run_id", scanOptions.StartRunID).Msg("Found workflow runs from specified run ID")
+	} else {
+		log.Info().Str("repo", repo.FullName).Int("runs", len(workflowRuns)).Msg("Found workflow runs")
+	}
 
 	for _, run := range workflowRuns {
 		log.Debug().
