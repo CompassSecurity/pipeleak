@@ -4,8 +4,10 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -270,23 +272,40 @@ func scanArtifactsWithCookie(repo *gitea.Repository, runID int64, runURL string)
 // getArtifactURLsFromRunHTML parses the run HTML page and extracts artifact download URLs
 func getArtifactURLsFromRunHTML(repo *gitea.Repository, runID int64) (map[string]string, error) {
 
+	// Fetch CSRF token
 	csrfToken, err := fetchCsrfToken()
 	if err != nil || len(csrfToken) == 0 {
 		log.Error().Err(err).Str("repo", repo.FullName).Int64("run_id", runID).Msg("failed to fetch CSRF token")
-		return nil, fmt.Errorf("failed to fetch CSRF token")
+		return nil, fmt.Errorf("failed to fetch CSRF token: %w", err)
 	}
 
-	log.Error().Str("csrf_token", csrfToken).Msg("Using CSRF token to download artifact")
-	// Construct URL: https://gitea.com/owner/repo/actions/runs/{run_id}
+	log.Debug().Str("csrf_token", csrfToken).Msg("Using CSRF token to fetch artifacts")
+
+	// Construct URL: https://gitea.com/owner/repo/actions/runs/{run_id}/jobs/0
+	// This endpoint returns job information including artifacts
 	link, err := url.Parse(scanOptions.GiteaURL)
 	if err != nil {
 		return nil, err
 	}
-	link.Path = fmt.Sprintf("/%s/actions/runs/%d", repo.FullName, runID)
+	link.Path = fmt.Sprintf("/%s/actions/runs/%d/jobs/0", repo.FullName, runID)
 
-	resp, err := scanOptions.HttpClient.Get(link.String())
+	// Create POST request body
+	requestBody := []byte(`{"logCursors":[]}`)
+
+	// Create custom request to add CSRF token header
+	client := scanOptions.HttpClient.StandardClient()
+	req, err := http.NewRequest("POST", link.String(), bytes.NewReader(requestBody))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-csrf-token", csrfToken)
+	req.Header.Set("Accept", "*/*")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch job data: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -298,12 +317,40 @@ func getArtifactURLsFromRunHTML(repo *gitea.Repository, runID int64) (map[string
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
-	_, err = io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
+	// Parse JSON response to extract artifacts
+	var jobData struct {
+		Artifacts []struct {
+			Name   string `json:"name"`
+			Size   int64  `json:"size"`
+			Status string `json:"status"`
+		} `json:"artifacts"`
+	}
+
+	if err := json.Unmarshal(body, &jobData); err != nil {
+		log.Debug().Err(err).Str("body", string(body)).Msg("Failed to parse job data JSON")
+		return nil, fmt.Errorf("failed to parse job data: %w", err)
+	}
+
+	// Build artifact URLs
 	artifactURLs := make(map[string]string)
+
+	for _, artifact := range jobData.Artifacts {
+		// Build download URL: /owner/repo/actions/runs/{run_id}/artifacts/{artifact_name}
+		artifactURL, err := url.Parse(scanOptions.GiteaURL)
+		if err != nil {
+			continue
+		}
+		// Use artifact name directly in the download URL
+		artifactURL.Path = fmt.Sprintf("/%s/actions/runs/%d/artifacts/%s", repo.FullName, runID, url.PathEscape(artifact.Name))
+
+		artifactURLs[artifact.Name] = artifactURL.String()
+		log.Debug().Str("name", artifact.Name).Int64("size", artifact.Size).Str("url", artifactURL.String()).Msg("Found artifact")
+	}
 
 	return artifactURLs, nil
 }
