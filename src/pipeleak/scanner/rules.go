@@ -74,7 +74,7 @@ func downloadFile(url string, filepath string) error {
 	}
 	defer func() { _ = out.Close() }()
 
-	client := helper.GetPipeleakHTTPClient()
+	client := helper.GetPipeleakHTTPClient("", nil, nil)
 	resp, err := client.Get(url)
 	if err != nil {
 		return err
@@ -155,7 +155,7 @@ func DetectHits(text []byte, maxThreads int, enableTruffleHogVerification bool) 
 	}()
 	select {
 	// Hit detection timeout
-	case <-time.After(30 * time.Second):
+	case <-time.After(60 * time.Second):
 		return nil, errors.New("hit detection timed out")
 	case result := <-result:
 		return result.Findings, result.Error

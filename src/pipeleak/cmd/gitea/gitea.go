@@ -1,13 +1,13 @@
 package gitea
 
 import (
+	"github.com/CompassSecurity/pipeleak/cmd/gitea/enum"
+	"github.com/CompassSecurity/pipeleak/cmd/gitea/scan"
 	"github.com/spf13/cobra"
 )
 
 var (
-	giteaApiToken string
-	giteaUrl      string
-	verbose       bool
+	verbose bool
 )
 
 func NewGiteaRootCmd() *cobra.Command {
@@ -18,7 +18,8 @@ func NewGiteaRootCmd() *cobra.Command {
 		GroupID: "Gitea",
 	}
 
-	giteaCmd.AddCommand(NewEnumCmd())
+	giteaCmd.AddCommand(enum.NewEnumCmd())
+	giteaCmd.AddCommand(scan.NewScanCmd())
 
 	giteaCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 

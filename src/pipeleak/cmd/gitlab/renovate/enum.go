@@ -373,7 +373,7 @@ func fetchCurrentSelfHostedOptions() []string {
 
 	log.Debug().Msg("Fetching current self-hosted configuration from GitHub")
 
-	client := helper.GetPipeleakHTTPClient()
+	client := helper.GetPipeleakHTTPClient("", nil, nil)
 	res, err := client.Get("https://raw.githubusercontent.com/renovatebot/renovate/refs/heads/main/docs/usage/self-hosted-configuration.md")
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed fetching self-hosted configuration documentation")
@@ -418,7 +418,7 @@ func isSelfHostedConfig(config string) bool {
 }
 
 func extendRenovateConfig(renovateConfig string, project *gitlab.Project) string {
-	client := helper.GetPipeleakHTTPClient()
+	client := helper.GetPipeleakHTTPClient("", nil, nil)
 
 	u, err := url.Parse(extendRenovateConfigService)
 	if err != nil {
@@ -451,7 +451,7 @@ func extendRenovateConfig(renovateConfig string, project *gitlab.Project) string
 }
 
 func validateRenovateConfigService(serviceUrl string) error {
-	client := helper.GetPipeleakHTTPClient()
+	client := helper.GetPipeleakHTTPClient("", nil, nil)
 
 	u, err := url.Parse(serviceUrl)
 	if err != nil {

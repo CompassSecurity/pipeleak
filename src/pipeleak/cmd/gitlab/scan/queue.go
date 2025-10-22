@@ -279,20 +279,18 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 		return []byte{}
 	}
 
-	req, err := http.NewRequest("GET", dotenvUrl, nil)
+	reqUrl, err := url.Parse(dotenvUrl)
 	if err != nil {
-		log.Debug().Stack().Err(err).Msg("Failed dotenv GET request")
+		log.Debug().Stack().Err(err).Msg("Failed parsing dotenv URL")
 		return []byte{}
 	}
-
-	q := req.URL.Query()
+	q := reqUrl.Query()
 	q.Add("file_type", "dotenv")
-	req.URL.RawQuery = q.Encode()
+	reqUrl.RawQuery = q.Encode()
+	dotenvUrl = reqUrl.String()
 
-	req.AddCookie(&http.Cookie{Name: "_gitlab_session", Value: cookieVal})
-
-	client := helper.GetPipeleakHTTPClient()
-	resp, err := client.Do(req)
+	client := helper.GetPipeleakHTTPClient(gitlabUrl, []*http.Cookie{{Name: "_gitlab_session", Value: cookieVal}}, nil)
+	resp, err := client.Get(dotenvUrl)
 	if err != nil {
 		log.Debug().Stack().Err(err).Msg("Failed requesting dotenv artifact")
 		return []byte{}

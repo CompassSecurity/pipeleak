@@ -14,6 +14,7 @@ It supports the following platforms:
 * GitHub
 * BitBucket
 * Azure DevOps
+* Gitea
 
 Once secrets are discovered, further exploitation often requires additional tooling. Pipeleak provides several helper commands to assist with this process.
 
