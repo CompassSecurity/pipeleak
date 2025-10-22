@@ -1111,23 +1111,24 @@ func TestListWorkflowRuns_PaginationArrayFormat(t *testing.T) {
 
 func TestScanWorkflowArtifacts_WithArtifacts(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/v1/repos/owner/test-repo/actions/runs/123/artifacts" {
+		switch r.URL.Path {
+		case "/api/v1/repos/owner/test-repo/actions/runs/123/artifacts":
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{
+			_, _ = w.Write([]byte(`{
 				"total_count": 1,
 				"artifacts": [
 					{"id": 1, "name": "test-artifact", "size": 100}
 				]
 			}`))
-		} else if r.URL.Path == "/api/v1/repos/owner/test-repo/actions/artifacts/1/zip" {
+		case "/api/v1/repos/owner/test-repo/actions/artifacts/1/zip":
 			buf := new(bytes.Buffer)
 			zw := zip.NewWriter(buf)
 			f, _ := zw.Create("test.txt")
-			f.Write([]byte("test content"))
-			zw.Close()
+			_, _ = f.Write([]byte("test content"))
+			_ = zw.Close()
 			w.WriteHeader(http.StatusOK)
-			w.Write(buf.Bytes())
+			_, _ = w.Write(buf.Bytes())
 		}
 	}))
 	defer server.Close()
@@ -1151,7 +1152,7 @@ func TestScanWorkflowArtifacts_NoArtifacts(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"total_count": 0, "artifacts": []}`))
+		_, _ = w.Write([]byte(`{"total_count": 0, "artifacts": []}`))
 	}))
 	defer server.Close()
 
@@ -1196,12 +1197,12 @@ func TestDownloadAndScanArtifact_SuccessfulZipDownload(t *testing.T) {
 		buf := new(bytes.Buffer)
 		zw := zip.NewWriter(buf)
 		f, _ := zw.Create("test.txt")
-		f.Write([]byte("test content"))
-		zw.Close()
+		_, _ = f.Write([]byte("test content"))
+		_ = zw.Close()
 
 		w.Header().Set("Content-Type", "application/zip")
 		w.WriteHeader(http.StatusOK)
-		w.Write(buf.Bytes())
+		_, _ = w.Write(buf.Bytes())
 	}))
 	defer server.Close()
 
@@ -1326,7 +1327,7 @@ func TestScanWorkflowRunLogs_NoJobs(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"total_count": 0, "jobs": []}`))
+		_, _ = w.Write([]byte(`{"total_count": 0, "jobs": []}`))
 	}))
 	defer server.Close()
 

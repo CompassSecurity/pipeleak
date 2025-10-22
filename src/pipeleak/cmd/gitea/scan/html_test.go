@@ -607,14 +607,15 @@ func TestScanArtifactsWithCookie(t *testing.T) {
 
 func TestScanArtifactsWithCookie_WithArtifacts(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/issues" {
+		switch r.URL.Path {
+		case "/issues":
 			w.WriteHeader(http.StatusOK)
-		} else if r.URL.Path == "/owner/repo/actions/runs/123/jobs/0" {
+		case "/owner/repo/actions/runs/123/jobs/0":
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{"artifacts": [{"name": "artifact1", "size": 1024, "url": "/owner/repo/actions/runs/123/artifacts/artifact1"}]}`))
-		} else if r.URL.Path == "/owner/repo/actions/runs/123/artifacts/artifact1" {
+			_, _ = w.Write([]byte(`{"artifacts": [{"name": "artifact1", "size": 1024, "url": "/owner/repo/actions/runs/123/artifacts/artifact1"}]}`))
+		case "/owner/repo/actions/runs/123/artifacts/artifact1":
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("artifact content"))
+			_, _ = w.Write([]byte("artifact content"))
 		}
 	}))
 	defer server.Close()
@@ -638,9 +639,10 @@ func TestScanArtifactsWithCookie_WithArtifacts(t *testing.T) {
 
 func TestScanArtifactsWithCookie_FetchError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/issues" {
+		switch r.URL.Path {
+		case "/issues":
 			w.WriteHeader(http.StatusOK)
-		} else {
+		default:
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 	}))

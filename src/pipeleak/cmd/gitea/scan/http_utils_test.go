@@ -510,7 +510,7 @@ func TestMakeHTTPPostRequest_WithBody(t *testing.T) {
 		body, _ := io.ReadAll(r.Body)
 		assert.Equal(t, "test body", string(body))
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("response"))
+		_, _ = w.Write([]byte("response"))
 	}))
 	defer server.Close()
 
@@ -534,7 +534,7 @@ func TestMakeHTTPGetRequest_WithQueryParams(t *testing.T) {
 		assert.Equal(t, "GET", r.Method)
 		assert.Equal(t, "value", r.URL.Query().Get("param"))
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("response"))
+		_, _ = w.Write([]byte("response"))
 	}))
 	defer server.Close()
 
