@@ -1,4 +1,4 @@
-package gitea
+package scan
 
 import (
 	"bytes"

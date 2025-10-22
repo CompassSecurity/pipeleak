@@ -1,4 +1,4 @@
-package gitea
+package scan
 
 import (
 	"context"
@@ -50,8 +50,8 @@ pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com 
 # Scan a specific repository
 pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com --repository owner/repo-name --cookie your_cookie_value
 
-# Scan a specific repository starting from a specific run ID
-pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com --repository owner/repo-name --start-run-id 12345 --cookie your_cookie_value
+# Scan a specific repository but limit the number of workflow runs to scan
+pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com --repository owner/repo-name --runs-limit 20 --cookie your_cookie_value
 		`,
 		Run: Scan,
 	}
@@ -68,7 +68,7 @@ pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com 
 	scanCmd.Flags().BoolVarP(&scanOptions.Owned, "owned", "o", false, "Scan only repositories owned by the user")
 	scanCmd.Flags().StringVarP(&scanOptions.Organization, "organization", "", "", "Scan all repositories of a specific organization")
 	scanCmd.Flags().StringVarP(&scanOptions.Repository, "repository", "r", "", "Scan a specific repository (format: owner/repo)")
-	scanCmd.Flags().StringVarP(&scanOptions.Cookie, "cookie", "", "", "Gitea session cookie (i_like_gitea) for fallback authentication when API returns 403")
+	scanCmd.Flags().StringVarP(&scanOptions.Cookie, "cookie", "c", "", "Gitea session cookie (i_like_gitea). Needed when scanning where you are NOT the owner of the repository")
 	scanCmd.Flags().IntVarP(&scanOptions.RunsLimit, "runs-limit", "", 0, "Limit the number of workflow runs to scan per repository (0 = unlimited)")
 	scanCmd.Flags().Int64VarP(&scanOptions.StartRunID, "start-run-id", "", 0, "Start scanning from a specific run ID (only valid with --repository flag, 0 = start from latest)")
 	scanCmd.Flags().StringSliceVarP(&scanOptions.ConfidenceFilter, "confidence", "", []string{}, "Filter for confidence level, separate by comma if multiple. See documentation for more info.")

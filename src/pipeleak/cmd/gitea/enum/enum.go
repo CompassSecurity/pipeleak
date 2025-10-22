@@ -1,10 +1,16 @@
-package gitea
+package enum
 
 import (
 	"code.gitea.io/sdk/gitea"
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
+)
+
+var (
+	giteaApiToken string
+	giteaUrl      string
+	verbose       bool
 )
 
 func NewEnumCmd() *cobra.Command {
