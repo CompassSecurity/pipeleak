@@ -7,8 +7,6 @@ import (
 )
 
 var (
-	giteaApiToken string
-	giteaUrl      string
 	verbose       bool
 )
 
