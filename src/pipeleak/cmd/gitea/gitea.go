@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	verbose       bool
+	verbose bool
 )
 
 func NewGiteaRootCmd() *cobra.Command {

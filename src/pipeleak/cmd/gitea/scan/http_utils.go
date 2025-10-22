@@ -16,7 +16,7 @@ type httpResponse struct {
 	StatusCode int
 }
 
-func makeHTTPRequest(url string) (*httpResponse, error) {
+func makeHTTPGetRequest(url string) (*httpResponse, error) {
 	if scanOptions.HttpClient == nil {
 		return nil, fmt.Errorf("HTTP client is not initialized")
 	}

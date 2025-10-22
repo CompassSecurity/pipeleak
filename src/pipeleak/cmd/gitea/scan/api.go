@@ -298,7 +298,7 @@ func scanJobLogs(client *gitea.Client, repo *gitea.Repository, run ActionWorkflo
 		return
 	}
 
-	resp, err := makeHTTPRequest(urlStr)
+	resp, err := makeHTTPGetRequest(urlStr)
 	if err != nil {
 		log.Error().Err(err).Int64("job_id", job.ID).Str("url", jobURL).Msg("failed to download logs")
 		return
@@ -435,7 +435,7 @@ func downloadAndScanArtifact(client *gitea.Client, repo *gitea.Repository, run A
 		return
 	}
 
-	resp, err := makeHTTPRequest(urlStr)
+	resp, err := makeHTTPGetRequest(urlStr)
 	if err != nil {
 		log.Error().Err(err).Str("repo", repo.FullName).Int64("artifact_id", artifact.ID).Str("url", run.HTMLURL).Msg("failed to download artifact")
 		return

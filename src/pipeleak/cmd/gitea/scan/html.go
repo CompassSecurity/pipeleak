@@ -21,7 +21,7 @@ func validateCookie() {
 		log.Fatal().Err(err).Msg("Failed parsing Gitea URL for cookie validation")
 	}
 
-	resp, err := makeHTTPRequest(urlStr)
+	resp, err := makeHTTPGetRequest(urlStr)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed cookie validation request")
 	}
@@ -175,7 +175,7 @@ func getLatestRunIDFromHTML(repo *gitea.Repository) (int64, error) {
 		return 0, err
 	}
 
-	resp, err := makeHTTPRequest(urlStr)
+	resp, err := makeHTTPGetRequest(urlStr)
 	if err != nil {
 		return 0, err
 	}
@@ -216,7 +216,7 @@ func scanJobLogsWithCookie(repo *gitea.Repository, runID int64, jobID int64) boo
 		return false
 	}
 
-	resp, err := makeHTTPRequest(urlStr)
+	resp, err := makeHTTPGetRequest(urlStr)
 	if err != nil {
 		log.Error().Err(err).Str("url", jobURL).Msg("failed to download logs")
 		return false
@@ -367,7 +367,7 @@ func downloadAndScanArtifactWithCookie(repo *gitea.Repository, run ActionWorkflo
 
 	log.Trace().Str("artifact", artifactName).Str("url", run.HTMLURL).Msg("Downloading artifact with cookie")
 
-	resp, err := makeHTTPRequest(artifactURL)
+	resp, err := makeHTTPGetRequest(artifactURL)
 	if err != nil {
 		log.Error().Err(err).Str("artifact", artifactName).Str("url", run.HTMLURL).Msg("failed to download artifact")
 		return
@@ -392,7 +392,7 @@ func fetchCsrfToken() (string, error) {
 		return "", fmt.Errorf("failed to parse Gitea URL: %w", err)
 	}
 
-	resp, err := makeHTTPRequest(urlStr)
+	resp, err := makeHTTPGetRequest(urlStr)
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch homepage: %w", err)
 	}
