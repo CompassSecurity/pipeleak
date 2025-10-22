@@ -1,6 +1,8 @@
 package scan
 
 import (
+	"archive/zip"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -1105,4 +1107,261 @@ func TestListWorkflowRuns_PaginationArrayFormat(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 110, len(runs), "Should fetch 50+50+10 runs from array format")
 	assert.Equal(t, 3, requestCount, "Should make 3 requests before encountering short page")
+}
+
+func TestScanWorkflowArtifacts_WithArtifacts(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v1/repos/owner/test-repo/actions/runs/123/artifacts" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{
+				"total_count": 1,
+				"artifacts": [
+					{"id": 1, "name": "test-artifact", "size": 100}
+				]
+			}`))
+		} else if r.URL.Path == "/api/v1/repos/owner/test-repo/actions/artifacts/1/zip" {
+			buf := new(bytes.Buffer)
+			zw := zip.NewWriter(buf)
+			f, _ := zw.Create("test.txt")
+			f.Write([]byte("test content"))
+			zw.Close()
+			w.WriteHeader(http.StatusOK)
+			w.Write(buf.Bytes())
+		}
+	}))
+	defer server.Close()
+
+	setupTestScanOptions()
+	scanOptions.GiteaURL = server.URL
+
+	repo := &gitea.Repository{
+		Name:     "test-repo",
+		FullName: "owner/test-repo",
+		Owner:    &gitea.User{UserName: "owner"},
+	}
+	run := ActionWorkflowRun{ID: 123, HTMLURL: server.URL + "/run/123"}
+
+	assert.NotPanics(t, func() {
+		scanWorkflowArtifacts(nil, repo, run)
+	})
+}
+
+func TestScanWorkflowArtifacts_NoArtifacts(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"total_count": 0, "artifacts": []}`))
+	}))
+	defer server.Close()
+
+	setupTestScanOptions()
+	scanOptions.GiteaURL = server.URL
+
+	repo := &gitea.Repository{
+		Name:     "test-repo",
+		FullName: "owner/test-repo",
+		Owner:    &gitea.User{UserName: "owner"},
+	}
+	run := ActionWorkflowRun{ID: 123}
+
+	assert.NotPanics(t, func() {
+		scanWorkflowArtifacts(nil, repo, run)
+	})
+}
+
+func TestScanWorkflowArtifacts_ArtifactListError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer server.Close()
+
+	setupTestScanOptions()
+	scanOptions.GiteaURL = server.URL
+
+	repo := &gitea.Repository{
+		Name:     "test-repo",
+		FullName: "owner/test-repo",
+		Owner:    &gitea.User{UserName: "owner"},
+	}
+	run := ActionWorkflowRun{ID: 123}
+
+	assert.NotPanics(t, func() {
+		scanWorkflowArtifacts(nil, repo, run)
+	})
+}
+
+func TestDownloadAndScanArtifact_SuccessfulZipDownload(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		buf := new(bytes.Buffer)
+		zw := zip.NewWriter(buf)
+		f, _ := zw.Create("test.txt")
+		f.Write([]byte("test content"))
+		zw.Close()
+
+		w.Header().Set("Content-Type", "application/zip")
+		w.WriteHeader(http.StatusOK)
+		w.Write(buf.Bytes())
+	}))
+	defer server.Close()
+
+	setupTestScanOptions()
+	scanOptions.GiteaURL = server.URL
+
+	repo := &gitea.Repository{
+		Name:     "test-repo",
+		FullName: "owner/test-repo",
+		Owner:    &gitea.User{UserName: "owner"},
+	}
+	run := ActionWorkflowRun{ID: 123, HTMLURL: server.URL + "/run/123"}
+	artifact := ActionArtifact{ID: 789, Name: "test-artifact.zip"}
+
+	assert.NotPanics(t, func() {
+		downloadAndScanArtifact(nil, repo, run, artifact)
+	})
+}
+
+func TestDownloadAndScanArtifact_302Redirect(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusFound)
+		w.Header().Set("Location", "/redirect-target")
+	}))
+	defer server.Close()
+
+	setupTestScanOptions()
+	scanOptions.GiteaURL = server.URL
+
+	repo := &gitea.Repository{
+		Name:     "test-repo",
+		FullName: "owner/test-repo",
+		Owner:    &gitea.User{UserName: "owner"},
+	}
+	run := ActionWorkflowRun{ID: 123, HTMLURL: server.URL + "/run/123"}
+	artifact := ActionArtifact{ID: 789, Name: "test-artifact"}
+
+	assert.NotPanics(t, func() {
+		downloadAndScanArtifact(nil, repo, run, artifact)
+	})
+}
+
+func TestDownloadAndScanArtifact_BuildURLError(t *testing.T) {
+	setupTestScanOptions()
+	scanOptions.GiteaURL = "://invalid-url"
+
+	repo := &gitea.Repository{
+		Name:     "test-repo",
+		FullName: "owner/test-repo",
+		Owner:    &gitea.User{UserName: "owner"},
+	}
+	run := ActionWorkflowRun{ID: 123}
+	artifact := ActionArtifact{ID: 789, Name: "test"}
+
+	assert.NotPanics(t, func() {
+		downloadAndScanArtifact(nil, repo, run, artifact)
+	})
+}
+
+func TestScanJobLogs_BuildURLError(t *testing.T) {
+	setupTestScanOptions()
+	scanOptions.GiteaURL = "://invalid-url"
+
+	repo := &gitea.Repository{
+		Name:     "test-repo",
+		FullName: "owner/test-repo",
+		Owner:    &gitea.User{UserName: "owner"},
+	}
+	run := ActionWorkflowRun{ID: 123, HTMLURL: "https://example.com/run/123"}
+	job := ActionJob{ID: 456, Name: "test-job"}
+
+	assert.NotPanics(t, func() {
+		scanJobLogs(nil, repo, run, job)
+	})
+}
+
+func TestScanJobLogs_404Response(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	setupTestScanOptions()
+	scanOptions.GiteaURL = server.URL
+
+	repo := &gitea.Repository{
+		Name:     "test-repo",
+		FullName: "owner/test-repo",
+		Owner:    &gitea.User{UserName: "owner"},
+	}
+	run := ActionWorkflowRun{ID: 123, HTMLURL: server.URL + "/run/123"}
+	job := ActionJob{ID: 456, Name: "test-job"}
+
+	assert.NotPanics(t, func() {
+		scanJobLogs(nil, repo, run, job)
+	})
+}
+
+func TestScanJobLogs_NonOKStatus(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer server.Close()
+
+	setupTestScanOptions()
+	scanOptions.GiteaURL = server.URL
+
+	repo := &gitea.Repository{
+		Name:     "test-repo",
+		FullName: "owner/test-repo",
+		Owner:    &gitea.User{UserName: "owner"},
+	}
+	run := ActionWorkflowRun{ID: 123, HTMLURL: server.URL + "/run/123"}
+	job := ActionJob{ID: 456, Name: "test-job"}
+
+	assert.NotPanics(t, func() {
+		scanJobLogs(nil, repo, run, job)
+	})
+}
+
+func TestScanWorkflowRunLogs_NoJobs(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"total_count": 0, "jobs": []}`))
+	}))
+	defer server.Close()
+
+	setupTestScanOptions()
+	scanOptions.GiteaURL = server.URL
+
+	repo := &gitea.Repository{
+		Name:     "test-repo",
+		FullName: "owner/test-repo",
+		Owner:    &gitea.User{UserName: "owner"},
+	}
+	run := ActionWorkflowRun{ID: 123, HTMLURL: server.URL + "/run/123"}
+
+	assert.NotPanics(t, func() {
+		scanWorkflowRunLogs(nil, repo, run)
+	})
+}
+
+func TestScanWorkflowRunLogs_JobsError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	setupTestScanOptions()
+	scanOptions.GiteaURL = server.URL
+
+	repo := &gitea.Repository{
+		Name:     "test-repo",
+		FullName: "owner/test-repo",
+		Owner:    &gitea.User{UserName: "owner"},
+	}
+	run := ActionWorkflowRun{ID: 123, HTMLURL: server.URL + "/run/123"}
+
+	assert.NotPanics(t, func() {
+		scanWorkflowRunLogs(nil, repo, run)
+	})
 }

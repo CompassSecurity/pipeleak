@@ -2,6 +2,7 @@ package scan
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -501,4 +502,54 @@ func TestMain(m *testing.M) {
 
 	// Run tests
 	m.Run()
+}
+
+func TestMakeHTTPPostRequest_WithBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "POST", r.Method)
+		body, _ := io.ReadAll(r.Body)
+		assert.Equal(t, "test body", string(body))
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("response"))
+	}))
+	defer server.Close()
+
+	setupTestScanOptions()
+
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+	body := []byte("test body")
+
+	resp, err := makeHTTPPostRequest(server.URL, body, headers)
+	assert.NoError(t, err)
+	assert.NotNil(t, resp)
+	if resp != nil {
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+	}
+}
+
+func TestMakeHTTPGetRequest_WithQueryParams(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "GET", r.Method)
+		assert.Equal(t, "value", r.URL.Query().Get("param"))
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("response"))
+	}))
+	defer server.Close()
+
+	setupTestScanOptions()
+
+	resp, err := makeHTTPGetRequest(server.URL + "?param=value")
+	assert.NoError(t, err)
+	assert.NotNil(t, resp)
+	if resp != nil {
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+	}
+}
+
+func TestCheckHTTPStatus_410Gone(t *testing.T) {
+	err := checkHTTPStatus(http.StatusGone, "test operation")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "410")
 }

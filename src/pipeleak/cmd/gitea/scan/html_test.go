@@ -604,3 +604,61 @@ func TestScanArtifactsWithCookie(t *testing.T) {
 		})
 	}
 }
+
+func TestScanArtifactsWithCookie_WithArtifacts(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/issues" {
+			w.WriteHeader(http.StatusOK)
+		} else if r.URL.Path == "/owner/repo/actions/runs/123/jobs/0" {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"artifacts": [{"name": "artifact1", "size": 1024, "url": "/owner/repo/actions/runs/123/artifacts/artifact1"}]}`))
+		} else if r.URL.Path == "/owner/repo/actions/runs/123/artifacts/artifact1" {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("artifact content"))
+		}
+	}))
+	defer server.Close()
+
+	setupTestScanOptions()
+	scanOptions.GiteaURL = server.URL
+	scanOptions.Cookie = "test-cookie"
+
+	repo := &gitea.Repository{
+		Name:     "repo",
+		FullName: "owner/repo",
+		Owner:    &gitea.User{UserName: "owner"},
+	}
+	runID := int64(123)
+	runURL := server.URL + "/owner/repo/actions/runs/123"
+
+	assert.NotPanics(t, func() {
+		scanArtifactsWithCookie(repo, runID, runURL)
+	})
+}
+
+func TestScanArtifactsWithCookie_FetchError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/issues" {
+			w.WriteHeader(http.StatusOK)
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+	}))
+	defer server.Close()
+
+	setupTestScanOptions()
+	scanOptions.GiteaURL = server.URL
+	scanOptions.Cookie = "test-cookie"
+
+	repo := &gitea.Repository{
+		Name:     "repo",
+		FullName: "owner/repo",
+		Owner:    &gitea.User{UserName: "owner"},
+	}
+	runID := int64(123)
+	runURL := server.URL + "/run/123"
+
+	assert.NotPanics(t, func() {
+		scanArtifactsWithCookie(repo, runID, runURL)
+	})
+}

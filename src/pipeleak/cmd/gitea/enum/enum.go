@@ -1,6 +1,8 @@
 package enum
 
 import (
+	"fmt"
+
 	"code.gitea.io/sdk/gitea"
 	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/rs/zerolog/log"
@@ -30,22 +32,26 @@ func NewEnumCmd() *cobra.Command {
 func Enum(cmd *cobra.Command, args []string) {
 	helper.SetLogLevel(verbose)
 
-	client, err := gitea.NewClient(giteaUrl, gitea.SetToken(giteaApiToken))
+	if err := runEnum(giteaUrl, giteaApiToken); err != nil {
+		log.Fatal().Stack().Err(err).Msg("Enumeration failed")
+	}
+}
+
+// runEnum contains the core enumeration logic and returns errors instead of calling Fatal
+func runEnum(giteaURL, apiToken string) error {
+	client, err := gitea.NewClient(giteaURL, gitea.SetToken(apiToken))
 	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("Failed creating gitea client")
-		return
+		return err
 	}
 
 	log.Info().Msg("Enumerating User")
 	user, _, err := client.GetMyUserInfo()
 	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("Failed fetching current user")
-		return
+		return err
 	}
 
 	if user == nil {
-		log.Fatal().Msg("Failed fetching current user (nil response)")
-		return
+		return fmt.Errorf("failed fetching current user (nil response)")
 	}
 
 	log.Debug().Interface("user", user).Msg("Full user data structure")
@@ -196,4 +202,5 @@ func Enum(cmd *cobra.Command, args []string) {
 	}
 
 	log.Info().Msg("Done")
+	return nil
 }
