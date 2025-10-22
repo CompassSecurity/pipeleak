@@ -39,7 +39,7 @@ func TestGiteaSDK_ClientCreation(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if r.URL.Path == "/api/v1/version" {
-			json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
 		}
 	}))
 	defer server.Close()
@@ -51,10 +51,11 @@ func TestGiteaSDK_ClientCreation(t *testing.T) {
 func TestGiteaSDK_GetUserInfo(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if r.URL.Path == "/api/v1/version" {
-			json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
-		} else if r.URL.Path == "/api/v1/user" {
-			json.NewEncoder(w).Encode(gitea.User{ID: 123, UserName: "testuser", FullName: "Test User", IsAdmin: true})
+		switch r.URL.Path {
+		case "/api/v1/version":
+			_ = json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+		case "/api/v1/user":
+			_ = json.NewEncoder(w).Encode(gitea.User{ID: 123, UserName: "testuser", FullName: "Test User", IsAdmin: true})
 		}
 	}))
 	defer server.Close()
@@ -69,10 +70,11 @@ func TestGiteaSDK_GetUserInfo(t *testing.T) {
 func TestGiteaSDK_ListOrganizations(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if r.URL.Path == "/api/v1/version" {
-			json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
-		} else if r.URL.Path == "/api/v1/user/orgs" {
-			json.NewEncoder(w).Encode([]gitea.Organization{
+		switch r.URL.Path {
+		case "/api/v1/version":
+			_ = json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+		case "/api/v1/user/orgs":
+			_ = json.NewEncoder(w).Encode([]gitea.Organization{
 				{ID: 10, UserName: "org1", FullName: "Organization 1", Visibility: "public"},
 				{ID: 20, UserName: "org2", FullName: "Organization 2", Visibility: "private"},
 			})
@@ -89,10 +91,11 @@ func TestGiteaSDK_ListOrganizations(t *testing.T) {
 func TestGiteaSDK_ListRepositories(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if r.URL.Path == "/api/v1/version" {
-			json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
-		} else if r.URL.Path == "/api/v1/user/repos" {
-			json.NewEncoder(w).Encode([]gitea.Repository{
+		switch r.URL.Path {
+		case "/api/v1/version":
+			_ = json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+		case "/api/v1/user/repos":
+			_ = json.NewEncoder(w).Encode([]gitea.Repository{
 				{ID: 100, Name: "repo1", FullName: "user/repo1", Private: false, Owner: &gitea.User{UserName: "user"}, Permissions: &gitea.Permission{Admin: true, Push: true, Pull: true}},
 				{ID: 200, Name: "repo2", FullName: "user/repo2", Private: true, Archived: true, Owner: &gitea.User{UserName: "user"}, Permissions: &gitea.Permission{Admin: false, Push: false, Pull: true}},
 			})
@@ -111,10 +114,11 @@ func TestGiteaSDK_ListRepositories(t *testing.T) {
 func TestGiteaSDK_OrganizationRepositories(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if r.URL.Path == "/api/v1/version" {
-			json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
-		} else if r.URL.Path == "/api/v1/orgs/testorg/repos" {
-			json.NewEncoder(w).Encode([]gitea.Repository{
+		switch r.URL.Path {
+		case "/api/v1/version":
+			_ = json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+		case "/api/v1/orgs/testorg/repos":
+			_ = json.NewEncoder(w).Encode([]gitea.Repository{
 				{ID: 300, Name: "orgrepo1", FullName: "testorg/orgrepo1", Owner: &gitea.User{UserName: "testorg"}, Private: true, Permissions: &gitea.Permission{Admin: false, Push: true, Pull: true}},
 			})
 		}
@@ -131,14 +135,16 @@ func TestGiteaSDK_Pagination(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		page := r.URL.Query().Get("page")
-		if r.URL.Path == "/api/v1/version" {
-			json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
-		} else if r.URL.Path == "/api/v1/user/orgs" {
-			if page == "" || page == "1" {
+		switch r.URL.Path {
+		case "/api/v1/version":
+			_ = json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+		case "/api/v1/user/orgs":
+			switch page {
+			case "", "1":
 				w.Header().Set("Link", `</api/v1/user/orgs?page=2>; rel="next"`)
-				json.NewEncoder(w).Encode([]gitea.Organization{{ID: 1, UserName: "org1"}, {ID: 2, UserName: "org2"}})
-			} else if page == "2" {
-				json.NewEncoder(w).Encode([]gitea.Organization{{ID: 3, UserName: "org3"}})
+				_ = json.NewEncoder(w).Encode([]gitea.Organization{{ID: 1, UserName: "org1"}, {ID: 2, UserName: "org2"}})
+			case "2":
+				_ = json.NewEncoder(w).Encode([]gitea.Organization{{ID: 3, UserName: "org3"}})
 			}
 		}
 	}))
@@ -156,12 +162,13 @@ func TestGiteaSDK_Pagination(t *testing.T) {
 func TestGiteaSDK_EmptyResponses(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if r.URL.Path == "/api/v1/version" {
-			json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
-		} else if r.URL.Path == "/api/v1/user/orgs" {
-			json.NewEncoder(w).Encode([]gitea.Organization{})
-		} else if r.URL.Path == "/api/v1/user/repos" {
-			json.NewEncoder(w).Encode([]gitea.Repository{})
+		switch r.URL.Path {
+		case "/api/v1/version":
+			_ = json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+		case "/api/v1/user/orgs":
+			_ = json.NewEncoder(w).Encode([]gitea.Organization{})
+		case "/api/v1/user/repos":
+			_ = json.NewEncoder(w).Encode([]gitea.Repository{})
 		}
 	}))
 	defer server.Close()
@@ -180,9 +187,9 @@ func TestRunEnum_Success(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/api/v1/version":
-			json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
 		case "/api/v1/user":
-			json.NewEncoder(w).Encode(gitea.User{
+			_ = json.NewEncoder(w).Encode(gitea.User{
 				ID:       1,
 				UserName: "testuser",
 				FullName: "Test User",
@@ -190,15 +197,15 @@ func TestRunEnum_Success(t *testing.T) {
 				IsAdmin:  true,
 			})
 		case "/api/v1/user/orgs":
-			json.NewEncoder(w).Encode([]gitea.Organization{
+			_ = json.NewEncoder(w).Encode([]gitea.Organization{
 				{ID: 10, UserName: "testorg", FullName: "Test Org"},
 			})
 		case "/api/v1/orgs/testorg/repos":
-			json.NewEncoder(w).Encode([]gitea.Repository{
+			_ = json.NewEncoder(w).Encode([]gitea.Repository{
 				{ID: 100, Name: "orgrepo", FullName: "testorg/orgrepo", Owner: &gitea.User{UserName: "testorg"}},
 			})
 		case "/api/v1/user/repos":
-			json.NewEncoder(w).Encode([]gitea.Repository{
+			_ = json.NewEncoder(w).Encode([]gitea.Repository{
 				{ID: 200, Name: "userrepo", FullName: "testuser/userrepo", Owner: &gitea.User{UserName: "testuser"}},
 			})
 		}
@@ -222,9 +229,10 @@ func TestRunEnum_ClientCreationError(t *testing.T) {
 func TestRunEnum_UserInfoError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if r.URL.Path == "/api/v1/version" {
-			json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
-		} else if r.URL.Path == "/api/v1/user" {
+		switch r.URL.Path {
+		case "/api/v1/version":
+			_ = json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+		case "/api/v1/user":
 			w.WriteHeader(http.StatusUnauthorized)
 		}
 	}))
@@ -239,18 +247,18 @@ func TestRunEnum_WithOrganizations(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/api/v1/version":
-			json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
 		case "/api/v1/user":
-			json.NewEncoder(w).Encode(gitea.User{ID: 1, UserName: "testuser"})
+			_ = json.NewEncoder(w).Encode(gitea.User{ID: 1, UserName: "testuser"})
 		case "/api/v1/user/orgs":
-			json.NewEncoder(w).Encode([]gitea.Organization{
+			_ = json.NewEncoder(w).Encode([]gitea.Organization{
 				{ID: 1, UserName: "org1", FullName: "Organization 1"},
 				{ID: 2, UserName: "org2", FullName: "Organization 2"},
 			})
 		case "/api/v1/orgs/org1/repos", "/api/v1/orgs/org2/repos":
-			json.NewEncoder(w).Encode([]gitea.Repository{})
+			_ = json.NewEncoder(w).Encode([]gitea.Repository{})
 		case "/api/v1/user/repos":
-			json.NewEncoder(w).Encode([]gitea.Repository{})
+			_ = json.NewEncoder(w).Encode([]gitea.Repository{})
 		}
 	}))
 	defer server.Close()
@@ -264,15 +272,15 @@ func TestRunEnum_WithOrgPermissions(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/api/v1/version":
-			json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
 		case "/api/v1/user":
-			json.NewEncoder(w).Encode(gitea.User{ID: 1, UserName: "testuser"})
+			_ = json.NewEncoder(w).Encode(gitea.User{ID: 1, UserName: "testuser"})
 		case "/api/v1/user/orgs":
-			json.NewEncoder(w).Encode([]gitea.Organization{
+			_ = json.NewEncoder(w).Encode([]gitea.Organization{
 				{ID: 1, UserName: "testorg"},
 			})
 		case "/api/v1/orgs/testorg/permissions/testuser":
-			json.NewEncoder(w).Encode(gitea.OrgPermissions{
+			_ = json.NewEncoder(w).Encode(gitea.OrgPermissions{
 				IsOwner:             true,
 				IsAdmin:             true,
 				CanWrite:            true,
@@ -280,9 +288,9 @@ func TestRunEnum_WithOrgPermissions(t *testing.T) {
 				CanCreateRepository: true,
 			})
 		case "/api/v1/orgs/testorg/repos":
-			json.NewEncoder(w).Encode([]gitea.Repository{})
+			_ = json.NewEncoder(w).Encode([]gitea.Repository{})
 		case "/api/v1/user/repos":
-			json.NewEncoder(w).Encode([]gitea.Repository{})
+			_ = json.NewEncoder(w).Encode([]gitea.Repository{})
 		}
 	}))
 	defer server.Close()
@@ -296,19 +304,19 @@ func TestRunEnum_OrgPermissionsError(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/api/v1/version":
-			json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
 		case "/api/v1/user":
-			json.NewEncoder(w).Encode(gitea.User{ID: 1, UserName: "testuser"})
+			_ = json.NewEncoder(w).Encode(gitea.User{ID: 1, UserName: "testuser"})
 		case "/api/v1/user/orgs":
-			json.NewEncoder(w).Encode([]gitea.Organization{
+			_ = json.NewEncoder(w).Encode([]gitea.Organization{
 				{ID: 1, UserName: "restrictedorg"},
 			})
 		case "/api/v1/orgs/restrictedorg/permissions/testuser":
 			w.WriteHeader(http.StatusForbidden)
 		case "/api/v1/orgs/restrictedorg/repos":
-			json.NewEncoder(w).Encode([]gitea.Repository{})
+			_ = json.NewEncoder(w).Encode([]gitea.Repository{})
 		case "/api/v1/user/repos":
-			json.NewEncoder(w).Encode([]gitea.Repository{})
+			_ = json.NewEncoder(w).Encode([]gitea.Repository{})
 		}
 	}))
 	defer server.Close()
@@ -323,13 +331,13 @@ func TestRunEnum_OrgsError(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/api/v1/version":
-			json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
 		case "/api/v1/user":
-			json.NewEncoder(w).Encode(gitea.User{ID: 1, UserName: "testuser"})
+			_ = json.NewEncoder(w).Encode(gitea.User{ID: 1, UserName: "testuser"})
 		case "/api/v1/user/orgs":
 			w.WriteHeader(http.StatusInternalServerError)
 		case "/api/v1/user/repos":
-			json.NewEncoder(w).Encode([]gitea.Repository{})
+			_ = json.NewEncoder(w).Encode([]gitea.Repository{})
 		}
 	}))
 	defer server.Close()
@@ -344,17 +352,17 @@ func TestRunEnum_OrgReposError(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/api/v1/version":
-			json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
 		case "/api/v1/user":
-			json.NewEncoder(w).Encode(gitea.User{ID: 1, UserName: "testuser"})
+			_ = json.NewEncoder(w).Encode(gitea.User{ID: 1, UserName: "testuser"})
 		case "/api/v1/user/orgs":
-			json.NewEncoder(w).Encode([]gitea.Organization{
+			_ = json.NewEncoder(w).Encode([]gitea.Organization{
 				{ID: 1, UserName: "testorg"},
 			})
 		case "/api/v1/orgs/testorg/repos":
 			w.WriteHeader(http.StatusForbidden)
 		case "/api/v1/user/repos":
-			json.NewEncoder(w).Encode([]gitea.Repository{})
+			_ = json.NewEncoder(w).Encode([]gitea.Repository{})
 		}
 	}))
 	defer server.Close()
@@ -369,11 +377,11 @@ func TestRunEnum_UserReposError(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/api/v1/version":
-			json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
 		case "/api/v1/user":
-			json.NewEncoder(w).Encode(gitea.User{ID: 1, UserName: "testuser"})
+			_ = json.NewEncoder(w).Encode(gitea.User{ID: 1, UserName: "testuser"})
 		case "/api/v1/user/orgs":
-			json.NewEncoder(w).Encode([]gitea.Organization{})
+			_ = json.NewEncoder(w).Encode([]gitea.Organization{})
 		case "/api/v1/user/repos":
 			w.WriteHeader(http.StatusForbidden)
 		}
@@ -392,39 +400,42 @@ func TestRunEnum_WithPagination(t *testing.T) {
 
 		switch r.URL.Path {
 		case "/api/v1/version":
-			json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
 		case "/api/v1/user":
-			json.NewEncoder(w).Encode(gitea.User{ID: 1, UserName: "testuser"})
+			_ = json.NewEncoder(w).Encode(gitea.User{ID: 1, UserName: "testuser"})
 		case "/api/v1/user/orgs":
-			if page == "" || page == "1" {
+			switch page {
+			case "", "1":
 				w.Header().Set("Link", `</api/v1/user/orgs?page=2>; rel="next"`)
-				json.NewEncoder(w).Encode([]gitea.Organization{
+				_ = json.NewEncoder(w).Encode([]gitea.Organization{
 					{ID: 1, UserName: "org1"},
 				})
-			} else if page == "2" {
-				json.NewEncoder(w).Encode([]gitea.Organization{
+			case "2":
+				_ = json.NewEncoder(w).Encode([]gitea.Organization{
 					{ID: 2, UserName: "org2"},
 				})
 			}
 		case "/api/v1/orgs/org1/repos", "/api/v1/orgs/org2/repos":
-			if page == "" || page == "1" {
+			switch page {
+			case "", "1":
 				w.Header().Set("Link", `<`+r.URL.Path+`?page=2>; rel="next"`)
-				json.NewEncoder(w).Encode([]gitea.Repository{
+				_ = json.NewEncoder(w).Encode([]gitea.Repository{
 					{ID: 1, Name: "repo1", FullName: "org/repo1", Owner: &gitea.User{UserName: "org"}},
 				})
-			} else if page == "2" {
-				json.NewEncoder(w).Encode([]gitea.Repository{
+			case "2":
+				_ = json.NewEncoder(w).Encode([]gitea.Repository{
 					{ID: 2, Name: "repo2", FullName: "org/repo2", Owner: &gitea.User{UserName: "org"}},
 				})
 			}
 		case "/api/v1/user/repos":
-			if page == "" || page == "1" {
+			switch page {
+			case "", "1":
 				w.Header().Set("Link", `</api/v1/user/repos?page=2>; rel="next"`)
-				json.NewEncoder(w).Encode([]gitea.Repository{
+				_ = json.NewEncoder(w).Encode([]gitea.Repository{
 					{ID: 10, Name: "myrepo1", FullName: "testuser/myrepo1", Owner: &gitea.User{UserName: "testuser"}},
 				})
-			} else if page == "2" {
-				json.NewEncoder(w).Encode([]gitea.Repository{
+			case "2":
+				_ = json.NewEncoder(w).Encode([]gitea.Repository{
 					{ID: 11, Name: "myrepo2", FullName: "testuser/myrepo2", Owner: &gitea.User{UserName: "testuser"}},
 				})
 			}
@@ -441,15 +452,15 @@ func TestRunEnum_WithRepositoryPermissions(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/api/v1/version":
-			json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
 		case "/api/v1/user":
-			json.NewEncoder(w).Encode(gitea.User{ID: 1, UserName: "testuser"})
+			_ = json.NewEncoder(w).Encode(gitea.User{ID: 1, UserName: "testuser"})
 		case "/api/v1/user/orgs":
-			json.NewEncoder(w).Encode([]gitea.Organization{
+			_ = json.NewEncoder(w).Encode([]gitea.Organization{
 				{ID: 1, UserName: "testorg"},
 			})
 		case "/api/v1/orgs/testorg/repos":
-			json.NewEncoder(w).Encode([]gitea.Repository{
+			_ = json.NewEncoder(w).Encode([]gitea.Repository{
 				{
 					ID:       100,
 					Name:     "orgrepo",
@@ -465,7 +476,7 @@ func TestRunEnum_WithRepositoryPermissions(t *testing.T) {
 				},
 			})
 		case "/api/v1/user/repos":
-			json.NewEncoder(w).Encode([]gitea.Repository{
+			_ = json.NewEncoder(w).Encode([]gitea.Repository{
 				{
 					ID:       200,
 					Name:     "userrepo",
@@ -493,13 +504,13 @@ func TestRunEnum_EmptyResults(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/api/v1/version":
-			json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
 		case "/api/v1/user":
-			json.NewEncoder(w).Encode(gitea.User{ID: 1, UserName: "lonelyuser"})
+			_ = json.NewEncoder(w).Encode(gitea.User{ID: 1, UserName: "lonelyuser"})
 		case "/api/v1/user/orgs":
-			json.NewEncoder(w).Encode([]gitea.Organization{})
+			_ = json.NewEncoder(w).Encode([]gitea.Organization{})
 		case "/api/v1/user/repos":
-			json.NewEncoder(w).Encode([]gitea.Repository{})
+			_ = json.NewEncoder(w).Encode([]gitea.Repository{})
 		}
 	}))
 	defer server.Close()

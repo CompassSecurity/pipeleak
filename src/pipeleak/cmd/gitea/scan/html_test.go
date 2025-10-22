@@ -23,7 +23,7 @@ func TestValidateCookie(t *testing.T) {
 			setupServer: func() *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte("<html><body>Valid page</body></html>"))
+					_, _ = w.Write([]byte("<html><body>Valid page</body></html>"))
 				}))
 			},
 			expectFatal:  false,
@@ -35,7 +35,7 @@ func TestValidateCookie(t *testing.T) {
 			setupServer: func() *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte(`<html><body><a href="/user/login">Login</a></body></html>`))
+					_, _ = w.Write([]byte(`<html><body><a href="/user/login">Login</a></body></html>`))
 				}))
 			},
 			expectFatal:  true, // Would log.Fatal in real execution
@@ -80,7 +80,7 @@ func TestGetLatestRunIDFromHTML(t *testing.T) {
 			setupServer: func() *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte(`
+					_, _ = w.Write([]byte(`
 						<html>
 						<body>
 							<a href="/owner/repo/actions/runs/12345">Latest Run</a>
@@ -101,7 +101,7 @@ func TestGetLatestRunIDFromHTML(t *testing.T) {
 			setupServer: func() *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte("<html><body>No runs</body></html>"))
+					_, _ = w.Write([]byte("<html><body>No runs</body></html>"))
 				}))
 			},
 			expectedID:  0,
@@ -175,7 +175,7 @@ func TestScanJobLogsWithCookie(t *testing.T) {
 			setupServer: func() *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte("log content"))
+					_, _ = w.Write([]byte("log content"))
 				}))
 			},
 			expectedSuccess: true,
@@ -236,7 +236,7 @@ func TestFetchCsrfToken(t *testing.T) {
 			setupServer: func() *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte(`
+					_, _ = w.Write([]byte(`
 						<html>
 						<head>
 							<script>
@@ -257,7 +257,7 @@ func TestFetchCsrfToken(t *testing.T) {
 			setupServer: func() *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte("<html><body>No token</body></html>"))
+					_, _ = w.Write([]byte("<html><body>No token</body></html>"))
 				}))
 			},
 			expectedToken: "",
@@ -310,10 +310,10 @@ func TestGetArtifactURLsFromRunHTML(t *testing.T) {
 					callCount++
 					if callCount == 1 {
 						w.WriteHeader(http.StatusOK)
-						w.Write([]byte(`<script>window.config={csrfToken:'token123'};</script>`))
+						_, _ = w.Write([]byte(`<script>window.config={csrfToken:'token123'};</script>`))
 					} else {
 						w.WriteHeader(http.StatusOK)
-						w.Write([]byte(`{
+						_, _ = w.Write([]byte(`{
 							"artifacts": [
 								{"name": "artifact1", "size": 1024, "status": "completed"},
 								{"name": "artifact2", "size": 2048, "status": "completed"}
@@ -337,10 +337,10 @@ func TestGetArtifactURLsFromRunHTML(t *testing.T) {
 					callCount++
 					if callCount == 1 {
 						w.WriteHeader(http.StatusOK)
-						w.Write([]byte(`<script>window.config={csrfToken:'token123'};</script>`))
+						_, _ = w.Write([]byte(`<script>window.config={csrfToken:'token123'};</script>`))
 					} else {
 						w.WriteHeader(http.StatusOK)
-						w.Write([]byte(`{"artifacts": []}`))
+						_, _ = w.Write([]byte(`{"artifacts": []}`))
 					}
 				}))
 			},
@@ -406,7 +406,7 @@ func TestDownloadAndScanArtifactWithCookie(t *testing.T) {
 			setupServer: func() *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte("artifact content"))
+					_, _ = w.Write([]byte("artifact content"))
 				}))
 			},
 			expectPanic: false,
@@ -486,7 +486,7 @@ func TestScanRepositoryWithCookie(t *testing.T) {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					// Return empty page with no run IDs
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte("<html><body>No actions</body></html>"))
+					_, _ = w.Write([]byte("<html><body>No actions</body></html>"))
 				}))
 			},
 			expectPanic: false,
@@ -500,7 +500,7 @@ func TestScanRepositoryWithCookie(t *testing.T) {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					// Return page with run ID
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte(`
+					_, _ = w.Write([]byte(`
 						<html><body>
 							<a href="/owner/repo/actions/runs/5">Run 5</a>
 						</body></html>
@@ -568,10 +568,10 @@ func TestScanArtifactsWithCookie(t *testing.T) {
 					callCount++
 					if callCount == 1 {
 						w.WriteHeader(http.StatusOK)
-						w.Write([]byte(`<script>window.config={csrfToken:'token123'};</script>`))
+						_, _ = w.Write([]byte(`<script>window.config={csrfToken:'token123'};</script>`))
 					} else {
 						w.WriteHeader(http.StatusOK)
-						w.Write([]byte(`{"artifacts": []}`))
+						_, _ = w.Write([]byte(`{"artifacts": []}`))
 					}
 				}))
 			},

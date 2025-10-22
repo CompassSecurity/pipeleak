@@ -45,8 +45,8 @@ func TestDetermineFileAction(t *testing.T) {
 				buf := new(bytes.Buffer)
 				w := zip.NewWriter(buf)
 				f, _ := w.Create("test.txt")
-				f.Write([]byte("test"))
-				w.Close()
+				_, _ = f.Write([]byte("test"))
+				_ = w.Close()
 				return buf.Bytes()
 			}(),
 			displayName:      "archive.zip",
@@ -121,8 +121,8 @@ func TestProcessZipArtifact(t *testing.T) {
 				buf := new(bytes.Buffer)
 				w := zip.NewWriter(buf)
 				f, _ := w.Create("test.txt")
-				f.Write([]byte("test content"))
-				w.Close()
+				_, _ = f.Write([]byte("test content"))
+				_ = w.Close()
 				return buf.Bytes()
 			}(),
 			artifactName: "test-artifact",
@@ -134,10 +134,10 @@ func TestProcessZipArtifact(t *testing.T) {
 				buf := new(bytes.Buffer)
 				w := zip.NewWriter(buf)
 				f1, _ := w.Create("file1.txt")
-				f1.Write([]byte("content 1"))
+				_, _ = f1.Write([]byte("content 1"))
 				f2, _ := w.Create("file2.txt")
-				f2.Write([]byte("content 2"))
-				w.Close()
+				_, _ = f2.Write([]byte("content 2"))
+				_ = w.Close()
 				return buf.Bytes()
 			}(),
 			artifactName: "multi-file-artifact",
@@ -257,8 +257,8 @@ func TestScanArtifactContent(t *testing.T) {
 				buf := new(bytes.Buffer)
 				w := zip.NewWriter(buf)
 				f, _ := w.Create("nested.txt")
-				f.Write([]byte("nested content"))
-				w.Close()
+				_, _ = f.Write([]byte("nested content"))
+				_ = w.Close()
 				return buf.Bytes()
 			}(),
 			artifactName: "nested-artifact",
@@ -294,9 +294,9 @@ func TestProcessZipArtifact_ConcurrentFileProcessing(t *testing.T) {
 	// Add multiple files
 	for i := 1; i <= 10; i++ {
 		f, _ := w.Create(string(rune('a'+i-1)) + ".txt")
-		f.Write([]byte("content " + string(rune('0'+i))))
+		_, _ = f.Write([]byte("content " + string(rune('0'+i))))
 	}
-	w.Close()
+	_ = w.Close()
 
 	setupTestScanOptions()
 	scanOptions.MaxScanGoRoutines = 4

@@ -43,7 +43,7 @@ func TestListWorkflowRuns(t *testing.T) {
 						},
 					}
 					w.WriteHeader(http.StatusOK)
-					json.NewEncoder(w).Encode(resp)
+					_ = json.NewEncoder(w).Encode(resp)
 				}))
 			},
 			expectedRuns:   2,
@@ -67,7 +67,7 @@ func TestListWorkflowRuns(t *testing.T) {
 						{ID: 3, Name: "Run 3"},
 					}
 					w.WriteHeader(http.StatusOK)
-					json.NewEncoder(w).Encode(runs)
+					_ = json.NewEncoder(w).Encode(runs)
 				}))
 			},
 			expectedRuns:   3,
@@ -148,7 +148,7 @@ func TestListWorkflowRuns(t *testing.T) {
 						},
 					}
 					w.WriteHeader(http.StatusOK)
-					json.NewEncoder(w).Encode(resp)
+					_ = json.NewEncoder(w).Encode(resp)
 				}))
 			},
 			expectedRuns:   2,
@@ -215,7 +215,7 @@ func TestListWorkflowJobs(t *testing.T) {
 						},
 					}
 					w.WriteHeader(http.StatusOK)
-					json.NewEncoder(w).Encode(resp)
+					_ = json.NewEncoder(w).Encode(resp)
 				}))
 			},
 			expectedJobs: 3,
@@ -238,7 +238,7 @@ func TestListWorkflowJobs(t *testing.T) {
 						{ID: 20, Name: "Job B"},
 					}
 					w.WriteHeader(http.StatusOK)
-					json.NewEncoder(w).Encode(jobs)
+					_ = json.NewEncoder(w).Encode(jobs)
 				}))
 			},
 			expectedJobs: 2,
@@ -339,7 +339,7 @@ func TestListArtifacts(t *testing.T) {
 						},
 					}
 					w.WriteHeader(http.StatusOK)
-					json.NewEncoder(w).Encode(resp)
+					_ = json.NewEncoder(w).Encode(resp)
 				}))
 			},
 			expectedArtifacts: 2,
@@ -361,7 +361,7 @@ func TestListArtifacts(t *testing.T) {
 						{ID: 10, Name: "log.zip"},
 					}
 					w.WriteHeader(http.StatusOK)
-					json.NewEncoder(w).Encode(artifacts)
+					_ = json.NewEncoder(w).Encode(artifacts)
 				}))
 			},
 			expectedArtifacts: 1,
@@ -455,7 +455,7 @@ func TestScanJobLogs(t *testing.T) {
 			setupServer: func() *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte("test log content"))
+					_, _ = w.Write([]byte("test log content"))
 				}))
 			},
 			expectPanic: false,
@@ -531,11 +531,11 @@ func TestScanWorkflowRunLogs(t *testing.T) {
 							},
 						}
 						w.WriteHeader(http.StatusOK)
-						json.NewEncoder(w).Encode(resp)
+						_ = json.NewEncoder(w).Encode(resp)
 					} else {
 						// Subsequent calls for logs
 						w.WriteHeader(http.StatusOK)
-						w.Write([]byte("log content"))
+						_, _ = w.Write([]byte("log content"))
 					}
 				}))
 			},
@@ -717,7 +717,7 @@ func TestListWorkflowRuns_Pagination(t *testing.T) {
 						WorkflowRuns: []ActionWorkflowRun{},
 					}
 					w.WriteHeader(http.StatusOK)
-					json.NewEncoder(w).Encode(resp)
+					_ = json.NewEncoder(w).Encode(resp)
 					return
 				}
 
@@ -735,7 +735,7 @@ func TestListWorkflowRuns_Pagination(t *testing.T) {
 					WorkflowRuns: runs,
 				}
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(resp)
+				_ = json.NewEncoder(w).Encode(resp)
 			}))
 			defer server.Close()
 
@@ -822,7 +822,7 @@ func TestListWorkflowJobs_Pagination(t *testing.T) {
 						Jobs:       []ActionJob{},
 					}
 					w.WriteHeader(http.StatusOK)
-					json.NewEncoder(w).Encode(resp)
+					_ = json.NewEncoder(w).Encode(resp)
 					return
 				}
 
@@ -840,7 +840,7 @@ func TestListWorkflowJobs_Pagination(t *testing.T) {
 					Jobs:       jobs,
 				}
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(resp)
+				_ = json.NewEncoder(w).Encode(resp)
 			}))
 			defer server.Close()
 
@@ -921,7 +921,7 @@ func TestListArtifacts_Pagination(t *testing.T) {
 						Artifacts:  []ActionArtifact{},
 					}
 					w.WriteHeader(http.StatusOK)
-					json.NewEncoder(w).Encode(resp)
+					_ = json.NewEncoder(w).Encode(resp)
 					return
 				}
 
@@ -939,7 +939,7 @@ func TestListArtifacts_Pagination(t *testing.T) {
 					Artifacts:  artifacts,
 				}
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(resp)
+				_ = json.NewEncoder(w).Encode(resp)
 			}))
 			defer server.Close()
 
@@ -1037,7 +1037,7 @@ func TestListWorkflowRuns_PaginationWithRunsLimit(t *testing.T) {
 					WorkflowRuns: runs,
 				}
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(resp)
+				_ = json.NewEncoder(w).Encode(resp)
 			}))
 			defer server.Close()
 
@@ -1088,7 +1088,7 @@ func TestListWorkflowRuns_PaginationArrayFormat(t *testing.T) {
 		}
 
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(runs)
+		_ = json.NewEncoder(w).Encode(runs)
 	}))
 	defer server.Close()
 

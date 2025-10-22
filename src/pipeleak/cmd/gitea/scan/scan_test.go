@@ -230,10 +230,7 @@ func TestScanOptions_Validation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			valid := true
-			if tt.options.StartRunID > 0 && tt.options.Repository == "" {
-				valid = false
-			}
+			valid := tt.options.StartRunID == 0 || tt.options.Repository != ""
 
 			assert.Equal(t, tt.expectValid, valid)
 		})
@@ -333,7 +330,7 @@ func TestAuthTransport_Integration(t *testing.T) {
 					auth := r.Header.Get("Authorization")
 					if auth == "token valid-token-123" {
 						w.WriteHeader(http.StatusOK)
-						w.Write([]byte("authenticated"))
+						_, _ = w.Write([]byte("authenticated"))
 					} else {
 						w.WriteHeader(http.StatusUnauthorized)
 					}
@@ -377,7 +374,7 @@ func TestAuthTransport_Integration(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				if resp != nil {
-					resp.Body.Close()
+					_ = resp.Body.Close()
 				}
 			}
 		})
@@ -447,13 +444,13 @@ func BenchmarkBuildAPIURL(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		buildAPIURL(repo, "/actions/runs/%d", 123)
+		_, _ = buildAPIURL(repo, "/actions/runs/%d", 123)
 	}
 }
 
 func BenchmarkCheckHTTPStatus(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		checkHTTPStatus(200, "test operation")
+		_ = checkHTTPStatus(200, "test operation")
 	}
 }

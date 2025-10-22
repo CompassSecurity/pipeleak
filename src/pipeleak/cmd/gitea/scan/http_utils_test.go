@@ -219,7 +219,7 @@ func TestMakeHTTPGetRequest(t *testing.T) {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					assert.Equal(t, http.MethodGet, r.Method)
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte("test response"))
+					_, _ = w.Write([]byte("test response"))
 				}))
 			},
 			expectedStatus: http.StatusOK,
@@ -231,7 +231,7 @@ func TestMakeHTTPGetRequest(t *testing.T) {
 			setupServer: func() *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusNotFound)
-					w.Write([]byte("not found"))
+					_, _ = w.Write([]byte("not found"))
 				}))
 			},
 			expectedStatus: http.StatusNotFound,
@@ -243,7 +243,7 @@ func TestMakeHTTPGetRequest(t *testing.T) {
 			setupServer: func() *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusInternalServerError)
-					w.Write([]byte("server error"))
+					_, _ = w.Write([]byte("server error"))
 				}))
 			},
 			expectError:    true,
@@ -308,7 +308,7 @@ func TestMakeHTTPPostRequest(t *testing.T) {
 					assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 					assert.Equal(t, "test-token", r.Header.Get("x-csrf-token"))
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte(`{"status":"success"}`))
+					_, _ = w.Write([]byte(`{"status":"success"}`))
 				}))
 			},
 			requestBody: []byte(`{"test":"data"}`),
@@ -325,7 +325,7 @@ func TestMakeHTTPPostRequest(t *testing.T) {
 			setupServer: func() *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte("ok"))
+					_, _ = w.Write([]byte("ok"))
 				}))
 			},
 			requestBody:    nil,
@@ -467,7 +467,7 @@ func TestAuthTransport_RoundTrip(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.NotNil(t, resp)
-				resp.Body.Close()
+				_ = resp.Body.Close()
 			}
 		})
 	}
