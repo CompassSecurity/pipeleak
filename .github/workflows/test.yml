@@ -1,0 +1,37 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Go Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+      
+      - name: Run tests
+        working-directory: ./src/pipeleak
+        run: go test ./... -v -race -coverprofile=coverage.out -covermode=atomic
+      
+      - name: Display coverage
+        working-directory: ./src/pipeleak
+        run: go tool cover -func=coverage.out
+      
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./src/pipeleak/coverage.out
+          flags: unittests
+          name: codecov-umbrella
+        continue-on-error: true
