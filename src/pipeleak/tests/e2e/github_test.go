@@ -14,31 +14,37 @@ func TestGitHubScan_HappyPath(t *testing.T) {
 
 	server, getRequests, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		
+		t.Logf("GitHub Mock: %s %s", r.Method, r.URL.Path)
 
 		switch r.URL.Path {
-		case "/user/repos":
+		case "/api/v3/user/repos":
 			w.WriteHeader(http.StatusOK)
+			// GitHub API returns an array directly, not wrapped in an object
 			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
-				{"id": 1, "name": "test-repo", "full_name": "user/test-repo"},
+				{"id": 1, "name": "test-repo", "full_name": "user/test-repo", "owner": map[string]interface{}{"login": "user"}},
 			})
 
-		case "/repos/user/test-repo/actions/runs":
+		case "/api/v3/repos/user/test-repo/actions/runs":
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"workflow_runs": []map[string]interface{}{
 					{"id": 100, "status": "completed"},
 				},
+				"total_count": 1,
 			})
 
-		case "/repos/user/test-repo/actions/runs/100/jobs":
+		case "/api/v3/repos/user/test-repo/actions/runs/100/jobs":
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"jobs": []map[string]interface{}{
 					{"id": 1000, "name": "test-job"},
 				},
+				"total_count": 1,
 			})
 
 		default:
+			t.Logf("Unmocked path: %s", r.URL.Path)
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{})
 		}
@@ -49,6 +55,7 @@ func TestGitHubScan_HappyPath(t *testing.T) {
 		"gh", "scan",
 		"--github", server.URL,
 		"--token", "ghp_test_token",
+		"--owned",
 	}, nil, 10*time.Second)
 
 	assert.Nil(t, exitErr, "GitHub scan should succeed")

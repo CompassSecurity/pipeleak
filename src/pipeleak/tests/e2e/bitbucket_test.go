@@ -43,7 +43,8 @@ func TestBitBucketScan_HappyPath(t *testing.T) {
 		"bb", "scan",
 		"--bitbucket", server.URL,
 		"--username", "testuser",
-		"--password", "testpass",
+		"--token", "testpass",
+		"--workspace", "test-workspace",
 	}, nil, 10*time.Second)
 
 	assert.Nil(t, exitErr, "BitBucket scan should succeed")

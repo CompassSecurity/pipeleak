@@ -43,6 +43,7 @@ func TestAzureDevOpsScan_HappyPath(t *testing.T) {
 		"ad", "scan",
 		"--devops", server.URL,
 		"--token", "azure-pat-token",
+		"--username", "testuser",
 		"--organization", "myorg",
 	}, nil, 10*time.Second)
 

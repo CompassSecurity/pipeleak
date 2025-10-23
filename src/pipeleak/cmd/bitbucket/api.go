@@ -16,10 +16,14 @@ import (
 
 // Docs: https://developer.atlassian.com/cloud/bitbucket/rest/intro/
 type BitBucketApiClient struct {
-	Client resty.Client
+	Client  resty.Client
+	BaseURL string
 }
 
-func NewClient(username string, password string, bitBucketCookie string) BitBucketApiClient {
+func NewClient(username string, password string, bitBucketCookie string, baseURL string) BitBucketApiClient {
+	if baseURL == "" {
+		baseURL = "https://api.bitbucket.org/2.0"
+	}
 	client := *resty.New().SetBasicAuth(username, password).SetRedirectPolicy(resty.FlexibleRedirectPolicy(5))
 	if len(bitBucketCookie) > 0 {
 		jar, _ := cookiejar.New(nil)
@@ -35,7 +39,7 @@ func NewClient(username string, password string, bitBucketCookie string) BitBuck
 		log.Debug().Msg("Added cloud.session.token to HTTP client")
 	}
 
-	bbClient := BitBucketApiClient{Client: client}
+	bbClient := BitBucketApiClient{Client: client, BaseURL: baseURL}
 	bbClient.Client.AddRetryHooks(
 		func(res *resty.Response, err error) {
 			if res.StatusCode() == 429 {
@@ -50,7 +54,7 @@ func NewClient(username string, password string, bitBucketCookie string) BitBuck
 
 // https://developer.atlassian.com/cloud/bitbucket/rest/api-group-workspaces/#api-workspaces-get
 func (a BitBucketApiClient) ListOwnedWorkspaces(nextPageUrl string) ([]Workspace, string, *resty.Response, error) {
-	url := "https://api.bitbucket.org/2.0/workspaces"
+	url := a.BaseURL + "/workspaces"
 	if nextPageUrl != "" {
 		url = nextPageUrl
 	}
@@ -77,7 +81,7 @@ func (a BitBucketApiClient) ListWorkspaceRepositoires(nextPageUrl string, worksp
 	if nextPageUrl != "" {
 		reqUrl = nextPageUrl
 	} else {
-		u, err := url.Parse("https://api.bitbucket.org/2.0/repositories/")
+		u, err := url.Parse(a.BaseURL + "/repositories/")
 		if err != nil {
 			log.Fatal().Err(err).Msg("Unable to parse ListWorkspaceRepositoires url")
 		}
@@ -108,7 +112,7 @@ func (a BitBucketApiClient) ListPublicRepositories(nextPageUrl string, after tim
 	if nextPageUrl != "" {
 		reqUrl = nextPageUrl
 	} else {
-		u, err := url.Parse("https://api.bitbucket.org/2.0/repositories/")
+		u, err := url.Parse(a.BaseURL + "/repositories/")
 		if err != nil {
 			log.Fatal().Err(err).Msg("Unable to parse ListPublicRepositories url")
 		}
@@ -147,7 +151,7 @@ func (a BitBucketApiClient) ListRepositoryPipelines(nextPageUrl string, workspac
 	if nextPageUrl != "" {
 		reqUrl = nextPageUrl
 	} else {
-		u, err := url.Parse("https://api.bitbucket.org/2.0/repositories/")
+		u, err := url.Parse(a.BaseURL + "/repositories/")
 		if err != nil {
 			log.Fatal().Err(err).Msg("Unable to parse ListRepositoryPipelines url")
 		}
@@ -183,7 +187,7 @@ func (a BitBucketApiClient) ListPipelineSteps(nextPageUrl string, workspaceSlug 
 	if nextPageUrl != "" {
 		reqUrl = nextPageUrl
 	} else {
-		u, err := url.Parse("https://api.bitbucket.org/2.0/repositories/")
+		u, err := url.Parse(a.BaseURL + "/repositories/")
 		if err != nil {
 			log.Fatal().Err(err).Msg("Unable to parse ListPipelineSteps url")
 		}
@@ -209,7 +213,7 @@ func (a BitBucketApiClient) ListPipelineSteps(nextPageUrl string, workspaceSlug 
 
 // https://developer.atlassian.com/cloud/bitbucket/rest/api-group-pipelines/#api-repositories-workspace-repo-slug-pipelines-pipeline-uuid-steps-step-uuid-log-get
 func (a BitBucketApiClient) GetStepLog(workspaceSlug string, repoSlug string, pipelineUUID string, stepUUID string) ([]byte, *resty.Response, error) {
-	u, err := url.Parse("https://api.bitbucket.org/2.0/repositories/")
+	u, err := url.Parse(a.BaseURL + "/repositories/")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to parse GetStepLog url")
 	}
@@ -240,7 +244,7 @@ func (a BitBucketApiClient) ListDownloadArtifacts(nextPageUrl string, workspaceS
 	if nextPageUrl != "" {
 		reqUrl = nextPageUrl
 	} else {
-		u, err := url.Parse("https://api.bitbucket.org/2.0/repositories/")
+		u, err := url.Parse(a.BaseURL + "/repositories/")
 		if err != nil {
 			log.Fatal().Err(err).Msg("Unable to parse ListDownloadArtifacts url")
 		}
