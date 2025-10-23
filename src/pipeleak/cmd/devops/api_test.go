@@ -12,19 +12,19 @@ import (
 
 func TestNewClient(t *testing.T) {
 	t.Run("creates client with basic auth", func(t *testing.T) {
-		client := NewClient("testuser", "testpass")
+		client := NewClient("testuser", "testpass", "https://dev.azure.com")
 		assert.NotNil(t, client.Client)
 	})
 
 	t.Run("creates client with empty credentials", func(t *testing.T) {
-		client := NewClient("", "")
+		client := NewClient("", "", "https://dev.azure.com")
 		assert.NotNil(t, client.Client)
 	})
 }
 
 func TestGetAuthenticatedUser(t *testing.T) {
 	t.Run("method signature is correct", func(t *testing.T) {
-		client := NewClient("test", "test")
+		client := NewClient("test", "test", "https://dev.azure.com")
 		// Method exists and returns (*AuthenticatedUser, *resty.Response, error)
 		user, resp, err := client.GetAuthenticatedUser()
 		_ = user
@@ -35,7 +35,7 @@ func TestGetAuthenticatedUser(t *testing.T) {
 
 func TestListAccounts(t *testing.T) {
 	t.Run("method signature is correct", func(t *testing.T) {
-		client := NewClient("test", "test")
+		client := NewClient("test", "test", "https://dev.azure.com")
 		// Method exists and returns ([]Account, *resty.Response, error)
 		accounts, resp, err := client.ListAccounts("owner-id")
 		_ = accounts
@@ -46,7 +46,7 @@ func TestListAccounts(t *testing.T) {
 
 func TestListProjects(t *testing.T) {
 	t.Run("method signature is correct", func(t *testing.T) {
-		client := NewClient("test", "test")
+		client := NewClient("test", "test", "https://dev.azure.com")
 		// Method exists and returns ([]Project, *resty.Response, string, error)
 		projects, resp, continuationToken, err := client.ListProjects("", "myorg")
 		_ = projects
@@ -58,7 +58,7 @@ func TestListProjects(t *testing.T) {
 
 func TestListBuilds(t *testing.T) {
 	t.Run("method signature is correct", func(t *testing.T) {
-		client := NewClient("test", "test")
+		client := NewClient("test", "test", "https://dev.azure.com")
 		// Method exists and returns ([]Build, *resty.Response, string, error)
 		builds, resp, continuationToken, err := client.ListBuilds("", "myorg", "myproject")
 		_ = builds
@@ -70,7 +70,7 @@ func TestListBuilds(t *testing.T) {
 
 func TestListBuildLogs(t *testing.T) {
 	t.Run("method signature is correct", func(t *testing.T) {
-		client := NewClient("test", "test")
+		client := NewClient("test", "test", "https://dev.azure.com")
 		// Method exists and returns ([]BuildLog, *resty.Response, error)
 		logs, resp, err := client.ListBuildLogs("myorg", "myproject", 123)
 		_ = logs
@@ -81,7 +81,7 @@ func TestListBuildLogs(t *testing.T) {
 
 func TestGetLog(t *testing.T) {
 	t.Run("method signature is correct", func(t *testing.T) {
-		client := NewClient("test", "test")
+		client := NewClient("test", "test", "https://dev.azure.com")
 		// Method exists and returns ([]byte, *resty.Response, error)
 		logData, resp, err := client.GetLog("myorg", "myproject", 123, 10)
 		_ = logData
@@ -92,7 +92,7 @@ func TestGetLog(t *testing.T) {
 
 func TestDownloadArtifactZip(t *testing.T) {
 	t.Run("method signature is correct", func(t *testing.T) {
-		client := NewClient("test", "test")
+		client := NewClient("test", "test", "https://dev.azure.com")
 		// Method exists and returns ([]byte, *resty.Response, error)
 		zipData, resp, err := client.DownloadArtifactZip("https://example.com/artifact.zip")
 		_ = zipData
@@ -103,7 +103,7 @@ func TestDownloadArtifactZip(t *testing.T) {
 
 func TestListBuildArtifacts(t *testing.T) {
 	t.Run("method signature is correct", func(t *testing.T) {
-		client := NewClient("test", "test")
+		client := NewClient("test", "test", "https://dev.azure.com")
 		// Method exists and returns ([]Artifact, *resty.Response, string, error)
 		artifacts, resp, continuationToken, err := client.ListBuildArtifacts("", "myorg", "myproject", 123)
 		_ = artifacts

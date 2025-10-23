@@ -27,7 +27,7 @@ func init() {
 	}
 }
 
-// resolveBinaryPath resolves the binary path once, the first time executeCLI is called
+// resolveBinaryPath resolves the binary path once, the first time executeCLIWithContext is called
 func resolveBinaryPath() {
 	resolveOnce.Do(func() {
 		pipeleakBinaryResolved = pipeleakBinary
@@ -65,12 +65,6 @@ func resolveBinaryPath() {
 			pipeleakBinaryResolved = absPath
 		}
 	})
-}
-
-// executeCLI calls the actual CLI command execution via exec.Command
-// This avoids cobra global state issues by running the binary as a separate process
-func executeCLI(args []string) error {
-	return executeCLIWithContext(context.Background(), args)
 }
 
 // executeCLIWithContext calls the actual CLI command execution via exec.Command with context support
