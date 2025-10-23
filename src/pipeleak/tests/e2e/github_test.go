@@ -22,14 +22,25 @@ func TestGitHubScan_HappyPath(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			// GitHub API returns an array directly, not wrapped in an object
 			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
-				{"id": 1, "name": "test-repo", "full_name": "user/test-repo", "owner": map[string]interface{}{"login": "user"}},
+				{
+					"id":        1,
+					"name":      "test-repo",
+					"full_name": "user/test-repo",
+					"html_url":  "https://github.com/user/test-repo",
+					"owner":     map[string]interface{}{"login": "user"},
+				},
 			})
 
 		case "/api/v3/repos/user/test-repo/actions/runs":
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"workflow_runs": []map[string]interface{}{
-					{"id": 100, "status": "completed"},
+					{
+						"id":            100,
+						"status":        "completed",
+						"display_title": "Test Workflow Run",
+						"html_url":      "https://github.com/user/test-repo/actions/runs/100",
+					},
 				},
 				"total_count": 1,
 			})
