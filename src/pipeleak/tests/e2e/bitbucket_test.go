@@ -117,16 +117,16 @@ Build completed successfully`
 
 	// Verify credentials were detected in logs
 	output := stdout + stderr
-	
+
 	// Check that the scanner detected the secrets
 	assert.Contains(t, output, "postgres://", "Should detect PostgreSQL connection string")
 	assert.Contains(t, output, "AWS_SECRET_ACCESS_KEY", "Should detect AWS secret key")
 	assert.Contains(t, output, "Github", "Should detect GitHub token")
-	
+
 	// Verify the scanner logged findings with HIT marker
 	assert.Contains(t, output, "HIT", "Should log HIT for secret detection")
 	assert.Contains(t, output, "ruleName", "Should log rule name for detected secrets")
-	
+
 	// Verify multiple secrets were found
 	assert.Contains(t, output, "Password in URL", "Should detect password in database URL")
 	assert.Contains(t, output, "Github Personal Access Token", "Should detect GitHub PAT")
@@ -135,17 +135,31 @@ Build completed successfully`
 	t.Logf("STDERR:\n%s", stderr)
 }
 
-// TestBitBucketScan_MissingCredentials tests missing credentials
+// TestBitBucketScan_MissingCredentials tests missing credentials with local mock server
 func TestBitBucketScan_MissingCredentials(t *testing.T) {
+
+	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+		// Return 401 Unauthorized for all requests when credentials are missing/invalid
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"type": "error",
+			"error": map[string]interface{}{
+				"message": "Invalid credentials",
+			},
+		})
+	})
+	defer cleanup()
 
 	stdout, stderr, _ := runCLI(t, []string{
 		"bb", "scan",
-		"--bitbucket", "https://api.bitbucket.org",
+		"--bitbucket", server.URL,
 		"--owned", // Need a scan mode
 	}, nil, 5*time.Second)
 
 	// The command completes but logs authentication errors
 	output := stdout + stderr
 	assert.Contains(t, output, "401", "Should show 401 authentication error when credentials missing")
+	assert.Contains(t, output, "owned workspaces", "Should attempt to list owned workspaces")
 	t.Logf("Output:\n%s", output)
 }
