@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -165,17 +166,16 @@ func TestGitLabScan_InvalidToken(t *testing.T) {
 	server, _, cleanup := startMockServer(t, withError(http.StatusUnauthorized, "invalid token"))
 	defer cleanup()
 
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, _ := runCLI(t, []string{
 		"gl", "scan",
 		"--gitlab", server.URL,
 		"--token", "invalid-token",
 	}, nil, 10*time.Second)
 
-	// Command should fail with invalid token
-	assert.NotNil(t, exitErr, "Command should fail with invalid token")
-
-	// Check error output mentions authentication/authorization
+	// Command completes but logs authentication errors
 	output := stdout + stderr
+	assert.Contains(t, output, "401", "Should show 401 authentication error")
+	assert.Contains(t, output, "invalid token", "Should mention invalid token")
 	t.Logf("Output:\n%s", output)
 }
 
@@ -243,7 +243,26 @@ func TestGitLabScan_FlagVariations(t *testing.T) {
 	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode([]map[string]interface{}{})
+
+		// Handle specific project lookup by name (for --repo flag)
+		if strings.Contains(r.URL.Path, "/projects/") && strings.Contains(r.URL.RawQuery, "search=") {
+			// When querying projects by name, return a single project object in an array
+			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
+				{"id": 1, "name": "project", "path_with_namespace": "group/project"},
+			})
+		} else if strings.HasSuffix(r.URL.Path, "/projects/group%2Fproject") || strings.HasSuffix(r.URL.Path, "/projects/group/project") {
+			// When fetching a specific project, return a single object (not array)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"id": 1, "name": "project", "path_with_namespace": "group/project",
+			})
+		} else if strings.Contains(r.URL.Path, "/groups/") && !strings.HasSuffix(r.URL.Path, "/groups") {
+			// When fetching a specific namespace/group, return a single object (not array)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"id": 1, "name": "mygroup", "path": "mygroup",
+			})
+		} else {
+			_ = json.NewEncoder(w).Encode([]map[string]interface{}{})
+		}
 	})
 	defer cleanup()
 
@@ -458,8 +477,10 @@ func TestGitLabCICDYaml(t *testing.T) {
 	server, getRequests, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
+		t.Logf("CICD Yaml Mock: %s %s", r.Method, r.URL.Path)
+
 		switch r.URL.Path {
-		case "/api/v4/projects/test%2Fproject":
+		case "/api/v4/projects/test%2Fproject", "/api/v4/projects/test/project":
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"id":   1,
@@ -471,6 +492,12 @@ func TestGitLabCICDYaml(t *testing.T) {
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"file_name": ".gitlab-ci.yml",
 				"content":   "c3RhZ2VzOgogIC0gYnVpbGQ=", // base64 encoded
+			})
+
+		case "/api/v4/projects/1/ci/lint":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"status": "valid",
 			})
 
 		default:

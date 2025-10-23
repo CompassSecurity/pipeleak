@@ -111,6 +111,9 @@ func TestGiteaScan_WithArtifacts(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 
 		switch r.URL.Path {
+		case "/api/v1", "/api/v1/version":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"version": "1.20.0"})
 		case "/api/v1/user/repos":
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
@@ -170,14 +173,18 @@ func TestGiteaScan_Owned(t *testing.T) {
 
 	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
 
-		// Check if owned filter is applied (implementation dependent)
-		if r.URL.Path == "/api/v1/user/repos" {
+		switch r.URL.Path {
+		case "/api/v1", "/api/v1/version":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"version": "1.20.0"})
+		case "/api/v1/user/repos":
+			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
 				{"id": 1, "name": "my-repo", "owner": map[string]string{"login": "me"}},
 			})
-		} else {
+		default:
+			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{})
 		}
 	})
@@ -202,12 +209,16 @@ func TestGiteaScan_Organization(t *testing.T) {
 	server, getRequests, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
-		if r.URL.Path == "/api/v1/orgs/my-org/repos" {
+		switch r.URL.Path {
+		case "/api/v1", "/api/v1/version":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"version": "1.20.0"})
+		case "/api/v1/orgs/my-org/repos":
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
 				{"id": 1, "name": "org-repo", "full_name": "my-org/org-repo"},
 			})
-		} else {
+		default:
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{})
 		}
@@ -243,14 +254,18 @@ func TestGiteaScan_SpecificRepository(t *testing.T) {
 	server, getRequests, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
-		if r.URL.Path == "/api/v1/repos/owner/repo-name" {
+		switch r.URL.Path {
+		case "/api/v1", "/api/v1/version":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"version": "1.20.0"})
+		case "/api/v1/repos/owner/repo-name":
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"id":        1,
 				"name":      "repo-name",
 				"full_name": "owner/repo-name",
 			})
-		} else {
+		default:
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{})
 		}
@@ -328,13 +343,18 @@ func TestGiteaScan_RunsLimit(t *testing.T) {
 
 	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
 
-		if r.URL.Path == "/api/v1/user/repos" {
+		switch r.URL.Path {
+		case "/api/v1", "/api/v1/version":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"version": "1.20.0"})
+		case "/api/v1/user/repos":
+			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
 				{"id": 1, "name": "test-repo", "full_name": "user/test-repo"},
 			})
-		} else {
+		default:
+			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{})
 		}
 	})
@@ -432,8 +452,15 @@ func TestGiteaScan_Threads(t *testing.T) {
 
 	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode([]map[string]interface{}{})
+
+		switch r.URL.Path {
+		case "/api/v1", "/api/v1/version":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"version": "1.20.0"})
+		default:
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]map[string]interface{}{})
+		}
 	})
 	defer cleanup()
 
@@ -455,8 +482,15 @@ func TestGiteaScan_Verbose(t *testing.T) {
 
 	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode([]map[string]interface{}{})
+
+		switch r.URL.Path {
+		case "/api/v1", "/api/v1/version":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"version": "1.20.0"})
+		default:
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]map[string]interface{}{})
+		}
 	})
 	defer cleanup()
 
@@ -481,6 +515,9 @@ func TestGiteaEnum(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 
 		switch r.URL.Path {
+		case "/api/v1", "/api/v1/version":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"version": "1.20.0"})
 		case "/api/v1/user":
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -493,8 +530,18 @@ func TestGiteaEnum(t *testing.T) {
 		case "/api/v1/user/repos":
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
-				{"id": 1, "name": "repo1"},
-				{"id": 2, "name": "repo2"},
+				{
+					"id":        1,
+					"name":      "repo1",
+					"full_name": "testuser/repo1",
+					"owner":     map[string]interface{}{"username": "testuser"},
+				},
+				{
+					"id":        2,
+					"name":      "repo2",
+					"full_name": "testuser/repo2",
+					"owner":     map[string]interface{}{"username": "testuser"},
+				},
 			})
 
 		case "/api/v1/user/orgs":
@@ -581,8 +628,15 @@ func TestGiteaScan_TruffleHogVerification(t *testing.T) {
 
 	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode([]map[string]interface{}{})
+
+		switch r.URL.Path {
+		case "/api/v1", "/api/v1/version":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"version": "1.20.0"})
+		default:
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]map[string]interface{}{})
+		}
 	})
 	defer cleanup()
 
@@ -618,8 +672,15 @@ func TestGiteaScan_ConfidenceFilter(t *testing.T) {
 
 	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode([]map[string]interface{}{})
+
+		switch r.URL.Path {
+		case "/api/v1", "/api/v1/version":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"version": "1.20.0"})
+		default:
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]map[string]interface{}{})
+		}
 	})
 	defer cleanup()
 
