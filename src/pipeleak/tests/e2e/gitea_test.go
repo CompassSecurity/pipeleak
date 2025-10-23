@@ -557,7 +557,7 @@ func TestGitea_APIErrors(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+			// Do not use t.Parallel() - stdout/stderr redirection conflicts
 
 			server, _, cleanup := startMockServer(t, withError(tt.statusCode, tt.message))
 			defer cleanup()

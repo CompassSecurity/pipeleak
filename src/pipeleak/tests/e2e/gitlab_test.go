@@ -203,7 +203,7 @@ func TestGitLabScan_MissingRequiredFlags(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+			// Do not use t.Parallel() - stdout/stderr redirection conflicts
 
 			stdout, stderr, exitErr := runCLI(t, tt.args, nil, 5*time.Second)
 
@@ -700,7 +700,7 @@ func TestGitLab_APIErrorHandling(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+			// Do not use t.Parallel() - stdout/stderr redirection conflicts
 
 			server, _, cleanup := startMockServer(t, withError(tt.statusCode, tt.errorMsg))
 			defer cleanup()
