@@ -22,7 +22,7 @@ func TestGiteaScan_HappyPath(t *testing.T) {
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"version": "1.20.0",
 			})
-		
+
 		case "/api/v1/user/repos":
 			// Return list of repositories
 			w.WriteHeader(http.StatusOK)
@@ -44,8 +44,8 @@ func TestGiteaScan_HappyPath(t *testing.T) {
 				"total_count": 1,
 				"workflow_runs": []map[string]interface{}{
 					{
-						"id":     100,
-						"status": "completed",
+						"id":         100,
+						"status":     "completed",
 						"conclusion": "success",
 					},
 				},
@@ -484,9 +484,9 @@ func TestGiteaEnum(t *testing.T) {
 		case "/api/v1/user":
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
-				"id":       1,
-				"login":    "testuser",
-				"email":    "test@example.com",
+				"id":        1,
+				"login":     "testuser",
+				"email":     "test@example.com",
 				"full_name": "Test User",
 			})
 

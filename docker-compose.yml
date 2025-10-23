@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+  db:
+    image: mariadb:10.11
+    container_name: gitea-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: gitea_root_password
+      MYSQL_DATABASE: gitea
+      MYSQL_USER: gitea
+      MYSQL_PASSWORD: gitea_password
+    volumes:
+      - gitea-db-data:/var/lib/mysql
+    networks:
+      - gitea-net
+
+  gitea:
+    image: gitea/gitea:latest
+    container_name: gitea
+    depends_on:
+      - db
+    environment:
+      USER_UID: 1000
+      USER_GID: 1000
+      DB_TYPE: mysql
+      DB_HOST: db:3306
+      DB_NAME: gitea
+      DB_USER: gitea
+      DB_PASSWD: gitea_password
+      GITEA__DATABASE__DB_TYPE: mysql
+      GITEA__DATABASE__HOST: db:3306
+      GITEA__DATABASE__NAME: gitea
+      GITEA__DATABASE__USER: gitea
+      GITEA__DATABASE__PASSWD: gitea_password
+      GITEA__SERVICE__REGISTER_EMAIL_CONFIRM: false
+      GITEA__SERVICE__ENABLE_NOTIFY_MAIL: false
+      GITEA__SERVICE__DISABLE_REGISTRATION: true
+      GITEA__ADMIN__USER_NAME: admin
+      GITEA__ADMIN__PASSWORD: admin123
+      GITEA__ADMIN__EMAIL: admin@example.com
+    restart: always
+    ports:
+      - "3000:3000"
+      - "222:22"
+    volumes:
+      - gitea-data:/data
+    networks:
+      - gitea-net
+
+volumes:
+  gitea-data:
+  gitea-db-data:
+
+networks:
+  gitea-net:

@@ -18,8 +18,8 @@ func TestNewScanCmd(t *testing.T) {
 		cmd := NewScanCmd()
 		gitlabFlag := cmd.Flags().Lookup("gitlab")
 		assert.NotNil(t, gitlabFlag)
-		
-tokenFlag := cmd.Flags().Lookup("token")
+
+		tokenFlag := cmd.Flags().Lookup("token")
 		assert.NotNil(t, tokenFlag)
 	})
 

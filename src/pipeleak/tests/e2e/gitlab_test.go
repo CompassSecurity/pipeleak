@@ -29,8 +29,8 @@ func TestGitLabScan_HappyPath(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
 				{
-					"id":                1,
-					"name":              "test-project",
+					"id":                  1,
+					"name":                "test-project",
 					"path_with_namespace": "group/test-project",
 				},
 			})
@@ -136,7 +136,7 @@ func TestGitLabScan_WithArtifacts(t *testing.T) {
 		"gl", "scan",
 		"--gitlab", server.URL,
 		"--token", "glpat-test",
-		"--artifacts", // Enable artifact scanning
+		"--artifacts",      // Enable artifact scanning
 		"--job-limit", "1", // Limit to 1 job for faster test
 	}, nil, 10*time.Second)
 
@@ -212,7 +212,7 @@ func TestGitLabScan_MissingRequiredFlags(t *testing.T) {
 
 			output := stdout + stderr
 			// Output should mention the missing flag
-			assert.True(t, 
+			assert.True(t,
 				len(output) > 0,
 				"Should have error output about missing flags",
 			)
@@ -253,43 +253,43 @@ func TestGitLabScan_FlagVariations(t *testing.T) {
 		shouldError bool
 	}{
 		{
-			name: "with_search_query",
-			args: []string{"gl", "scan", "--gitlab", server.URL, "--token", "test", "--search", "kubernetes"},
+			name:        "with_search_query",
+			args:        []string{"gl", "scan", "--gitlab", server.URL, "--token", "test", "--search", "kubernetes"},
 			shouldError: false,
 		},
 		{
-			name: "with_owned_flag",
-			args: []string{"gl", "scan", "--gitlab", server.URL, "--token", "test", "--owned"},
+			name:        "with_owned_flag",
+			args:        []string{"gl", "scan", "--gitlab", server.URL, "--token", "test", "--owned"},
 			shouldError: false,
 		},
 		{
-			name: "with_member_flag",
-			args: []string{"gl", "scan", "--gitlab", server.URL, "--token", "test", "--member"},
+			name:        "with_member_flag",
+			args:        []string{"gl", "scan", "--gitlab", server.URL, "--token", "test", "--member"},
 			shouldError: false,
 		},
 		{
-			name: "with_repo_flag",
-			args: []string{"gl", "scan", "--gitlab", server.URL, "--token", "test", "--repo", "group/project"},
+			name:        "with_repo_flag",
+			args:        []string{"gl", "scan", "--gitlab", server.URL, "--token", "test", "--repo", "group/project"},
 			shouldError: false,
 		},
 		{
-			name: "with_namespace_flag",
-			args: []string{"gl", "scan", "--gitlab", server.URL, "--token", "test", "--namespace", "mygroup"},
+			name:        "with_namespace_flag",
+			args:        []string{"gl", "scan", "--gitlab", server.URL, "--token", "test", "--namespace", "mygroup"},
 			shouldError: false,
 		},
 		{
-			name: "with_job_limit",
-			args: []string{"gl", "scan", "--gitlab", server.URL, "--token", "test", "--job-limit", "10"},
+			name:        "with_job_limit",
+			args:        []string{"gl", "scan", "--gitlab", server.URL, "--token", "test", "--job-limit", "10"},
 			shouldError: false,
 		},
 		{
-			name: "with_threads",
-			args: []string{"gl", "scan", "--gitlab", server.URL, "--token", "test", "--threads", "2"},
+			name:        "with_threads",
+			args:        []string{"gl", "scan", "--gitlab", server.URL, "--token", "test", "--threads", "2"},
 			shouldError: false,
 		},
 		{
-			name: "with_verbose",
-			args: []string{"gl", "scan", "--gitlab", server.URL, "--token", "test", "-v"},
+			name:        "with_verbose",
+			args:        []string{"gl", "scan", "--gitlab", server.URL, "--token", "test", "-v"},
 			shouldError: false,
 		},
 	}
@@ -376,10 +376,10 @@ func TestGitLabVariables(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
 				{
-					"key":         "DATABASE_URL",
-					"value":       "postgres://user:pass@localhost/db",
-					"protected":   false,
-					"masked":      true,
+					"key":           "DATABASE_URL",
+					"value":         "postgres://user:pass@localhost/db",
+					"protected":     false,
+					"masked":        true,
 					"variable_type": "env_var",
 				},
 			})
@@ -557,8 +557,8 @@ func TestGitLabSecureFiles(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
 				{
-					"id":   1,
-					"name": "secret.key",
+					"id":       1,
+					"name":     "secret.key",
 					"checksum": "abc123",
 				},
 			})

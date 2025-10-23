@@ -1,4 +1,5 @@
 package e2e
+
 // Package e2e contains end-to-end tests for the Pipeleak CLI.
 //
 // These tests run the CLI commands programmatically (in-process) using mock HTTP servers
@@ -91,11 +92,12 @@ func (m *MockServerHandler) Reset() {
 //   - cleanup: function to close server and clean up
 //
 // Example:
-//   server, getRequests, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
-//       w.WriteHeader(http.StatusOK)
-//       _ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
-//   })
-//   defer cleanup()
+//
+//	server, getRequests, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+//	    w.WriteHeader(http.StatusOK)
+//	    _ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+//	})
+//	defer cleanup()
 func startMockServer(t *testing.T, handler http.HandlerFunc) (*httptest.Server, func() []RecordedRequest, func()) {
 	t.Helper()
 
@@ -130,7 +132,8 @@ func startMockServer(t *testing.T, handler http.HandlerFunc) (*httptest.Server, 
 //   - exitErr: error returned by command execution (nil on success)
 //
 // Example:
-//   stdout, stderr, err := runCLI(t, []string{"gl", "scan", "--token", "xxx"}, nil, 5*time.Second)
+//
+//	stdout, stderr, err := runCLI(t, []string{"gl", "scan", "--token", "xxx"}, nil, 5*time.Second)
 func runCLI(t *testing.T, args []string, env []string, timeout time.Duration) (stdout, stderr string, exitErr error) {
 	t.Helper()
 
@@ -193,8 +196,8 @@ func runCLI(t *testing.T, args []string, env []string, timeout time.Duration) (s
 	go func() {
 		var err error
 		if useLiveExecution {
-			// Execute the actual CLI command
-			err = executeCLI(args)
+			// Execute the actual CLI command with context support
+			err = executeCLIWithContext(ctx, args)
 		} else {
 			// Framework demonstration mode - skip execution
 			err = fmt.Errorf("e2e tests in framework mode - enable useLiveExecution")
@@ -231,7 +234,8 @@ func runCLI(t *testing.T, args []string, env []string, timeout time.Duration) (s
 //   - expected: slice of strings that must all be present
 //
 // Example:
-//   assertLogContains(t, stdout, []string{"Scanning projects", "Found 5 secrets"})
+//
+//	assertLogContains(t, stdout, []string{"Scanning projects", "Found 5 secrets"})
 func assertLogContains(t *testing.T, output string, expected []string) {
 	t.Helper()
 	for _, exp := range expected {
@@ -242,6 +246,7 @@ func assertLogContains(t *testing.T, output string, expected []string) {
 }
 
 // assertLogNotContains checks if the output does NOT contain specified strings
+//
 //nolint:unused
 func assertLogNotContains(t *testing.T, output string, forbidden []string) {
 	t.Helper()
@@ -260,7 +265,9 @@ func assertLogNotContains(t *testing.T, output string, forbidden []string) {
 //   - patterns: slice of regex pattern strings
 //
 // Example:
-//   assertLogMatchesRegex(t, stdout, []string{`\d+ secrets found`, `Scan completed in \d+\.\d+s`})
+//
+//	assertLogMatchesRegex(t, stdout, []string{`\d+ secrets found`, `Scan completed in \d+\.\d+s`})
+//
 //nolint:unused
 func assertLogMatchesRegex(t *testing.T, output string, patterns []string) {
 	t.Helper()
@@ -286,7 +293,9 @@ func assertLogMatchesRegex(t *testing.T, output string, patterns []string) {
 //   - want: expected JSON string
 //
 // Example:
-//   compareJSON(t, stdout, `{"status":"success","count":5}`)
+//
+//	compareJSON(t, stdout, `{"status":"success","count":5}`)
+//
 //nolint:unused
 func compareJSON(t *testing.T, got, want string) {
 	t.Helper()
@@ -307,6 +316,7 @@ func compareJSON(t *testing.T, got, want string) {
 }
 
 // assertRequestCount verifies the number of HTTP requests received
+//
 //nolint:unused
 func assertRequestCount(t *testing.T, requests []RecordedRequest, expected int) {
 	t.Helper()
@@ -339,6 +349,7 @@ func assertRequestHeader(t *testing.T, req RecordedRequest, header, expected str
 }
 
 // assertRequestHeaderContains verifies a request header contains a substring
+//
 //nolint:unused
 func assertRequestHeaderContains(t *testing.T, req RecordedRequest, header, substring string) {
 	t.Helper()
@@ -349,6 +360,7 @@ func assertRequestHeaderContains(t *testing.T, req RecordedRequest, header, subs
 }
 
 // assertRequestBody verifies the request body matches expected content
+//
 //nolint:unused
 func assertRequestBody(t *testing.T, req RecordedRequest, expected string) {
 	t.Helper()
@@ -359,6 +371,7 @@ func assertRequestBody(t *testing.T, req RecordedRequest, expected string) {
 }
 
 // assertRequestBodyJSON compares request body as JSON
+//
 //nolint:unused
 //nolint:unused
 func assertRequestBodyJSON(t *testing.T, req RecordedRequest, expected string) {
@@ -367,6 +380,7 @@ func assertRequestBodyJSON(t *testing.T, req RecordedRequest, expected string) {
 }
 
 // dumpRequests prints all recorded requests for debugging
+//
 //nolint:unused
 func dumpRequests(t *testing.T, requests []RecordedRequest) {
 	t.Helper()
@@ -389,6 +403,7 @@ func dumpRequests(t *testing.T, requests []RecordedRequest) {
 }
 
 // mockGitLabHandler returns a handler for common GitLab API endpoints
+//
 //nolint:unused
 func mockGitLabHandler(t *testing.T, responses map[string]interface{}) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -419,6 +434,7 @@ func mockGitLabHandler(t *testing.T, responses map[string]interface{}) http.Hand
 }
 
 // withTimeout wraps a handler with a delay for testing timeout scenarios
+//
 //nolint:unused
 func withTimeout(handler http.HandlerFunc, delay time.Duration) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -452,6 +468,7 @@ func mockSuccessResponse() http.HandlerFunc {
 }
 
 // createTempConfigFile creates a temporary config file for testing
+//
 //nolint:unused
 func createTempConfigFile(t *testing.T, content string) string {
 	t.Helper()
@@ -465,6 +482,7 @@ func createTempConfigFile(t *testing.T, content string) string {
 }
 
 // skipIfShort skips the test if running in short mode
+//
 //nolint:unused
 func skipIfShort(t *testing.T, reason string) {
 	if testing.Short() {
