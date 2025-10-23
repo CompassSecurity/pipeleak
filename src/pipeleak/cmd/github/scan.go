@@ -36,6 +36,7 @@ type GitHubScanOptions struct {
 	Public                 bool
 	SearchQuery            string
 	Artifacts              bool
+	GitHubURL              string
 	Context                context.Context
 	Client                 *github.Client
 	HttpClient             *retryablehttp.Client
@@ -82,6 +83,7 @@ pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --user firefart
 	scanCmd.PersistentFlags().BoolVarP(&options.Owned, "owned", "", false, "Scan user onwed projects only")
 	scanCmd.PersistentFlags().BoolVarP(&options.Public, "public", "p", false, "Scan all public repositories")
 	scanCmd.Flags().StringVarP(&options.SearchQuery, "search", "s", "", "GitHub search query")
+	scanCmd.Flags().StringVarP(&options.GitHubURL, "github", "g", "https://api.github.com", "GitHub API base URL")
 	scanCmd.MarkFlagsMutuallyExclusive("owned", "org", "user", "public", "search")
 
 	scanCmd.PersistentFlags().BoolVarP(&options.Verbose, "verbose", "v", false, "Verbose logging")
@@ -94,13 +96,16 @@ func Scan(cmd *cobra.Command, args []string) {
 	go helper.ShortcutListeners(scanStatus)
 
 	options.Context = context.WithValue(context.Background(), github.BypassRateLimitCheck, true)
-	options.Client = setupClient(options.AccessToken)
+	options.Client = setupClient(options.AccessToken, options.GitHubURL)
 	options.HttpClient = helper.GetPipeleakHTTPClient("", nil, nil)
 	scan(options.Client)
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
 }
 
-func setupClient(accessToken string) *github.Client {
+func setupClient(accessToken string, baseURL string) *github.Client {
+	if baseURL == "" {
+		baseURL = "https://api.github.com/"
+	}
 	rateLimiter := github_ratelimit.New(nil,
 		github_primary_ratelimit.WithLimitDetectedCallback(func(ctx *github_primary_ratelimit.CallbackContext) {
 			resetTime := ctx.ResetTime.Add(time.Duration(time.Second * 30))
@@ -116,7 +121,11 @@ func setupClient(accessToken string) *github.Client {
 		}),
 	)
 
-	return github.NewClient(&http.Client{Transport: rateLimiter}).WithAuthToken(accessToken)
+	client := github.NewClient(&http.Client{Transport: rateLimiter}).WithAuthToken(accessToken)
+	if baseURL != "https://api.github.com/" {
+		client, _ = client.WithEnterpriseURLs(baseURL, baseURL)
+	}
+	return client
 }
 
 func scan(client *github.Client) {

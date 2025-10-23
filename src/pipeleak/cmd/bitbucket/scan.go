@@ -28,6 +28,7 @@ type BitBucketScanOptions struct {
 	Public                 bool
 	After                  string
 	Artifacts              bool
+	BitBucketURL           string
 	Context                context.Context
 	Client                 BitBucketApiClient
 	BitBucketCookie        string
@@ -57,6 +58,7 @@ pipeleak bb scan --token xxxxxxxxxxx --username auser --public --maxPipelines 5 
 	scanCmd.Flags().StringVarP(&options.Username, "username", "u", "", "Bitbucket Username")
 	scanCmd.MarkFlagsRequiredTogether("token", "username")
 	scanCmd.Flags().StringVarP(&options.BitBucketCookie, "cookie", "c", "", "Bitbucket Cookie [value of cloud.session.token on https://bitbucket.org]")
+	scanCmd.Flags().StringVarP(&options.BitBucketURL, "bitbucket", "b", "https://api.bitbucket.org/2.0", "BitBucket API base URL")
 	scanCmd.PersistentFlags().BoolVarP(&options.Artifacts, "artifacts", "a", false, "Scan workflow artifacts")
 	scanCmd.MarkFlagsRequiredTogether("cookie", "artifacts")
 
@@ -82,7 +84,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	scanner.InitRules(options.ConfidenceFilter)
 
 	options.Context = context.Background()
-	options.Client = NewClient(options.Username, options.AccessToken, options.BitBucketCookie)
+	options.Client = NewClient(options.Username, options.AccessToken, options.BitBucketCookie, options.BitBucketURL)
 
 	if len(options.BitBucketCookie) > 0 {
 		options.Client.GetuserInfo()

@@ -26,6 +26,7 @@ type DevOpsScanOptions struct {
 	Organization           string
 	Project                string
 	Artifacts              bool
+	DevOpsURL              string
 	Context                context.Context
 	Client                 AzureDevOpsApiClient
 }
@@ -76,6 +77,7 @@ pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization
 	scanCmd.PersistentFlags().BoolVarP(&options.Artifacts, "artifacts", "a", false, "Scan workflow artifacts")
 	scanCmd.Flags().StringVarP(&options.Organization, "organization", "o", "", "Organization name to scan")
 	scanCmd.Flags().StringVarP(&options.Project, "project", "p", "", "Project name to scan - can be combined with organization")
+	scanCmd.Flags().StringVarP(&options.DevOpsURL, "devops", "d", "https://dev.azure.com", "Azure DevOps base URL")
 
 	scanCmd.PersistentFlags().BoolVarP(&options.Verbose, "verbose", "v", false, "Verbose logging")
 
@@ -89,7 +91,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	scanner.InitRules(options.ConfidenceFilter)
 
 	options.Context = context.Background()
-	options.Client = NewClient(options.Username, options.AccessToken)
+	options.Client = NewClient(options.Username, options.AccessToken, options.DevOpsURL)
 
 	if options.Organization == "" && options.Project == "" {
 		scanAuthenticatedUser(options.Client)
