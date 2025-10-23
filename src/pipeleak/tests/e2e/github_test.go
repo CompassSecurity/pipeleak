@@ -14,7 +14,7 @@ func TestGitHubScan_HappyPath(t *testing.T) {
 
 	server, getRequests, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		
+
 		t.Logf("GitHub Mock: %s %s", r.Method, r.URL.Path)
 
 		switch r.URL.Path {

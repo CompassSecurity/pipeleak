@@ -31,24 +31,24 @@ func init() {
 func resolveBinaryPath() {
 	resolveOnce.Do(func() {
 		pipeleakBinaryResolved = pipeleakBinary
-		
+
 		// If already absolute, use as-is
 		if filepath.IsAbs(pipeleakBinary) {
 			return
 		}
-		
+
 		// Try to find the binary - check multiple possible locations
 		candidates := []string{
-			pipeleakBinary,                    // As specified (e.g., "../../pipeleak" or "./pipeleak")
+			pipeleakBinary,                        // As specified (e.g., "../../pipeleak" or "./pipeleak")
 			filepath.Join("..", "..", "pipeleak"), // Relative to tests/e2e
 		}
-		
+
 		// If PIPELEAK_BINARY was set, also try it from current working directory
 		if os.Getenv("PIPELEAK_BINARY") != "" {
 			wd, _ := os.Getwd()
 			candidates = append(candidates, filepath.Join(wd, pipeleakBinary))
 		}
-		
+
 		// Find the first candidate that exists
 		for _, candidate := range candidates {
 			if _, err := os.Stat(candidate); err == nil {
@@ -59,7 +59,7 @@ func resolveBinaryPath() {
 				}
 			}
 		}
-		
+
 		// If nothing found, try to resolve the original path anyway
 		if absPath, err := filepath.Abs(pipeleakBinary); err == nil {
 			pipeleakBinaryResolved = absPath
@@ -72,7 +72,7 @@ func resolveBinaryPath() {
 func executeCLIWithContext(ctx context.Context, args []string) error {
 	// Resolve binary path on first call
 	resolveBinaryPath()
-	
+
 	// Serialize CLI execution
 	cliMutex.Lock()
 	defer cliMutex.Unlock()
