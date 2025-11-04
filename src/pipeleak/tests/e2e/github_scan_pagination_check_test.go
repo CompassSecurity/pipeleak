@@ -61,13 +61,14 @@ func TestGitHubScan_Pagination_Check(t *testing.T) {
 		"--github", server.URL,
 		"--token", "ghp_test_token",
 		"--owned",
-		"--verbose",
 	}, nil, 15*time.Second)
 
 	assert.Nil(t, exitErr, "Pagination scan should succeed")
 
 	requests := getRequests()
+	// Dump recorded requests for debugging pagination
 	t.Logf("Made %d requests", len(requests)) // Check if pagination happened (should have page 1 and page 2)
+	dumpRequests(t, requests)
 	hasPage1 := false
 	hasPage2 := false
 	for _, req := range requests {

@@ -5,6 +5,7 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,12 +19,32 @@ var cliMutex sync.Mutex
 var pipeleakBinary string
 var pipeleakBinaryResolved string
 var resolveOnce sync.Once
+var buildOnce sync.Once
 
 func init() {
 	// Get the pipeleak binary path from environment or use default
 	pipeleakBinary = os.Getenv("PIPELEAK_BINARY")
 	if pipeleakBinary == "" {
 		pipeleakBinary = "../../pipeleak" // relative to tests/e2e directory
+	}
+
+	// Proactively build a fresh test binary once at package init when no explicit binary is provided.
+	// This avoids per-test timeouts where short-lived commands (like --help) include build time.
+	if os.Getenv("PIPELEAK_BINARY") == "" {
+		// Best-effort build; errors will be surfaced on first execution if any.
+		// Build from the module root (../../ relative to this test directory)
+		if wd, err := os.Getwd(); err == nil {
+			moduleDir := filepath.Clean(filepath.Join(wd, "..", ".."))
+			if tmpDir, err := os.MkdirTemp("", "pipeleak-e2e-"); err == nil {
+				tmpBin := filepath.Join(tmpDir, "pipeleak")
+				cmd := exec.Command("/bin/bash", "-lc", fmt.Sprintf("cd %q && go build -o %q .", moduleDir, tmpBin))
+				cmd.Env = os.Environ()
+				// Do not wire stdout/stderr here to keep test init quiet
+				if err := cmd.Run(); err == nil {
+					pipeleakBinaryResolved = tmpBin
+				}
+			}
+		}
 	}
 }
 
@@ -76,6 +97,53 @@ func executeCLIWithContext(ctx context.Context, args []string) error {
 	// Serialize CLI execution
 	cliMutex.Lock()
 	defer cliMutex.Unlock()
+
+	// If no explicit binary provided, build a test binary ONCE per test process to avoid staleness and reduce rebuild overhead
+	if os.Getenv("PIPELEAK_BINARY") == "" {
+		// If we already have a built binary from init() and it exists, reuse it
+		if pipeleakBinaryResolved != "" {
+			if _, statErr := os.Stat(pipeleakBinaryResolved); statErr == nil {
+				// already built and present
+			} else {
+				// reset to force rebuild below
+				pipeleakBinaryResolved = ""
+			}
+		}
+		buildOnce.Do(func() {
+			tmpDir, err := os.MkdirTemp("", "pipeleak-e2e-")
+			if err != nil {
+				pipeleakBinaryResolved = ""
+				return
+			}
+			tmpBin := filepath.Join(tmpDir, "pipeleak")
+
+			// Build from the module root containing main.go (./ relative to src/pipeleak)
+			// We assume tests run from the repo module at src/pipeleak/tests/e2e
+			buildDir, err := os.Getwd()
+			if err != nil {
+				pipeleakBinaryResolved = ""
+				return
+			}
+			// tests run in src/pipeleak/tests/e2e; module with main.go is at ../../
+			moduleDir := filepath.Clean(filepath.Join(buildDir, "..", ".."))
+
+			// Use bash -lc to ensure proper PATH resolution for 'go' and allow 'cd' semantics
+			buildCmd := exec.Command("/bin/bash", "-lc", fmt.Sprintf("cd %q && go build -o %q .", moduleDir, tmpBin))
+			buildCmd.Env = os.Environ()
+			buildCmd.Stdout = os.Stdout
+			buildCmd.Stderr = os.Stderr
+			if err := buildCmd.Run(); err != nil {
+				pipeleakBinaryResolved = ""
+				return
+			}
+			pipeleakBinaryResolved = tmpBin
+		})
+
+		// If for some reason build failed (pipeleakBinaryResolved empty), return an error
+		if pipeleakBinaryResolved == "" {
+			return fmt.Errorf("failed to build pipeleak test binary")
+		}
+	}
 
 	cmd := exec.CommandContext(ctx, pipeleakBinaryResolved, args...)
 	cmd.Env = os.Environ()
