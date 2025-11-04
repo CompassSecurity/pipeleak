@@ -16,18 +16,33 @@ import (
 
 // Docs: https://developer.atlassian.com/cloud/bitbucket/rest/intro/
 type BitBucketApiClient struct {
-	Client  resty.Client
-	BaseURL string
+	Client          resty.Client
+	BaseURL         string
+	InternalBaseURL string
 }
 
 func NewClient(username string, password string, bitBucketCookie string, baseURL string) BitBucketApiClient {
 	if baseURL == "" {
 		baseURL = "https://api.bitbucket.org/2.0"
 	}
+	// Derive an internal base URL for BitBucket internal APIs (bitbucket.org/!api/...)
+	// Default behaviour: if API base points to api.bitbucket.org use bitbucket.org for internal endpoints
+	parsedBase, err := url.Parse(baseURL)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Unable to parse baseURL")
+	}
+
+	internalHost := parsedBase.Host
+	if parsedBase.Host == "api.bitbucket.org" || parsedBase.Host == "api.bitbucket.org:443" {
+		internalHost = "bitbucket.org"
+	}
+	internalBase := parsedBase.Scheme + "://" + internalHost + "/!api"
+
 	client := *resty.New().SetBasicAuth(username, password).SetRedirectPolicy(resty.FlexibleRedirectPolicy(5))
 	if len(bitBucketCookie) > 0 {
 		jar, _ := cookiejar.New(nil)
-		targetURL, _ := url.Parse("https://bitbucket.org/")
+		// set cookie on the internal host root so requests to internal endpoints include it
+		targetURL := &url.URL{Scheme: parsedBase.Scheme, Host: internalHost, Path: "/"}
 		jar.SetCookies(targetURL, []*http.Cookie{
 			{
 				Name:  "cloud.session.token",
@@ -39,7 +54,7 @@ func NewClient(username string, password string, bitBucketCookie string, baseURL
 		log.Debug().Msg("Added cloud.session.token to HTTP client")
 	}
 
-	bbClient := BitBucketApiClient{Client: client, BaseURL: baseURL}
+	bbClient := BitBucketApiClient{Client: client, BaseURL: baseURL, InternalBaseURL: internalBase}
 	bbClient.Client.AddRetryHooks(
 		func(res *resty.Response, err error) {
 			if res.StatusCode() == 429 {
@@ -295,7 +310,7 @@ func (a BitBucketApiClient) ListPipelineArtifacts(nextPageUrl string, workspaceS
 	if nextPageUrl != "" {
 		reqUrl = nextPageUrl
 	} else {
-		u, err := url.Parse("https://bitbucket.org/!api/internal/repositories/")
+		u, err := url.Parse(a.InternalBaseURL + "/internal/repositories/")
 		if err != nil {
 			log.Fatal().Err(err).Msg("Unable to parse ListPipelineArtifacst url")
 		}
@@ -313,8 +328,7 @@ func (a BitBucketApiClient) ListPipelineArtifacts(nextPageUrl string, workspaceS
 
 // Internal API: https://bitbucket.org/!api/internal/repositories/{workspace}/{repo}/pipelines/{buildId}/artifacts/{ArtifactUUID}/content
 func (a BitBucketApiClient) GetPipelineArtifact(workspaceSlug string, repoSlug string, buildNumber int, artifactUUID string) []byte {
-
-	u, err := url.Parse("https://bitbucket.org/!api/internal/repositories/")
+	u, err := url.Parse(a.InternalBaseURL + "/internal/repositories/")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to parse GetPipelineArtifact url")
 	}
@@ -340,7 +354,7 @@ func (a BitBucketApiClient) GetuserInfo() {
 	resp := &UserInfo{}
 	res, err := a.Client.R().
 		SetResult(resp).
-		Get("https://bitbucket.org/!api/2.0/user")
+		Get(a.InternalBaseURL + "/2.0/user")
 
 	if err != nil {
 		log.Error().Err(err).Msg("Failed get user info (network or client error)")

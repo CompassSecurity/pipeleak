@@ -12,8 +12,9 @@ import (
 
 // https://learn.microsoft.com/en-us/rest/api/azure/devops/
 type AzureDevOpsApiClient struct {
-	Client  resty.Client
-	BaseURL string
+	Client   resty.Client
+	BaseURL  string
+	VsspsURL string // URL for profile/account APIs
 }
 
 func NewClient(username string, password string, baseURL string) AzureDevOpsApiClient {
@@ -21,8 +22,9 @@ func NewClient(username string, password string, baseURL string) AzureDevOpsApiC
 		baseURL = "https://dev.azure.com"
 	}
 	bbClient := AzureDevOpsApiClient{
-		Client:  *resty.New().SetBasicAuth(username, password).SetRedirectPolicy(resty.FlexibleRedirectPolicy(5)),
-		BaseURL: baseURL,
+		Client:   *resty.New().SetBasicAuth(username, password).SetRedirectPolicy(resty.FlexibleRedirectPolicy(5)),
+		BaseURL:  baseURL,
+		VsspsURL: "https://app.vssps.visualstudio.com",
 	}
 	bbClient.Client.AddRetryHooks(
 		func(res *resty.Response, err error) {
@@ -38,7 +40,7 @@ func NewClient(username string, password string, baseURL string) AzureDevOpsApiC
 
 // https://learn.microsoft.com/en-us/rest/api/azure/devops/profile/profiles/get?view=azure-devops-rest-7.2&tabs=HTTP
 func (a AzureDevOpsApiClient) GetAuthenticatedUser() (*AuthenticatedUser, *resty.Response, error) {
-	u, err := url.Parse("https://app.vssps.visualstudio.com/_apis/profile/profiles/me")
+	u, err := url.Parse(a.VsspsURL + "/_apis/profile/profiles/me")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to parse GetAuthenticatedUser url")
 	}
@@ -63,7 +65,7 @@ func (a AzureDevOpsApiClient) GetAuthenticatedUser() (*AuthenticatedUser, *resty
 
 // https://learn.microsoft.com/en-us/rest/api/azure/devops/account/accounts/list?view=azure-devops-rest-7.2&tabs=HTTP
 func (a AzureDevOpsApiClient) ListAccounts(ownerId string) ([]Account, *resty.Response, error) {
-	u, err := url.Parse("https://app.vssps.visualstudio.com/_apis/accounts")
+	u, err := url.Parse(a.VsspsURL + "/_apis/accounts")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to parse ListAccounts url")
 	}

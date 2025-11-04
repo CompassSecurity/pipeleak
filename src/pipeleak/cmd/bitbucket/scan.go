@@ -54,7 +54,7 @@ pipeleak bb scan --token xxxxxxxxxxx --username auser --public --maxPipelines 5 
 		`,
 		Run: Scan,
 	}
-	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "Bitbucket Application Password - https://bitbucket.org/account/settings/app-passwords/")
+	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "Bitbucket API token - https://id.atlassian.com/manage-profile/security/api-tokens")
 	scanCmd.Flags().StringVarP(&options.Username, "username", "u", "", "Bitbucket Username")
 	scanCmd.MarkFlagsRequiredTogether("token", "username")
 	scanCmd.Flags().StringVarP(&options.BitBucketCookie, "cookie", "c", "", "Bitbucket Cookie [value of cloud.session.token on https://bitbucket.org]")
