@@ -407,7 +407,7 @@ func Docs(cmd *cobra.Command, args []string) {
 	cmdRun.Stdout = os.Stdout
 	cmdRun.Stderr = os.Stderr
 	if err := cmdRun.Run(); err != nil {
-		log.Fatal().Err(err).Msg("Failed to run mkdocs build install command. Is mkdocs installed? pip install mkdocs mkdocs-material mkdocs-minify-plugin")
+		log.Fatal().Err(err).Msg("Failed to run mkdocs build. Is mkdocs installed? pip install mkdocs mkdocs-material mkdocs-minify-plugin")
 	}
 
 	if serve {
