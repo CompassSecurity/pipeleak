@@ -309,28 +309,19 @@ func scanAuthenticatedUserRepositories(client *github.Client, owned bool) {
 		ListOptions: github.ListOptions{PerPage: 100},
 		Affiliation: affiliation,
 	}
-	iteration := 0
 	for {
-		iteration++
-		log.Info().Int("iteration", iteration).Int("opt.Page", opt.Page).Int("opt.PerPage", opt.PerPage).Msg("About to call ListByAuthenticatedUser")
 		repos, resp, err := client.Repositories.ListByAuthenticatedUser(options.Context, opt)
 		if err != nil {
 			log.Fatal().Stack().Err(err).Msg("Failed fetching authenticated user repos")
 		}
-		log.Info().Int("iteration", iteration).Int("resp.NextPage", resp.NextPage).Int("reposCount", len(repos)).Msg("Got response")
 		for _, repo := range repos {
 			log.Debug().Str("name", *repo.Name).Str("url", *repo.HTMLURL).Msg("Scan")
 			iterateWorkflowRuns(client, repo)
 		}
 		if resp.NextPage == 0 {
-			log.Info().Msg("No more pages, breaking")
 			break
 		}
-		log.Info().Int("settingPageTo", resp.NextPage).Msg("Setting opt.Page")
 		opt.Page = resp.NextPage
-		if iteration > 5 {
-			log.Fatal().Msg("Too many iterations, breaking to prevent infinite loop")
-		}
 	}
 }
 
