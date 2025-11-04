@@ -1,8 +1,6 @@
 package github
 
 import (
-	"archive/zip"
-	"bytes"
 	"context"
 	"io"
 	"net/http"
@@ -10,17 +8,18 @@ import (
 	"time"
 
 	"github.com/CompassSecurity/pipeleak/helper"
-	"github.com/CompassSecurity/pipeleak/scanner"
+	artifactproc "github.com/CompassSecurity/pipeleak/internal/scan/artifact"
+	"github.com/CompassSecurity/pipeleak/internal/scan/logline"
+	"github.com/CompassSecurity/pipeleak/internal/scan/result"
+	"github.com/CompassSecurity/pipeleak/internal/scan/runner"
 	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit"
 	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit/github_primary_ratelimit"
 	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit/github_secondary_ratelimit"
 	"github.com/google/go-github/v69/github"
-	"github.com/h2non/filetype"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"github.com/wandb/parallel"
 )
 
 type GitHubScanOptions struct {
@@ -141,7 +140,7 @@ func scan(client *github.Client) {
 		log.Info().Str("organization", options.Organization).Msg("Scanning organization repositories actions")
 	}
 
-	scanner.InitRules(options.ConfidenceFilter)
+	runner.InitScanner(options.ConfidenceFilter)
 	if options.Public {
 		id := identifyNewestPublicProjectId(client)
 		scanAllPublicRepositories(client, id)
@@ -394,15 +393,22 @@ func downloadWorkflowRunLog(client *github.Client, repo *github.Repository, work
 	log.Trace().Msg("Downloading run log")
 	logs := downloadRunLogZIP(logURL.String())
 	log.Trace().Msg("Finished downloading run log")
-	findings, err := scanner.DetectHits(logs, options.MaxScanGoRoutines, options.TruffleHogVerification)
+
+	// Use the new logline processor
+	logResult, err := logline.ProcessLogs(logs, logline.ProcessOptions{
+		MaxGoRoutines:     options.MaxScanGoRoutines,
+		VerifyCredentials: options.TruffleHogVerification,
+		BuildURL:          *workflowRun.HTMLURL,
+	})
 	if err != nil {
 		log.Debug().Err(err).Str("workflowRun", *workflowRun.HTMLURL).Msg("Failed detecting secrets")
 		return
 	}
 
-	for _, finding := range findings {
-		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("workflowRun", *workflowRun.HTMLURL).Msg("HIT")
-	}
+	// Use the new result reporter
+	result.ReportFindings(logResult.Findings, result.ReportOptions{
+		LocationURL: *workflowRun.HTMLURL,
+	})
 	log.Trace().Msg("Finished scannig run log")
 }
 
@@ -421,34 +427,17 @@ func downloadRunLogZIP(url string) []byte {
 			return logLines
 		}
 
-		zipReader, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
+		// Use the new logline extractor
+		zipResult, err := logline.ExtractLogsFromZip(body)
 		if err != nil {
-			log.Err(err).Msg("Failed creating zip reader")
+			log.Err(err).Msg("Failed extracting logs from zip")
 			return logLines
 		}
 
-		for _, zipFile := range zipReader.File {
-			log.Trace().Str("zipFile", zipFile.Name).Msg("Zip file")
-			unzippedFileBytes, err := readZipFile(zipFile)
-			if err != nil {
-				log.Err(err).Msg("Failed reading zip file")
-				continue
-			}
-
-			logLines = append(logLines, unzippedFileBytes...)
-		}
+		return zipResult.ExtractedLogs
 	}
 
 	return logLines
-}
-
-func readZipFile(zf *zip.File) ([]byte, error) {
-	f, err := zf.Open()
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = f.Close() }()
-	return io.ReadAll(f)
 }
 
 func identifyNewestPublicProjectId(client *github.Client) int64 {
@@ -543,39 +532,17 @@ func analyzeArtifact(client *github.Client, workflowRun *github.WorkflowRun, art
 			log.Err(err).Msg("Failed reading response log body")
 			return
 		}
-		zipListing, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
+
+		// Use the new artifact processor
+		_, err = artifactproc.ProcessZipArtifact(body, artifactproc.ProcessOptions{
+			MaxGoRoutines:     options.MaxScanGoRoutines,
+			VerifyCredentials: options.TruffleHogVerification,
+			BuildURL:          *workflowRun.HTMLURL,
+			ArtifactName:      *workflowRun.Name,
+		})
 		if err != nil {
-			log.Err(err).Str("url", url.String()).Msg("Failed creating zip reader")
+			log.Err(err).Str("url", url.String()).Msg("Failed processing artifact zip")
 			return
 		}
-
-		ctx := options.Context
-		group := parallel.Limited(ctx, options.MaxScanGoRoutines)
-		for _, file := range zipListing.File {
-			group.Go(func(ctx context.Context) {
-				fc, err := file.Open()
-				if err != nil {
-					log.Error().Stack().Err(err).Msg("Unable to open raw artifact zip file")
-					return
-				}
-
-				content, err := io.ReadAll(fc)
-				if err != nil {
-					log.Error().Stack().Err(err).Msg("Unable to readAll artifact zip file")
-					return
-				}
-
-				kind, _ := filetype.Match(content)
-				// do not scan https://pkg.go.dev/github.com/h2non/filetype#readme-supported-types
-				if kind == filetype.Unknown {
-					scanner.DetectFileHits(content, *workflowRun.HTMLURL, *workflowRun.Name, file.Name, "", options.TruffleHogVerification)
-				} else if filetype.IsArchive(content) {
-					scanner.HandleArchiveArtifact(file.Name, content, *workflowRun.HTMLURL, *workflowRun.Name, options.TruffleHogVerification)
-				}
-				_ = fc.Close()
-			})
-		}
-
-		group.Wait()
 	}
 }

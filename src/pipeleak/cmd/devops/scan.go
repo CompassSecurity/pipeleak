@@ -1,18 +1,16 @@
 package devops
 
 import (
-	"archive/zip"
-	"bytes"
 	"context"
-	"io"
 
 	"github.com/CompassSecurity/pipeleak/helper"
-	"github.com/CompassSecurity/pipeleak/scanner"
-	"github.com/h2non/filetype"
+	artifactproc "github.com/CompassSecurity/pipeleak/internal/scan/artifact"
+	"github.com/CompassSecurity/pipeleak/internal/scan/logline"
+	"github.com/CompassSecurity/pipeleak/internal/scan/result"
+	"github.com/CompassSecurity/pipeleak/internal/scan/runner"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"github.com/wandb/parallel"
 )
 
 type DevOpsScanOptions struct {
@@ -88,7 +86,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	helper.SetLogLevel(options.Verbose)
 	go helper.ShortcutListeners(scanStatus)
 
-	scanner.InitRules(options.ConfidenceFilter)
+	runner.InitScanner(options.ConfidenceFilter)
 
 	options.Context = context.Background()
 	options.Client = NewClient(options.Username, options.AccessToken, options.DevOpsURL)
@@ -212,15 +210,20 @@ func listLogs(client AzureDevOpsApiClient, organization string, project string, 
 }
 
 func scanLogLines(logs []byte, buildWebUrl string) {
-	findings, err := scanner.DetectHits(logs, options.MaxScanGoRoutines, options.TruffleHogVerification)
+	// Use the new logline processor
+	logResult, err := logline.ProcessLogs(logs, logline.ProcessOptions{
+		MaxGoRoutines:     options.MaxScanGoRoutines,
+		VerifyCredentials: options.TruffleHogVerification,
+	})
 	if err != nil {
 		log.Debug().Err(err).Str("build", buildWebUrl).Msg("Failed detecting secrets of a single log line")
 		return
 	}
 
-	for _, finding := range findings {
-		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", buildWebUrl).Msg("HIT")
-	}
+	// Use the new result reporter
+	result.ReportFindings(logResult.Findings, result.ReportOptions{
+		LocationURL: buildWebUrl,
+	})
 }
 
 func listArtifacts(client AzureDevOpsApiClient, organization string, project string, buildId int, buildWebUrl string) {
@@ -243,47 +246,24 @@ func listArtifacts(client AzureDevOpsApiClient, organization string, project str
 	}
 }
 
-func analyzeArtifact(client AzureDevOpsApiClient, artifact Artifact, buildWebUrl string) {
-	zipBytes, _, err := client.DownloadArtifactZip(artifact.Resource.DownloadURL)
+func analyzeArtifact(client AzureDevOpsApiClient, art Artifact, buildWebUrl string) {
+	zipBytes, _, err := client.DownloadArtifactZip(art.Resource.DownloadURL)
 	if err != nil {
 		log.Err(err).Msg("Failed downloading artifact")
 		return
 	}
 
-	zipListing, err := zip.NewReader(bytes.NewReader(zipBytes), int64(len(zipBytes)))
+	// Use the new artifact processor
+	_, err = artifactproc.ProcessZipArtifact(zipBytes, artifactproc.ProcessOptions{
+		MaxGoRoutines:     options.MaxScanGoRoutines,
+		VerifyCredentials: options.TruffleHogVerification,
+		BuildURL:          buildWebUrl,
+		ArtifactName:      art.Name,
+	})
 	if err != nil {
-		log.Err(err).Msg("Failed creating zip reader")
+		log.Err(err).Msg("Failed processing artifact")
 		return
 	}
-
-	ctx := options.Context
-	group := parallel.Limited(ctx, options.MaxScanGoRoutines)
-	for _, file := range zipListing.File {
-		group.Go(func(ctx context.Context) {
-			fc, err := file.Open()
-			if err != nil {
-				log.Error().Stack().Err(err).Msg("Unable to open raw artifact zip file")
-				return
-			}
-
-			content, err := io.ReadAll(fc)
-			if err != nil {
-				log.Error().Stack().Err(err).Msg("Unable to readAll artifact zip file")
-				return
-			}
-
-			kind, _ := filetype.Match(content)
-			// do not scan https://pkg.go.dev/github.com/h2non/filetype#readme-supported-types
-			if kind == filetype.Unknown {
-				scanner.DetectFileHits(content, buildWebUrl, artifact.Name, file.Name, "", options.TruffleHogVerification)
-			} else if filetype.IsArchive(content) {
-				scanner.HandleArchiveArtifact(file.Name, content, buildWebUrl, artifact.Name, options.TruffleHogVerification)
-			}
-			_ = fc.Close()
-		})
-	}
-
-	group.Wait()
 }
 
 func scanStatus() *zerolog.Event {
