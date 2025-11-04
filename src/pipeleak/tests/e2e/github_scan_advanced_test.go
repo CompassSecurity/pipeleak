@@ -204,10 +204,21 @@ func TestGitHubScan_RateLimit(t *testing.T) {
 
 // TestGitHubScan_ConfidenceFilter tests multiple confidence levels
 // SKIP: Test intermittently times out - needs investigation of zip handling in mock environment
-func SkipTestGitHubScan_ConfidenceFilter(t *testing.T) {
+func TestGitHubScan_ConfidenceFilter(t *testing.T) {
+
+	// Prepare zipped logs with secrets
+	var logsZip bytes.Buffer
+	zw := zip.NewWriter(&logsZip)
+	lf, _ := zw.Create("log.txt")
+	logContent := `export DATABASE_URL=postgresql://admin:superSecretP@ssw0rd123@db.example.com:5432/prod_db
+export AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+export POSSIBLE_KEY=maybe_a_secret_12345`
+	_, _ = lf.Write([]byte(logContent))
+	_ = zw.Close()
 
 	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		t.Logf("GitHub Mock: %s %s", r.Method, r.URL.Path)
 
 		switch r.URL.Path {
 		case "/api/v3/user/repos":
@@ -228,9 +239,8 @@ func SkipTestGitHubScan_ConfidenceFilter(t *testing.T) {
 				"workflow_runs": []map[string]interface{}{
 					{
 						"id":            100,
-						"name":          "test-workflow",
 						"status":        "completed",
-						"display_title": "Test",
+						"display_title": "CI Build",
 						"html_url":      "https://github.com/user/test-repo/actions/runs/100",
 						"repository": map[string]interface{}{
 							"name":  "test-repo",
@@ -241,35 +251,30 @@ func SkipTestGitHubScan_ConfidenceFilter(t *testing.T) {
 				"total_count": 1,
 			})
 
-		case "/api/v3/repos/user/test-repo/actions/runs/100/logs":
-			// Return 302 redirect
-			w.Header().Set("Location", "http://"+r.Host+"/download/logs/100.zip")
-			w.WriteHeader(http.StatusFound)
-
-		case "/download/logs/100.zip":
-			// Create zipped logs with secrets
-			var logsZip bytes.Buffer
-			zw := zip.NewWriter(&logsZip)
-			lf, _ := zw.Create("job.log")
-			logContent := `export DATABASE_URL=postgresql://admin:pass@db.com/db
-export AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
-export POSSIBLE_KEY=maybe_a_secret_12345`
-			_, _ = lf.Write([]byte(logContent))
-			_ = zw.Close()
-			w.Header().Set("Content-Type", "application/zip")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write(logsZip.Bytes())
-
 		case "/api/v3/repos/user/test-repo/actions/runs/100/jobs":
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"jobs": []map[string]interface{}{
-					{"id": 1000, "name": "test-job", "status": "completed"},
+					{
+						"id":     1000,
+						"name":   "build",
+						"status": "completed",
+					},
 				},
 				"total_count": 1,
 			})
 
+		case "/api/v3/repos/user/test-repo/actions/runs/100/logs":
+			w.Header().Set("Location", "http://"+r.Host+"/download/logs/100.zip")
+			w.WriteHeader(http.StatusFound)
+
+		case "/download/logs/100.zip":
+			w.Header().Set("Content-Type", "application/zip")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(logsZip.Bytes())
+
 		default:
+			t.Logf("Unmocked path: %s", r.URL.Path)
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{})
 		}
@@ -288,6 +293,7 @@ export POSSIBLE_KEY=maybe_a_secret_12345`
 
 	output := stdout + stderr
 	// Should detect at least high/medium confidence secrets
+	assert.Contains(t, output, "HIT", "Should detect secrets")
 	t.Logf("Output:\n%s", output)
 }
 
