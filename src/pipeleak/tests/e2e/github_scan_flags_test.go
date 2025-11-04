@@ -147,9 +147,8 @@ func TestGitHubScan_UserRepositories(t *testing.T) {
 }
 
 // TestGitHubScan_PublicRepositories tests the --public flag for scanning public repos
-// SKIP: Public repository scanning requires complex event-based API interaction to identify
-// the latest repository ID, which is difficult to mock comprehensively in E2E tests
-func SkipTestGitHubScan_PublicRepositories(t *testing.T) {
+// Tests backward scanning behavior from a given repository ID
+func TestGitHubScan_PublicRepositories(t *testing.T) {
 
 	server, getRequests, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -157,42 +156,91 @@ func SkipTestGitHubScan_PublicRepositories(t *testing.T) {
 
 		switch r.URL.Path {
 		case "/api/v3/events":
-			// Return events to identify latest repo
+			// Return CreateEvent to identify latest repo ID
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
 				{
 					"type": "CreateEvent",
 					"repo": map[string]interface{}{
-						"id":   301,
-						"name": "user1/public-repo-1",
+						"id":   305, // Latest repo ID
+						"name": "user/latest-repo",
 					},
 				},
 			})
 
-		case "/api/v3/repositories/301":
+		case "/api/v3/repositories/305":
+			// GetByID for the latest repo
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
-				"id":        301,
-				"name":      "public-repo-1",
-				"full_name": "user1/public-repo-1",
-				"html_url":  "https://github.com/user1/public-repo-1",
-				"owner":     map[string]interface{}{"login": "user1"},
+				"id":        305,
+				"name":      "latest-repo",
+				"full_name": "user/latest-repo",
+				"html_url":  "https://github.com/user/latest-repo",
+				"owner":     map[string]interface{}{"login": "user"},
 			})
 
 		case "/api/v3/repositories":
-			// GitHub public repos API uses "since" parameter for pagination
-			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
-				{
-					"id":        301,
-					"name":      "public-repo-1",
-					"full_name": "user1/public-repo-1",
-					"html_url":  "https://github.com/user1/public-repo-1",
-					"owner":     map[string]interface{}{"login": "user1"},
-				},
-			})
+			// ListAll endpoint - return repos in descending ID order (backward scanning)
+			sinceParam := r.URL.Query().Get("since")
+			t.Logf("Repositories request with since=%s", sinceParam)
 
-		case "/api/v3/repos/user1/public-repo-1/actions/runs":
+			switch sinceParam {
+			case "305", "":
+				// First page: repos 305, 304, 303
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode([]map[string]interface{}{
+					{
+						"id":        305,
+						"name":      "public-repo-305",
+						"full_name": "user1/public-repo-305",
+						"html_url":  "https://github.com/user1/public-repo-305",
+						"owner":     map[string]interface{}{"login": "user1"},
+					},
+					{
+						"id":        304,
+						"name":      "public-repo-304",
+						"full_name": "user2/public-repo-304",
+						"html_url":  "https://github.com/user2/public-repo-304",
+						"owner":     map[string]interface{}{"login": "user2"},
+					},
+					{
+						"id":        303,
+						"name":      "public-repo-303",
+						"full_name": "user3/public-repo-303",
+						"html_url":  "https://github.com/user3/public-repo-303",
+						"owner":     map[string]interface{}{"login": "user3"},
+					},
+				})
+			case "302":
+				// Second page: repos 302, 301, 300 (scanning backward)
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode([]map[string]interface{}{
+					{
+						"id":        302,
+						"name":      "public-repo-302",
+						"full_name": "user4/public-repo-302",
+						"html_url":  "https://github.com/user4/public-repo-302",
+						"owner":     map[string]interface{}{"login": "user4"},
+					},
+					{
+						"id":        301,
+						"name":      "public-repo-301",
+						"full_name": "user5/public-repo-301",
+						"html_url":  "https://github.com/user5/public-repo-301",
+						"owner":     map[string]interface{}{"login": "user5"},
+					},
+				})
+			default:
+				// No more repos
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode([]map[string]interface{}{})
+			}
+
+		case "/api/v3/repos/user1/public-repo-305/actions/runs",
+			"/api/v3/repos/user2/public-repo-304/actions/runs",
+			"/api/v3/repos/user3/public-repo-303/actions/runs",
+			"/api/v3/repos/user4/public-repo-302/actions/runs",
+			"/api/v3/repos/user5/public-repo-301/actions/runs":
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"workflow_runs": []map[string]interface{}{},
@@ -212,22 +260,40 @@ func SkipTestGitHubScan_PublicRepositories(t *testing.T) {
 		"--token", "ghp_test_token",
 		"--public",
 		"--maxWorkflows", "1", // Limit workflows to avoid long test runs
-	}, nil, 15*time.Second)
+	}, nil, 20*time.Second)
 
 	assert.Nil(t, exitErr, "Public repos scan should succeed")
 
 	requests := getRequests()
-	var publicRepoRequests []RecordedRequest
+	
+	// Verify events API was called to identify latest repo
+	eventsRequests := 0
+	repositoriesRequests := 0
+	var sinceParams []string
+	
 	for _, req := range requests {
+		if req.Path == "/api/v3/events" {
+			eventsRequests++
+		}
 		if req.Path == "/api/v3/repositories" {
-			publicRepoRequests = append(publicRepoRequests, req)
+			repositoriesRequests++
+			since := req.RawQuery
+			if strings.Contains(since, "since=") {
+				sinceParams = append(sinceParams, since)
+			}
 		}
 	}
-	assert.True(t, len(publicRepoRequests) >= 1, "Should make at least one public repos API request")
 
+	assert.True(t, eventsRequests >= 1, "Should call events API to identify latest repo ID")
+	assert.True(t, repositoriesRequests >= 1, "Should make at least one public repos API request")
+	
 	output := stdout + stderr
 	t.Logf("Output:\n%s", output)
+	t.Logf("Events requests: %d, Repositories requests: %d", eventsRequests, repositoriesRequests)
+	t.Logf("Since parameters: %v", sinceParams)
+	
 	assert.Contains(t, output, "Scanning most recent public repositories", "Should log public repos scan")
+	assert.Contains(t, output, "Identified latest public repository", "Should identify starting repo ID")
 }
 
 // TestGitHubScan_ThreadsConfiguration tests the --threads flag
