@@ -10,11 +10,11 @@ import (
 // TestConfidenceFiltering tests the critical business logic of filtering patterns by confidence level
 func TestConfidenceFiltering(t *testing.T) {
 	tests := []struct {
-		name              string
-		patterns          []PatternElement
-		confidenceFilter  []string
-		expectedCount     int
-		expectedPatterns  []string
+		name             string
+		patterns         []PatternElement
+		confidenceFilter []string
+		expectedCount    int
+		expectedPatterns []string
 	}{
 		{
 			name: "filter high confidence only",
@@ -94,39 +94,39 @@ func TestConfidenceFiltering(t *testing.T) {
 // TestDeduplicationBoundaryConditions tests edge cases in finding deduplication
 func TestDeduplicationBoundaryConditions(t *testing.T) {
 	tests := []struct {
-		name                   string
+		name                     string
 		initialDeduplicationList []string
-		findings               []Finding
-		expectedUniqueCount    int
-		description            string
+		findings                 []Finding
+		expectedUniqueCount      int
+		description              string
 	}{
 		{
-			name:                   "empty deduplication list accepts all",
+			name:                     "empty deduplication list accepts all",
 			initialDeduplicationList: []string{},
 			findings: []Finding{
 				{Pattern: PatternElement{Pattern: PatternPattern{Name: "Test", Confidence: "high"}}, Text: "secret1"},
 				{Pattern: PatternElement{Pattern: PatternPattern{Name: "Test", Confidence: "high"}}, Text: "secret2"},
 			},
 			expectedUniqueCount: 2,
-			description:        "New findings should all be accepted when dedup list is empty",
+			description:         "New findings should all be accepted when dedup list is empty",
 		},
 		{
-			name:                   "single finding processes correctly",
+			name:                     "single finding processes correctly",
 			initialDeduplicationList: []string{},
 			findings: []Finding{
 				{Pattern: PatternElement{Pattern: PatternPattern{Name: "Test", Confidence: "high"}}, Text: "secret1"},
 			},
 			expectedUniqueCount: 1,
-			description:        "Single finding should be accepted",
+			description:         "Single finding should be accepted",
 		},
 		{
-			name:                   "list truncation at 500 entries",
+			name:                     "list truncation at 500 entries",
 			initialDeduplicationList: make([]string, 500),
 			findings: []Finding{
 				{Pattern: PatternElement{Pattern: PatternPattern{Name: "Test", Confidence: "high"}}, Text: "new_secret"},
 			},
 			expectedUniqueCount: 1,
-			description:        "Deduplication list should handle 500+ entries",
+			description:         "Deduplication list should handle 500+ entries",
 		},
 	}
 
@@ -147,9 +147,9 @@ func TestDeduplicationBoundaryConditions(t *testing.T) {
 // TestRegexPatternEdgeCases tests that regex patterns handle edge cases correctly
 func TestRegexPatternEdgeCases(t *testing.T) {
 	tests := []struct {
-		name     string
-		pattern  PatternElement
-		text     string
+		name        string
+		pattern     PatternElement
+		text        string
 		shouldMatch bool
 	}{
 		{
@@ -345,24 +345,24 @@ func TestCleanHitLineBusinessLogic(t *testing.T) {
 // TestTruncationBehavior tests that findings are properly truncated to prevent memory issues
 func TestTruncationBehavior(t *testing.T) {
 	tests := []struct {
-		name         string
-		textSize     int
-		expectedMax  int
+		name        string
+		textSize    int
+		expectedMax int
 	}{
 		{
-			name:         "text under 1024 bytes not truncated",
-			textSize:     500,
-			expectedMax:  500,
+			name:        "text under 1024 bytes not truncated",
+			textSize:    500,
+			expectedMax: 500,
 		},
 		{
-			name:         "text over 1024 bytes truncated",
-			textSize:     2000,
-			expectedMax:  1024,
+			name:        "text over 1024 bytes truncated",
+			textSize:    2000,
+			expectedMax: 1024,
 		},
 		{
-			name:         "text exactly 1024 bytes not truncated",
-			textSize:     1024,
-			expectedMax:  1024,
+			name:        "text exactly 1024 bytes not truncated",
+			textSize:    1024,
+			expectedMax: 1024,
 		},
 	}
 
@@ -370,7 +370,7 @@ func TestTruncationBehavior(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a text of specified size
 			text := bytes.Repeat([]byte("a"), tt.textSize)
-			
+
 			// Simulate the truncation logic from DetectHitsWithTimeout
 			hitStr := string(text)
 			if len(hitStr) > 1024 {

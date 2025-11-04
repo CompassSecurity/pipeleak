@@ -203,7 +203,7 @@ func TestGitHubScan_RateLimit(t *testing.T) {
 }
 
 // TestGitHubScan_ConfidenceFilter tests multiple confidence levels
-// SKIP: Test intermittently times out - needs investigation
+// SKIP: Test intermittently times out - needs investigation of zip handling in mock environment
 func SkipTestGitHubScan_ConfidenceFilter(t *testing.T) {
 
 	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
