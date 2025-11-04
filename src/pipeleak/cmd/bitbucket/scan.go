@@ -39,17 +39,21 @@ func NewScanCmd() *cobra.Command {
 	scanCmd := &cobra.Command{
 		Use:   "scan",
 		Short: "Scan BitBucket Pipelines",
-		Long:  "To scan artifacts internal APIs are called. Thus you need to extract the session cookie value `cloud.session.token` from https://bitbucket.org using your browser and supply it in the -c flag.",
+		Long: `Create a BitBucket scoped API token [here](https://id.atlassian.com/manage-profile/security/api-tokens) and pass it to the <code>--token</code> flag.
+The <code>--username</code> flag expects your account's email address.
+To scan artifacts (uses internal APIs) you need to extract the session cookie value <code>cloud.session.token</code> from [bitbucket.org](https://bitbucket.org) using your browser and supply it in the <code>--cookie</code> flag.
+A note on artifacts: Bitbucket artifacts are only stored for a limited time and only for paid accounts. Free accounts might not have artifacts available at all.
+		  `,
 		Example: `
-# Scan your owned repositories and their artifacts
-pipeleak bb scan -t xxxxxxxxxxx -c eyJxxxxxxxxxxx -u auser --owned --artifacts
-
 # Scan a workspace (find public ones here: https://bitbucket.org/repo/all/) without artifacts
-pipeleak bb scan --token xxxxxxxxxxx --username auser --workspace bitbucketpipelines
+pipeleak bb scan --token ATATTxxxxxx --username auser@example.com --workspace bitbucketpipelines
+
+# Scan your owned repositories and their artifacts
+pipeleak bb scan -t ATATTxxxxxx -c eyJxxxxxxxxxxx --artifacts -u auser@example.com --owned
 
 # Scan all public repositories without their artifacts
 > If using --after, the API becomes quite unreliable 👀
-pipeleak bb scan --token xxxxxxxxxxx --username auser --public --maxPipelines 5 --after 2025-03-01T15:00:00+00:00
+pipeleak bb scan --token ATATTxxxxxx --username auser@example.com --public --maxPipelines 5 --after 2025-03-01T15:00:00+00:00
 		`,
 		Run: Scan,
 	}
