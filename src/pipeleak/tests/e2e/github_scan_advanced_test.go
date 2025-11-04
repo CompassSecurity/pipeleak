@@ -70,8 +70,7 @@ func TestGitHubScan_Organization(t *testing.T) {
 }
 
 // TestGitHubScan_Pagination tests pagination handling
-// SKIP: Pagination test causes infinite loop - GitHub SDK pagination needs further investigation
-func SkipTestGitHubScan_Pagination(t *testing.T) {
+func TestGitHubScan_Pagination(t *testing.T) {
 
 	server, getRequests, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -92,18 +91,18 @@ func SkipTestGitHubScan_Pagination(t *testing.T) {
 						"name":      "repo-1",
 						"full_name": "user/repo-1",
 						"html_url":  "https://github.com/user/repo-1",
-					"owner":     map[string]interface{}{"login": "user"},
-				},
-			})
-		case "2":
-			// Second page - empty, no Link header = no more pages
-			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode([]map[string]interface{}{})
+						"owner":     map[string]interface{}{"login": "user"},
+					},
+				})
+			case "2":
+				// Second page - empty, no Link header = no more pages
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode([]map[string]interface{}{})
 			default:
-			// Shouldn't get here
-			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode([]map[string]interface{}{})
-		}
+				// Shouldn't get here
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode([]map[string]interface{}{})
+			}
 
 		case "/api/v3/repos/user/repo-1/actions/runs":
 			w.WriteHeader(http.StatusOK)

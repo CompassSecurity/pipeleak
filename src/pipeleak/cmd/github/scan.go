@@ -165,47 +165,6 @@ func scanStatus() *zerolog.Event {
 	return log.Info().Int("coreRateLimitRemaining", rateLimit.Core.Remaining).Time("coreRateLimitReset", rateLimit.Core.Reset.Time).Int("searchRateLimitRemaining", rateLimit.Search.Remaining).Time("searchRateLimitReset", rateLimit.Search.Reset.Time)
 }
 
-func listRepositories(client *github.Client, listOpt github.ListOptions, organization string, user string, owned bool) ([]*github.Repository, *github.Response, github.ListOptions) {
-	if organization != "" {
-		opt := &github.RepositoryListByOrgOptions{
-			Sort:        "updated",
-			ListOptions: listOpt,
-		}
-		repos, resp, err := client.Repositories.ListByOrg(options.Context, organization, opt)
-		if err != nil {
-			log.Fatal().Stack().Err(err).Msg("Failed fetching organization repos")
-		}
-		return repos, resp, opt.ListOptions
-
-	} else if user != "" {
-		opt := &github.RepositoryListByUserOptions{
-			Sort:        "updated",
-			ListOptions: listOpt,
-		}
-		repos, resp, err := client.Repositories.ListByUser(options.Context, user, opt)
-		if err != nil {
-			log.Fatal().Stack().Err(err).Msg("Failed fetching user repos")
-		}
-		return repos, resp, opt.ListOptions
-	} else {
-		affiliation := "owner,collaborator,organization_member"
-		if owned {
-			affiliation = "owner"
-		}
-		opt := &github.RepositoryListByAuthenticatedUserOptions{
-			ListOptions: listOpt,
-			Affiliation: affiliation,
-		}
-
-		repos, resp, err := client.Repositories.ListByAuthenticatedUser(options.Context, opt)
-		if err != nil {
-			log.Fatal().Stack().Err(err).Msg("Failed fetching authenticated user repos")
-		}
-
-		return repos, resp, opt.ListOptions
-	}
-}
-
 func searchRepositories(client *github.Client, query string) {
 	searchOpt := github.SearchOptions{}
 	for {
@@ -290,18 +249,88 @@ func deleteHighestXKeys(m map[int64]struct{}, nrKeys int) map[int64]struct{} {
 }
 
 func scanRepositories(client *github.Client) {
-	listOpt := github.ListOptions{PerPage: 100}
+	if options.Organization != "" {
+		scanOrgRepositories(client, options.Organization)
+	} else if options.User != "" {
+		scanUserRepositories(client, options.User)
+	} else {
+		scanAuthenticatedUserRepositories(client, options.Owned)
+	}
+}
+
+func scanOrgRepositories(client *github.Client, organization string) {
+	opt := &github.RepositoryListByOrgOptions{
+		Sort:        "updated",
+		ListOptions: github.ListOptions{PerPage: 100},
+	}
 	for {
-		repos, resp, listOpt := listRepositories(client, listOpt, options.Organization, options.User, options.Owned)
+		repos, resp, err := client.Repositories.ListByOrg(options.Context, organization, opt)
+		if err != nil {
+			log.Fatal().Stack().Err(err).Msg("Failed fetching organization repos")
+		}
 		for _, repo := range repos {
 			log.Debug().Str("name", *repo.Name).Str("url", *repo.HTMLURL).Msg("Scan")
 			iterateWorkflowRuns(client, repo)
 		}
-
 		if resp.NextPage == 0 {
 			break
 		}
-		listOpt.Page = resp.NextPage
+		opt.Page = resp.NextPage
+	}
+}
+
+func scanUserRepositories(client *github.Client, user string) {
+	opt := &github.RepositoryListByUserOptions{
+		Sort:        "updated",
+		ListOptions: github.ListOptions{PerPage: 100},
+	}
+	for {
+		repos, resp, err := client.Repositories.ListByUser(options.Context, user, opt)
+		if err != nil {
+			log.Fatal().Stack().Err(err).Msg("Failed fetching user repos")
+		}
+		for _, repo := range repos {
+			log.Debug().Str("name", *repo.Name).Str("url", *repo.HTMLURL).Msg("Scan")
+			iterateWorkflowRuns(client, repo)
+		}
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+}
+
+func scanAuthenticatedUserRepositories(client *github.Client, owned bool) {
+	affiliation := "owner,collaborator,organization_member"
+	if owned {
+		affiliation = "owner"
+	}
+	opt := &github.RepositoryListByAuthenticatedUserOptions{
+		ListOptions: github.ListOptions{PerPage: 100},
+		Affiliation: affiliation,
+	}
+	iteration := 0
+	for {
+		iteration++
+		log.Info().Int("iteration", iteration).Int("opt.Page", opt.Page).Int("opt.PerPage", opt.PerPage).Msg("About to call ListByAuthenticatedUser")
+		repos, resp, err := client.Repositories.ListByAuthenticatedUser(options.Context, opt)
+		if err != nil {
+			log.Fatal().Stack().Err(err).Msg("Failed fetching authenticated user repos")
+		}
+		log.Info().Int("iteration", iteration).Int("resp.NextPage", resp.NextPage).Int("reposCount", len(repos)).Msg("Got response")
+		for _, repo := range repos {
+			log.Debug().Str("name", *repo.Name).Str("url", *repo.HTMLURL).Msg("Scan")
+			iterateWorkflowRuns(client, repo)
+		}
+		if resp.NextPage == 0 {
+			log.Info().Msg("No more pages, breaking")
+			break
+		}
+		log.Info().Int("settingPageTo", resp.NextPage).Msg("Setting opt.Page")
+		opt.Page = resp.NextPage
+		if iteration > 5 {
+			log.Fatal().Msg("Too many iterations, breaking to prevent infinite loop")
+		}
 	}
 }
 
