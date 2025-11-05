@@ -13,11 +13,11 @@ import (
 )
 
 type ProcessOptions struct {
-	MaxGoRoutines      int
-	VerifyCredentials  bool
-	BuildURL           string
-	ArtifactName       string
-	WorkflowRunName    string
+	MaxGoRoutines     int
+	VerifyCredentials bool
+	BuildURL          string
+	ArtifactName      string
+	WorkflowRunName   string
 }
 
 type FileProcessingResult struct {

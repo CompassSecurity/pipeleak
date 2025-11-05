@@ -144,7 +144,6 @@ func GetPipeleakHTTPClient(cookieUrl string, cookies []*http.Cookie, defaultHead
 		}
 
 		jar.SetCookies(urlParsed, cookies)
-		log.Debug().Str("url", urlParsed.String()).Int("cookiesCount", len(cookies)).Msg("Added cookies for HTTP client")
 	}
 
 	client := retryablehttp.NewClient()

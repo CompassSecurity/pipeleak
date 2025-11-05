@@ -42,6 +42,7 @@ Create your personal access token here: https://dev.azure.com/{yourproject}/_use
 
 > In the top right corner you can choose the scope (Global, Project etc.). 
 > Global in that case means per tenant. If you have access to multiple tentants you need to run a scan per tenant.
+> Create a read-only token with all scopes (click show all scopes), select the correct organization(s) and then generate the token.
 > Get you username from an HTTPS git clone url from the UI.
 		`,
 		Example: `

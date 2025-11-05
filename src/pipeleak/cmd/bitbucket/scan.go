@@ -20,7 +20,7 @@ import (
 )
 
 type BitBucketScanOptions struct {
-	Username               string
+	Email               string
 	AccessToken            string
 	Verbose                bool
 	ConfidenceFilter       []string
@@ -47,20 +47,20 @@ func NewScanCmd() *cobra.Command {
 		Long:  "To scan artifacts internal APIs are called. Thus you need to extract the session cookie value `cloud.session.token` from https://bitbucket.org using your browser and supply it in the -c flag.",
 		Example: `
 # Scan your owned repositories and their artifacts
-pipeleak bb scan -t xxxxxxxxxxx -c eyJxxxxxxxxxxx -u auser --owned --artifacts
+pipeleak bb scan -t xxxxxxxxxxx -c eyJxxxxxxxxxxx -e auser --owned --artifacts
 
 # Scan a workspace (find public ones here: https://bitbucket.org/repo/all/) without artifacts
-pipeleak bb scan --token xxxxxxxxxxx --username auser --workspace bitbucketpipelines
+pipeleak bb scan --token xxxxxxxxxxx --email auser --workspace bitbucketpipelines
 
 # Scan all public repositories without their artifacts
 > If using --after, the API becomes quite unreliable 👀
-pipeleak bb scan --token xxxxxxxxxxx --username auser --public --maxPipelines 5 --after 2025-03-01T15:00:00+00:00
+pipeleak bb scan --token xxxxxxxxxxx --email auser --public --maxPipelines 5 --after 2025-03-01T15:00:00+00:00
 		`,
 		Run: Scan,
 	}
 	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "Bitbucket API token - https://id.atlassian.com/manage-profile/security/api-tokens")
-	scanCmd.Flags().StringVarP(&options.Username, "username", "u", "", "Bitbucket Username")
-	scanCmd.MarkFlagsRequiredTogether("token", "username")
+	scanCmd.Flags().StringVarP(&options.Email, "email", "e", "", "Bitbucket Email")
+	scanCmd.MarkFlagsRequiredTogether("token", "email")
 	scanCmd.Flags().StringVarP(&options.BitBucketCookie, "cookie", "c", "", "Bitbucket Cookie [value of cloud.session.token on https://bitbucket.org]")
 	scanCmd.Flags().StringVarP(&options.BitBucketURL, "bitbucket", "b", "https://api.bitbucket.org/2.0", "BitBucket API base URL")
 	scanCmd.PersistentFlags().BoolVarP(&options.Artifacts, "artifacts", "a", false, "Scan workflow artifacts")
@@ -88,7 +88,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	runner.InitScanner(options.ConfidenceFilter)
 
 	options.Context = context.Background()
-	options.Client = NewClient(options.Username, options.AccessToken, options.BitBucketCookie, options.BitBucketURL)
+	options.Client = NewClient(options.Email, options.AccessToken, options.BitBucketCookie, options.BitBucketURL)
 
 	if len(options.BitBucketCookie) > 0 {
 		options.Client.GetuserInfo()

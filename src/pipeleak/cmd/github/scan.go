@@ -66,7 +66,7 @@ pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --user firefart
 		`,
 		Run: Scan,
 	}
-	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "GitHub Personal Access Token")
+	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "GitHub Personal Access Token - https://github.com/settings/tokens")
 	err := scanCmd.MarkFlagRequired("token")
 	if err != nil {
 		log.Fatal().Msg("Unable to require token flag")

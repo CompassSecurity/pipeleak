@@ -231,6 +231,7 @@ jobOut:
 
 		for _, job := range jobs {
 			currentJobCtr += 1
+			log.Trace().Str("url", getJobUrl(git, project, job)).Msg("Enqueue job for scanning")
 			meta := QueueMeta{JobId: job.ID, ProjectId: project.ID, JobWebUrl: getJobUrl(git, project, job), JobName: job.Name, ProjectPathWithNamespace: project.PathWithNamespace}
 			enqueueItem(globQueue, QueueItemJobTrace, meta, waitGroup)
 

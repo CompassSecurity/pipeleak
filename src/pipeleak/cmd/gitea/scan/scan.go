@@ -21,6 +21,9 @@ func NewScanCmd() *cobra.Command {
 		Use:   "scan",
 		Short: "Scan Gitea Actions",
 		Long: `Scan Gitea Actions workflow runs and artifacts for secrets
+### Token Authentication
+
+You can create a personal access token in Gitea by navigating to your user settings, selecting "Applications", and then "Generate New Token". 
 
 ### Cookie Authentication
 

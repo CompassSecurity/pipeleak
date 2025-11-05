@@ -83,7 +83,7 @@ func setupQueue(options *ScanOptions) (diskqueue.Interface, string) {
 		2500,          // max buffer size
 		2*time.Second, // flush interval
 		func(lvl diskqueue.LogLevel, f string, args ...interface{}) {
-			log.Trace().Msgf("Queue Log: "+lvl.String()+": "+f, args...)
+			return // disable diskqueue logging
 		},
 	)
 
