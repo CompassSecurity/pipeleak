@@ -17,7 +17,7 @@ func TestCalculateZipFileSize(t *testing.T) {
 			setup: func() []byte {
 				buf := new(bytes.Buffer)
 				w := zip.NewWriter(buf)
-				w.Close()
+				_ = w.Close()
 				return buf.Bytes()
 			},
 			expected: 0,
@@ -29,8 +29,8 @@ func TestCalculateZipFileSize(t *testing.T) {
 				w := zip.NewWriter(buf)
 				f, _ := w.Create("test.txt")
 				content := []byte("hello world")
-				f.Write(content)
-				w.Close()
+				_, _ = f.Write(content)
+				_ = w.Close()
 				return buf.Bytes()
 			},
 			expected: 11,
@@ -41,10 +41,10 @@ func TestCalculateZipFileSize(t *testing.T) {
 				buf := new(bytes.Buffer)
 				w := zip.NewWriter(buf)
 				f1, _ := w.Create("test1.txt")
-				f1.Write([]byte("hello"))
+				_, _ = f1.Write([]byte("hello"))
 				f2, _ := w.Create("test2.txt")
-				f2.Write([]byte("world"))
-				w.Close()
+				_, _ = f2.Write([]byte("world"))
+				_ = w.Close()
 				return buf.Bytes()
 			},
 			expected: 10,

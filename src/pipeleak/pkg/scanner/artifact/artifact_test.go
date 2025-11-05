@@ -69,9 +69,9 @@ func TestHandleArchiveArtifact(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.Write([]byte("GITLAB_USER_ID=12345"))
+	_, _ = f.Write([]byte("GITLAB_USER_ID=12345"))
 
-	w.Close()
+	_ = w.Close()
 
 	t.Run("valid zip archive", func(t *testing.T) {
 		HandleArchiveArtifact("test.zip", buf.Bytes(), "http://example.com/job/1", "test-job", false)
@@ -90,9 +90,9 @@ func TestHandleArchiveArtifactWithDepth(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.Write([]byte("test content"))
+	_, _ = f.Write([]byte("test content"))
 
-	w.Close()
+	_ = w.Close()
 
 	t.Run("normal depth", func(t *testing.T) {
 		HandleArchiveArtifactWithDepth("test.zip", buf.Bytes(), "http://example.com/job/1", "test-job", false, 1)
@@ -115,14 +115,14 @@ func TestHandleArchiveArtifact_NestedZip(t *testing.T) {
 	innerBuf := new(bytes.Buffer)
 	innerW := zip.NewWriter(innerBuf)
 	innerF, _ := innerW.Create("inner.txt")
-	innerF.Write([]byte("GITLAB_USER_ID=99999"))
-	innerW.Close()
+	_, _ = innerF.Write([]byte("GITLAB_USER_ID=99999"))
+	_ = innerW.Close()
 
 	outerBuf := new(bytes.Buffer)
 	outerW := zip.NewWriter(outerBuf)
 	outerF, _ := outerW.Create("inner.zip")
-	outerF.Write(innerBuf.Bytes())
-	outerW.Close()
+	_, _ = outerF.Write(innerBuf.Bytes())
+	_ = outerW.Close()
 
 	t.Run("nested zip archive", func(t *testing.T) {
 		HandleArchiveArtifact("outer.zip", outerBuf.Bytes(), "http://example.com/job/1", "test-job", false)

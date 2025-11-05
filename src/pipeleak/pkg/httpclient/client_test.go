@@ -11,7 +11,7 @@ func TestHeaderRoundTripper_RoundTrip(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(r.Header.Get("Custom-Header")))
+		_, _ = w.Write([]byte(r.Header.Get("Custom-Header")))
 	}))
 	defer server.Close()
 
@@ -65,7 +65,9 @@ func TestHeaderRoundTripper_RoundTrip(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer resp.Body.Close()
+			defer func() {
+				_ = resp.Body.Close()
+			}()
 
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {

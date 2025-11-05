@@ -64,13 +64,15 @@ func TestGetTruffleHogRules(t *testing.T) {
 func TestDownloadRules(t *testing.T) {
 	tmpDir := t.TempDir()
 	origWd, _ := os.Getwd()
-	defer os.Chdir(origWd)
+	defer func() {
+		_ = os.Chdir(origWd)
+	}()
 
-	os.Chdir(tmpDir)
+	_ = os.Chdir(tmpDir)
 
 	t.Run("rules file does not exist", func(t *testing.T) {
 		if _, err := os.Stat(ruleFileName); err == nil {
-			os.Remove(ruleFileName)
+			_ = os.Remove(ruleFileName)
 		}
 
 		DownloadRules()
@@ -82,7 +84,7 @@ func TestDownloadRules(t *testing.T) {
 
 	t.Run("rules file already exists", func(t *testing.T) {
 		if _, err := os.Stat(ruleFileName); os.IsNotExist(err) {
-			os.WriteFile(ruleFileName, []byte("dummy"), 0644)
+			_ = os.WriteFile(ruleFileName, []byte("dummy"), 0644)
 		}
 
 		DownloadRules()
