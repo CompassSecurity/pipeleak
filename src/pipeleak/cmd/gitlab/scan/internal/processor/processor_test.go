@@ -87,7 +87,6 @@ func TestProcessJobTrace_PreservesMetadata(t *testing.T) {
 	result := ProcessJobTrace(trace, jobInfo, 2, false)
 
 	assert.NotNil(t, result)
-	// The function doesn't return metadata, but we test it processes correctly
 	assert.NoError(t, result.Error)
 }
 

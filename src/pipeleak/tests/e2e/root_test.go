@@ -329,7 +329,6 @@ func TestRootCommand_CommandGroups(t *testing.T) {
 	t.Logf("STDERR:\n%s", stderr)
 }
 
-// Helper function to check if string contains substring
 func assertContains(s, substr string) bool {
 	return len(s) > 0 && len(substr) > 0 && (s == substr || len(s) >= len(substr) && (s[0:len(substr)] == substr || assertContains(s[1:], substr)))
 }

@@ -37,7 +37,6 @@ func Enum(cmd *cobra.Command, args []string) {
 	}
 }
 
-// runEnum contains the core enumeration logic and returns errors instead of calling Fatal
 func runEnum(giteaURL, apiToken string) error {
 	client, err := gitea.NewClient(giteaURL, gitea.SetToken(apiToken))
 	if err != nil {
