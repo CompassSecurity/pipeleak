@@ -149,7 +149,7 @@ func GetPipeleakHTTPClient(cookieUrl string, cookies []*http.Cookie, defaultHead
 
 	client := retryablehttp.NewClient()
 
-	client.Logger = nil // Disable logging completely
+	client.Logger = nil
 
 	client.HTTPClient.Jar = jar
 

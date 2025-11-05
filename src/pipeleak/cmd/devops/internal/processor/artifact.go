@@ -11,7 +11,6 @@ import (
 	"github.com/wandb/parallel"
 )
 
-// ArtifactProcessingResult contains findings from artifact processing
 type ArtifactProcessingResult struct {
 	ArtifactName string
 	BuildURL     string
@@ -19,7 +18,6 @@ type ArtifactProcessingResult struct {
 	Error        error
 }
 
-// FileProcessingResult contains findings from a single file in an artifact
 type FileProcessingResult struct {
 	FileName string
 	FileType string
@@ -27,8 +25,6 @@ type FileProcessingResult struct {
 	Error    error
 }
 
-// ProcessArtifactZip processes a zip artifact and scans its contents for secrets
-// This extracts the zip processing logic for testability
 func ProcessArtifactZip(zipBytes []byte, artifactName string, buildURL string, maxGoRoutines int, verifyCredentials bool) (*ArtifactProcessingResult, error) {
 	zipListing, err := zip.NewReader(bytes.NewReader(zipBytes), int64(len(zipBytes)))
 	if err != nil {
@@ -63,7 +59,6 @@ func ProcessArtifactZip(zipBytes []byte, artifactName string, buildURL string, m
 	return result, nil
 }
 
-// processZipFile processes a single file from a zip archive
 func processZipFile(file *zip.File, artifactName, buildURL string, verifyCredentials bool) FileProcessingResult {
 	result := FileProcessingResult{
 		FileName: file.Name,
@@ -85,23 +80,17 @@ func processZipFile(file *zip.File, artifactName, buildURL string, verifyCredent
 	kind, _ := filetype.Match(content)
 	result.FileType = kind.MIME.Value
 
-	// Scan unknown file types (likely text files)
-	// Note: scanner functions have side effects (logging), but we track what we process
 	if kind == filetype.Unknown {
 		scanner.DetectFileHits(content, buildURL, artifactName, file.Name, "", verifyCredentials)
-		// Mark that we processed this file
-		result.Findings = []scanner.Finding{} // Actual findings are logged by scanner
+		result.Findings = []scanner.Finding{}
 	} else if filetype.IsArchive(content) {
-		// Handle nested archives
 		scanner.HandleArchiveArtifact(file.Name, content, buildURL, artifactName, verifyCredentials)
-		result.Findings = []scanner.Finding{} // Actual findings are logged by scanner
+		result.Findings = []scanner.Finding{}
 	}
 
 	return result
 }
 
-// ProcessFileContent processes a single file's content for scanning
-// Separate function for easier testing of file processing logic
 func ProcessFileContent(content []byte, filename, artifactName, buildURL string, verifyCredentials bool) (*FileProcessingResult, error) {
 	result := &FileProcessingResult{
 		FileName: filename,
@@ -112,10 +101,10 @@ func ProcessFileContent(content []byte, filename, artifactName, buildURL string,
 
 	if kind == filetype.Unknown {
 		scanner.DetectFileHits(content, buildURL, artifactName, filename, "", verifyCredentials)
-		result.Findings = []scanner.Finding{} // Actual findings are logged by scanner
+		result.Findings = []scanner.Finding{}
 	} else if filetype.IsArchive(content) {
 		scanner.HandleArchiveArtifact(filename, content, buildURL, artifactName, verifyCredentials)
-		result.Findings = []scanner.Finding{} // Actual findings are logged by scanner
+		result.Findings = []scanner.Finding{}
 	}
 
 	return result, nil

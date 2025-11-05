@@ -12,7 +12,6 @@ import (
 	"github.com/wandb/parallel"
 )
 
-// ProcessOptions contains configuration for artifact processing
 type ProcessOptions struct {
 	MaxGoRoutines      int
 	VerifyCredentials  bool
@@ -21,7 +20,6 @@ type ProcessOptions struct {
 	WorkflowRunName    string
 }
 
-// FileProcessingResult contains the result of processing a single file
 type FileProcessingResult struct {
 	FileName  string
 	FileType  string
@@ -30,8 +28,6 @@ type FileProcessingResult struct {
 	Error     error
 }
 
-// ProcessZipArtifact processes a zip artifact and scans its contents for secrets
-// This is the common function used by all scan commands
 func ProcessZipArtifact(zipBytes []byte, opts ProcessOptions) ([]FileProcessingResult, error) {
 	if len(zipBytes) == 0 {
 		return []FileProcessingResult{}, nil
@@ -66,7 +62,6 @@ func ProcessZipArtifact(zipBytes []byte, opts ProcessOptions) ([]FileProcessingR
 	return results, nil
 }
 
-// processZipFile processes a single file from a zip archive
 func processZipFile(file *zip.File, opts ProcessOptions) FileProcessingResult {
 	result := FileProcessingResult{
 		FileName: file.Name,
@@ -103,8 +98,6 @@ func processZipFile(file *zip.File, opts ProcessOptions) FileProcessingResult {
 	return result
 }
 
-// ExtractZipFile extracts the contents of a single file from a zip entry
-// This is a utility function for reading zip file contents
 func ExtractZipFile(zf *zip.File) ([]byte, error) {
 	f, err := zf.Open()
 	if err != nil {
@@ -114,15 +107,11 @@ func ExtractZipFile(zf *zip.File) ([]byte, error) {
 	return io.ReadAll(f)
 }
 
-// DetermineFileType determines the type of file based on its content
-// Returns the file type and whether it's an archive or unknown type
 func DetermineFileType(content []byte) (mimeType string, isArchive bool, isUnknown bool) {
 	kind, _ := filetype.Match(content)
 	return kind.MIME.Value, filetype.IsArchive(content), kind == filetype.Unknown
 }
 
-// ProcessSingleFile processes a single file's content for scanning
-// This is useful for processing non-zip artifacts or individual files
 func ProcessSingleFile(content []byte, filename string, opts ProcessOptions) (*FileProcessingResult, error) {
 	result := &FileProcessingResult{
 		FileName: filename,

@@ -8,15 +8,12 @@ import (
 	"github.com/CompassSecurity/pipeleak/scanner"
 )
 
-// WorkflowLogResult contains the findings from processing workflow logs
 type WorkflowLogResult struct {
 	WorkflowURL string
 	Findings    []scanner.Finding
 	Error       error
 }
 
-// ProcessWorkflowLogs processes workflow run logs and returns findings
-// Pure function that separates business logic from I/O operations
 func ProcessWorkflowLogs(logs []byte, workflowURL string, maxGoRoutines int, verifyCredentials bool) (*WorkflowLogResult, error) {
 	result := &WorkflowLogResult{
 		WorkflowURL: workflowURL,
@@ -32,20 +29,17 @@ func ProcessWorkflowLogs(logs []byte, workflowURL string, maxGoRoutines int, ver
 	return result, nil
 }
 
-// ZipLogResult contains extracted log content from a zip file
 type ZipLogResult struct {
-	TotalBytes  int
-	FileCount   int
+	TotalBytes    int
+	FileCount     int
 	ExtractedLogs []byte
-	Errors      []error
+	Errors        []error
 }
 
-// ExtractLogsFromZip extracts all log files from a zip archive
-// Pure function for zip extraction logic
 func ExtractLogsFromZip(zipBytes []byte) (*ZipLogResult, error) {
 	result := &ZipLogResult{
 		ExtractedLogs: make([]byte, 0),
-		Errors:       make([]error, 0),
+		Errors:        make([]error, 0),
 	}
 
 	zipReader, err := zip.NewReader(bytes.NewReader(zipBytes), int64(len(zipBytes)))
@@ -69,7 +63,6 @@ func ExtractLogsFromZip(zipBytes []byte) (*ZipLogResult, error) {
 	return result, nil
 }
 
-// readZipFile reads a single file from a zip archive
 func readZipFile(zf *zip.File) ([]byte, error) {
 	f, err := zf.Open()
 	if err != nil {
@@ -79,22 +72,18 @@ func readZipFile(zf *zip.File) ([]byte, error) {
 	return io.ReadAll(f)
 }
 
-// WorkflowRunFilter determines which workflow runs should be scanned
 type WorkflowRunFilter struct {
 	MaxWorkflows int
 	CurrentCount int
 }
 
-// ShouldContinueScanning determines if more workflow runs should be scanned
-// Pure function for flow control logic
 func (f *WorkflowRunFilter) ShouldContinueScanning() bool {
 	if f.MaxWorkflows <= 0 {
-		return true // No limit set
+		return true
 	}
 	return f.CurrentCount < f.MaxWorkflows
 }
 
-// IncrementCount increments the workflow count
 func (f *WorkflowRunFilter) IncrementCount() {
 	f.CurrentCount++
 }

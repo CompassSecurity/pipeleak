@@ -74,11 +74,11 @@ Running tests`),
 
 func TestExtractLogsFromZip(t *testing.T) {
 	tests := []struct {
-		name           string
-		zipContent     func() []byte
-		wantError      bool
+		name            string
+		zipContent      func() []byte
+		wantError       bool
 		expectFileCount int
-		expectMinBytes int
+		expectMinBytes  int
 	}{
 		{
 			name: "valid zip with single log file",
@@ -92,9 +92,9 @@ func TestExtractLogsFromZip(t *testing.T) {
 				_ = w.Close()
 				return buf.Bytes()
 			},
-			wantError:      false,
+			wantError:       false,
 			expectFileCount: 1,
-			expectMinBytes: 10,
+			expectMinBytes:  10,
 		},
 		{
 			name: "zip with multiple log files",
@@ -114,9 +114,9 @@ func TestExtractLogsFromZip(t *testing.T) {
 				_ = w.Close()
 				return buf.Bytes()
 			},
-			wantError:      false,
+			wantError:       false,
 			expectFileCount: 3,
-			expectMinBytes: 30,
+			expectMinBytes:  30,
 		},
 		{
 			name: "empty zip",
@@ -126,18 +126,18 @@ func TestExtractLogsFromZip(t *testing.T) {
 				_ = w.Close()
 				return buf.Bytes()
 			},
-			wantError:      false,
+			wantError:       false,
 			expectFileCount: 0,
-			expectMinBytes: 0,
+			expectMinBytes:  0,
 		},
 		{
 			name: "invalid zip data",
 			zipContent: func() []byte {
 				return []byte("not a zip file")
 			},
-			wantError:      true,
+			wantError:       true,
 			expectFileCount: 0,
-			expectMinBytes: 0,
+			expectMinBytes:  0,
 		},
 		{
 			name: "zip with large log file",
@@ -153,9 +153,9 @@ func TestExtractLogsFromZip(t *testing.T) {
 				_ = w.Close()
 				return buf.Bytes()
 			},
-			wantError:      false,
+			wantError:       false,
 			expectFileCount: 1,
-			expectMinBytes: 20000, // At least 20KB
+			expectMinBytes:  20000, // At least 20KB
 		},
 	}
 

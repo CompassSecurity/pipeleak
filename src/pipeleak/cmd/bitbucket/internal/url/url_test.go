@@ -83,44 +83,44 @@ func TestBuildDownloadArtifactWebURL(t *testing.T) {
 
 func TestBuildPipelineStepURL(t *testing.T) {
 	tests := []struct {
-		name         string
+		name          string
 		workspaceSlug string
-		repoSlug     string
-		pipelineUUID string
-		stepUUID     string
-		want         string
+		repoSlug      string
+		pipelineUUID  string
+		stepUUID      string
+		want          string
 	}{
 		{
-			name:         "typical pipeline step",
+			name:          "typical pipeline step",
 			workspaceSlug: "myworkspace",
-			repoSlug:     "myrepo",
-			pipelineUUID: "{abc123}",
-			stepUUID:     "{def456}",
-			want:         "https://bitbucket.org/myworkspace/myrepo/pipelines/results/{abc123}/steps/{def456}",
+			repoSlug:      "myrepo",
+			pipelineUUID:  "{abc123}",
+			stepUUID:      "{def456}",
+			want:          "https://bitbucket.org/myworkspace/myrepo/pipelines/results/{abc123}/steps/{def456}",
 		},
 		{
-			name:         "pipeline with numbers",
+			name:          "pipeline with numbers",
 			workspaceSlug: "company",
-			repoSlug:     "project",
-			pipelineUUID: "12345",
-			stepUUID:     "67890",
-			want:         "https://bitbucket.org/company/project/pipelines/results/12345/steps/67890",
+			repoSlug:      "project",
+			pipelineUUID:  "12345",
+			stepUUID:      "67890",
+			want:          "https://bitbucket.org/company/project/pipelines/results/12345/steps/67890",
 		},
 		{
-			name:         "workspace with special characters",
+			name:          "workspace with special characters",
 			workspaceSlug: "my-workspace_2024",
-			repoSlug:     "my.repo",
-			pipelineUUID: "pipeline-uuid-123",
-			stepUUID:     "step-uuid-456",
-			want:         "https://bitbucket.org/my-workspace_2024/my.repo/pipelines/results/pipeline-uuid-123/steps/step-uuid-456",
+			repoSlug:      "my.repo",
+			pipelineUUID:  "pipeline-uuid-123",
+			stepUUID:      "step-uuid-456",
+			want:          "https://bitbucket.org/my-workspace_2024/my.repo/pipelines/results/pipeline-uuid-123/steps/step-uuid-456",
 		},
 		{
-			name:         "empty strings",
+			name:          "empty strings",
 			workspaceSlug: "",
-			repoSlug:     "",
-			pipelineUUID: "",
-			stepUUID:     "",
-			want:         "https://bitbucket.org///pipelines/results//steps/",
+			repoSlug:      "",
+			pipelineUUID:  "",
+			stepUUID:      "",
+			want:          "https://bitbucket.org///pipelines/results//steps/",
 		},
 	}
 
@@ -136,7 +136,7 @@ func TestBuildDownloadArtifactWebURL_URLEncoding(t *testing.T) {
 	// Test that special characters are properly URL encoded
 	got, err := BuildDownloadArtifactWebURL("workspace", "repo", "file with spaces & special chars.zip")
 	require.NoError(t, err)
-	
+
 	// The URL should have encoded spaces
 	assert.Contains(t, got, "%20")
 	assert.Contains(t, got, "workspace/repo/downloads")
@@ -146,6 +146,6 @@ func TestBuildPipelineStepURL_Consistency(t *testing.T) {
 	// Test that the same inputs always produce the same output
 	url1 := BuildPipelineStepURL("ws", "repo", "p123", "s456")
 	url2 := BuildPipelineStepURL("ws", "repo", "p123", "s456")
-	
+
 	assert.Equal(t, url1, url2, "Same inputs should produce same output")
 }

@@ -9,7 +9,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// ProcessOptions contains configuration for log processing
 type ProcessOptions struct {
 	MaxGoRoutines     int
 	VerifyCredentials bool
@@ -17,15 +16,12 @@ type ProcessOptions struct {
 	JobName           string
 }
 
-// LogProcessingResult contains the result of processing logs
 type LogProcessingResult struct {
 	Findings  []scanner.Finding
 	BytesRead int
 	Error     error
 }
 
-// ProcessLogs processes log content and returns findings
-// This is the common function used by all scan commands for log scanning
 func ProcessLogs(logs []byte, opts ProcessOptions) (*LogProcessingResult, error) {
 	result := &LogProcessingResult{
 		BytesRead: len(logs),
@@ -41,7 +37,6 @@ func ProcessLogs(logs []byte, opts ProcessOptions) (*LogProcessingResult, error)
 	return result, nil
 }
 
-// ZipLogResult contains extracted log content from a zip file
 type ZipLogResult struct {
 	TotalBytes    int
 	FileCount     int
@@ -49,8 +44,6 @@ type ZipLogResult struct {
 	Errors        []error
 }
 
-// ExtractLogsFromZip extracts all log files from a zip archive
-// This is used by commands that receive logs as zip files
 func ExtractLogsFromZip(zipBytes []byte) (*ZipLogResult, error) {
 	result := &ZipLogResult{
 		ExtractedLogs: make([]byte, 0),
@@ -84,7 +77,6 @@ func ExtractLogsFromZip(zipBytes []byte) (*ZipLogResult, error) {
 	return result, nil
 }
 
-// readZipFile reads a single file from a zip archive
 func readZipFile(zf *zip.File) ([]byte, error) {
 	f, err := zf.Open()
 	if err != nil {
@@ -94,15 +86,11 @@ func readZipFile(zf *zip.File) ([]byte, error) {
 	return io.ReadAll(f)
 }
 
-// ProcessLogsFromZip combines zip extraction and log processing
-// This is a convenience function for common use cases
 func ProcessLogsFromZip(zipBytes []byte, opts ProcessOptions) (*LogProcessingResult, error) {
-	// Extract logs from zip
 	zipResult, err := ExtractLogsFromZip(zipBytes)
 	if err != nil {
 		return nil, err
 	}
 
-	// Process the extracted logs
 	return ProcessLogs(zipResult.ExtractedLogs, opts)
 }

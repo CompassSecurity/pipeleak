@@ -6,14 +6,12 @@ import (
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
-// RunnerResult represents a runner with its source (project or group)
 type RunnerResult struct {
 	Runner  *gitlab.Runner
 	Project *gitlab.Project
 	Group   *gitlab.Group
 }
 
-// RunnerInfo contains formatted information about a runner
 type RunnerInfo struct {
 	ID          int
 	Name        string
@@ -21,22 +19,17 @@ type RunnerInfo struct {
 	Type        string
 	Paused      bool
 	Tags        []string
-	SourceType  string // "project" or "group"
+	SourceType  string
 	SourceName  string
 }
 
-// MergeRunnerMaps combines project and group runner maps, deduplicating by runner ID
-// Returns a merged map where each runner ID appears only once
 func MergeRunnerMaps(projectRunners, groupRunners map[int]RunnerResult) map[int]RunnerResult {
 	merged := make(map[int]RunnerResult)
 
-	// Add all project runners first
 	for id, runner := range projectRunners {
 		merged[id] = runner
 	}
 
-	// Add group runners, skipping duplicates
-	// Project runners take precedence over group runners
 	for id, runner := range groupRunners {
 		if _, exists := merged[id]; !exists {
 			merged[id] = runner
@@ -46,7 +39,6 @@ func MergeRunnerMaps(projectRunners, groupRunners map[int]RunnerResult) map[int]
 	return merged
 }
 
-// FormatRunnerInfo extracts structured information from a RunnerResult
 func FormatRunnerInfo(result RunnerResult, details *gitlab.RunnerDetails) *RunnerInfo {
 	if details == nil {
 		return nil
@@ -72,7 +64,6 @@ func FormatRunnerInfo(result RunnerResult, details *gitlab.RunnerDetails) *Runne
 	return info
 }
 
-// ExtractUniqueTags collects all unique tags from a list of runner details
 func ExtractUniqueTags(runners []*gitlab.RunnerDetails) []string {
 	tagSet := make(map[string]bool)
 
@@ -90,12 +81,10 @@ func ExtractUniqueTags(runners []*gitlab.RunnerDetails) []string {
 	return tags
 }
 
-// FormatTagsString joins tags into a comma-separated string
 func FormatTagsString(tags []string) string {
 	return strings.Join(tags, ",")
 }
 
-// CountRunnersBySource counts how many runners come from projects vs groups
 func CountRunnersBySource(runnerMap map[int]RunnerResult) (projectCount, groupCount int) {
 	for _, result := range runnerMap {
 		if result.Project != nil {

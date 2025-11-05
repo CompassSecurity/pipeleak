@@ -298,11 +298,11 @@ func TestFormatTagsString(t *testing.T) {
 
 func TestCountRunnersBySource(t *testing.T) {
 	tests := []struct {
-		name           string
-		runnerMap      map[int]RunnerResult
-		expectedProj   int
-		expectedGroup  int
-		description    string
+		name          string
+		runnerMap     map[int]RunnerResult
+		expectedProj  int
+		expectedGroup int
+		description   string
 	}{
 		{
 			name: "mixed sources",
