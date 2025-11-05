@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/CompassSecurity/pipeleak/helper"
-	"github.com/CompassSecurity/pipeleak/internal/scan/logline"
-	"github.com/CompassSecurity/pipeleak/internal/scan/result"
-	"github.com/CompassSecurity/pipeleak/internal/scan/runner"
+	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
+	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
+	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
 	"github.com/CompassSecurity/pipeleak/scanner"
 	"github.com/h2non/filetype"
 	"github.com/rs/zerolog"
@@ -19,7 +19,7 @@ import (
 )
 
 type BitBucketScanOptions struct {
-	Email               string
+	Email                  string
 	AccessToken            string
 	Verbose                bool
 	ConfidenceFilter       []string
@@ -244,7 +244,7 @@ func listArtifacts(client BitBucketApiClient, workspaceSlug string, repoSlug str
 		for _, art := range artifacts {
 			log.Trace().Str("name", art.Name).Msg("Pipeline Artifact")
 			artifactBytes := client.GetPipelineArtifact(workspaceSlug, repoSlug, buildId, art.UUID)
-			
+
 			// Use artifact processor if it's an archive, otherwise use HandleArchiveArtifact
 			if filetype.IsArchive(artifactBytes) {
 				scanner.HandleArchiveArtifact(art.Name, artifactBytes, buildWebArtifactUrl(workspaceSlug, repoSlug, buildId, art.StepUUID), "Build "+strconv.Itoa(buildId), options.TruffleHogVerification)

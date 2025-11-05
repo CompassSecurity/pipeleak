@@ -18,11 +18,11 @@ func TestProcessJobTrace(t *testing.T) {
 	}
 
 	tests := []struct {
-		name         string
-		trace        []byte
-		expectError  bool
-		expectEmpty  bool
-		description  string
+		name        string
+		trace       []byte
+		expectError bool
+		expectEmpty bool
+		description string
 	}{
 		{
 			name:        "empty trace",
@@ -49,8 +49,8 @@ func TestProcessJobTrace(t *testing.T) {
 			description: "Should detect secrets in trace logs",
 		},
 		{
-			name: "large trace",
-			trace: bytes.Repeat([]byte("Log line with no secrets\n"), 10000),
+			name:        "large trace",
+			trace:       bytes.Repeat([]byte("Log line with no secrets\n"), 10000),
 			expectEmpty: true,
 			description: "Should handle large traces efficiently",
 		},
@@ -99,11 +99,11 @@ func TestProcessDotenvArtifact(t *testing.T) {
 	}
 
 	tests := []struct {
-		name         string
-		dotenvText   []byte
-		expectError  bool
-		expectEmpty  bool
-		description  string
+		name        string
+		dotenvText  []byte
+		expectError bool
+		expectEmpty bool
+		description string
 	}{
 		{
 			name:        "empty dotenv",

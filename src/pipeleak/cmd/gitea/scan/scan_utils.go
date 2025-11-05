@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"code.gitea.io/sdk/gitea"
-	artifactproc "github.com/CompassSecurity/pipeleak/internal/scan/artifact"
-	"github.com/CompassSecurity/pipeleak/internal/scan/logline"
-	"github.com/CompassSecurity/pipeleak/internal/scan/result"
+	artifactproc "github.com/CompassSecurity/pipeleak/pkg/scan/artifact"
+	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
+	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
 	"github.com/CompassSecurity/pipeleak/scanner"
 	"github.com/h2non/filetype"
 	"github.com/rs/zerolog/log"
@@ -68,7 +68,7 @@ func processZipArtifact(zipBytes []byte, repo *gitea.Repository, run ActionWorkf
 		ArtifactName:      artifactName,
 		WorkflowRunName:   run.Name,
 	})
-	
+
 	if err != nil {
 		log.Debug().
 			Str("repo", repo.FullName).

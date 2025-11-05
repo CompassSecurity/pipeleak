@@ -1,7 +1,7 @@
 package format
 
 import (
-"os"
+	"os"
 )
 
 func IsDirectory(path string) bool {

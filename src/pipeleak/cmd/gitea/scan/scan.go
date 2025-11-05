@@ -8,7 +8,7 @@ import (
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/CompassSecurity/pipeleak/helper"
-	"github.com/CompassSecurity/pipeleak/internal/scan/runner"
+	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"

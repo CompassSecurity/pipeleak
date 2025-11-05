@@ -1,4 +1,3 @@
-
 package helper
 
 import (
@@ -14,8 +13,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
 	"github.com/CompassSecurity/pipeleak/pkg/format"
+	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
 )
 
 func SetLogLevel(verbose bool) {
@@ -85,11 +84,10 @@ func GetPipeleakHTTPClient(cookieUrl string, cookies []*http.Cookie, defaultHead
 }
 
 // Format helpers delegated to pkg/format for better modularity
-func IsDirectory(path string) bool { return format.IsDirectory(path) }
-func ParseISO8601(dateStr string) time.Time { return format.ParseISO8601(dateStr) }
+func IsDirectory(path string) bool                   { return format.IsDirectory(path) }
+func ParseISO8601(dateStr string) time.Time          { return format.ParseISO8601(dateStr) }
 func PrettyPrintYAML(yamlStr string) (string, error) { return format.PrettyPrintYAML(yamlStr) }
-func ContainsI(a string, b string) bool { return format.ContainsI(a, b) }
-func GetPlatformAgnosticNewline() string { return format.GetPlatformAgnosticNewline() }
-func RandomStringN(n int) string { return format.RandomStringN(n) }
+func ContainsI(a string, b string) bool              { return format.ContainsI(a, b) }
+func GetPlatformAgnosticNewline() string             { return format.GetPlatformAgnosticNewline() }
+func RandomStringN(n int) string                     { return format.RandomStringN(n) }
 func ExtractHTMLTitleFromB64Html(body []byte) string { return format.ExtractHTMLTitleFromB64Html(body) }
-

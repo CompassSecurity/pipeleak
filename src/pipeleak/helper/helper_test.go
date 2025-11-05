@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rs/zerolog"
 	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
 
