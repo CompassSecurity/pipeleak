@@ -8,6 +8,10 @@ import (
 	"time"
 
 	"github.com/CompassSecurity/pipeleak/helper"
+	artifactproc "github.com/CompassSecurity/pipeleak/internal/scan/artifact"
+	"github.com/CompassSecurity/pipeleak/internal/scan/logline"
+	"github.com/CompassSecurity/pipeleak/internal/scan/result"
+	"github.com/CompassSecurity/pipeleak/internal/scan/runner"
 	"github.com/CompassSecurity/pipeleak/scanner"
 	"github.com/h2non/filetype"
 	"github.com/rs/zerolog"
@@ -81,7 +85,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	helper.SetLogLevel(options.Verbose)
 	go helper.ShortcutListeners(scanStatus)
 
-	scanner.InitRules(options.ConfidenceFilter)
+	runner.InitScanner(options.ConfidenceFilter)
 
 	options.Context = context.Background()
 	options.Client = NewClient(options.Username, options.AccessToken, options.BitBucketCookie, options.BitBucketURL)
@@ -230,10 +234,14 @@ func listArtifacts(client BitBucketApiClient, workspaceSlug string, repoSlug str
 			log.Error().Err(err).Msg("Failed fetching pipeline download artifacts")
 		}
 
-		for _, artifact := range artifacts {
-			log.Trace().Str("name", artifact.Name).Msg("Pipeline Artifact")
-			artifactBytes := client.GetPipelineArtifact(workspaceSlug, repoSlug, buildId, artifact.UUID)
-			scanner.HandleArchiveArtifact(artifact.Name, artifactBytes, buildWebArtifactUrl(workspaceSlug, repoSlug, buildId, artifact.StepUUID), "Build "+strconv.Itoa(buildId), options.TruffleHogVerification)
+		for _, art := range artifacts {
+			log.Trace().Str("name", art.Name).Msg("Pipeline Artifact")
+			artifactBytes := client.GetPipelineArtifact(workspaceSlug, repoSlug, buildId, art.UUID)
+			
+			// Use artifact processor if it's an archive, otherwise use HandleArchiveArtifact
+			if filetype.IsArchive(artifactBytes) {
+				scanner.HandleArchiveArtifact(art.Name, artifactBytes, buildWebArtifactUrl(workspaceSlug, repoSlug, buildId, art.StepUUID), "Build "+strconv.Itoa(buildId), options.TruffleHogVerification)
+			}
 		}
 
 		if nextUrl == "" {
@@ -298,15 +306,21 @@ func getSteplog(client BitBucketApiClient, workspaceSlug string, repoSlug string
 		log.Error().Err(err).Msg("Failed fetching pipeline steps")
 	}
 
-	findings, err := scanner.DetectHits(logBytes, options.MaxScanGoRoutines, options.TruffleHogVerification)
+	// Use the new logline processor
+	logResult, err := logline.ProcessLogs(logBytes, logline.ProcessOptions{
+		MaxGoRoutines:     options.MaxScanGoRoutines,
+		VerifyCredentials: options.TruffleHogVerification,
+	})
 	if err != nil {
 		log.Debug().Err(err).Str("stepUUid", stepUUID).Msg("Failed detecting secrets")
 		return
 	}
 
-	for _, finding := range findings {
-		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("Run", "https://bitbucket.org/"+workspaceSlug+"/"+repoSlug+"/pipelines/results/"+pipelineUuid+"/steps/"+stepUUID).Msg("HIT")
-	}
+	// Use the new result reporter
+	runURL := "https://bitbucket.org/" + workspaceSlug + "/" + repoSlug + "/pipelines/results/" + pipelineUuid + "/steps/" + stepUUID
+	result.ReportFindings(logResult.Findings, result.ReportOptions{
+		LocationURL: runURL,
+	})
 }
 
 func getDownloadArtifact(client BitBucketApiClient, downloadUrl string, webUrl string, filename string) {
@@ -315,10 +329,16 @@ func getDownloadArtifact(client BitBucketApiClient, downloadUrl string, webUrl s
 		return
 	}
 
+	// Use the new artifact processor for single files
 	if filetype.IsArchive(fileBytes) {
 		scanner.HandleArchiveArtifact(filename, fileBytes, webUrl, "Download Artifact", options.TruffleHogVerification)
 	} else {
-		scanner.DetectFileHits(fileBytes, webUrl, "Download Artifact", filename, "", options.TruffleHogVerification)
+		_, _ = artifactproc.ProcessSingleFile(fileBytes, filename, artifactproc.ProcessOptions{
+			MaxGoRoutines:     options.MaxScanGoRoutines,
+			VerifyCredentials: options.TruffleHogVerification,
+			BuildURL:          webUrl,
+			ArtifactName:      "Download Artifact",
+		})
 	}
 }
 
