@@ -2,11 +2,10 @@ package bitbucket
 
 import (
 	"context"
-	"net/url"
-	"path"
 	"strconv"
 	"time"
 
+	bburl "github.com/CompassSecurity/pipeleak/cmd/bitbucket/internal/url"
 	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
@@ -299,12 +298,12 @@ func listPipelineSteps(client BitBucketApiClient, workspaceSlug string, repoSlug
 }
 
 func constructDownloadArtifactWebUrl(workspaceSlug string, repoSlug string, artifactName string) string {
-	u, err := url.Parse("https://bitbucket.org/")
+	baseWebURL := bburl.GetWebBaseURL(options.BitBucketURL)
+	webURL, err := bburl.BuildDownloadArtifactWebURL(baseWebURL, workspaceSlug, repoSlug, artifactName)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Unable to parse ListDownloadArtifacts url")
+		log.Fatal().Err(err).Msg("Unable to build artifact download URL")
 	}
-	u.Path = path.Join(u.Path, workspaceSlug, repoSlug, "downloads", artifactName)
-	return u.String()
+	return webURL
 }
 
 func getSteplog(client BitBucketApiClient, workspaceSlug string, repoSlug string, pipelineUuid string, stepUUID string) {
@@ -313,7 +312,6 @@ func getSteplog(client BitBucketApiClient, workspaceSlug string, repoSlug string
 		log.Error().Err(err).Msg("Failed fetching pipeline steps")
 	}
 
-	// Use the new logline processor
 	logResult, err := logline.ProcessLogs(logBytes, logline.ProcessOptions{
 		MaxGoRoutines:     options.MaxScanGoRoutines,
 		VerifyCredentials: options.TruffleHogVerification,
@@ -323,8 +321,8 @@ func getSteplog(client BitBucketApiClient, workspaceSlug string, repoSlug string
 		return
 	}
 
-	// Use the new result reporter
-	runURL := "https://bitbucket.org/" + workspaceSlug + "/" + repoSlug + "/pipelines/results/" + pipelineUuid + "/steps/" + stepUUID
+	baseWebURL := bburl.GetWebBaseURL(options.BitBucketURL)
+	runURL := bburl.BuildPipelineStepURL(baseWebURL, workspaceSlug, repoSlug, pipelineUuid, stepUUID)
 	result.ReportFindings(logResult.Findings, result.ReportOptions{
 		LocationURL: runURL,
 	})

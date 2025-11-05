@@ -7,9 +7,46 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestGetWebBaseURL(t *testing.T) {
+	tests := []struct {
+		name       string
+		apiBaseURL string
+		want       string
+	}{
+		{
+			name:       "standard bitbucket API URL",
+			apiBaseURL: "https://api.bitbucket.org/2.0",
+			want:       "https://bitbucket.org",
+		},
+		{
+			name:       "API URL without version",
+			apiBaseURL: "https://api.bitbucket.org",
+			want:       "https://bitbucket.org",
+		},
+		{
+			name:       "custom domain with api prefix",
+			apiBaseURL: "https://api.company.com/2.0",
+			want:       "https://company.com",
+		},
+		{
+			name:       "URL without api prefix",
+			apiBaseURL: "https://bitbucket.company.com/2.0",
+			want:       "https://bitbucket.company.com",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := GetWebBaseURL(tt.apiBaseURL)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestBuildDownloadArtifactWebURL(t *testing.T) {
 	tests := []struct {
 		name          string
+		baseWebURL    string
 		workspaceSlug string
 		repoSlug      string
 		artifactName  string
@@ -18,6 +55,7 @@ func TestBuildDownloadArtifactWebURL(t *testing.T) {
 	}{
 		{
 			name:          "simple artifact",
+			baseWebURL:    "https://bitbucket.org",
 			workspaceSlug: "myworkspace",
 			repoSlug:      "myrepo",
 			artifactName:  "artifact.zip",
@@ -26,6 +64,7 @@ func TestBuildDownloadArtifactWebURL(t *testing.T) {
 		},
 		{
 			name:          "artifact with version",
+			baseWebURL:    "https://bitbucket.org",
 			workspaceSlug: "company",
 			repoSlug:      "project",
 			artifactName:  "release-v1.2.3.tar.gz",
@@ -34,6 +73,7 @@ func TestBuildDownloadArtifactWebURL(t *testing.T) {
 		},
 		{
 			name:          "workspace with hyphen",
+			baseWebURL:    "https://bitbucket.org",
 			workspaceSlug: "my-workspace",
 			repoSlug:      "my-repo",
 			artifactName:  "build.zip",
@@ -42,6 +82,7 @@ func TestBuildDownloadArtifactWebURL(t *testing.T) {
 		},
 		{
 			name:          "artifact with spaces",
+			baseWebURL:    "https://bitbucket.org",
 			workspaceSlug: "workspace",
 			repoSlug:      "repo",
 			artifactName:  "my artifact.zip",
@@ -50,6 +91,7 @@ func TestBuildDownloadArtifactWebURL(t *testing.T) {
 		},
 		{
 			name:          "empty workspace",
+			baseWebURL:    "https://bitbucket.org",
 			workspaceSlug: "",
 			repoSlug:      "repo",
 			artifactName:  "artifact.zip",
@@ -58,6 +100,7 @@ func TestBuildDownloadArtifactWebURL(t *testing.T) {
 		},
 		{
 			name:          "empty artifact name",
+			baseWebURL:    "https://bitbucket.org",
 			workspaceSlug: "workspace",
 			repoSlug:      "repo",
 			artifactName:  "",
@@ -68,7 +111,7 @@ func TestBuildDownloadArtifactWebURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := BuildDownloadArtifactWebURL(tt.workspaceSlug, tt.repoSlug, tt.artifactName)
+			got, err := BuildDownloadArtifactWebURL(tt.baseWebURL, tt.workspaceSlug, tt.repoSlug, tt.artifactName)
 
 			if tt.wantError {
 				assert.Error(t, err)
@@ -84,6 +127,7 @@ func TestBuildDownloadArtifactWebURL(t *testing.T) {
 func TestBuildPipelineStepURL(t *testing.T) {
 	tests := []struct {
 		name          string
+		baseWebURL    string
 		workspaceSlug string
 		repoSlug      string
 		pipelineUUID  string
@@ -92,6 +136,7 @@ func TestBuildPipelineStepURL(t *testing.T) {
 	}{
 		{
 			name:          "typical pipeline step",
+			baseWebURL:    "https://bitbucket.org",
 			workspaceSlug: "myworkspace",
 			repoSlug:      "myrepo",
 			pipelineUUID:  "{abc123}",
@@ -100,6 +145,7 @@ func TestBuildPipelineStepURL(t *testing.T) {
 		},
 		{
 			name:          "pipeline with numbers",
+			baseWebURL:    "https://bitbucket.org",
 			workspaceSlug: "company",
 			repoSlug:      "project",
 			pipelineUUID:  "12345",
@@ -108,6 +154,7 @@ func TestBuildPipelineStepURL(t *testing.T) {
 		},
 		{
 			name:          "workspace with special characters",
+			baseWebURL:    "https://bitbucket.org",
 			workspaceSlug: "my-workspace_2024",
 			repoSlug:      "my.repo",
 			pipelineUUID:  "pipeline-uuid-123",
@@ -116,6 +163,7 @@ func TestBuildPipelineStepURL(t *testing.T) {
 		},
 		{
 			name:          "empty strings",
+			baseWebURL:    "https://bitbucket.org",
 			workspaceSlug: "",
 			repoSlug:      "",
 			pipelineUUID:  "",
@@ -126,7 +174,7 @@ func TestBuildPipelineStepURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := BuildPipelineStepURL(tt.workspaceSlug, tt.repoSlug, tt.pipelineUUID, tt.stepUUID)
+			got := BuildPipelineStepURL(tt.baseWebURL, tt.workspaceSlug, tt.repoSlug, tt.pipelineUUID, tt.stepUUID)
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -134,7 +182,7 @@ func TestBuildPipelineStepURL(t *testing.T) {
 
 func TestBuildDownloadArtifactWebURL_URLEncoding(t *testing.T) {
 	// Test that special characters are properly URL encoded
-	got, err := BuildDownloadArtifactWebURL("workspace", "repo", "file with spaces & special chars.zip")
+	got, err := BuildDownloadArtifactWebURL("https://bitbucket.org", "workspace", "repo", "file with spaces & special chars.zip")
 	require.NoError(t, err)
 
 	// The URL should have encoded spaces
@@ -144,8 +192,8 @@ func TestBuildDownloadArtifactWebURL_URLEncoding(t *testing.T) {
 
 func TestBuildPipelineStepURL_Consistency(t *testing.T) {
 	// Test that the same inputs always produce the same output
-	url1 := BuildPipelineStepURL("ws", "repo", "p123", "s456")
-	url2 := BuildPipelineStepURL("ws", "repo", "p123", "s456")
+	url1 := BuildPipelineStepURL("https://bitbucket.org", "ws", "repo", "p123", "s456")
+	url2 := BuildPipelineStepURL("https://bitbucket.org", "ws", "repo", "p123", "s456")
 
 	assert.Equal(t, url1, url2, "Same inputs should produce same output")
 }
