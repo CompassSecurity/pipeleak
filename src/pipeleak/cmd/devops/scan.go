@@ -211,7 +211,6 @@ func listLogs(client AzureDevOpsApiClient, organization string, project string, 
 }
 
 func scanLogLines(logs []byte, buildWebUrl string) {
-	// Use the new logline processor
 	logResult, err := logline.ProcessLogs(logs, logline.ProcessOptions{
 		MaxGoRoutines:     options.MaxScanGoRoutines,
 		VerifyCredentials: options.TruffleHogVerification,
@@ -221,7 +220,6 @@ func scanLogLines(logs []byte, buildWebUrl string) {
 		return
 	}
 
-	// Use the new result reporter
 	result.ReportFindings(logResult.Findings, result.ReportOptions{
 		LocationURL: buildWebUrl,
 	})
@@ -254,7 +252,6 @@ func analyzeArtifact(client AzureDevOpsApiClient, art Artifact, buildWebUrl stri
 		return
 	}
 
-	// Use the new artifact processor
 	_, err = artifactproc.ProcessZipArtifact(zipBytes, artifactproc.ProcessOptions{
 		MaxGoRoutines:     options.MaxScanGoRoutines,
 		VerifyCredentials: options.TruffleHogVerification,

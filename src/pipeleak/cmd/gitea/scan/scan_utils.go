@@ -18,7 +18,6 @@ func scanLogs(logBytes []byte, repo *gitea.Repository, run ActionWorkflowRun, jo
 		return
 	}
 
-	// Use the new logline processor
 	logResult, err := logline.ProcessLogs(logBytes, logline.ProcessOptions{
 		MaxGoRoutines:     scanOptions.MaxScanGoRoutines,
 		VerifyCredentials: scanOptions.TruffleHogVerification,
@@ -62,7 +61,6 @@ func processZipArtifact(zipBytes []byte, repo *gitea.Repository, run ActionWorkf
 		return
 	}
 
-	// Use the new artifact processor
 	_, err := artifactproc.ProcessZipArtifact(zipBytes, artifactproc.ProcessOptions{
 		MaxGoRoutines:     scanOptions.MaxScanGoRoutines,
 		VerifyCredentials: scanOptions.TruffleHogVerification,

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/CompassSecurity/pipeleak/helper"
-	artifactproc "github.com/CompassSecurity/pipeleak/internal/scan/artifact"
 	"github.com/CompassSecurity/pipeleak/internal/scan/logline"
 	"github.com/CompassSecurity/pipeleak/internal/scan/result"
 	"github.com/CompassSecurity/pipeleak/internal/scan/runner"
@@ -329,16 +328,10 @@ func getDownloadArtifact(client BitBucketApiClient, downloadUrl string, webUrl s
 		return
 	}
 
-	// Use the new artifact processor for single files
 	if filetype.IsArchive(fileBytes) {
 		scanner.HandleArchiveArtifact(filename, fileBytes, webUrl, "Download Artifact", options.TruffleHogVerification)
 	} else {
-		_, _ = artifactproc.ProcessSingleFile(fileBytes, filename, artifactproc.ProcessOptions{
-			MaxGoRoutines:     options.MaxScanGoRoutines,
-			VerifyCredentials: options.TruffleHogVerification,
-			BuildURL:          webUrl,
-			ArtifactName:      "Download Artifact",
-		})
+		scanner.DetectFileHits(fileBytes, webUrl, "Download Artifact", filename, "", options.TruffleHogVerification)
 	}
 }
 

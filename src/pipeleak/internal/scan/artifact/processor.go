@@ -87,11 +87,9 @@ func processZipFile(file *zip.File, opts ProcessOptions) FileProcessingResult {
 	result.IsUnknown = kind == filetype.Unknown
 	result.IsArchive = filetype.IsArchive(content)
 
-	// Scan unknown file types (likely text files)
 	if result.IsUnknown {
 		scanner.DetectFileHits(content, opts.BuildURL, opts.ArtifactName, file.Name, "", opts.VerifyCredentials)
 	} else if result.IsArchive {
-		// Handle nested archives
 		scanner.HandleArchiveArtifact(file.Name, content, opts.BuildURL, opts.ArtifactName, opts.VerifyCredentials)
 	}
 

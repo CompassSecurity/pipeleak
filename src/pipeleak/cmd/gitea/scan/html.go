@@ -330,7 +330,6 @@ func getArtifactURLsFromRunHTML(repo *gitea.Repository, runID int64) (map[string
 		return nil, err
 	}
 
-	// Parse JSON response to extract artifacts
 	var jobData struct {
 		Artifacts []struct {
 			Name   string `json:"name"`
