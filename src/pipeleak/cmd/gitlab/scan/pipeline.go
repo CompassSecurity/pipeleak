@@ -8,7 +8,7 @@ import (
 
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
 	"github.com/CompassSecurity/pipeleak/helper"
-	"github.com/CompassSecurity/pipeleak/scanner"
+	"github.com/CompassSecurity/pipeleak/pkg/scanner"
 	"github.com/nsqio/go-diskqueue"
 	"github.com/rs/zerolog/log"
 	gitlab "gitlab.com/gitlab-org/api/client-go"

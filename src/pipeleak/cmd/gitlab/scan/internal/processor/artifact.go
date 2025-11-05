@@ -6,7 +6,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/CompassSecurity/pipeleak/scanner"
+	"github.com/CompassSecurity/pipeleak/pkg/scanner"
 	"github.com/h2non/filetype"
 	"github.com/rs/zerolog/log"
 	"github.com/wandb/parallel"

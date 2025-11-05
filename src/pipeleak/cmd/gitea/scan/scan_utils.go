@@ -7,7 +7,7 @@ import (
 	artifactproc "github.com/CompassSecurity/pipeleak/pkg/scan/artifact"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
-	"github.com/CompassSecurity/pipeleak/scanner"
+	"github.com/CompassSecurity/pipeleak/pkg/scanner"
 	"github.com/h2non/filetype"
 	"github.com/rs/zerolog/log"
 )

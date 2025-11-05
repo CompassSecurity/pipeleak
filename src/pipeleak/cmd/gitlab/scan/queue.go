@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/CompassSecurity/pipeleak/helper"
-	"github.com/CompassSecurity/pipeleak/scanner"
+	"github.com/CompassSecurity/pipeleak/pkg/scanner"
 	"github.com/h2non/filetype"
 	"github.com/nsqio/go-diskqueue"
 	"github.com/rs/zerolog/log"

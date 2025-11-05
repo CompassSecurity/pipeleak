@@ -1,7 +1,7 @@
 package runner
 
 import (
-	"github.com/CompassSecurity/pipeleak/scanner"
+	"github.com/CompassSecurity/pipeleak/pkg/scanner"
 )
 
 type InitOptions struct {

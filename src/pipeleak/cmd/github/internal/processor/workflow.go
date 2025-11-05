@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/CompassSecurity/pipeleak/scanner"
+	"github.com/CompassSecurity/pipeleak/pkg/scanner"
 )
 
 type WorkflowLogResult struct {

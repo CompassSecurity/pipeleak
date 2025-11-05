@@ -1,7 +1,7 @@
 package processor
 
 import (
-	"github.com/CompassSecurity/pipeleak/scanner"
+	"github.com/CompassSecurity/pipeleak/pkg/scanner"
 	"github.com/h2non/filetype"
 )
 
