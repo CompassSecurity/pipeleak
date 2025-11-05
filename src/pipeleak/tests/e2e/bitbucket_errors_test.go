@@ -54,7 +54,7 @@ func TestBitBucketScan_Owned_Unauthorized(t *testing.T) {
 	stdout, stderr, _ := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "baduser",
+		"--email", "baduser",
 		"--token", "badtoken",
 		"--owned",
 	}, nil, 5*time.Second)
@@ -81,7 +81,7 @@ func TestBitBucketScan_Owned_NotFound(t *testing.T) {
 	stdout, stderr, _ := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testtoken",
 		"--owned",
 	}, nil, 5*time.Second)
@@ -114,7 +114,7 @@ func TestBitBucketScan_Workspace_NotFound(t *testing.T) {
 	stdout, stderr, _ := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testtoken",
 		"--workspace", "invalid-workspace",
 	}, nil, 5*time.Second)
@@ -141,7 +141,7 @@ func TestBitBucketScan_Public_ServerError(t *testing.T) {
 	stdout, stderr, _ := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testtoken",
 		"--public",
 	}, nil, 5*time.Second)
@@ -178,7 +178,7 @@ func TestBitBucketScan_InvalidCookie(t *testing.T) {
 	stdout, stderr, exitErr := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testtoken",
 		"--cookie", "invalid-cookie",
 		"--workspace", "test-workspace",

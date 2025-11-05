@@ -59,11 +59,7 @@ pipeleak bb scan --token xxxxxxxxxxx --email auser --public --maxPipelines 5 --a
 		Run: Scan,
 	}
 	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "Bitbucket API token - https://id.atlassian.com/manage-profile/security/api-tokens")
-	// Accept either --email or --username for compatibility with older tests/usage
 	scanCmd.Flags().StringVarP(&options.Email, "email", "e", "", "Bitbucket Email")
-	scanCmd.Flags().StringVarP(&options.Email, "username", "", "", "Bitbucket Username")
-	// We validate token/email/username combination at runtime so we can accept
-	// either --email or --username as the identifier for BitBucket BasicAuth.
 	scanCmd.Flags().StringVarP(&options.BitBucketCookie, "cookie", "c", "", "Bitbucket Cookie [value of cloud.session.token on https://bitbucket.org]")
 	scanCmd.Flags().StringVarP(&options.BitBucketURL, "bitbucket", "b", "https://api.bitbucket.org/2.0", "BitBucket API base URL")
 	scanCmd.PersistentFlags().BoolVarP(&options.Artifacts, "artifacts", "a", false, "Scan workflow artifacts")
@@ -85,9 +81,8 @@ pipeleak bb scan --token xxxxxxxxxxx --email auser --public --maxPipelines 5 --a
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	// Validate that if a token is supplied a username/email is also provided.
 	if options.AccessToken != "" && options.Email == "" {
-		log.Fatal().Msg("When using --token you must also provide --email or --username")
+		log.Fatal().Msg("When using --token you must also provide --email")
 	}
 
 	logging.SetLogLevel(options.Verbose)

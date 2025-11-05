@@ -24,7 +24,7 @@ func TestBitBucketScan_Artifacts_MissingCookie(t *testing.T) {
 	stdout, stderr, exitErr := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testtoken",
 		"--workspace", "test-workspace",
 		"--artifacts",
@@ -153,7 +153,7 @@ GITHUB_TOKEN=ghp_AbCdEfGhIjKlMnOpQrStUvWxYz1234567890
 	stdout, stderr, exitErr := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testpass",
 		"--cookie", "test-cookie-value",
 		"--workspace", "test-workspace",
@@ -298,7 +298,7 @@ ADMIN_PASSWORD=SuperSecretAdminPass123!
 	stdout, stderr, exitErr := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testpass",
 		"--cookie", "test-cookie-value",
 		"--workspace", "test-workspace",
@@ -455,7 +455,7 @@ ENCRYPTION_KEY=abc123def456ghi789jkl012mno345pqr
 	stdout, stderr, exitErr := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testpass",
 		"--cookie", "test-cookie-value",
 		"--workspace", "test-workspace",
@@ -496,7 +496,7 @@ func TestBitBucketScan_Cookie_WithoutArtifacts(t *testing.T) {
 	stdout, stderr, exitErr := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testtoken",
 		"--cookie", "test-cookie-value",
 		"--workspace", "test-workspace",
@@ -629,7 +629,7 @@ func TestBitBucketScan_DownloadArtifacts(t *testing.T) {
 	stdout, stderr, exitErr := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testpass",
 		"--cookie", "test-cookie-value",
 		"--workspace", "test-workspace",

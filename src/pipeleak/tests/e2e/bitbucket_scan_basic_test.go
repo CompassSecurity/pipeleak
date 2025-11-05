@@ -140,7 +140,7 @@ STRIPE_SECRET_KEY=sk_live_51abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOP
 	stdout, stderr, exitErr := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testpass",
 		"--cookie", "test-cookie-value",
 		"--workspace", "test-workspace",
@@ -248,7 +248,7 @@ func TestBitBucketScan_Owned_HappyPath(t *testing.T) {
 	stdout, stderr, exitErr := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testtoken",
 		"--owned",
 	}, nil, 10*time.Second)
@@ -306,7 +306,7 @@ func TestBitBucketScan_Workspace_HappyPath(t *testing.T) {
 	stdout, stderr, exitErr := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testtoken",
 		"--workspace", "test-workspace",
 	}, nil, 10*time.Second)
@@ -360,7 +360,7 @@ func TestBitBucketScan_Public_HappyPath(t *testing.T) {
 	stdout, stderr, exitErr := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testtoken",
 		"--public",
 		"--maxPipelines", "1",
@@ -418,7 +418,7 @@ func TestBitBucketScan_Public_WithAfter(t *testing.T) {
 	stdout, stderr, exitErr := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testtoken",
 		"--public",
 		"--after", "2025-04-02T15:00:00+02:00",
@@ -447,7 +447,7 @@ func TestBitBucketScan_NoScanMode(t *testing.T) {
 	stdout, stderr, _ := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testtoken",
 		// No --owned, --workspace, or --public flag
 	}, nil, 5*time.Second)

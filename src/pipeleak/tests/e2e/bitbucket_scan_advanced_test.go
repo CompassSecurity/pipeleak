@@ -60,7 +60,7 @@ func TestBitBucketScan_MaxPipelines(t *testing.T) {
 	stdout, stderr, exitErr := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testtoken",
 		"--workspace", "test-workspace",
 		"--maxPipelines", "2",
@@ -148,7 +148,7 @@ func TestBitBucketScan_Confidence(t *testing.T) {
 	stdout, stderr, exitErr := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testtoken",
 		"--workspace", "test-workspace",
 		"--confidence", "high",
@@ -210,7 +210,7 @@ func TestBitBucketScan_Threads(t *testing.T) {
 	stdout, stderr, exitErr := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testtoken",
 		"--workspace", "test-workspace",
 		"--threads", "2",
@@ -244,7 +244,7 @@ func TestBitBucketScan_Verbose(t *testing.T) {
 	stdout, stderr, exitErr := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testtoken",
 		"--workspace", "test-workspace",
 		"--verbose",
@@ -327,7 +327,7 @@ func TestBitBucketScan_TruffleHogVerification(t *testing.T) {
 	stdout, stderr, exitErr := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testtoken",
 		"--workspace", "test-workspace",
 		"--truffleHogVerification=false",
@@ -404,7 +404,7 @@ func TestBitBucketScan_Pagination(t *testing.T) {
 	stdout, stderr, exitErr := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testtoken",
 		"--workspace", "test-workspace",
 		"--maxPipelines", "1",
@@ -495,7 +495,7 @@ func TestBitBucketScan_ConfidenceFilter_Multiple(t *testing.T) {
 	stdout, stderr, exitErr := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testtoken",
 		"--workspace", "test-workspace",
 		"--confidence", "high,medium",
@@ -537,7 +537,7 @@ func TestBitBucketScan_RateLimit(t *testing.T) {
 	stdout, stderr, _ := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--username", "testuser",
+		"--email", "testuser",
 		"--token", "testtoken",
 		"--workspace", "test-workspace",
 	}, nil, 10*time.Second)
