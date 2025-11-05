@@ -11,7 +11,6 @@ import (
 )
 
 func init() {
-	// Initialize scanner rules for tests
 	scanner.InitRules([]string{})
 }
 

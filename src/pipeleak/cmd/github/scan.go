@@ -395,7 +395,6 @@ func downloadWorkflowRunLog(client *github.Client, repo *github.Repository, work
 	logs := downloadRunLogZIP(logURL.String())
 	log.Trace().Msg("Finished downloading run log")
 
-	// Use the new logline processor
 	logResult, err := logline.ProcessLogs(logs, logline.ProcessOptions{
 		MaxGoRoutines:     options.MaxScanGoRoutines,
 		VerifyCredentials: options.TruffleHogVerification,
@@ -406,7 +405,6 @@ func downloadWorkflowRunLog(client *github.Client, repo *github.Repository, work
 		return
 	}
 
-	// Use the new result reporter
 	result.ReportFindings(logResult.Findings, result.ReportOptions{
 		LocationURL: *workflowRun.HTMLURL,
 	})
@@ -428,7 +426,6 @@ func downloadRunLogZIP(url string) []byte {
 			return logLines
 		}
 
-		// Use the new logline extractor
 		zipResult, err := logline.ExtractLogsFromZip(body)
 		if err != nil {
 			log.Err(err).Msg("Failed extracting logs from zip")
@@ -534,7 +531,6 @@ func analyzeArtifact(client *github.Client, workflowRun *github.WorkflowRun, art
 			return
 		}
 
-		// Use the new artifact processor
 		_, err = artifactproc.ProcessZipArtifact(body, artifactproc.ProcessOptions{
 			MaxGoRoutines:     options.MaxScanGoRoutines,
 			VerifyCredentials: options.TruffleHogVerification,

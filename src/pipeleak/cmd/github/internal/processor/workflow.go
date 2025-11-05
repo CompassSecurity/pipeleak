@@ -88,7 +88,6 @@ func (f *WorkflowRunFilter) IncrementCount() {
 	f.CurrentCount++
 }
 
-// ReachedLimit checks if the limit has been reached
 func (f *WorkflowRunFilter) ReachedLimit() bool {
 	if f.MaxWorkflows <= 0 {
 		return false
