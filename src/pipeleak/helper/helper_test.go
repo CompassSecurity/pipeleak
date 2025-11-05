@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -170,9 +171,9 @@ func TestHeaderRoundTripper(t *testing.T) {
 			}))
 			defer server.Close()
 
-			hrt := &headerRoundTripper{
-				headers: tt.headers,
-				next:    http.DefaultTransport,
+			hrt := &httpclient.HeaderRoundTripper{
+				Headers: tt.headers,
+				Next:    http.DefaultTransport,
 			}
 
 			req, _ := http.NewRequest("GET", server.URL, nil)
@@ -222,9 +223,9 @@ func TestGetPipeleakHTTPClient(t *testing.T) {
 				"User-Agent": "test-agent",
 			},
 			validate: func(t *testing.T, client *http.Client) {
-				transport, ok := client.Transport.(*headerRoundTripper)
+				transport, ok := client.Transport.(*httpclient.HeaderRoundTripper)
 				assert.True(t, ok)
-				assert.NotNil(t, transport.headers)
+				assert.NotNil(t, transport.Headers)
 			},
 		},
 		{
