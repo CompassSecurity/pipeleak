@@ -38,7 +38,6 @@ func TestBitBucketScan_Artifacts_MissingCookie(t *testing.T) {
 	t.Logf("Output:\n%s", output)
 }
 
-
 func TestBitBucketScan_Artifacts_WithDotEnv(t *testing.T) {
 
 	server, getRequests, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
@@ -179,7 +178,6 @@ GITHUB_TOKEN=ghp_AbCdEfGhIjKlMnOpQrStUvWxYz1234567890
 	t.Logf("STDOUT:\n%s", stdout)
 	t.Logf("STDERR:\n%s", stderr)
 }
-
 
 func TestBitBucketScan_Artifacts_NestedArchive(t *testing.T) {
 
@@ -322,7 +320,6 @@ ADMIN_PASSWORD=SuperSecretAdminPass123!
 	t.Logf("STDOUT:\n%s", stdout)
 	t.Logf("STDERR:\n%s", stderr)
 }
-
 
 func TestBitBucketScan_Artifacts_MultipleFiles(t *testing.T) {
 
@@ -486,7 +483,6 @@ ENCRYPTION_KEY=abc123def456ghi789jkl012mno345pqr
 	t.Logf("STDERR:\n%s", stderr)
 }
 
-
 func TestBitBucketScan_Cookie_WithoutArtifacts(t *testing.T) {
 
 	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
@@ -513,7 +509,6 @@ func TestBitBucketScan_Cookie_WithoutArtifacts(t *testing.T) {
 	assert.Contains(t, output, "artifacts", "Should mention artifacts requirement")
 	t.Logf("Output:\n%s", output)
 }
-
 
 func TestBitBucketScan_DownloadArtifacts(t *testing.T) {
 
@@ -655,5 +650,3 @@ func TestBitBucketScan_DownloadArtifacts(t *testing.T) {
 	t.Logf("STDOUT:\n%s", stdout)
 	t.Logf("STDERR:\n%s", stderr)
 }
-
-

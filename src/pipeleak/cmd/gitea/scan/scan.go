@@ -7,7 +7,8 @@ import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
-	"github.com/CompassSecurity/pipeleak/helper"
+	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -83,8 +84,8 @@ pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com 
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	helper.SetLogLevel(scanOptions.Verbose)
-	go helper.ShortcutListeners(scanStatus)
+	logging.SetLogLevel(scanOptions.Verbose)
+	go logging.ShortcutListeners(scanStatus)
 
 	if scanOptions.StartRunID > 0 && scanOptions.Repository == "" {
 		log.Fatal().Msg("--start-run-id can only be used with --repository flag")
@@ -104,7 +105,7 @@ func Scan(cmd *cobra.Command, args []string) {
 	authHeaders := map[string]string{"Authorization": "token " + scanOptions.Token}
 
 	if scanOptions.Cookie != "" {
-		scanOptions.HttpClient = helper.GetPipeleakHTTPClient(
+		scanOptions.HttpClient = httpclient.GetPipeleakHTTPClient(
 			scanOptions.GiteaURL,
 			[]*http.Cookie{
 				{
@@ -119,7 +120,7 @@ func Scan(cmd *cobra.Command, args []string) {
 
 		validateCookie()
 	} else {
-		scanOptions.HttpClient = helper.GetPipeleakHTTPClient("", nil, authHeaders)
+		scanOptions.HttpClient = httpclient.GetPipeleakHTTPClient("", nil, authHeaders)
 
 		httpClient := &http.Client{
 			Transport: &AuthTransport{

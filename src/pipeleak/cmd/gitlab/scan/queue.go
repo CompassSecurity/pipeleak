@@ -17,7 +17,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/helper"
+	"github.com/CompassSecurity/pipeleak/pkg/format"
+	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
 	"github.com/CompassSecurity/pipeleak/pkg/scanner"
 	"github.com/h2non/filetype"
 	"github.com/nsqio/go-diskqueue"
@@ -246,7 +247,7 @@ func getJobArtifacts(git *gitlab.Client, projectId int, jobId int, jobWebUrl str
 		return nil
 	}
 
-	extractedZipSize := helper.CalculateZipFileSize(data)
+	extractedZipSize := format.CalculateZipFileSize(data)
 	if extractedZipSize > uint64(options.MaxArtifactSize) {
 		log.Debug().Str("url", jobWebUrl).Int64("zipBytes", artifactsReader.Size()).Uint64("bytesExtracted", extractedZipSize).Int64("maxBytes", options.MaxArtifactSize).Msg("Skipped large extracted Zip artifact")
 		return nil
@@ -289,7 +290,7 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 	reqUrl.RawQuery = q.Encode()
 	dotenvUrl = reqUrl.String()
 
-	client := helper.GetPipeleakHTTPClient(gitlabUrl, []*http.Cookie{{Name: "_gitlab_session", Value: cookieVal}}, nil)
+	client := httpclient.GetPipeleakHTTPClient(gitlabUrl, []*http.Cookie{{Name: "_gitlab_session", Value: cookieVal}}, nil)
 	resp, err := client.Get(dotenvUrl)
 	if err != nil {
 		log.Debug().Stack().Err(err).Msg("Failed requesting dotenv artifact")
@@ -337,7 +338,7 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 
 		return envText
 	} else if filetype.Unknown == kind {
-		htmlPageTitle := helper.ExtractHTMLTitleFromB64Html(body)
+		htmlPageTitle := format.ExtractHTMLTitleFromB64Html(body)
 		log.Error().Str("filetype", kind.Extension).Str("url", dotenvUrl).Int("httpStatus", statCode).Str("htmlPageTitle", htmlPageTitle).Msg("Dotenv artifact file is unexpected. Check if the cookie and token have the same access!")
 	} else {
 		log.Error().Str("filetype", kind.Extension).Str("url", dotenvUrl).Int("httpStatus", statCode).Any("body", body).Msg("Dotenv file response is a weird file type, unexpected behavior, open a bug report if you see this")

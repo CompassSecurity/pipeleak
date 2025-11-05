@@ -240,7 +240,7 @@ func TestProcessZipArtifact_WithContext(t *testing.T) {
 
 	// Create multiple files to test parallel processing
 	for i := 0; i < 10; i++ {
-		f, _ := w.Create("file"+string(rune('0'+i))+".txt")
+		f, _ := w.Create("file" + string(rune('0'+i)) + ".txt")
 		_, _ = f.Write([]byte("content " + string(rune('0'+i))))
 	}
 	_ = w.Close()

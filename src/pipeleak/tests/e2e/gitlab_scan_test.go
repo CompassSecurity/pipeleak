@@ -251,4 +251,3 @@ func TestGitLabScan_FlagVariations(t *testing.T) {
 }
 
 // TestGitLabEnum tests GitLab enumeration command
-

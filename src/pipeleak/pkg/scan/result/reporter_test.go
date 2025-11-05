@@ -16,10 +16,10 @@ func TestReportFinding(t *testing.T) {
 	log.Logger = zerolog.New(&buf)
 
 	tests := []struct {
-		name          string
-		finding       scanner.Finding
-		opts          ReportOptions
-		expectInLog   []string
+		name           string
+		finding        scanner.Finding
+		opts           ReportOptions
+		expectInLog    []string
 		notExpectInLog []string
 	}{
 		{

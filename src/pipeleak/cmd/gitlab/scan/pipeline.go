@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
-	"github.com/CompassSecurity/pipeleak/helper"
 	"github.com/CompassSecurity/pipeleak/pkg/scanner"
+	"github.com/CompassSecurity/pipeleak/pkg/system"
 	"github.com/nsqio/go-diskqueue"
 	"github.com/rs/zerolog/log"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
@@ -39,7 +39,7 @@ type ScanOptions struct {
 
 func ScanGitLabPipelines(options *ScanOptions) {
 	globQueue, queueFileName = setupQueue(options)
-	helper.RegisterGracefulShutdownHandler(cleanUp)
+	system.RegisterGracefulShutdownHandler(cleanUp)
 
 	scanner.InitRules(options.ConfidenceFilter)
 	if !options.TruffleHogVerification {

@@ -563,4 +563,3 @@ func TestGiteaScan_WithArtifacts(t *testing.T) {
 }
 
 // TestGiteaScan_Owned tests scanning only owned repositories
-

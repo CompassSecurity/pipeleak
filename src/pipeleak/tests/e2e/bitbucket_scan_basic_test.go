@@ -190,7 +190,6 @@ STRIPE_SECRET_KEY=sk_live_51abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOP
 	t.Logf("STDERR:\n%s", stderr)
 }
 
-
 func TestBitBucketScan_Owned_HappyPath(t *testing.T) {
 
 	server, getRequests, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
@@ -264,7 +263,6 @@ func TestBitBucketScan_Owned_HappyPath(t *testing.T) {
 	t.Logf("Output:\n%s", output)
 }
 
-
 func TestBitBucketScan_Workspace_HappyPath(t *testing.T) {
 
 	server, getRequests, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
@@ -323,7 +321,6 @@ func TestBitBucketScan_Workspace_HappyPath(t *testing.T) {
 	t.Logf("Output:\n%s", output)
 }
 
-
 func TestBitBucketScan_Public_HappyPath(t *testing.T) {
 
 	server, getRequests, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
@@ -378,7 +375,6 @@ func TestBitBucketScan_Public_HappyPath(t *testing.T) {
 	assert.Contains(t, output, "public repos", "Should log public repo scanning")
 	t.Logf("Output:\n%s", output)
 }
-
 
 func TestBitBucketScan_Public_WithAfter(t *testing.T) {
 
@@ -439,7 +435,6 @@ func TestBitBucketScan_Public_WithAfter(t *testing.T) {
 	t.Logf("Output:\n%s", output)
 }
 
-
 func TestBitBucketScan_NoScanMode(t *testing.T) {
 
 	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
@@ -461,5 +456,3 @@ func TestBitBucketScan_NoScanMode(t *testing.T) {
 	assert.Contains(t, output, "Specify a scan mode", "Should show error for no scan mode")
 	t.Logf("Output:\n%s", output)
 }
-
-

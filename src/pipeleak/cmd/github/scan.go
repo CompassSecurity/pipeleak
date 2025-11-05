@@ -7,7 +7,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/helper"
+	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	artifactproc "github.com/CompassSecurity/pipeleak/pkg/scan/artifact"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
@@ -91,12 +92,12 @@ pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --user firefart
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	helper.SetLogLevel(options.Verbose)
-	go helper.ShortcutListeners(scanStatus)
+	logging.SetLogLevel(options.Verbose)
+	go logging.ShortcutListeners(scanStatus)
 
 	options.Context = context.WithValue(context.Background(), github.BypassRateLimitCheck, true)
 	options.Client = setupClient(options.AccessToken, options.GitHubURL)
-	options.HttpClient = helper.GetPipeleakHTTPClient("", nil, nil)
+	options.HttpClient = httpclient.GetPipeleakHTTPClient("", nil, nil)
 	scan(options.Client)
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
 }

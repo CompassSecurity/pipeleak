@@ -81,7 +81,7 @@ More text`),
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := extractSelfHostedOptions(tt.input)
-			
+
 			if len(tt.expected) == 0 {
 				assert.Empty(t, result)
 			} else {
@@ -105,7 +105,7 @@ API endpoint for the platform.
 
 ## binarySource
 Controls where Renovate installs binaries.`)
-		
+
 		result := extractSelfHostedOptions(markdown)
 		expected := []string{"platform", "endpoint", "binarySource"}
 		assert.Equal(t, expected, result)
@@ -114,8 +114,8 @@ Controls where Renovate installs binaries.`)
 
 func TestValidateOrderBy(t *testing.T) {
 	tests := []struct {
-		name      string
-		orderBy   string
+		name       string
+		orderBy    string
 		shouldFail bool
 	}{
 		{"accepts id", "id", false},

@@ -13,7 +13,9 @@ import (
 	"sync"
 
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
-	"github.com/CompassSecurity/pipeleak/helper"
+	"github.com/CompassSecurity/pipeleak/pkg/format"
+	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/yosuke-furukawa/json5/encoding/json5"
@@ -72,7 +74,7 @@ func NewEnumCmd() *cobra.Command {
 }
 
 func Enumerate(cmd *cobra.Command, args []string) {
-	helper.SetLogLevel(verbose)
+	logging.SetLogLevel(verbose)
 	git, err := util.GetGitlabClient(gitlabApiToken, gitlabUrl)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed creating gitlab client")
@@ -256,31 +258,31 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 			Msg("Identified Renovate (bot) configuration")
 
 		if verbose && hasCiCdRenovateConfig {
-			yml, err := helper.PrettyPrintYAML(ciCdYml)
+			yml, err := format.PrettyPrintYAML(ciCdYml)
 			if err != nil {
 				log.Error().Stack().Err(err).Msg("Failed pretty printing project CI/CD YML")
 				return
 			}
-			log.Info().Msg(helper.GetPlatformAgnosticNewline() + yml)
+			log.Info().Msg(format.GetPlatformAgnosticNewline() + yml)
 		}
 	}
 }
 
 func detectCiCdConfig(cicdConf string) bool {
 	// Check for common Renovate bot job identifiers in CI/CD configuration
-	return helper.ContainsI(cicdConf, "renovate/renovate") ||
-		helper.ContainsI(cicdConf, "renovatebot/renovate") ||
-		helper.ContainsI(cicdConf, "renovate-bot/renovate-runner") ||
-		helper.ContainsI(cicdConf, "RENOVATE_") ||
-		helper.ContainsI(cicdConf, "npx renovate")
+	return format.ContainsI(cicdConf, "renovate/renovate") ||
+		format.ContainsI(cicdConf, "renovatebot/renovate") ||
+		format.ContainsI(cicdConf, "renovate-bot/renovate-runner") ||
+		format.ContainsI(cicdConf, "RENOVATE_") ||
+		format.ContainsI(cicdConf, "npx renovate")
 }
 
 func detectAutodiscovery(cicdConf string, configFileContent string) bool {
 	// Check for autodiscover flag: https://docs.renovatebot.com/self-hosted-configuration/#autodiscover
-	hasAutodiscoveryInConfigFile := helper.ContainsI(configFileContent, "autodiscover")
+	hasAutodiscoveryInConfigFile := format.ContainsI(configFileContent, "autodiscover")
 
-	hasAutodiscoveryinCiCD := (helper.ContainsI(cicdConf, "--autodiscover") || helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER")) &&
-		(!helper.ContainsI(cicdConf, "--autodiscover=false") && !helper.ContainsI(cicdConf, "--autodiscover false") && !helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER: false") && !helper.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER=false"))
+	hasAutodiscoveryinCiCD := (format.ContainsI(cicdConf, "--autodiscover") || format.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER")) &&
+		(!format.ContainsI(cicdConf, "--autodiscover=false") && !format.ContainsI(cicdConf, "--autodiscover false") && !format.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER: false") && !format.ContainsI(cicdConf, "RENOVATE_AUTODISCOVER=false"))
 
 	return hasAutodiscoveryInConfigFile || hasAutodiscoveryinCiCD
 }
@@ -373,7 +375,7 @@ func fetchCurrentSelfHostedOptions() []string {
 
 	log.Debug().Msg("Fetching current self-hosted configuration from GitHub")
 
-	client := helper.GetPipeleakHTTPClient("", nil, nil)
+	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
 	res, err := client.Get("https://raw.githubusercontent.com/renovatebot/renovate/refs/heads/main/docs/usage/self-hosted-configuration.md")
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed fetching self-hosted configuration documentation")
@@ -410,7 +412,7 @@ func isSelfHostedConfig(config string) bool {
 	selfHostedOptions := fetchCurrentSelfHostedOptions()
 	for _, option := range selfHostedOptions {
 		// Check if the content contains any of the self-hosted options
-		if helper.ContainsI(config, option) {
+		if format.ContainsI(config, option) {
 			return true
 		}
 	}
@@ -418,7 +420,7 @@ func isSelfHostedConfig(config string) bool {
 }
 
 func extendRenovateConfig(renovateConfig string, project *gitlab.Project) string {
-	client := helper.GetPipeleakHTTPClient("", nil, nil)
+	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
 
 	u, err := url.Parse(extendRenovateConfigService)
 	if err != nil {
@@ -451,7 +453,7 @@ func extendRenovateConfig(renovateConfig string, project *gitlab.Project) string
 }
 
 func validateRenovateConfigService(serviceUrl string) error {
-	client := helper.GetPipeleakHTTPClient("", nil, nil)
+	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
 
 	u, err := url.Parse(serviceUrl)
 	if err != nil {

@@ -265,12 +265,12 @@ func TestGitHubScan_PublicRepositories(t *testing.T) {
 	assert.Nil(t, exitErr, "Public repos scan should succeed")
 
 	requests := getRequests()
-	
+
 	// Verify events API was called to identify latest repo
 	eventsRequests := 0
 	repositoriesRequests := 0
 	var sinceParams []string
-	
+
 	for _, req := range requests {
 		if req.Path == "/api/v3/events" {
 			eventsRequests++
@@ -286,12 +286,12 @@ func TestGitHubScan_PublicRepositories(t *testing.T) {
 
 	assert.True(t, eventsRequests >= 1, "Should call events API to identify latest repo ID")
 	assert.True(t, repositoriesRequests >= 1, "Should make at least one public repos API request")
-	
+
 	output := stdout + stderr
 	t.Logf("Output:\n%s", output)
 	t.Logf("Events requests: %d, Repositories requests: %d", eventsRequests, repositoriesRequests)
 	t.Logf("Since parameters: %v", sinceParams)
-	
+
 	assert.Contains(t, output, "Scanning most recent public repositories", "Should log public repos scan")
 	assert.Contains(t, output, "Identified latest public repository", "Should identify starting repo ID")
 }

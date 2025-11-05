@@ -7,7 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/helper"
+	"github.com/CompassSecurity/pipeleak/pkg/format"
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
@@ -89,8 +90,8 @@ func Scan(cmd *cobra.Command, args []string) {
 		log.Fatal().Msg("When using --token you must also provide --email or --username")
 	}
 
-	helper.SetLogLevel(options.Verbose)
-	go helper.ShortcutListeners(scanStatus)
+	logging.SetLogLevel(options.Verbose)
+	go logging.ShortcutListeners(scanStatus)
 
 	runner.InitScanner(options.ConfidenceFilter)
 
@@ -160,7 +161,7 @@ func scanWorkspace(client BitBucketApiClient, workspace string) {
 func scanPublic(client BitBucketApiClient, after string) {
 	afterTime := time.Time{}
 	if after != "" {
-		afterTime = helper.ParseISO8601(after)
+		afterTime = format.ParseISO8601(after)
 	}
 	log.Info().Time("after", afterTime).Msg("Scanning repos after")
 	next := ""

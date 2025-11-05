@@ -12,7 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/helper"
+	"github.com/CompassSecurity/pipeleak/pkg/format"
+	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
 	"github.com/acarl005/stripansi"
 	"github.com/h2non/filetype"
 	"github.com/rs/zerolog/log"
@@ -74,7 +75,7 @@ func downloadFile(url string, filepath string) error {
 	}
 	defer func() { _ = out.Close() }()
 
-	client := helper.GetPipeleakHTTPClient("", nil, nil)
+	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
 	resp, err := client.Get(url)
 	if err != nil {
 		return err
@@ -369,7 +370,7 @@ func HandleArchiveArtifactWithDepth(archivefileName string, content []byte, jobW
 	}
 
 	for _, fPath := range files {
-		if !helper.IsDirectory(fPath) {
+		if !format.IsDirectory(fPath) {
 			fileBytes, err := os.ReadFile(fPath)
 			if err != nil {
 				log.Debug().Str("file", fPath).Stack().Str("err", err.Error()).Msg("Cannot read temp artifact archive file content")

@@ -3,7 +3,7 @@ package devops
 import (
 	"context"
 
-	"github.com/CompassSecurity/pipeleak/helper"
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	artifactproc "github.com/CompassSecurity/pipeleak/pkg/scan/artifact"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
@@ -84,8 +84,8 @@ pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	helper.SetLogLevel(options.Verbose)
-	go helper.ShortcutListeners(scanStatus)
+	logging.SetLogLevel(options.Verbose)
+	go logging.ShortcutListeners(scanStatus)
 
 	runner.InitScanner(options.ConfidenceFilter)
 
