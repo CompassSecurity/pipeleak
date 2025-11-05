@@ -1,17 +1,15 @@
 package scan
 
 import (
-	"archive/zip"
-	"bytes"
-	"context"
 	"fmt"
-	"io"
 
 	"code.gitea.io/sdk/gitea"
+	artifactproc "github.com/CompassSecurity/pipeleak/internal/scan/artifact"
+	"github.com/CompassSecurity/pipeleak/internal/scan/logline"
+	"github.com/CompassSecurity/pipeleak/internal/scan/result"
 	"github.com/CompassSecurity/pipeleak/scanner"
 	"github.com/h2non/filetype"
 	"github.com/rs/zerolog/log"
-	"github.com/wandb/parallel"
 )
 
 func scanLogs(logBytes []byte, repo *gitea.Repository, run ActionWorkflowRun, jobID int64, jobName string) {
@@ -20,7 +18,11 @@ func scanLogs(logBytes []byte, repo *gitea.Repository, run ActionWorkflowRun, jo
 		return
 	}
 
-	findings, err := scanner.DetectHits(logBytes, scanOptions.MaxScanGoRoutines, scanOptions.TruffleHogVerification)
+	// Use the new logline processor
+	logResult, err := logline.ProcessLogs(logBytes, logline.ProcessOptions{
+		MaxGoRoutines:     scanOptions.MaxScanGoRoutines,
+		VerifyCredentials: scanOptions.TruffleHogVerification,
+	})
 	if err != nil {
 		log.Debug().Err(err).
 			Str("repo", repo.FullName).
@@ -30,29 +32,28 @@ func scanLogs(logBytes []byte, repo *gitea.Repository, run ActionWorkflowRun, jo
 		return
 	}
 
-	for _, finding := range findings {
+	// Report findings with custom fields for Gitea-specific metadata
+	for _, finding := range logResult.Findings {
 		logFinding(finding, repo.FullName, run.ID, jobID, jobName, run.HTMLURL)
 	}
 }
 
 func logFinding(finding scanner.Finding, repoFullName string, runID, jobID int64, jobName, url string) {
-	event := log.Warn().
-		Str("confidence", finding.Pattern.Pattern.Confidence).
-		Str("ruleName", finding.Pattern.Pattern.Name).
-		Str("value", finding.Text).
-		Str("repo", repoFullName).
-		Int64("run_id", runID).
-		Str("url", url)
+	customFields := map[string]string{
+		"repo":   repoFullName,
+		"run_id": fmt.Sprintf("%d", runID),
+		"url":    url,
+	}
 
 	if jobID > 0 {
-		event = event.Int64("job_id", jobID)
+		customFields["job_id"] = fmt.Sprintf("%d", jobID)
 	}
 
 	if jobName != "" {
-		event = event.Str("job_name", jobName)
+		customFields["job_name"] = jobName
 	}
 
-	event.Msg("HIT")
+	result.ReportFindingWithCustomFields(finding, customFields)
 }
 
 func processZipArtifact(zipBytes []byte, repo *gitea.Repository, run ActionWorkflowRun, artifactName string) {
@@ -61,7 +62,15 @@ func processZipArtifact(zipBytes []byte, repo *gitea.Repository, run ActionWorkf
 		return
 	}
 
-	zipReader, err := zip.NewReader(bytes.NewReader(zipBytes), int64(len(zipBytes)))
+	// Use the new artifact processor
+	_, err := artifactproc.ProcessZipArtifact(zipBytes, artifactproc.ProcessOptions{
+		MaxGoRoutines:     scanOptions.MaxScanGoRoutines,
+		VerifyCredentials: scanOptions.TruffleHogVerification,
+		BuildURL:          run.HTMLURL,
+		ArtifactName:      artifactName,
+		WorkflowRunName:   run.Name,
+	})
+	
 	if err != nil {
 		log.Debug().
 			Str("repo", repo.FullName).
@@ -71,35 +80,6 @@ func processZipArtifact(zipBytes []byte, repo *gitea.Repository, run ActionWorkf
 		scanArtifactContent(zipBytes, repo, run, artifactName, "")
 		return
 	}
-
-	ctx := scanOptions.Context
-	group := parallel.Limited(ctx, scanOptions.MaxScanGoRoutines)
-
-	for _, file := range zipReader.File {
-		f := file
-		group.Go(func(ctx context.Context) {
-			fc, err := f.Open()
-			if err != nil {
-				log.Debug().Err(err).Str("file", f.Name).Msg("Unable to open file in artifact zip")
-				return
-			}
-			defer func() {
-				if err := fc.Close(); err != nil {
-					log.Debug().Err(err).Str("file", f.Name).Msg("Failed to close file in artifact zip")
-				}
-			}()
-
-			content, err := io.ReadAll(fc)
-			if err != nil {
-				log.Debug().Err(err).Str("file", f.Name).Msg("Unable to read file in artifact zip")
-				return
-			}
-
-			scanArtifactContent(content, repo, run, artifactName, f.Name)
-		})
-	}
-
-	group.Wait()
 }
 
 func determineFileAction(content []byte, displayName string) (action string, fileType string) {

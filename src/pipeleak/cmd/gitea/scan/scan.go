@@ -8,7 +8,7 @@ import (
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/CompassSecurity/pipeleak/helper"
-	"github.com/CompassSecurity/pipeleak/scanner"
+	"github.com/CompassSecurity/pipeleak/internal/scan/runner"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -128,7 +128,7 @@ func Scan(cmd *cobra.Command, args []string) {
 		scanOptions.HttpClient.StandardClient().Transport = httpClient.Transport
 	}
 
-	scanner.InitRules(scanOptions.ConfidenceFilter)
+	runner.InitScanner(scanOptions.ConfidenceFilter)
 	if !scanOptions.TruffleHogVerification {
 		log.Info().Msg("TruffleHog verification is disabled")
 	}
