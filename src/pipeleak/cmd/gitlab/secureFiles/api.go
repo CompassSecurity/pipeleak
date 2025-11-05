@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/CompassSecurity/pipeleak/helper"
+	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/tidwall/gjson"
 )
@@ -17,7 +17,7 @@ func GetSecureFiles(projectId int, base string, token string) ([]int64, error) {
 		return []int64{}, err
 	}
 
-	client := helper.GetPipeleakHTTPClient("", nil, nil)
+	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
 	// https://docs.gitlab.com/ee/api/secure_files.html#download-secure-file
 	// pagination does not exist here
 	u.Path = "/api/v4/projects/" + strconv.Itoa(projectId) + "/secure_files"
@@ -58,7 +58,7 @@ func DownloadSecureFile(projectId int, fileId int64, base string, token string) 
 		return []byte{}, "", err
 	}
 
-	client := helper.GetPipeleakHTTPClient("", nil, nil)
+	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
 	// https://docs.gitlab.com/ee/api/secure_files.html#download-secure-file
 	u.Path = "/api/v4/projects/" + strconv.Itoa(projectId) + "/secure_files/" + strconv.Itoa(int(fileId)) + "/download"
 	s := u.String()

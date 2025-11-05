@@ -4,7 +4,7 @@ import (
 	"regexp"
 
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
-	"github.com/CompassSecurity/pipeleak/helper"
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	gogitlab "gitlab.com/gitlab-org/api/client-go"
@@ -36,7 +36,7 @@ func NewPrivescCmd() *cobra.Command {
 }
 
 func Exploit(cmd *cobra.Command, args []string) {
-	helper.SetLogLevel(verbose)
+	logging.SetLogLevel(verbose)
 	log.Info().Msg("Ensure the Renovate bot does have a greater access level than you, otherwise this will not work, and is able to auto merge into the protected main branch")
 
 	git, err := util.GetGitlabClient(gitlabApiToken, gitlabUrl)

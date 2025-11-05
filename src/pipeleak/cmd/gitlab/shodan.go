@@ -11,7 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/CompassSecurity/pipeleak/helper"
+	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/perimeterx/marshmallow"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -52,7 +53,7 @@ func NewShodanCmd() *cobra.Command {
 }
 
 func Shodan(cmd *cobra.Command, args []string) {
-	helper.SetLogLevel(verbose)
+	logging.SetLogLevel(verbose)
 
 	jsonFile, err := os.Open(shodanJson)
 	if err != nil {
@@ -125,7 +126,7 @@ func isRegistrationEnabled(base string) (bool, error) {
 	u.Path = path.Join(u.Path, "/users/somenotexistigusr/exists")
 	s := u.String()
 
-	client := helper.GetPipeleakHTTPClient("", nil, nil)
+	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
 	res, err := client.Get(s)
 
 	if err != nil {
@@ -157,7 +158,7 @@ func checkNrPublicRepos(base string) (int, error) {
 		return 0, err
 	}
 
-	client := helper.GetPipeleakHTTPClient("", nil, nil)
+	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
 	u.Path = "/api/v4/projects"
 	s := u.String()
 	res, err := client.Get(s + "?per_page=100")

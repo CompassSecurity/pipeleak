@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/sdk/gitea"
-	"github.com/CompassSecurity/pipeleak/helper"
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -30,14 +30,13 @@ func NewEnumCmd() *cobra.Command {
 }
 
 func Enum(cmd *cobra.Command, args []string) {
-	helper.SetLogLevel(verbose)
+	logging.SetLogLevel(verbose)
 
 	if err := runEnum(giteaUrl, giteaApiToken); err != nil {
 		log.Fatal().Stack().Err(err).Msg("Enumeration failed")
 	}
 }
 
-// runEnum contains the core enumeration logic and returns errors instead of calling Fatal
 func runEnum(giteaURL, apiToken string) error {
 	client, err := gitea.NewClient(giteaURL, gitea.SetToken(apiToken))
 	if err != nil {

@@ -1,18 +1,16 @@
 package devops
 
 import (
-	"archive/zip"
-	"bytes"
 	"context"
-	"io"
 
-	"github.com/CompassSecurity/pipeleak/helper"
-	"github.com/CompassSecurity/pipeleak/scanner"
-	"github.com/h2non/filetype"
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
+	artifactproc "github.com/CompassSecurity/pipeleak/pkg/scan/artifact"
+	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
+	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
+	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"github.com/wandb/parallel"
 )
 
 type DevOpsScanOptions struct {
@@ -26,6 +24,7 @@ type DevOpsScanOptions struct {
 	Organization           string
 	Project                string
 	Artifacts              bool
+	DevOpsURL              string
 	Context                context.Context
 	Client                 AzureDevOpsApiClient
 }
@@ -43,6 +42,7 @@ Create your personal access token here: https://dev.azure.com/{yourproject}/_use
 
 > In the top right corner you can choose the scope (Global, Project etc.). 
 > Global in that case means per tenant. If you have access to multiple tentants you need to run a scan per tenant.
+> Create a read-only token with all scopes (click show all scopes), select the correct organization(s) and then generate the token.
 > Get you username from an HTTPS git clone url from the UI.
 		`,
 		Example: `
@@ -76,6 +76,7 @@ pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization
 	scanCmd.PersistentFlags().BoolVarP(&options.Artifacts, "artifacts", "a", false, "Scan workflow artifacts")
 	scanCmd.Flags().StringVarP(&options.Organization, "organization", "o", "", "Organization name to scan")
 	scanCmd.Flags().StringVarP(&options.Project, "project", "p", "", "Project name to scan - can be combined with organization")
+	scanCmd.Flags().StringVarP(&options.DevOpsURL, "devops", "d", "https://dev.azure.com", "Azure DevOps base URL")
 
 	scanCmd.PersistentFlags().BoolVarP(&options.Verbose, "verbose", "v", false, "Verbose logging")
 
@@ -83,13 +84,13 @@ pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	helper.SetLogLevel(options.Verbose)
-	go helper.ShortcutListeners(scanStatus)
+	logging.SetLogLevel(options.Verbose)
+	go logging.ShortcutListeners(scanStatus)
 
-	scanner.InitRules(options.ConfidenceFilter)
+	runner.InitScanner(options.ConfidenceFilter)
 
 	options.Context = context.Background()
-	options.Client = NewClient(options.Username, options.AccessToken)
+	options.Client = NewClient(options.Username, options.AccessToken, options.DevOpsURL)
 
 	if options.Organization == "" && options.Project == "" {
 		scanAuthenticatedUser(options.Client)
@@ -210,15 +211,18 @@ func listLogs(client AzureDevOpsApiClient, organization string, project string, 
 }
 
 func scanLogLines(logs []byte, buildWebUrl string) {
-	findings, err := scanner.DetectHits(logs, options.MaxScanGoRoutines, options.TruffleHogVerification)
+	logResult, err := logline.ProcessLogs(logs, logline.ProcessOptions{
+		MaxGoRoutines:     options.MaxScanGoRoutines,
+		VerifyCredentials: options.TruffleHogVerification,
+	})
 	if err != nil {
 		log.Debug().Err(err).Str("build", buildWebUrl).Msg("Failed detecting secrets of a single log line")
 		return
 	}
 
-	for _, finding := range findings {
-		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", buildWebUrl).Msg("HIT")
-	}
+	result.ReportFindings(logResult.Findings, result.ReportOptions{
+		LocationURL: buildWebUrl,
+	})
 }
 
 func listArtifacts(client AzureDevOpsApiClient, organization string, project string, buildId int, buildWebUrl string) {
@@ -241,47 +245,23 @@ func listArtifacts(client AzureDevOpsApiClient, organization string, project str
 	}
 }
 
-func analyzeArtifact(client AzureDevOpsApiClient, artifact Artifact, buildWebUrl string) {
-	zipBytes, _, err := client.DownloadArtifactZip(artifact.Resource.DownloadURL)
+func analyzeArtifact(client AzureDevOpsApiClient, art Artifact, buildWebUrl string) {
+	zipBytes, _, err := client.DownloadArtifactZip(art.Resource.DownloadURL)
 	if err != nil {
 		log.Err(err).Msg("Failed downloading artifact")
 		return
 	}
 
-	zipListing, err := zip.NewReader(bytes.NewReader(zipBytes), int64(len(zipBytes)))
+	_, err = artifactproc.ProcessZipArtifact(zipBytes, artifactproc.ProcessOptions{
+		MaxGoRoutines:     options.MaxScanGoRoutines,
+		VerifyCredentials: options.TruffleHogVerification,
+		BuildURL:          buildWebUrl,
+		ArtifactName:      art.Name,
+	})
 	if err != nil {
-		log.Err(err).Msg("Failed creating zip reader")
+		log.Err(err).Msg("Failed processing artifact")
 		return
 	}
-
-	ctx := options.Context
-	group := parallel.Limited(ctx, options.MaxScanGoRoutines)
-	for _, file := range zipListing.File {
-		group.Go(func(ctx context.Context) {
-			fc, err := file.Open()
-			if err != nil {
-				log.Error().Stack().Err(err).Msg("Unable to open raw artifact zip file")
-				return
-			}
-
-			content, err := io.ReadAll(fc)
-			if err != nil {
-				log.Error().Stack().Err(err).Msg("Unable to readAll artifact zip file")
-				return
-			}
-
-			kind, _ := filetype.Match(content)
-			// do not scan https://pkg.go.dev/github.com/h2non/filetype#readme-supported-types
-			if kind == filetype.Unknown {
-				scanner.DetectFileHits(content, buildWebUrl, artifact.Name, file.Name, "", options.TruffleHogVerification)
-			} else if filetype.IsArchive(content) {
-				scanner.HandleArchiveArtifact(file.Name, content, buildWebUrl, artifact.Name, options.TruffleHogVerification)
-			}
-			_ = fc.Close()
-		})
-	}
-
-	group.Wait()
 }
 
 func scanStatus() *zerolog.Event {

@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/CompassSecurity/pipeleak/cmd"
-	"golang.org/x/term"
 	_ "net/http/pprof"
 	"os"
+
+	"github.com/CompassSecurity/pipeleak/cmd"
+	"golang.org/x/term"
 )
 
 var originalTerminalState *term.State

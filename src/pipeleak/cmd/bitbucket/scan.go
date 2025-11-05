@@ -2,13 +2,16 @@ package bitbucket
 
 import (
 	"context"
-	"net/url"
-	"path"
 	"strconv"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/helper"
-	"github.com/CompassSecurity/pipeleak/scanner"
+	bburl "github.com/CompassSecurity/pipeleak/cmd/bitbucket/internal/url"
+	"github.com/CompassSecurity/pipeleak/pkg/format"
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
+	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
+	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
+	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
+	"github.com/CompassSecurity/pipeleak/pkg/scanner"
 	"github.com/h2non/filetype"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -16,7 +19,7 @@ import (
 )
 
 type BitBucketScanOptions struct {
-	Username               string
+	Email                  string
 	AccessToken            string
 	Verbose                bool
 	ConfidenceFilter       []string
@@ -28,6 +31,7 @@ type BitBucketScanOptions struct {
 	Public                 bool
 	After                  string
 	Artifacts              bool
+	BitBucketURL           string
 	Context                context.Context
 	Client                 BitBucketApiClient
 	BitBucketCookie        string
@@ -40,27 +44,27 @@ func NewScanCmd() *cobra.Command {
 		Use:   "scan",
 		Short: "Scan BitBucket Pipelines",
 		Long: `Create a BitBucket scoped API token [here](https://id.atlassian.com/manage-profile/security/api-tokens) and pass it to the <code>--token</code> flag.
-The <code>--username</code> flag expects your account's email address.
+The <code>--email</code> flag expects your account's email address.
 To scan artifacts (uses internal APIs) you need to extract the session cookie value <code>cloud.session.token</code> from [bitbucket.org](https://bitbucket.org) using your browser and supply it in the <code>--cookie</code> flag.
 A note on artifacts: Bitbucket artifacts are only stored for a limited time and only for paid accounts. Free accounts might not have artifacts available at all.
 		  `,
 		Example: `
 # Scan a workspace (find public ones here: https://bitbucket.org/repo/all/) without artifacts
-pipeleak bb scan --token ATATTxxxxxx --username auser@example.com --workspace bitbucketpipelines
+pipeleak bb scan --token ATATTxxxxxx --email auser@example.com --workspace bitbucketpipelines
 
 # Scan your owned repositories and their artifacts
-pipeleak bb scan -t ATATTxxxxxx -c eyJxxxxxxxxxxx --artifacts -u auser@example.com --owned
+pipeleak bb scan -t ATATTxxxxxx -c eyJxxxxxxxxxxx --artifacts -e auser@example.com --owned
 
 # Scan all public repositories without their artifacts
 > If using --after, the API becomes quite unreliable 👀
-pipeleak bb scan --token ATATTxxxxxx --username auser@example.com --public --maxPipelines 5 --after 2025-03-01T15:00:00+00:00
+pipeleak bb scan --token ATATTxxxxxx --email auser@example.com --public --maxPipelines 5 --after 2025-03-01T15:00:00+00:00
 		`,
 		Run: Scan,
 	}
-	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "Bitbucket Application Password - https://bitbucket.org/account/settings/app-passwords/")
-	scanCmd.Flags().StringVarP(&options.Username, "username", "u", "", "Bitbucket Username")
-	scanCmd.MarkFlagsRequiredTogether("token", "username")
+	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "Bitbucket API token - https://id.atlassian.com/manage-profile/security/api-tokens")
+	scanCmd.Flags().StringVarP(&options.Email, "email", "e", "", "Bitbucket Email")
 	scanCmd.Flags().StringVarP(&options.BitBucketCookie, "cookie", "c", "", "Bitbucket Cookie [value of cloud.session.token on https://bitbucket.org]")
+	scanCmd.Flags().StringVarP(&options.BitBucketURL, "bitbucket", "b", "https://api.bitbucket.org/2.0", "BitBucket API base URL")
 	scanCmd.PersistentFlags().BoolVarP(&options.Artifacts, "artifacts", "a", false, "Scan workflow artifacts")
 	scanCmd.MarkFlagsRequiredTogether("cookie", "artifacts")
 
@@ -80,13 +84,17 @@ pipeleak bb scan --token ATATTxxxxxx --username auser@example.com --public --max
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	helper.SetLogLevel(options.Verbose)
-	go helper.ShortcutListeners(scanStatus)
+	if options.AccessToken != "" && options.Email == "" {
+		log.Fatal().Msg("When using --token you must also provide --email")
+	}
 
-	scanner.InitRules(options.ConfidenceFilter)
+	logging.SetLogLevel(options.Verbose)
+	go logging.ShortcutListeners(scanStatus)
+
+	runner.InitScanner(options.ConfidenceFilter)
 
 	options.Context = context.Background()
-	options.Client = NewClient(options.Username, options.AccessToken, options.BitBucketCookie)
+	options.Client = NewClient(options.Email, options.AccessToken, options.BitBucketCookie, options.BitBucketURL)
 
 	if len(options.BitBucketCookie) > 0 {
 		options.Client.GetuserInfo()
@@ -151,7 +159,7 @@ func scanWorkspace(client BitBucketApiClient, workspace string) {
 func scanPublic(client BitBucketApiClient, after string) {
 	afterTime := time.Time{}
 	if after != "" {
-		afterTime = helper.ParseISO8601(after)
+		afterTime = format.ParseISO8601(after)
 	}
 	log.Info().Time("after", afterTime).Msg("Scanning repos after")
 	next := ""
@@ -232,10 +240,14 @@ func listArtifacts(client BitBucketApiClient, workspaceSlug string, repoSlug str
 			log.Error().Err(err).Msg("Failed fetching pipeline download artifacts")
 		}
 
-		for _, artifact := range artifacts {
-			log.Trace().Str("name", artifact.Name).Msg("Pipeline Artifact")
-			artifactBytes := client.GetPipelineArtifact(workspaceSlug, repoSlug, buildId, artifact.UUID)
-			scanner.HandleArchiveArtifact(artifact.Name, artifactBytes, buildWebArtifactUrl(workspaceSlug, repoSlug, buildId, artifact.StepUUID), "Build "+strconv.Itoa(buildId), options.TruffleHogVerification)
+		for _, art := range artifacts {
+			log.Trace().Str("name", art.Name).Msg("Pipeline Artifact")
+			artifactBytes := client.GetPipelineArtifact(workspaceSlug, repoSlug, buildId, art.UUID)
+
+			// Use artifact processor if it's an archive, otherwise use HandleArchiveArtifact
+			if filetype.IsArchive(artifactBytes) {
+				scanner.HandleArchiveArtifact(art.Name, artifactBytes, buildWebArtifactUrl(workspaceSlug, repoSlug, buildId, art.StepUUID), "Build "+strconv.Itoa(buildId), options.TruffleHogVerification)
+			}
 		}
 
 		if nextUrl == "" {
@@ -286,12 +298,12 @@ func listPipelineSteps(client BitBucketApiClient, workspaceSlug string, repoSlug
 }
 
 func constructDownloadArtifactWebUrl(workspaceSlug string, repoSlug string, artifactName string) string {
-	u, err := url.Parse("https://bitbucket.org/")
+	baseWebURL := bburl.GetWebBaseURL(options.BitBucketURL)
+	webURL, err := bburl.BuildDownloadArtifactWebURL(baseWebURL, workspaceSlug, repoSlug, artifactName)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Unable to parse ListDownloadArtifacts url")
+		log.Fatal().Err(err).Msg("Unable to build artifact download URL")
 	}
-	u.Path = path.Join(u.Path, workspaceSlug, repoSlug, "downloads", artifactName)
-	return u.String()
+	return webURL
 }
 
 func getSteplog(client BitBucketApiClient, workspaceSlug string, repoSlug string, pipelineUuid string, stepUUID string) {
@@ -300,15 +312,20 @@ func getSteplog(client BitBucketApiClient, workspaceSlug string, repoSlug string
 		log.Error().Err(err).Msg("Failed fetching pipeline steps")
 	}
 
-	findings, err := scanner.DetectHits(logBytes, options.MaxScanGoRoutines, options.TruffleHogVerification)
+	logResult, err := logline.ProcessLogs(logBytes, logline.ProcessOptions{
+		MaxGoRoutines:     options.MaxScanGoRoutines,
+		VerifyCredentials: options.TruffleHogVerification,
+	})
 	if err != nil {
 		log.Debug().Err(err).Str("stepUUid", stepUUID).Msg("Failed detecting secrets")
 		return
 	}
 
-	for _, finding := range findings {
-		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("Run", "https://bitbucket.org/"+workspaceSlug+"/"+repoSlug+"/pipelines/results/"+pipelineUuid+"/steps/"+stepUUID).Msg("HIT")
-	}
+	baseWebURL := bburl.GetWebBaseURL(options.BitBucketURL)
+	runURL := bburl.BuildPipelineStepURL(baseWebURL, workspaceSlug, repoSlug, pipelineUuid, stepUUID)
+	result.ReportFindings(logResult.Findings, result.ReportOptions{
+		LocationURL: runURL,
+	})
 }
 
 func getDownloadArtifact(client BitBucketApiClient, downloadUrl string, webUrl string, filename string) {

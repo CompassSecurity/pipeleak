@@ -2,7 +2,8 @@ package cicd
 
 import (
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
-	"github.com/CompassSecurity/pipeleak/helper"
+	"github.com/CompassSecurity/pipeleak/pkg/format"
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
@@ -27,7 +28,7 @@ func NewYamlCmd() *cobra.Command {
 }
 
 func Fetch(cmd *cobra.Command, args []string) {
-	helper.SetLogLevel(verbose)
+	logging.SetLogLevel(verbose)
 	git, err := util.GetGitlabClient(gitlabApiToken, gitlabUrl)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed creating gitlab client")
@@ -46,10 +47,10 @@ func Fetch(cmd *cobra.Command, args []string) {
 		log.Fatal().Stack().Err(err).Msg("Failed fetching project CI/CD YML")
 	}
 
-	yml, err := helper.PrettyPrintYAML(ciCdYml)
+	yml, err := format.PrettyPrintYAML(ciCdYml)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed pretty printing project CI/CD YML")
 	}
 
-	log.Info().Msg(helper.GetPlatformAgnosticNewline() + yml)
+	log.Info().Msg(format.GetPlatformAgnosticNewline() + yml)
 }

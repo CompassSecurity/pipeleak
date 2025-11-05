@@ -1,26 +1,26 @@
 package github
 
 import (
-	"archive/zip"
-	"bytes"
 	"context"
 	"io"
 	"net/http"
 	"sort"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/helper"
-	"github.com/CompassSecurity/pipeleak/scanner"
+	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
+	artifactproc "github.com/CompassSecurity/pipeleak/pkg/scan/artifact"
+	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
+	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
+	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
 	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit"
 	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit/github_primary_ratelimit"
 	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit/github_secondary_ratelimit"
 	"github.com/google/go-github/v69/github"
-	"github.com/h2non/filetype"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
-	"github.com/wandb/parallel"
 )
 
 type GitHubScanOptions struct {
@@ -36,6 +36,7 @@ type GitHubScanOptions struct {
 	Public                 bool
 	SearchQuery            string
 	Artifacts              bool
+	GitHubURL              string
 	Context                context.Context
 	Client                 *github.Client
 	HttpClient             *retryablehttp.Client
@@ -66,7 +67,7 @@ pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --user firefart
 		`,
 		Run: Scan,
 	}
-	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "GitHub Personal Access Token")
+	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "GitHub Personal Access Token - https://github.com/settings/tokens")
 	err := scanCmd.MarkFlagRequired("token")
 	if err != nil {
 		log.Fatal().Msg("Unable to require token flag")
@@ -82,6 +83,7 @@ pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --user firefart
 	scanCmd.PersistentFlags().BoolVarP(&options.Owned, "owned", "", false, "Scan user onwed projects only")
 	scanCmd.PersistentFlags().BoolVarP(&options.Public, "public", "p", false, "Scan all public repositories")
 	scanCmd.Flags().StringVarP(&options.SearchQuery, "search", "s", "", "GitHub search query")
+	scanCmd.Flags().StringVarP(&options.GitHubURL, "github", "g", "https://api.github.com", "GitHub API base URL")
 	scanCmd.MarkFlagsMutuallyExclusive("owned", "org", "user", "public", "search")
 
 	scanCmd.PersistentFlags().BoolVarP(&options.Verbose, "verbose", "v", false, "Verbose logging")
@@ -90,17 +92,20 @@ pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --user firefart
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	helper.SetLogLevel(options.Verbose)
-	go helper.ShortcutListeners(scanStatus)
+	logging.SetLogLevel(options.Verbose)
+	go logging.ShortcutListeners(scanStatus)
 
 	options.Context = context.WithValue(context.Background(), github.BypassRateLimitCheck, true)
-	options.Client = setupClient(options.AccessToken)
-	options.HttpClient = helper.GetPipeleakHTTPClient("", nil, nil)
+	options.Client = setupClient(options.AccessToken, options.GitHubURL)
+	options.HttpClient = httpclient.GetPipeleakHTTPClient("", nil, nil)
 	scan(options.Client)
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
 }
 
-func setupClient(accessToken string) *github.Client {
+func setupClient(accessToken string, baseURL string) *github.Client {
+	if baseURL == "" {
+		baseURL = "https://api.github.com/"
+	}
 	rateLimiter := github_ratelimit.New(nil,
 		github_primary_ratelimit.WithLimitDetectedCallback(func(ctx *github_primary_ratelimit.CallbackContext) {
 			resetTime := ctx.ResetTime.Add(time.Duration(time.Second * 30))
@@ -116,7 +121,11 @@ func setupClient(accessToken string) *github.Client {
 		}),
 	)
 
-	return github.NewClient(&http.Client{Transport: rateLimiter}).WithAuthToken(accessToken)
+	client := github.NewClient(&http.Client{Transport: rateLimiter}).WithAuthToken(accessToken)
+	if baseURL != "https://api.github.com/" {
+		client, _ = client.WithEnterpriseURLs(baseURL, baseURL)
+	}
+	return client
 }
 
 func scan(client *github.Client) {
@@ -132,7 +141,7 @@ func scan(client *github.Client) {
 		log.Info().Str("organization", options.Organization).Msg("Scanning organization repositories actions")
 	}
 
-	scanner.InitRules(options.ConfidenceFilter)
+	runner.InitScanner(options.ConfidenceFilter)
 	if options.Public {
 		id := identifyNewestPublicProjectId(client)
 		scanAllPublicRepositories(client, id)
@@ -154,47 +163,6 @@ func scanStatus() *zerolog.Event {
 	}
 
 	return log.Info().Int("coreRateLimitRemaining", rateLimit.Core.Remaining).Time("coreRateLimitReset", rateLimit.Core.Reset.Time).Int("searchRateLimitRemaining", rateLimit.Search.Remaining).Time("searchRateLimitReset", rateLimit.Search.Reset.Time)
-}
-
-func listRepositories(client *github.Client, listOpt github.ListOptions, organization string, user string, owned bool) ([]*github.Repository, *github.Response, github.ListOptions) {
-	if organization != "" {
-		opt := &github.RepositoryListByOrgOptions{
-			Sort:        "updated",
-			ListOptions: listOpt,
-		}
-		repos, resp, err := client.Repositories.ListByOrg(options.Context, organization, opt)
-		if err != nil {
-			log.Fatal().Stack().Err(err).Msg("Failed fetching organization repos")
-		}
-		return repos, resp, opt.ListOptions
-
-	} else if user != "" {
-		opt := &github.RepositoryListByUserOptions{
-			Sort:        "updated",
-			ListOptions: listOpt,
-		}
-		repos, resp, err := client.Repositories.ListByUser(options.Context, user, opt)
-		if err != nil {
-			log.Fatal().Stack().Err(err).Msg("Failed fetching user repos")
-		}
-		return repos, resp, opt.ListOptions
-	} else {
-		affiliation := "owner,collaborator,organization_member"
-		if owned {
-			affiliation = "owner"
-		}
-		opt := &github.RepositoryListByAuthenticatedUserOptions{
-			ListOptions: listOpt,
-			Affiliation: affiliation,
-		}
-
-		repos, resp, err := client.Repositories.ListByAuthenticatedUser(options.Context, opt)
-		if err != nil {
-			log.Fatal().Stack().Err(err).Msg("Failed fetching authenticated user repos")
-		}
-
-		return repos, resp, opt.ListOptions
-	}
 }
 
 func searchRepositories(client *github.Client, query string) {
@@ -281,18 +249,79 @@ func deleteHighestXKeys(m map[int64]struct{}, nrKeys int) map[int64]struct{} {
 }
 
 func scanRepositories(client *github.Client) {
-	listOpt := github.ListOptions{PerPage: 100}
+	if options.Organization != "" {
+		scanOrgRepositories(client, options.Organization)
+	} else if options.User != "" {
+		scanUserRepositories(client, options.User)
+	} else {
+		scanAuthenticatedUserRepositories(client, options.Owned)
+	}
+}
+
+func scanOrgRepositories(client *github.Client, organization string) {
+	opt := &github.RepositoryListByOrgOptions{
+		Sort:        "updated",
+		ListOptions: github.ListOptions{PerPage: 100},
+	}
 	for {
-		repos, resp, listOpt := listRepositories(client, listOpt, options.Organization, options.User, options.Owned)
+		repos, resp, err := client.Repositories.ListByOrg(options.Context, organization, opt)
+		if err != nil {
+			log.Fatal().Stack().Err(err).Msg("Failed fetching organization repos")
+		}
 		for _, repo := range repos {
 			log.Debug().Str("name", *repo.Name).Str("url", *repo.HTMLURL).Msg("Scan")
 			iterateWorkflowRuns(client, repo)
 		}
-
 		if resp.NextPage == 0 {
 			break
 		}
-		listOpt.Page = resp.NextPage
+		opt.Page = resp.NextPage
+	}
+}
+
+func scanUserRepositories(client *github.Client, user string) {
+	opt := &github.RepositoryListByUserOptions{
+		Sort:        "updated",
+		ListOptions: github.ListOptions{PerPage: 100},
+	}
+	for {
+		repos, resp, err := client.Repositories.ListByUser(options.Context, user, opt)
+		if err != nil {
+			log.Fatal().Stack().Err(err).Msg("Failed fetching user repos")
+		}
+		for _, repo := range repos {
+			log.Debug().Str("name", *repo.Name).Str("url", *repo.HTMLURL).Msg("Scan")
+			iterateWorkflowRuns(client, repo)
+		}
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+}
+
+func scanAuthenticatedUserRepositories(client *github.Client, owned bool) {
+	affiliation := "owner,collaborator,organization_member"
+	if owned {
+		affiliation = "owner"
+	}
+	opt := &github.RepositoryListByAuthenticatedUserOptions{
+		ListOptions: github.ListOptions{PerPage: 100},
+		Affiliation: affiliation,
+	}
+	for {
+		repos, resp, err := client.Repositories.ListByAuthenticatedUser(options.Context, opt)
+		if err != nil {
+			log.Fatal().Stack().Err(err).Msg("Failed fetching authenticated user repos")
+		}
+		for _, repo := range repos {
+			log.Debug().Str("name", *repo.Name).Str("url", *repo.HTMLURL).Msg("Scan")
+			iterateWorkflowRuns(client, repo)
+		}
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
 	}
 }
 
@@ -365,15 +394,20 @@ func downloadWorkflowRunLog(client *github.Client, repo *github.Repository, work
 	log.Trace().Msg("Downloading run log")
 	logs := downloadRunLogZIP(logURL.String())
 	log.Trace().Msg("Finished downloading run log")
-	findings, err := scanner.DetectHits(logs, options.MaxScanGoRoutines, options.TruffleHogVerification)
+
+	logResult, err := logline.ProcessLogs(logs, logline.ProcessOptions{
+		MaxGoRoutines:     options.MaxScanGoRoutines,
+		VerifyCredentials: options.TruffleHogVerification,
+		BuildURL:          *workflowRun.HTMLURL,
+	})
 	if err != nil {
 		log.Debug().Err(err).Str("workflowRun", *workflowRun.HTMLURL).Msg("Failed detecting secrets")
 		return
 	}
 
-	for _, finding := range findings {
-		log.Warn().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("workflowRun", *workflowRun.HTMLURL).Msg("HIT")
-	}
+	result.ReportFindings(logResult.Findings, result.ReportOptions{
+		LocationURL: *workflowRun.HTMLURL,
+	})
 	log.Trace().Msg("Finished scannig run log")
 }
 
@@ -392,34 +426,16 @@ func downloadRunLogZIP(url string) []byte {
 			return logLines
 		}
 
-		zipReader, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
+		zipResult, err := logline.ExtractLogsFromZip(body)
 		if err != nil {
-			log.Err(err).Msg("Failed creating zip reader")
+			log.Err(err).Msg("Failed extracting logs from zip")
 			return logLines
 		}
 
-		for _, zipFile := range zipReader.File {
-			log.Trace().Str("zipFile", zipFile.Name).Msg("Zip file")
-			unzippedFileBytes, err := readZipFile(zipFile)
-			if err != nil {
-				log.Err(err).Msg("Failed reading zip file")
-				continue
-			}
-
-			logLines = append(logLines, unzippedFileBytes...)
-		}
+		return zipResult.ExtractedLogs
 	}
 
 	return logLines
-}
-
-func readZipFile(zf *zip.File) ([]byte, error) {
-	f, err := zf.Open()
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = f.Close() }()
-	return io.ReadAll(f)
 }
 
 func identifyNewestPublicProjectId(client *github.Client) int64 {
@@ -514,39 +530,16 @@ func analyzeArtifact(client *github.Client, workflowRun *github.WorkflowRun, art
 			log.Err(err).Msg("Failed reading response log body")
 			return
 		}
-		zipListing, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
+
+		_, err = artifactproc.ProcessZipArtifact(body, artifactproc.ProcessOptions{
+			MaxGoRoutines:     options.MaxScanGoRoutines,
+			VerifyCredentials: options.TruffleHogVerification,
+			BuildURL:          *workflowRun.HTMLURL,
+			ArtifactName:      *workflowRun.Name,
+		})
 		if err != nil {
-			log.Err(err).Str("url", url.String()).Msg("Failed creating zip reader")
+			log.Err(err).Str("url", url.String()).Msg("Failed processing artifact zip")
 			return
 		}
-
-		ctx := options.Context
-		group := parallel.Limited(ctx, options.MaxScanGoRoutines)
-		for _, file := range zipListing.File {
-			group.Go(func(ctx context.Context) {
-				fc, err := file.Open()
-				if err != nil {
-					log.Error().Stack().Err(err).Msg("Unable to open raw artifact zip file")
-					return
-				}
-
-				content, err := io.ReadAll(fc)
-				if err != nil {
-					log.Error().Stack().Err(err).Msg("Unable to readAll artifact zip file")
-					return
-				}
-
-				kind, _ := filetype.Match(content)
-				// do not scan https://pkg.go.dev/github.com/h2non/filetype#readme-supported-types
-				if kind == filetype.Unknown {
-					scanner.DetectFileHits(content, *workflowRun.HTMLURL, *workflowRun.Name, file.Name, "", options.TruffleHogVerification)
-				} else if filetype.IsArchive(content) {
-					scanner.HandleArchiveArtifact(file.Name, content, *workflowRun.HTMLURL, *workflowRun.Name, options.TruffleHogVerification)
-				}
-				_ = fc.Close()
-			})
-		}
-
-		group.Wait()
 	}
 }

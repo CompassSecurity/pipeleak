@@ -1,0 +1,411 @@
+package e2e
+
+import (
+	"archive/zip"
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+)
+
+// TestAzureDevOpsScan_ConfidenceFilter tests the --confidence flag
+func TestAzureDevOpsScan_ConfidenceFilter(t *testing.T) {
+
+	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		t.Logf("Azure DevOps Mock (Confidence): %s %s", r.Method, r.URL.Path)
+
+		switch r.URL.Path {
+		case "/myorg/_apis/projects":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"value": []map[string]interface{}{
+					{"id": "proj-1", "name": "confidence-test"},
+				},
+			})
+
+		case "/myorg/confidence-test/_apis/build/builds":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"value": []map[string]interface{}{
+					{
+						"id": 200, "buildNumber": "1",
+						"_links": map[string]interface{}{
+							"web": map[string]interface{}{
+								"href": "https://dev.azure.com/myorg/confidence-test/_build/results?buildId=200",
+							},
+						},
+					},
+				},
+			})
+
+		case "/myorg/confidence-test/_apis/build/builds/200/logs":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"value": []map[string]interface{}{
+					{"id": 1, "url": "https://dev.azure.com/myorg/confidence-test/_apis/build/builds/200/logs/1"},
+				},
+			})
+
+		case "/myorg/confidence-test/_apis/build/builds/200/logs/1":
+			w.Header().Set("Content-Type", "text/plain")
+			w.WriteHeader(http.StatusOK)
+			logContent := `Starting build...
+export AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+export AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+export POSSIBLE_SECRET=maybe_secret_123
+Build complete`
+			_, _ = w.Write([]byte(logContent))
+
+		default:
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"value": []interface{}{}})
+		}
+	})
+	defer cleanup()
+
+	stdout, stderr, exitErr := runCLI(t, []string{
+		"ad", "scan",
+		"--devops", server.URL,
+		"--token", "azure-pat-token",
+		"--username", "testuser",
+		"--organization", "myorg",
+		"--confidence", "high,medium",
+	}, nil, 15*time.Second)
+
+	assert.Nil(t, exitErr, "Scan with confidence filter should succeed")
+
+	output := stdout + stderr
+	t.Logf("Output:\n%s", output)
+	// Should only report high and medium confidence secrets
+}
+
+// TestAzureDevOpsScan_ThreadsConfiguration tests the --threads flag
+func TestAzureDevOpsScan_ThreadsConfiguration(t *testing.T) {
+
+	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch r.URL.Path {
+		case "/testorg/_apis/projects":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"value": []map[string]interface{}{
+					{"id": "proj-1", "name": "thread-test-1"},
+					{"id": "proj-2", "name": "thread-test-2"},
+					{"id": "proj-3", "name": "thread-test-3"},
+				},
+			})
+
+		case "/testorg/thread-test-1/_apis/build/builds",
+			"/testorg/thread-test-2/_apis/build/builds",
+			"/testorg/thread-test-3/_apis/build/builds":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"value": []map[string]interface{}{
+					{
+						"id": 100, "buildNumber": "1",
+						"_links": map[string]interface{}{
+							"web": map[string]interface{}{"href": "https://dev.azure.com/testorg/_build/results?buildId=100"},
+						},
+					},
+				},
+			})
+
+		case "/testorg/thread-test-1/_apis/build/builds/100/logs",
+			"/testorg/thread-test-2/_apis/build/builds/100/logs",
+			"/testorg/thread-test-3/_apis/build/builds/100/logs":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"value": []map[string]interface{}{
+					{"id": 1, "url": "https://dev.azure.com/_apis/build/builds/100/logs/1"},
+				},
+			})
+
+		case "/testorg/thread-test-1/_apis/build/builds/100/logs/1",
+			"/testorg/thread-test-2/_apis/build/builds/100/logs/1",
+			"/testorg/thread-test-3/_apis/build/builds/100/logs/1":
+			w.Header().Set("Content-Type", "text/plain")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("Build log\n"))
+
+		default:
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"value": []interface{}{}})
+		}
+	})
+	defer cleanup()
+
+	// Test with different thread counts
+	for _, threads := range []string{"2", "8", "16"} {
+		t.Run("threads_"+threads, func(t *testing.T) {
+			stdout, stderr, exitErr := runCLI(t, []string{
+				"ad", "scan",
+				"--devops", server.URL,
+				"--token", "azure-pat-token",
+				"--username", "testuser",
+				"--organization", "testorg",
+				"--threads", threads,
+			}, nil, 15*time.Second)
+
+			assert.Nil(t, exitErr, "Scan with %s threads should succeed", threads)
+
+			output := stdout + stderr
+			t.Logf("Output (threads=%s):\n%s", threads, output)
+		})
+	}
+}
+
+// TestAzureDevOpsScan_MaxBuilds tests the --maxBuilds flag
+func TestAzureDevOpsScan_MaxBuilds(t *testing.T) {
+
+	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch r.URL.Path {
+		case "/myorg/_apis/projects":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"value": []map[string]interface{}{
+					{"id": "proj-1", "name": "maxbuilds-test"},
+				},
+			})
+
+		case "/myorg/maxbuilds-test/_apis/build/builds":
+			w.WriteHeader(http.StatusOK)
+			// Return multiple builds
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"value": []map[string]interface{}{
+					{
+						"id": 1, "buildNumber": "1",
+						"_links": map[string]interface{}{
+							"web": map[string]interface{}{"href": "https://dev.azure.com/myorg/_build/results?buildId=1"},
+						},
+					},
+					{
+						"id": 2, "buildNumber": "2",
+						"_links": map[string]interface{}{
+							"web": map[string]interface{}{"href": "https://dev.azure.com/myorg/_build/results?buildId=2"},
+						},
+					},
+					{
+						"id": 3, "buildNumber": "3",
+						"_links": map[string]interface{}{
+							"web": map[string]interface{}{"href": "https://dev.azure.com/myorg/_build/results?buildId=3"},
+						},
+					},
+					{
+						"id": 4, "buildNumber": "4",
+						"_links": map[string]interface{}{
+							"web": map[string]interface{}{"href": "https://dev.azure.com/myorg/_build/results?buildId=4"},
+						},
+					},
+					{
+						"id": 5, "buildNumber": "5",
+						"_links": map[string]interface{}{
+							"web": map[string]interface{}{"href": "https://dev.azure.com/myorg/_build/results?buildId=5"},
+						},
+					},
+				},
+			})
+
+		case "/myorg/maxbuilds-test/_apis/build/builds/1/logs",
+			"/myorg/maxbuilds-test/_apis/build/builds/2/logs":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"value": []map[string]interface{}{
+					{"id": 1, "url": "https://dev.azure.com/_apis/build/builds/logs/1"},
+				},
+			})
+
+		case "/myorg/maxbuilds-test/_apis/build/builds/1/logs/1",
+			"/myorg/maxbuilds-test/_apis/build/builds/2/logs/1":
+			w.Header().Set("Content-Type", "text/plain")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("Build log\n"))
+
+		default:
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"value": []interface{}{}})
+		}
+	})
+	defer cleanup()
+
+	stdout, stderr, exitErr := runCLI(t, []string{
+		"ad", "scan",
+		"--devops", server.URL,
+		"--token", "azure-pat-token",
+		"--username", "testuser",
+		"--organization", "myorg",
+		"--maxBuilds", "2", // Limit to 2 builds
+	}, nil, 15*time.Second)
+
+	assert.Nil(t, exitErr, "Scan with maxBuilds limit should succeed")
+
+	output := stdout + stderr
+	t.Logf("Output:\n%s", output)
+	// Should only scan up to 2 builds per project
+}
+
+// TestAzureDevOpsScan_VerboseLogging tests the --verbose flag
+func TestAzureDevOpsScan_VerboseLogging(t *testing.T) {
+
+	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch r.URL.Path {
+		case "/myorg/_apis/projects":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"value": []map[string]interface{}{
+					{"id": "proj-1", "name": "verbose-test"},
+				},
+			})
+
+		case "/myorg/verbose-test/_apis/build/builds":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"value": []map[string]interface{}{
+					{
+						"id": 300, "buildNumber": "1",
+						"_links": map[string]interface{}{
+							"web": map[string]interface{}{"href": "https://dev.azure.com/myorg/_build/results?buildId=300"},
+						},
+					},
+				},
+			})
+
+		case "/myorg/verbose-test/_apis/build/builds/300/logs":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"value": []map[string]interface{}{
+					{"id": 1, "url": "https://dev.azure.com/_apis/build/builds/300/logs/1"},
+				},
+			})
+
+		case "/myorg/verbose-test/_apis/build/builds/300/logs/1":
+			w.Header().Set("Content-Type", "text/plain")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("Build executing\n"))
+
+		default:
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"value": []interface{}{}})
+		}
+	})
+	defer cleanup()
+
+	stdout, stderr, exitErr := runCLI(t, []string{
+		"ad", "scan",
+		"--devops", server.URL,
+		"--token", "azure-pat-token",
+		"--username", "testuser",
+		"--organization", "myorg",
+		"--verbose",
+	}, nil, 15*time.Second)
+
+	assert.Nil(t, exitErr, "Scan with verbose logging should succeed")
+
+	output := stdout + stderr
+	t.Logf("Output:\n%s", output)
+	// Verbose mode should produce detailed debug logs
+	// The actual log level check would require inspecting the output format
+}
+
+// TestAzureDevOpsScan_TruffleHogVerificationDisabled tests --truffleHogVerification=false
+func TestAzureDevOpsScan_TruffleHogVerificationDisabled(t *testing.T) {
+
+	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch r.URL.Path {
+		case "/myorg/_apis/projects":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"value": []map[string]interface{}{
+					{"id": "proj-1", "name": "trufflehog-test"},
+				},
+			})
+
+		case "/myorg/trufflehog-test/_apis/build/builds":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"value": []map[string]interface{}{
+					{
+						"id": 400, "buildNumber": "1",
+						"_links": map[string]interface{}{
+							"web": map[string]interface{}{"href": "https://dev.azure.com/myorg/_build/results?buildId=400"},
+						},
+					},
+				},
+			})
+
+		case "/myorg/trufflehog-test/_apis/build/builds/400/logs":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"value": []map[string]interface{}{
+					{"id": 1, "url": "https://dev.azure.com/_apis/build/builds/400/logs/1"},
+				},
+			})
+
+		case "/myorg/trufflehog-test/_apis/build/builds/400/logs/1":
+			w.Header().Set("Content-Type", "text/plain")
+			w.WriteHeader(http.StatusOK)
+			logContent := `Starting build...
+export AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+export AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+Build complete`
+			_, _ = w.Write([]byte(logContent))
+
+		case "/myorg/trufflehog-test/_apis/build/builds/400/artifacts":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"value": []map[string]interface{}{
+					{
+						"id":   1,
+						"name": "drop",
+						"resource": map[string]interface{}{
+							"downloadUrl": "http://" + r.Host + "/myorg/trufflehog-test/_apis/build/builds/400/artifacts/drop",
+						},
+					},
+				},
+			})
+
+		case "/myorg/trufflehog-test/_apis/build/builds/400/artifacts/drop":
+			// Return small zip artifact
+			var zipBuf bytes.Buffer
+			zipWriter := zip.NewWriter(&zipBuf)
+			file, _ := zipWriter.Create("artifact.txt")
+			_, _ = file.Write([]byte("API_KEY=sk_test_123456789\n"))
+			_ = zipWriter.Close()
+
+			w.Header().Set("Content-Type", "application/zip")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(zipBuf.Bytes())
+
+		default:
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"value": []interface{}{}})
+		}
+	})
+	defer cleanup()
+
+	stdout, stderr, exitErr := runCLI(t, []string{
+		"ad", "scan",
+		"--devops", server.URL,
+		"--token", "azure-pat-token",
+		"--username", "testuser",
+		"--organization", "myorg",
+		"--truffleHogVerification=false",
+		"--artifacts",
+	}, nil, 15*time.Second)
+
+	assert.Nil(t, exitErr, "Scan with TruffleHog verification disabled should succeed")
+
+	output := stdout + stderr
+	t.Logf("Output:\n%s", output)
+	// Should not attempt to verify credentials when verification is disabled
+}

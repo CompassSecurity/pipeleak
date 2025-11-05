@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
-	"github.com/CompassSecurity/pipeleak/helper"
-	"github.com/CompassSecurity/pipeleak/scanner"
+	"github.com/CompassSecurity/pipeleak/pkg/scanner"
+	"github.com/CompassSecurity/pipeleak/pkg/system"
 	"github.com/nsqio/go-diskqueue"
 	"github.com/rs/zerolog/log"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
@@ -39,7 +39,7 @@ type ScanOptions struct {
 
 func ScanGitLabPipelines(options *ScanOptions) {
 	globQueue, queueFileName = setupQueue(options)
-	helper.RegisterGracefulShutdownHandler(cleanUp)
+	system.RegisterGracefulShutdownHandler(cleanUp)
 
 	scanner.InitRules(options.ConfidenceFilter)
 	if !options.TruffleHogVerification {
@@ -231,6 +231,7 @@ jobOut:
 
 		for _, job := range jobs {
 			currentJobCtr += 1
+			log.Trace().Str("url", getJobUrl(git, project, job)).Msg("Enqueue job for scanning")
 			meta := QueueMeta{JobId: job.ID, ProjectId: project.ID, JobWebUrl: getJobUrl(git, project, job), JobName: job.Name, ProjectPathWithNamespace: project.PathWithNamespace}
 			enqueueItem(globQueue, QueueItemJobTrace, meta, waitGroup)
 

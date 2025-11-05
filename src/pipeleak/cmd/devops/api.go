@@ -12,11 +12,20 @@ import (
 
 // https://learn.microsoft.com/en-us/rest/api/azure/devops/
 type AzureDevOpsApiClient struct {
-	Client resty.Client
+	Client   resty.Client
+	BaseURL  string
+	VsspsURL string // URL for profile/account APIs
 }
 
-func NewClient(username string, password string) AzureDevOpsApiClient {
-	bbClient := AzureDevOpsApiClient{Client: *resty.New().SetBasicAuth(username, password).SetRedirectPolicy(resty.FlexibleRedirectPolicy(5))}
+func NewClient(username string, password string, baseURL string) AzureDevOpsApiClient {
+	if baseURL == "" {
+		baseURL = "https://dev.azure.com"
+	}
+	bbClient := AzureDevOpsApiClient{
+		Client:   *resty.New().SetBasicAuth(username, password).SetRedirectPolicy(resty.FlexibleRedirectPolicy(5)),
+		BaseURL:  baseURL,
+		VsspsURL: "https://app.vssps.visualstudio.com",
+	}
 	bbClient.Client.AddRetryHooks(
 		func(res *resty.Response, err error) {
 			if res.StatusCode() == 429 {
@@ -31,7 +40,7 @@ func NewClient(username string, password string) AzureDevOpsApiClient {
 
 // https://learn.microsoft.com/en-us/rest/api/azure/devops/profile/profiles/get?view=azure-devops-rest-7.2&tabs=HTTP
 func (a AzureDevOpsApiClient) GetAuthenticatedUser() (*AuthenticatedUser, *resty.Response, error) {
-	u, err := url.Parse("https://app.vssps.visualstudio.com/_apis/profile/profiles/me")
+	u, err := url.Parse(a.VsspsURL + "/_apis/profile/profiles/me")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to parse GetAuthenticatedUser url")
 	}
@@ -56,7 +65,7 @@ func (a AzureDevOpsApiClient) GetAuthenticatedUser() (*AuthenticatedUser, *resty
 
 // https://learn.microsoft.com/en-us/rest/api/azure/devops/account/accounts/list?view=azure-devops-rest-7.2&tabs=HTTP
 func (a AzureDevOpsApiClient) ListAccounts(ownerId string) ([]Account, *resty.Response, error) {
-	u, err := url.Parse("https://app.vssps.visualstudio.com/_apis/accounts")
+	u, err := url.Parse(a.VsspsURL + "/_apis/accounts")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to parse ListAccounts url")
 	}
@@ -83,7 +92,7 @@ func (a AzureDevOpsApiClient) ListAccounts(ownerId string) ([]Account, *resty.Re
 // https://learn.microsoft.com/en-us/rest/api/azure/devops/core/projects/list?view=azure-devops-rest-7.2&tabs=HTTP
 func (a AzureDevOpsApiClient) ListProjects(continuationToken string, organization string) ([]Project, *resty.Response, string, error) {
 	reqUrl := ""
-	u, err := url.Parse("https://dev.azure.com/")
+	u, err := url.Parse(a.BaseURL + "/")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to parse ListProjects url")
 	}
@@ -112,7 +121,7 @@ func (a AzureDevOpsApiClient) ListProjects(continuationToken string, organizatio
 // https://learn.microsoft.com/en-us/rest/api/azure/devops/build/builds/list?view=azure-devops-rest-7.2
 func (a AzureDevOpsApiClient) ListBuilds(continuationToken string, organization string, project string) ([]Build, *resty.Response, string, error) {
 	reqUrl := ""
-	u, err := url.Parse("https://dev.azure.com/")
+	u, err := url.Parse(a.BaseURL + "/")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to parse ListBuilds url")
 	}
@@ -143,7 +152,7 @@ func (a AzureDevOpsApiClient) ListBuilds(continuationToken string, organization 
 // this endpoint is NOT paged
 func (a AzureDevOpsApiClient) ListBuildLogs(organization string, project string, buildId int) ([]BuildLog, *resty.Response, error) {
 	reqUrl := ""
-	u, err := url.Parse("https://dev.azure.com/")
+	u, err := url.Parse(a.BaseURL + "/")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to parse ListBuilds url")
 	}
@@ -171,7 +180,7 @@ func (a AzureDevOpsApiClient) ListBuildLogs(organization string, project string,
 // https://learn.microsoft.com/en-us/rest/api/azure/devops/build/builds/get-build-log?view=azure-devops-rest-7.2
 func (a AzureDevOpsApiClient) GetLog(organization string, project string, buildId int, logId int) ([]byte, *resty.Response, error) {
 	reqUrl := ""
-	u, err := url.Parse("https://dev.azure.com/")
+	u, err := url.Parse(a.BaseURL + "/")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to parse ListBuilds url")
 	}
@@ -213,7 +222,7 @@ func (a AzureDevOpsApiClient) DownloadArtifactZip(url string) ([]byte, *resty.Re
 // this endpoint is NOT paged
 func (a AzureDevOpsApiClient) ListBuildArtifacts(continuationToken string, organization string, project string, buildId int) ([]Artifact, *resty.Response, string, error) {
 	reqUrl := ""
-	u, err := url.Parse("https://dev.azure.com/")
+	u, err := url.Parse(a.BaseURL + "/")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to parse ListBuildArtifacts url")
 	}

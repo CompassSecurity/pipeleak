@@ -3,12 +3,12 @@ package nist
 import (
 	"io"
 
-	"github.com/CompassSecurity/pipeleak/helper"
+	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
 	"github.com/rs/zerolog/log"
 )
 
 func FetchVulns(version string) (string, error) {
-	client := helper.GetPipeleakHTTPClient("", nil, nil)
+	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
 	res, err := client.Get("https://services.nvd.nist.gov/rest/json/cves/2.0?cpeName=cpe:2.3:a:gitlab:gitlab:" + version + ":*:*:*:*:*:*:*")
 	if err != nil {
 		return "{}", err

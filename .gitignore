@@ -5,3 +5,4 @@ renovate-enum-out
 cli-docs
 site
 src/pipeleak/pipeleak
+.vscode

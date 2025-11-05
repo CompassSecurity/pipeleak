@@ -20,9 +20,19 @@ jobs:
         with:
           go-version: stable
       
-      - name: Run tests
+      - name: Run unit tests
         working-directory: ./src/pipeleak
-        run: go test ./... -v -race -coverprofile=coverage.out -covermode=atomic
+        run: go test $(go list ./... | grep -v /tests/e2e) -v -race -coverprofile=coverage.out -covermode=atomic
+      
+      - name: Build pipeleak binary for e2e tests
+        working-directory: ./src/pipeleak
+        run: go build -o pipeleak .
+      
+      - name: Run e2e tests
+        working-directory: ./src/pipeleak
+        run: go test ./tests/e2e/... -v -timeout 10m
+        env:
+          PIPELEAK_BINARY: ./pipeleak
       
       - name: Display coverage
         working-directory: ./src/pipeleak
