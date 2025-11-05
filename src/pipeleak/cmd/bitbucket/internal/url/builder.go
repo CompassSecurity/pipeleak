@@ -33,6 +33,6 @@ func BuildPipelineStepURL(baseWebURL, workspaceSlug, repoSlug, pipelineUUID, ste
 	}
 	// Remove trailing slash from base URL if present
 	baseWebURL = strings.TrimSuffix(baseWebURL, "/")
-	
+
 	return baseWebURL + "/" + workspaceSlug + "/" + repoSlug + "/pipelines/results/" + pipelineUUID + "/steps/" + stepUUID
 }

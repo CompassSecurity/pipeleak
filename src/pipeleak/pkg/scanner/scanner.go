@@ -1,10 +1,10 @@
 package scanner
 
 import (
-"github.com/CompassSecurity/pipeleak/pkg/scanner/artifact"
-"github.com/CompassSecurity/pipeleak/pkg/scanner/engine"
-"github.com/CompassSecurity/pipeleak/pkg/scanner/rules"
-"github.com/CompassSecurity/pipeleak/pkg/scanner/types"
+	"github.com/CompassSecurity/pipeleak/pkg/scanner/artifact"
+	"github.com/CompassSecurity/pipeleak/pkg/scanner/engine"
+	"github.com/CompassSecurity/pipeleak/pkg/scanner/rules"
+	"github.com/CompassSecurity/pipeleak/pkg/scanner/types"
 )
 
 type Finding = types.Finding
