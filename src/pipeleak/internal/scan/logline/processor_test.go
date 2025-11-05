@@ -100,7 +100,7 @@ func TestExtractLogsFromZip(t *testing.T) {
 				w := zip.NewWriter(buf)
 				f, _ := w.Create("build.log")
 				_, _ = f.Write([]byte("Build log content"))
-				w.Close()
+				_ = w.Close()
 				return buf.Bytes()
 			},
 			expectError:   false,
@@ -116,7 +116,7 @@ func TestExtractLogsFromZip(t *testing.T) {
 				_, _ = f1.Write([]byte("Step 1 logs"))
 				f2, _ := w.Create("step2.log")
 				_, _ = f2.Write([]byte("Step 2 logs"))
-				w.Close()
+				_ = w.Close()
 				return buf.Bytes()
 			},
 			expectError: false,
@@ -163,7 +163,7 @@ func TestProcessLogsFromZip(t *testing.T) {
 				w := zip.NewWriter(buf)
 				f, _ := w.Create("build.log")
 				_, _ = f.Write([]byte("INFO: Build started\nINFO: Build completed"))
-				w.Close()
+				_ = w.Close()
 				return buf.Bytes()
 			},
 			opts: ProcessOptions{
@@ -178,7 +178,7 @@ func TestProcessLogsFromZip(t *testing.T) {
 			createZip: func() []byte {
 				buf := new(bytes.Buffer)
 				w := zip.NewWriter(buf)
-				w.Close()
+				_ = w.Close()
 				return buf.Bytes()
 			},
 			opts: ProcessOptions{
@@ -241,7 +241,7 @@ func TestExtractLogsFromZip_WithErrors(t *testing.T) {
 	_, _ = f1.Write([]byte("Good log content"))
 	f2, _ := w.Create("also-good.log")
 	_, _ = f2.Write([]byte("More good content"))
-	w.Close()
+	_ = w.Close()
 
 	result, err := ExtractLogsFromZip(buf.Bytes())
 

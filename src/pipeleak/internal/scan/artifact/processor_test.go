@@ -39,7 +39,7 @@ func TestProcessZipArtifact(t *testing.T) {
 				w := zip.NewWriter(buf)
 				f, _ := w.Create("test.txt")
 				_, _ = f.Write([]byte("test content"))
-				w.Close()
+				_ = w.Close()
 				return buf.Bytes()
 			},
 			opts:          ProcessOptions{MaxGoRoutines: 4, VerifyCredentials: false},
@@ -57,7 +57,7 @@ func TestProcessZipArtifact(t *testing.T) {
 				_, _ = f2.Write([]byte("content2"))
 				f3, _ := w.Create("file3.txt")
 				_, _ = f3.Write([]byte("content3"))
-				w.Close()
+				_ = w.Close()
 				return buf.Bytes()
 			},
 			opts:          ProcessOptions{MaxGoRoutines: 2, VerifyCredentials: false},
@@ -103,7 +103,7 @@ func TestExtractZipFile(t *testing.T) {
 				w := zip.NewWriter(buf)
 				f, _ := w.Create("test.txt")
 				_, _ = f.Write([]byte("test content"))
-				w.Close()
+				_ = w.Close()
 				r, _ := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
 				return r.File[0]
 			},
@@ -153,7 +153,7 @@ func TestDetermineFileType(t *testing.T) {
 				w := zip.NewWriter(buf)
 				f, _ := w.Create("inner.txt")
 				_, _ = f.Write([]byte("inner content"))
-				w.Close()
+				_ = w.Close()
 				return buf.Bytes()
 			}(),
 			expectIsArchive: true,
@@ -243,7 +243,7 @@ func TestProcessZipArtifact_WithContext(t *testing.T) {
 		f, _ := w.Create("file"+string(rune('0'+i))+".txt")
 		_, _ = f.Write([]byte("content " + string(rune('0'+i))))
 	}
-	w.Close()
+	_ = w.Close()
 
 	opts := ProcessOptions{
 		MaxGoRoutines:     2,
