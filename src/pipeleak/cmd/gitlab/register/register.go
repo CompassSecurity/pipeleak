@@ -1,4 +1,4 @@
-package gitlab
+package register
 
 import (
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
@@ -8,9 +8,11 @@ import (
 )
 
 var (
-	username string
-	password string
-	email    string
+	gitlabUrl string
+	verbose   bool
+	username  string
+	password  string
+	email     string
 )
 
 func NewRegisterCmd() *cobra.Command {

@@ -2,11 +2,14 @@ package gitlab
 
 import (
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/cicd"
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/enum"
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/renovate"
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/runners"
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/scan"
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/schedule"
 	securefiles "github.com/CompassSecurity/pipeleak/cmd/gitlab/secureFiles"
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/variables"
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/vuln"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -39,10 +42,10 @@ For SOCKS5 proxy:
 
 	glCmd.AddCommand(scan.NewScanCmd())
 	glCmd.AddCommand(runners.NewRunnersRootCmd())
-	glCmd.AddCommand(NewVulnCmd())
-	glCmd.AddCommand(NewVariablesCmd())
+	glCmd.AddCommand(vuln.NewVulnCmd())
+	glCmd.AddCommand(variables.NewVariablesCmd())
 	glCmd.AddCommand(securefiles.NewSecureFilesCmd())
-	glCmd.AddCommand(NewEnumCmd())
+	glCmd.AddCommand(enum.NewEnumCmd())
 	glCmd.AddCommand(renovate.NewRenovateRootCmd())
 	glCmd.AddCommand(cicd.NewCiCdCmd())
 	glCmd.AddCommand(schedule.NewScheduleCmd())

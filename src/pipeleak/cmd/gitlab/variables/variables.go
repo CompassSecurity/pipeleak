@@ -1,4 +1,4 @@
-package gitlab
+package variables
 
 import (
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
@@ -6,6 +6,12 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
+)
+
+var (
+	gitlabApiToken string
+	gitlabUrl      string
+	verbose        bool
 )
 
 func NewVariablesCmd() *cobra.Command {

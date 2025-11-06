@@ -2,6 +2,12 @@ package gitlab
 
 import (
 	"testing"
+
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/enum"
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/register"
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/shodan"
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/variables"
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/vuln"
 )
 
 func TestNewGitLabRootCmd(t *testing.T) {
@@ -44,7 +50,7 @@ func TestNewGitLabRootCmd(t *testing.T) {
 }
 
 func TestNewVulnCmd(t *testing.T) {
-	cmd := NewVulnCmd()
+	cmd := vuln.NewVulnCmd()
 
 	if cmd == nil {
 		t.Fatal("Expected non-nil command")
@@ -60,7 +66,7 @@ func TestNewVulnCmd(t *testing.T) {
 }
 
 func TestNewVariablesCmd(t *testing.T) {
-	cmd := NewVariablesCmd()
+	cmd := variables.NewVariablesCmd()
 
 	if cmd == nil {
 		t.Fatal("Expected non-nil command")
@@ -81,7 +87,7 @@ func TestNewVariablesCmd(t *testing.T) {
 }
 
 func TestNewEnumCmd(t *testing.T) {
-	cmd := NewEnumCmd()
+	cmd := enum.NewEnumCmd()
 
 	if cmd == nil {
 		t.Fatal("Expected non-nil command")
@@ -97,7 +103,7 @@ func TestNewEnumCmd(t *testing.T) {
 }
 
 func TestNewRegisterCmd(t *testing.T) {
-	cmd := NewRegisterCmd()
+	cmd := register.NewRegisterCmd()
 
 	if cmd == nil {
 		t.Fatal("Expected non-nil command")
@@ -127,7 +133,7 @@ func TestNewRegisterCmd(t *testing.T) {
 }
 
 func TestNewShodanCmd(t *testing.T) {
-	cmd := NewShodanCmd()
+	cmd := shodan.NewShodanCmd()
 
 	if cmd == nil {
 		t.Fatal("Expected non-nil command")
