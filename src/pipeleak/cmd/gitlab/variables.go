@@ -74,7 +74,6 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 				log.Warn().Str("project", project.WebURL).Any("variables", pvs).Msg("Project variables")
 			}
 
-			// Fetch pipeline schedule variables
 			fetchPipelineScheduleVariables(git, project)
 		}
 
