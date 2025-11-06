@@ -5,4 +5,6 @@ renovate-enum-out
 cli-docs
 site
 src/pipeleak/pipeleak
+src/pipeleak/pipeleak.exe
+src/pipeleak/coverage.out
 .vscode

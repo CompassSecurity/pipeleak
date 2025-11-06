@@ -12,7 +12,10 @@ permissions:
 jobs:
   test:
     name: Go Tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v5
       
@@ -20,19 +23,42 @@ jobs:
         with:
           go-version: stable
       
-      - name: Run unit tests
+      - name: Run unit tests (Linux)
+        if: runner.os == 'Linux'
         working-directory: ./src/pipeleak
         run: go test $(go list ./... | grep -v /tests/e2e) -v -race -coverprofile=coverage.out -covermode=atomic
       
-      - name: Build pipeleak binary for e2e tests
+      - name: Run unit tests (Windows)
+        if: runner.os == 'Windows'
+        working-directory: ./src/pipeleak
+        run: |
+          $packages = go list ./... | Where-Object { $_ -notmatch '/tests/e2e' }
+          go test $packages -v -race -coverprofile=coverage.out -covermode=atomic
+        shell: pwsh
+      
+      - name: Build pipeleak binary for e2e tests (Linux)
+        if: runner.os == 'Linux'
         working-directory: ./src/pipeleak
         run: go build -o pipeleak .
       
-      - name: Run e2e tests
+      - name: Build pipeleak binary for e2e tests (Windows)
+        if: runner.os == 'Windows'
+        working-directory: ./src/pipeleak
+        run: go build -o pipeleak.exe .
+      
+      - name: Run e2e tests (Linux)
+        if: runner.os == 'Linux'
         working-directory: ./src/pipeleak
         run: go test ./tests/e2e/... -v -timeout 10m
         env:
           PIPELEAK_BINARY: ./pipeleak
+      
+      - name: Run e2e tests (Windows)
+        if: runner.os == 'Windows'
+        working-directory: ./src/pipeleak
+        run: go test ./tests/e2e/... -v -timeout 10m
+        env:
+          PIPELEAK_BINARY: ./pipeleak.exe
       
       - name: Display coverage
         working-directory: ./src/pipeleak

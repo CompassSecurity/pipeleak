@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sync"
 )
 
@@ -37,10 +38,10 @@ func init() {
 			moduleDir := filepath.Clean(filepath.Join(wd, "..", ".."))
 			if tmpDir, err := os.MkdirTemp("", "pipeleak-e2e-"); err == nil {
 				tmpBin := filepath.Join(tmpDir, "pipeleak")
-				cmd := exec.Command("/bin/bash", "-lc", fmt.Sprintf("cd %q && go build -o %q .", moduleDir, tmpBin))
-				cmd.Env = os.Environ()
-				// Do not wire stdout/stderr here to keep test init quiet
-				if err := cmd.Run(); err == nil {
+				if runtime.GOOS == "windows" {
+					tmpBin += ".exe"
+				}
+				if err := buildBinary(moduleDir, tmpBin); err == nil {
 					pipeleakBinaryResolved = tmpBin
 				}
 			}
@@ -62,6 +63,12 @@ func resolveBinaryPath() {
 		candidates := []string{
 			pipeleakBinary,                        // As specified (e.g., "../../pipeleak" or "./pipeleak")
 			filepath.Join("..", "..", "pipeleak"), // Relative to tests/e2e
+		}
+
+		// On Windows, also try with .exe extension
+		if runtime.GOOS == "windows" {
+			candidates = append(candidates, pipeleakBinary+".exe")
+			candidates = append(candidates, filepath.Join("..", "..", "pipeleak.exe"))
 		}
 
 		// If PIPELEAK_BINARY was set, also try it from current working directory
@@ -86,6 +93,22 @@ func resolveBinaryPath() {
 			pipeleakBinaryResolved = absPath
 		}
 	})
+}
+
+// buildBinary builds the pipeleak binary in a cross-platform way
+func buildBinary(moduleDir, outputPath string) error {
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		// Use cmd.exe on Windows
+		cmd = exec.Command("cmd", "/C", fmt.Sprintf("cd /D %q && go build -o %q .", moduleDir, outputPath))
+	} else {
+		// Use bash on Unix-like systems
+		cmd = exec.Command("/bin/bash", "-lc", fmt.Sprintf("cd %q && go build -o %q .", moduleDir, outputPath))
+	}
+	cmd.Env = os.Environ()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
 
 // executeCLIWithContext calls the actual CLI command execution via exec.Command with context support
@@ -116,6 +139,9 @@ func executeCLIWithContext(ctx context.Context, args []string) error {
 				return
 			}
 			tmpBin := filepath.Join(tmpDir, "pipeleak")
+			if runtime.GOOS == "windows" {
+				tmpBin += ".exe"
+			}
 
 			// Build from the module root containing main.go (./ relative to src/pipeleak)
 			// We assume tests run from the repo module at src/pipeleak/tests/e2e
@@ -127,12 +153,7 @@ func executeCLIWithContext(ctx context.Context, args []string) error {
 			// tests run in src/pipeleak/tests/e2e; module with main.go is at ../../
 			moduleDir := filepath.Clean(filepath.Join(buildDir, "..", ".."))
 
-			// Use bash -lc to ensure proper PATH resolution for 'go' and allow 'cd' semantics
-			buildCmd := exec.Command("/bin/bash", "-lc", fmt.Sprintf("cd %q && go build -o %q .", moduleDir, tmpBin))
-			buildCmd.Env = os.Environ()
-			buildCmd.Stdout = os.Stdout
-			buildCmd.Stderr = os.Stderr
-			if err := buildCmd.Run(); err != nil {
+			if err := buildBinary(moduleDir, tmpBin); err != nil {
 				pipeleakBinaryResolved = ""
 				return
 			}
