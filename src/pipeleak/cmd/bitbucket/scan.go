@@ -21,7 +21,6 @@ import (
 type BitBucketScanOptions struct {
 	Email                  string
 	AccessToken            string
-	Verbose                bool
 	ConfidenceFilter       []string
 	MaxScanGoRoutines      int
 	TruffleHogVerification bool

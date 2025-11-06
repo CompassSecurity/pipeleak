@@ -25,7 +25,6 @@ import (
 
 type GitHubScanOptions struct {
 	AccessToken            string
-	Verbose                bool
 	ConfidenceFilter       []string
 	MaxScanGoRoutines      int
 	TruffleHogVerification bool

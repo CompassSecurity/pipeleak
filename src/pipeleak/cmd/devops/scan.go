@@ -16,7 +16,6 @@ import (
 type DevOpsScanOptions struct {
 	Username               string
 	AccessToken            string
-	Verbose                bool
 	ConfidenceFilter       []string
 	MaxScanGoRoutines      int
 	TruffleHogVerification bool

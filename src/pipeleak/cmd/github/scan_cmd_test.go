@@ -67,7 +67,6 @@ func TestNewScanCmd(t *testing.T) {
 func TestGitHubScanOptions(t *testing.T) {
 	opts := GitHubScanOptions{
 		AccessToken:            "ghp_test123",
-		Verbose:                true,
 		ConfidenceFilter:       []string{"high", "verified"},
 		MaxScanGoRoutines:      8,
 		TruffleHogVerification: true,
@@ -83,9 +82,6 @@ func TestGitHubScanOptions(t *testing.T) {
 
 	if opts.AccessToken != "ghp_test123" {
 		t.Errorf("Expected AccessToken 'ghp_test123', got %q", opts.AccessToken)
-	}
-	if !opts.Verbose {
-		t.Error("Expected Verbose to be true")
 	}
 	if len(opts.ConfidenceFilter) != 2 {
 		t.Errorf("Expected 2 confidence filters, got %d", len(opts.ConfidenceFilter))

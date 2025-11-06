@@ -71,7 +71,6 @@ func TestBitBucketScanOptions(t *testing.T) {
 	opts := BitBucketScanOptions{
 		Email:                  "test@example.com",
 		AccessToken:            "token123",
-		Verbose:                true,
 		ConfidenceFilter:       []string{"high", "medium"},
 		MaxScanGoRoutines:      4,
 		TruffleHogVerification: true,
@@ -90,9 +89,6 @@ func TestBitBucketScanOptions(t *testing.T) {
 	}
 	if opts.AccessToken != "token123" {
 		t.Errorf("Expected AccessToken 'token123', got %q", opts.AccessToken)
-	}
-	if !opts.Verbose {
-		t.Error("Expected Verbose to be true")
 	}
 	if len(opts.ConfidenceFilter) != 2 {
 		t.Errorf("Expected 2 confidence filters, got %d", len(opts.ConfidenceFilter))
