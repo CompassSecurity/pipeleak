@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	gounits "github.com/docker/go-units"
 	bburl "github.com/CompassSecurity/pipeleak/cmd/bitbucket/internal/url"
 	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/CompassSecurity/pipeleak/pkg/logging"
@@ -32,12 +33,14 @@ type BitBucketScanOptions struct {
 	After                  string
 	Artifacts              bool
 	BitBucketURL           string
+	MaxArtifactSize        int64
 	Context                context.Context
 	Client                 BitBucketApiClient
 	BitBucketCookie        string
 }
 
 var options = BitBucketScanOptions{}
+var maxArtifactSize string
 
 func NewScanCmd() *cobra.Command {
 	scanCmd := &cobra.Command{
@@ -66,6 +69,7 @@ pipeleak bb scan --token ATATTxxxxxx --email auser@example.com --public --maxPip
 	scanCmd.Flags().StringVarP(&options.BitBucketCookie, "cookie", "c", "", "Bitbucket Cookie [value of cloud.session.token on https://bitbucket.org]")
 	scanCmd.Flags().StringVarP(&options.BitBucketURL, "bitbucket", "b", "https://api.bitbucket.org/2.0", "BitBucket API base URL")
 	scanCmd.PersistentFlags().BoolVarP(&options.Artifacts, "artifacts", "a", false, "Scan workflow artifacts")
+	scanCmd.PersistentFlags().StringVarP(&maxArtifactSize, "max-artifact-size", "", "500Mb", "Max file size of an artifact to be included in scanning. Larger files are skipped. Format: https://pkg.go.dev/github.com/docker/go-units#FromHumanSize")
 	scanCmd.MarkFlagsRequiredTogether("cookie", "artifacts")
 
 	scanCmd.Flags().StringSliceVarP(&options.ConfidenceFilter, "confidence", "", []string{}, "Filter for confidence level, separate by comma if multiple. See readme for more info.")
@@ -91,6 +95,8 @@ func Scan(cmd *cobra.Command, args []string) {
 	logging.SetLogLevel(options.Verbose)
 	go logging.ShortcutListeners(scanStatus)
 
+	options.MaxArtifactSize = parseFileSize(maxArtifactSize)
+
 	runner.InitScanner(options.ConfidenceFilter)
 
 	options.Context = context.Background()
@@ -114,6 +120,15 @@ func Scan(cmd *cobra.Command, args []string) {
 	}
 
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
+}
+
+func parseFileSize(size string) int64 {
+	byteSize, err := gounits.FromHumanSize(size)
+	if err != nil {
+		log.Fatal().Err(err).Str("size", size).Msg("Failed parsing flag")
+	}
+
+	return byteSize
 }
 
 func scanOwned(client BitBucketApiClient) {
@@ -241,10 +256,19 @@ func listArtifacts(client BitBucketApiClient, workspaceSlug string, repoSlug str
 		}
 
 		for _, art := range artifacts {
+			if int64(art.FileSizeBytes) > options.MaxArtifactSize {
+				log.Debug().
+					Int("bytes", art.FileSizeBytes).
+					Int64("maxBytes", options.MaxArtifactSize).
+					Str("name", art.Name).
+					Int("buildId", buildId).
+					Msg("Skipped large pipeline artifact")
+				continue
+			}
+
 			log.Trace().Str("name", art.Name).Msg("Pipeline Artifact")
 			artifactBytes := client.GetPipelineArtifact(workspaceSlug, repoSlug, buildId, art.UUID)
 
-			// Use artifact processor if it's an archive, otherwise use HandleArchiveArtifact
 			if filetype.IsArchive(artifactBytes) {
 				scanner.HandleArchiveArtifact(art.Name, artifactBytes, buildWebArtifactUrl(workspaceSlug, repoSlug, buildId, art.StepUUID), "Build "+strconv.Itoa(buildId), options.TruffleHogVerification)
 			}
@@ -266,6 +290,15 @@ func listDownloadArtifacts(client BitBucketApiClient, workspaceSlug string, repo
 		}
 
 		for _, artifact := range downloadArtifacts {
+			if int64(artifact.Size) > options.MaxArtifactSize {
+				log.Debug().
+					Int("bytes", artifact.Size).
+					Int64("maxBytes", options.MaxArtifactSize).
+					Str("name", artifact.Name).
+					Msg("Skipped large download artifact")
+				continue
+			}
+
 			log.Trace().Str("name", artifact.Name).Str("creator", artifact.User.DisplayName).Msg("Download Artifact")
 			getDownloadArtifact(client, artifact.Links.Self.Href, constructDownloadArtifactWebUrl(workspaceSlug, repoSlug, artifact.Name), artifact.Name)
 		}

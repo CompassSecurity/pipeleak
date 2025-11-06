@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	gounits "github.com/docker/go-units"
 	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
 	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
@@ -16,6 +17,7 @@ import (
 )
 
 var scanOptions = GiteaScanOptions{}
+var maxArtifactSize string
 
 func NewScanCmd() *cobra.Command {
 	scanCmd := &cobra.Command{
@@ -69,6 +71,7 @@ pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com 
 	scanCmd.Flags().StringVarP(&scanOptions.GiteaURL, "gitea", "g", "https://gitea.com", "Base Gitea URL (e.g. https://gitea.example.com)")
 
 	scanCmd.Flags().BoolVarP(&scanOptions.Artifacts, "artifacts", "a", false, "Download and scan workflow artifacts")
+	scanCmd.PersistentFlags().StringVarP(&maxArtifactSize, "max-artifact-size", "", "500Mb", "Max file size of an artifact to be included in scanning. Larger files are skipped. Format: https://pkg.go.dev/github.com/docker/go-units#FromHumanSize")
 	scanCmd.Flags().BoolVarP(&scanOptions.Owned, "owned", "o", false, "Scan only repositories owned by the user")
 	scanCmd.Flags().StringVarP(&scanOptions.Organization, "organization", "", "", "Scan all repositories of a specific organization")
 	scanCmd.Flags().StringVarP(&scanOptions.Repository, "repository", "r", "", "Scan a specific repository (format: owner/repo)")
@@ -95,6 +98,8 @@ func Scan(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal().Err(err).Msg("The provided Gitea URL is not a valid URL")
 	}
+
+	scanOptions.MaxArtifactSize = parseFileSize(maxArtifactSize)
 
 	scanOptions.Context = context.Background()
 	scanOptions.Client, err = gitea.NewClient(scanOptions.GiteaURL, gitea.SetToken(scanOptions.Token))
@@ -139,6 +144,15 @@ func Scan(cmd *cobra.Command, args []string) {
 
 	scanRepositories(scanOptions.Client)
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
+}
+
+func parseFileSize(size string) int64 {
+	byteSize, err := gounits.FromHumanSize(size)
+	if err != nil {
+		log.Fatal().Err(err).Str("size", size).Msg("Failed parsing flag")
+	}
+
+	return byteSize
 }
 
 func scanStatus() *zerolog.Event {

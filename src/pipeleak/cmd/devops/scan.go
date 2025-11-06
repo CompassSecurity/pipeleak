@@ -2,7 +2,9 @@ package devops
 
 import (
 	"context"
+	"strconv"
 
+	gounits "github.com/docker/go-units"
 	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	artifactproc "github.com/CompassSecurity/pipeleak/pkg/scan/artifact"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
@@ -25,11 +27,13 @@ type DevOpsScanOptions struct {
 	Project                string
 	Artifacts              bool
 	DevOpsURL              string
+	MaxArtifactSize        int64
 	Context                context.Context
 	Client                 AzureDevOpsApiClient
 }
 
 var options = DevOpsScanOptions{}
+var maxArtifactSize string
 
 func NewScanCmd() *cobra.Command {
 	scanCmd := &cobra.Command{
@@ -74,6 +78,7 @@ pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization
 	scanCmd.PersistentFlags().BoolVarP(&options.TruffleHogVerification, "truffleHogVerification", "", true, "Enable the TruffleHog credential verification, will actively test the found credentials and only report those. Disable with --truffleHogVerification=false")
 	scanCmd.PersistentFlags().IntVarP(&options.MaxBuilds, "maxBuilds", "", -1, "Max. number of builds to scan per project")
 	scanCmd.PersistentFlags().BoolVarP(&options.Artifacts, "artifacts", "a", false, "Scan workflow artifacts")
+	scanCmd.PersistentFlags().StringVarP(&maxArtifactSize, "max-artifact-size", "", "500Mb", "Max file size of an artifact to be included in scanning. Larger files are skipped. Format: https://pkg.go.dev/github.com/docker/go-units#FromHumanSize")
 	scanCmd.Flags().StringVarP(&options.Organization, "organization", "o", "", "Organization name to scan")
 	scanCmd.Flags().StringVarP(&options.Project, "project", "p", "", "Project name to scan - can be combined with organization")
 	scanCmd.Flags().StringVarP(&options.DevOpsURL, "devops", "d", "https://dev.azure.com", "Azure DevOps base URL")
@@ -86,6 +91,8 @@ pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization
 func Scan(cmd *cobra.Command, args []string) {
 	logging.SetLogLevel(options.Verbose)
 	go logging.ShortcutListeners(scanStatus)
+
+	options.MaxArtifactSize = parseFileSize(maxArtifactSize)
 
 	runner.InitScanner(options.ConfidenceFilter)
 
@@ -101,6 +108,15 @@ func Scan(cmd *cobra.Command, args []string) {
 	}
 
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
+}
+
+func parseFileSize(size string) int64 {
+	byteSize, err := gounits.FromHumanSize(size)
+	if err != nil {
+		log.Fatal().Err(err).Str("size", size).Msg("Failed parsing flag")
+	}
+
+	return byteSize
 }
 
 func scanAuthenticatedUser(client AzureDevOpsApiClient) {
@@ -246,6 +262,17 @@ func listArtifacts(client AzureDevOpsApiClient, organization string, project str
 }
 
 func analyzeArtifact(client AzureDevOpsApiClient, art Artifact, buildWebUrl string) {
+	artifactSize, err := strconv.ParseInt(art.Resource.Properties.Artifactsize, 10, 64)
+	if err == nil && artifactSize > options.MaxArtifactSize {
+		log.Debug().
+			Int64("bytes", artifactSize).
+			Int64("maxBytes", options.MaxArtifactSize).
+			Str("name", art.Name).
+			Str("url", buildWebUrl).
+			Msg("Skipped large artifact")
+		return
+	}
+
 	zipBytes, _, err := client.DownloadArtifactZip(art.Resource.DownloadURL)
 	if err != nil {
 		log.Err(err).Msg("Failed downloading artifact")

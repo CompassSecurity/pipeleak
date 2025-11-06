@@ -28,6 +28,7 @@ type GiteaScanOptions struct {
 	Cookie                 string
 	RunsLimit              int
 	StartRunID             int64
+	MaxArtifactSize        int64
 	Context                context.Context
 	Client                 *gitea.Client
 	HttpClient             *retryablehttp.Client
@@ -426,6 +427,16 @@ func listArtifacts(repo *gitea.Repository, run ActionWorkflowRun) ([]ActionArtif
 func downloadAndScanArtifact(client *gitea.Client, repo *gitea.Repository, run ActionWorkflowRun, artifact ActionArtifact) {
 	if repo == nil {
 		log.Error().Msg("Cannot download artifact: repository is nil")
+		return
+	}
+
+	if artifact.Size > scanOptions.MaxArtifactSize {
+		log.Debug().
+			Int64("bytes", artifact.Size).
+			Int64("maxBytes", scanOptions.MaxArtifactSize).
+			Str("name", artifact.Name).
+			Str("url", run.HTMLURL).
+			Msg("Skipped large artifact")
 		return
 	}
 
