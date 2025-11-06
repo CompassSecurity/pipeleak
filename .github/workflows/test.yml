@@ -59,15 +59,3 @@ jobs:
         run: go test ./tests/e2e/... -v -timeout 10m
         env:
           PIPELEAK_BINARY: ./pipeleak.exe
-      
-      - name: Display coverage
-        working-directory: ./src/pipeleak
-        run: go tool cover -func=coverage.out
-      
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v5
-        with:
-          files: ./src/pipeleak/coverage.out
-          flags: unittests
-          name: codecov-${{ matrix.os }}
-        continue-on-error: true
