@@ -214,20 +214,20 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 			Bool("hasAutodiscovery", autodiscovery).
 			Bool("hasAutodiscoveryFilters", hasAutodiscoveryFilters).
 			Str("autodiscoveryFilterType", filterType).
-		Str("autodiscoveryFilterValue", filterValue).
-		Bool("hasConfigFile", configFile != nil).
-		Bool("selfHostedConfigFile", selfHostedConfigFile).
-	Str("url", project.WebURL).
-	Msg("Identified Renovate (bot) configuration")
+			Str("autodiscoveryFilterValue", filterValue).
+			Bool("hasConfigFile", configFile != nil).
+			Bool("selfHostedConfigFile", selfHostedConfigFile).
+			Str("url", project.WebURL).
+			Msg("Identified Renovate (bot) configuration")
 
-	if hasCiCdRenovateConfig {
-		yml, err := format.PrettyPrintYAML(ciCdYml)
-		if err != nil {
-			log.Error().Stack().Err(err).Msg("Failed pretty printing project CI/CD YML")
-			return
+		if hasCiCdRenovateConfig {
+			yml, err := format.PrettyPrintYAML(ciCdYml)
+			if err != nil {
+				log.Error().Stack().Err(err).Msg("Failed pretty printing project CI/CD YML")
+				return
+			}
+			log.Debug().Msg(format.GetPlatformAgnosticNewline() + yml)
 		}
-		log.Debug().Msg(format.GetPlatformAgnosticNewline() + yml)
-	}
 	}
 }
 
