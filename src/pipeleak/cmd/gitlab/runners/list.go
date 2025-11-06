@@ -86,30 +86,22 @@ func listProjectRunners(git *gitlab.Client, runnerMap map[int]runnerResult) map[
 		MinAccessLevel: gitlab.Ptr(gitlab.MaintainerPermissions),
 	}
 
-	for {
-		projects, resp, err := git.Projects.ListProjects(projectOpts)
-		if err != nil {
-			log.Error().Stack().Err(err).Msg("Failed fetching projects")
+	err := util.IterateProjects(git, projectOpts, func(project *gitlab.Project) error {
+		log.Debug().Str("name", project.Name).Int("id", project.ID).Msg("List runners for")
+		runnerOpts := &gitlab.ListProjectRunnersOptions{
+			ListOptions: gitlab.ListOptions{
+				PerPage: 100,
+				Page:    1,
+			},
 		}
-
-		for _, project := range projects {
-			log.Debug().Str("name", project.Name).Int("id", project.ID).Msg("List runners for")
-			runnerOpts := &gitlab.ListProjectRunnersOptions{
-				ListOptions: gitlab.ListOptions{
-					PerPage: 100,
-					Page:    1,
-				},
-			}
-			runners, _, _ := git.Runners.ListProjectRunners(project.ID, runnerOpts)
-			for _, runner := range runners {
-				runnerMap[runner.ID] = runnerResult{runner: runner, project: project, group: nil}
-			}
+		runners, _, _ := git.Runners.ListProjectRunners(project.ID, runnerOpts)
+		for _, runner := range runners {
+			runnerMap[runner.ID] = runnerResult{runner: runner, project: project, group: nil}
 		}
-
-		if resp.NextPage == 0 {
-			break
-		}
-		projectOpts.Page = resp.NextPage
+		return nil
+	})
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Failed iterating projects")
 	}
 
 	return runnerMap

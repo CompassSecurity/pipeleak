@@ -1,6 +1,8 @@
 package gitlab
 
 import (
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/register"
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/shodan"
 	"github.com/spf13/cobra"
 )
 
@@ -12,8 +14,8 @@ func NewGitLabRootUnauthenticatedCmd() *cobra.Command {
 		GroupID: "Helper",
 	}
 
-	glunaCmd.AddCommand(NewShodanCmd())
-	glunaCmd.AddCommand(NewRegisterCmd())
+	glunaCmd.AddCommand(shodan.NewShodanCmd())
+	glunaCmd.AddCommand(register.NewRegisterCmd())
 
 	glunaCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 

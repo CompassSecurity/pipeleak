@@ -1,4 +1,4 @@
-package gitlab
+package enum
 
 import (
 	"net/url"
@@ -16,7 +16,12 @@ import (
 	"resty.dev/v3"
 )
 
-var minAccessLevel int
+var (
+	gitlabApiToken string
+	gitlabUrl      string
+	verbose        bool
+	minAccessLevel int
+)
 
 func NewEnumCmd() *cobra.Command {
 	enumCmd := &cobra.Command{

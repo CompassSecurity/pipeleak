@@ -1,4 +1,4 @@
-package gitlab
+package shodan
 
 import (
 	"bytes"
@@ -20,6 +20,7 @@ import (
 )
 
 var (
+	verbose    bool
 	shodanJson string
 )
 
