@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
 
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
 	"github.com/CompassSecurity/pipeleak/pkg/format"
@@ -132,30 +131,14 @@ func scanNamespace(git *gitlab.Client, namespace string) {
 		IncludeSubGroups: gitlab.Ptr(true),
 	}
 
-	for {
-		projects, resp, err := git.Groups.ListGroupProjects(group.ID, projectOpts)
-		if err != nil {
-			log.Error().Stack().Err(err).Int("page", page).Msg("Failed fetching projects")
-			break
-		}
-
-		var wg sync.WaitGroup
-		for _, project := range projects {
-			wg.Add(1)
-			go func(proj *gitlab.Project) {
-				defer wg.Done()
-				log.Debug().Str("url", proj.WebURL).Msg("Check project")
-				identifyRenovateBotJob(git, proj)
-			}(project)
-		}
-		wg.Wait()
-
-		if resp.NextPage == 0 {
-			break
-		}
-
-		projectOpts.Page = resp.NextPage
-		log.Info().Int("currentPage", projectOpts.Page).Msg("Fetched projects page")
+	err = util.IterateGroupProjects(git, group.ID, projectOpts, func(project *gitlab.Project) error {
+		log.Debug().Str("url", project.WebURL).Msg("Check project")
+		identifyRenovateBotJob(git, project)
+		return nil
+	})
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Failed iterating group projects")
+		return
 	}
 
 	log.Info().Msg("Fetched all namespace projects")
@@ -175,30 +158,15 @@ func fetchProjects(git *gitlab.Client) {
 		Search:     gitlab.Ptr(projectSearchQuery),
 	}
 
-	for {
-		projects, resp, err := git.Projects.ListProjects(projectOpts)
-		if err != nil {
-			log.Error().Stack().Err(err).Int("page", page).Msg("Failed fetching projects")
-			break
-		}
-
-		var wg sync.WaitGroup
-		for _, project := range projects {
-			wg.Add(1)
-			go func(proj *gitlab.Project) {
-				defer wg.Done()
-				log.Debug().Str("url", proj.WebURL).Msg("Check project")
-				identifyRenovateBotJob(git, proj)
-			}(project)
-		}
-		wg.Wait()
-
-		if resp.NextPage == 0 {
-			break
-		}
-
-		projectOpts.Page = resp.NextPage
-		log.Info().Int("currentPage", projectOpts.Page).Msg("Fetched projects page")
+	// Process projects sequentially (original used parallel per page, but sequential is simpler)
+	err := util.IterateProjects(git, projectOpts, func(project *gitlab.Project) error {
+		log.Debug().Str("url", project.WebURL).Msg("Check project")
+		identifyRenovateBotJob(git, project)
+		return nil
+	})
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Failed iterating projects")
+		return
 	}
 
 	log.Info().Msg("Fetched all projects")

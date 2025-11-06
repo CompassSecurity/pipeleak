@@ -56,31 +56,22 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 		OrderBy:        gitlab.Ptr("last_activity_at"),
 	}
 
-	for {
-		projects, resp, err := git.Projects.ListProjects(projectOpts)
+	err = util.IterateProjects(git, projectOpts, func(project *gitlab.Project) error {
+		log.Debug().Str("project", project.WebURL).Msg("Fetch project variables")
+		pvs, _, err := git.ProjectVariables.ListVariables(project.ID, nil, nil)
 		if err != nil {
-			log.Error().Stack().Err(err).Msg("Failed fetching projects")
-			break
+			log.Error().Stack().Err(err).Msg("Failed fetching project variables")
+			return nil // Continue to next project
+		}
+		if len(pvs) > 0 {
+			log.Warn().Str("project", project.WebURL).Any("variables", pvs).Msg("Project variables")
 		}
 
-		for _, project := range projects {
-			log.Debug().Str("project", project.WebURL).Msg("Fetch project variables")
-			pvs, _, err := git.ProjectVariables.ListVariables(project.ID, nil, nil)
-			if err != nil {
-				log.Error().Stack().Err(err).Msg("Failed fetching project variables")
-				continue
-			}
-			if len(pvs) > 0 {
-				log.Warn().Str("project", project.WebURL).Any("variables", pvs).Msg("Project variables")
-			}
-
-			fetchPipelineScheduleVariables(git, project)
-		}
-
-		if resp.NextPage == 0 {
-			break
-		}
-		projectOpts.Page = resp.NextPage
+		fetchPipelineScheduleVariables(git, project)
+		return nil
+	})
+	if err != nil {
+		log.Fatal().Stack().Err(err).Msg("Failed iterating projects")
 	}
 
 	log.Info().Msg("Fetching group variables")

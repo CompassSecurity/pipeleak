@@ -61,40 +61,31 @@ func FetchSecureFiles(cmd *cobra.Command, args []string) {
 		OrderBy:        gitlab.Ptr("last_activity_at"),
 	}
 
-	for {
-		projects, resp, err := git.Projects.ListProjects(projectOpts)
+	err = util.IterateProjects(git, projectOpts, func(project *gitlab.Project) error {
+		log.Debug().Str("project", project.WebURL).Msg("Fetch project secure files")
+		fileIds, err := GetSecureFiles(project.ID, gitlabUrl, gitlabApiToken)
 		if err != nil {
-			log.Error().Stack().Err(err).Msg("Failed fetching projects")
-			break
+			log.Error().Stack().Err(err).Str("project", project.WebURL).Msg("Failed fetching secure files list")
+			return nil // Continue to next project
 		}
 
-		for _, project := range projects {
-			log.Debug().Str("project", project.WebURL).Msg("Fetch project secure files")
-			fileIds, err := GetSecureFiles(project.ID, gitlabUrl, gitlabApiToken)
+		for _, id := range fileIds {
+			secureFile, downloadUrl, err := DownloadSecureFile(project.ID, id, gitlabUrl, gitlabApiToken)
 			if err != nil {
-				log.Error().Stack().Err(err).Str("project", project.WebURL).Msg("Failed fetching secure files list")
+				log.Error().Stack().Err(err).Str("project", project.WebURL).Int64("fileId", id).Msg("Failed fetching secure file")
 				continue
 			}
 
-			for _, id := range fileIds {
-				secureFile, downloadUrl, err := DownloadSecureFile(project.ID, id, gitlabUrl, gitlabApiToken)
-				if err != nil {
-					log.Error().Stack().Err(err).Str("project", project.WebURL).Int64("fileId", id).Msg("Failed fetching secure file")
-					continue
-				}
-
-				if len(secureFile) > 100 {
-					secureFile = secureFile[:100]
-				}
-
-				log.Warn().Str("downloadUrl", downloadUrl).Bytes("content", secureFile).Msg("Secure file")
+			if len(secureFile) > 100 {
+				secureFile = secureFile[:100]
 			}
-		}
 
-		if resp.NextPage == 0 {
-			break
+			log.Warn().Str("downloadUrl", downloadUrl).Bytes("content", secureFile).Msg("Secure file")
 		}
-		projectOpts.Page = resp.NextPage
+		return nil
+	})
+	if err != nil {
+		log.Fatal().Stack().Err(err).Msg("Failed iterating projects")
 	}
 
 	log.Info().Msg("Fetched all secure files")

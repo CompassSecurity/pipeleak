@@ -62,22 +62,13 @@ func FetchSchedules(cmd *cobra.Command, args []string) {
 		OrderBy:        gitlab.Ptr("last_activity_at"),
 	}
 
-	for {
-		projects, resp, err := git.Projects.ListProjects(projectOpts)
-		if err != nil {
-			log.Error().Stack().Err(err).Msg("Failed fetching projects")
-			break
-		}
-
-		for _, project := range projects {
-			log.Debug().Str("project", project.WebURL).Msg("Fetch project schedules")
-			ListPipelineSchedules(git, project)
-		}
-
-		if resp.NextPage == 0 {
-			break
-		}
-		projectOpts.Page = resp.NextPage
+	err = util.IterateProjects(git, projectOpts, func(project *gitlab.Project) error {
+		log.Debug().Str("project", project.WebURL).Msg("Fetch project schedules")
+		ListPipelineSchedules(git, project)
+		return nil
+	})
+	if err != nil {
+		log.Fatal().Stack().Err(err).Msg("Failed iterating projects")
 	}
 
 	log.Info().Msg("Fetched all schedules")

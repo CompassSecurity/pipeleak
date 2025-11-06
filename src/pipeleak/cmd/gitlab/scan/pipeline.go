@@ -123,24 +123,14 @@ func scanNamespace(git *gitlab.Client, options *ScanOptions, wg *sync.WaitGroup)
 		IncludeSubGroups: gitlab.Ptr(true),
 	}
 
-	for {
-		projects, resp, err := git.Groups.ListGroupProjects(group.ID, projectOpts)
-		if err != nil {
-			log.Error().Stack().Err(err).Msg("Failed fetching projects in namespace")
-			break
-		}
-
-		for _, project := range projects {
-			log.Debug().Str("url", project.WebURL).Msg("Fetch project jobs")
-			getAllJobs(git, project, options)
-		}
-
-		if resp.NextPage == 0 {
-			break
-		}
-
-		projectOpts.Page = resp.NextPage
-		log.Info().Int("currentPage", projectOpts.Page).Msg("Fetched projects page")
+	err = util.IterateGroupProjects(git, group.ID, projectOpts, func(project *gitlab.Project) error {
+		log.Debug().Str("url", project.WebURL).Msg("Fetch project jobs")
+		getAllJobs(git, project, options)
+		return nil
+	})
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Failed iterating namespace projects")
+		return
 	}
 
 	log.Info().Msg("Fetched all namespace projects")
@@ -183,23 +173,14 @@ func fetchProjects(git *gitlab.Client, options *ScanOptions, wg *sync.WaitGroup)
 		OrderBy:    gitlab.Ptr("last_activity_at"),
 	}
 
-	for {
-		projects, resp, err := git.Projects.ListProjects(projectOpts)
-		if err != nil {
-			log.Error().Stack().Err(err).Msg("Failed fetching projects")
-			break
-		}
-
-		for _, project := range projects {
-			log.Debug().Str("url", project.WebURL).Msg("Fetch project jobs")
-			getAllJobs(git, project, options)
-		}
-
-		if resp.NextPage == 0 {
-			break
-		}
-		projectOpts.Page = resp.NextPage
-		log.Info().Int("total", projectOpts.Page*projectOpts.PerPage).Msg("Fetched projects")
+	err := util.IterateProjects(git, projectOpts, func(project *gitlab.Project) error {
+		log.Debug().Str("url", project.WebURL).Msg("Fetch project jobs")
+		getAllJobs(git, project, options)
+		return nil
+	})
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("Failed iterating projects")
+		return
 	}
 
 	log.Info().Msg("Fetched all projects")

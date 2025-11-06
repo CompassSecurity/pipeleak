@@ -16,6 +16,59 @@ import (
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
+// ProjectIteratorFunc is a callback function type for processing each project
+type ProjectIteratorFunc func(project *gitlab.Project) error
+
+// IterateProjects loops through projects with pagination and calls the provided
+// callback function for each project. Returns an error if project fetching fails.
+func IterateProjects(client *gitlab.Client, opts *gitlab.ListProjectsOptions, callback ProjectIteratorFunc) error {
+	for {
+		projects, resp, err := client.Projects.ListProjects(opts)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("Failed fetching projects")
+			return err
+		}
+
+		for _, project := range projects {
+			if err := callback(project); err != nil {
+				return err
+			}
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
+	}
+
+	return nil
+}
+
+// IterateGroupProjects loops through group projects with pagination and calls the provided
+// callback function for each project. Returns an error if project fetching fails.
+func IterateGroupProjects(client *gitlab.Client, groupID interface{}, opts *gitlab.ListGroupProjectsOptions, callback ProjectIteratorFunc) error {
+	for {
+		projects, resp, err := client.Groups.ListGroupProjects(groupID, opts)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("Failed fetching group projects")
+			return err
+		}
+
+		for _, project := range projects {
+			if err := callback(project); err != nil {
+				return err
+			}
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
+	}
+
+	return nil
+}
+
 func GetGitlabClient(token string, url string) (*gitlab.Client, error) {
 	return gitlab.NewClient(token, gitlab.WithBaseURL(url), gitlab.WithHTTPClient(httpclient.GetPipeleakHTTPClient("", nil, nil).StandardClient()))
 }
