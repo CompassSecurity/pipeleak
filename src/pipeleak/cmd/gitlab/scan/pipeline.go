@@ -29,7 +29,6 @@ type ScanOptions struct {
 	Repository             string
 	Namespace              string
 	JobLimit               int
-	Verbose                bool
 	ConfidenceFilter       []string
 	MaxArtifactSize        int64
 	MaxScanGoRoutines      int

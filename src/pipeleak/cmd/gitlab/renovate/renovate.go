@@ -8,7 +8,6 @@ import (
 var (
 	gitlabApiToken string
 	gitlabUrl      string
-	verbose        bool
 )
 
 func NewRenovateRootCmd() *cobra.Command {
@@ -30,8 +29,6 @@ func NewRenovateRootCmd() *cobra.Command {
 		log.Fatal().Stack().Err(err).Msg("Unable to require token flag")
 	}
 	renovateCmd.MarkFlagsRequiredTogether("gitlab", "token")
-
-	renovateCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 
 	renovateCmd.AddCommand(NewEnumCmd())
 	renovateCmd.AddCommand(NewAutodiscoveryCmd())

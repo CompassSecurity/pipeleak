@@ -26,7 +26,6 @@ import (
 
 type GitHubScanOptions struct {
 	AccessToken            string
-	Verbose                bool
 	ConfidenceFilter       []string
 	MaxScanGoRoutines      int
 	TruffleHogVerification bool
@@ -90,13 +89,10 @@ pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --user firefart
 	scanCmd.Flags().StringVarP(&options.GitHubURL, "github", "g", "https://api.github.com", "GitHub API base URL")
 	scanCmd.MarkFlagsMutuallyExclusive("owned", "org", "user", "public", "search")
 
-	scanCmd.PersistentFlags().BoolVarP(&options.Verbose, "verbose", "v", false, "Verbose logging")
-
 	return scanCmd
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	logging.SetLogLevel(options.Verbose)
 	go logging.ShortcutListeners(scanStatus)
 
 	options.MaxArtifactSize = parseFileSize(maxArtifactSize)

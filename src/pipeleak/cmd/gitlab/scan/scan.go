@@ -81,13 +81,10 @@ pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com -
 	scanCmd.PersistentFlags().StringVarP(&options.QueueFolder, "queue", "q", "", "Relative or absolute folderpath where the queue files will be stored. Defaults to system tmp. Non-existing folders will be created.")
 	scanCmd.PersistentFlags().BoolVarP(&options.TruffleHogVerification, "truffleHogVerification", "", true, "Enable the TruffleHog credential verification, will actively test the found credentials and only report those. Disable with --truffleHogVerification=false")
 
-	scanCmd.PersistentFlags().BoolVarP(&options.Verbose, "verbose", "v", false, "Verbose logging")
-
 	return scanCmd
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	logging.SetLogLevel(options.Verbose)
 	go logging.ShortcutListeners(scanStatus)
 
 	_, err := url.ParseRequestURI(options.GitlabUrl)

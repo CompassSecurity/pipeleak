@@ -479,7 +479,6 @@ func setupTestScanOptions() {
 		Token:                  "test-token",
 		GiteaURL:               "https://gitea.example.com",
 		Artifacts:              false,
-		Verbose:                false,
 		ConfidenceFilter:       []string{},
 		MaxScanGoRoutines:      4,
 		TruffleHogVerification: false,

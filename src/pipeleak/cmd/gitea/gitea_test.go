@@ -27,11 +27,6 @@ func TestNewGiteaRootCmd(t *testing.T) {
 		t.Errorf("Expected GroupID 'Gitea', got %q", cmd.GroupID)
 	}
 
-	flags := cmd.PersistentFlags()
-	if flags.Lookup("verbose") == nil {
-		t.Error("Expected 'verbose' persistent flag to exist")
-	}
-
 	if len(cmd.Commands()) < 2 {
 		t.Errorf("Expected at least 2 subcommands, got %d", len(cmd.Commands()))
 	}

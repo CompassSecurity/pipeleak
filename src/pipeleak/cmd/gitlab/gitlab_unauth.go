@@ -17,7 +17,5 @@ func NewGitLabRootUnauthenticatedCmd() *cobra.Command {
 	glunaCmd.AddCommand(shodan.NewShodanCmd())
 	glunaCmd.AddCommand(register.NewRegisterCmd())
 
-	glunaCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
-
 	return glunaCmd
 }

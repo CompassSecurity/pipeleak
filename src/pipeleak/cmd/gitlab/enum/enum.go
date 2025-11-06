@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
-	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
@@ -19,7 +18,6 @@ import (
 var (
 	gitlabApiToken string
 	gitlabUrl      string
-	verbose        bool
 	minAccessLevel int
 )
 
@@ -46,12 +44,10 @@ func NewEnumCmd() *cobra.Command {
 
 	enumCmd.PersistentFlags().IntVarP(&minAccessLevel, "level", "", int(gitlab.GuestPermissions), "Minimum repo access level. See https://docs.gitlab.com/api/access_requests/#valid-access-levels for integer values")
 
-	enumCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 	return enumCmd
 }
 
 func Enum(cmd *cobra.Command, args []string) {
-	logging.SetLogLevel(verbose)
 	git, err := util.GetGitlabClient(gitlabApiToken, gitlabUrl)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed creating gitlab client")

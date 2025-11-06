@@ -26,11 +26,14 @@ var (
 		Example: "pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			initLogger()
+			setGlobalLogLevel(cmd)
 		},
 	}
 	JsonLogoutput bool
 	LogFile       string
 	LogColor      bool
+	LogDebug      bool
+	LogLevel      string
 )
 
 func Execute() error {
@@ -48,6 +51,8 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&JsonLogoutput, "json", "", false, "Use JSON as log output format")
 	rootCmd.PersistentFlags().BoolVarP(&LogColor, "coloredLog", "", true, "Output the human-readable log in color")
 	rootCmd.PersistentFlags().StringVarP(&LogFile, "logfile", "l", "", "Log output to a file")
+	rootCmd.PersistentFlags().BoolVarP(&LogDebug, "verbose", "v", false, "Enable debug logging (shortcut for --log-level=debug)")
+	rootCmd.PersistentFlags().StringVar(&LogLevel, "log-level", "", "Set log level globally (debug, info, warn, error). Example: --log-level=warn")
 
 	rootCmd.AddGroup(&cobra.Group{ID: "GitHub", Title: "GitHub Commands"})
 	rootCmd.AddGroup(&cobra.Group{ID: "GitLab", Title: "GitLab Commands"})
@@ -107,6 +112,39 @@ func initLogger() {
 		output := zerolog.ConsoleWriter{Out: defaultOut, TimeFormat: time.RFC3339, NoColor: !LogColor}
 		log.Logger = zerolog.New(output).With().Timestamp().Logger()
 	}
+}
+
+func setGlobalLogLevel(cmd *cobra.Command) {
+	if LogLevel != "" {
+		switch LogLevel {
+		case "trace":
+			zerolog.SetGlobalLevel(zerolog.TraceLevel)
+			log.Trace().Msg("Log level set to trace (explicit)")
+		case "debug":
+			zerolog.SetGlobalLevel(zerolog.DebugLevel)
+			log.Debug().Msg("Log level set to debug (explicit)")
+		case "info":
+			zerolog.SetGlobalLevel(zerolog.InfoLevel)
+			log.Info().Msg("Log level set to info (explicit)")
+		case "warn":
+			zerolog.SetGlobalLevel(zerolog.WarnLevel)
+			log.Warn().Msg("Log level set to warn (explicit)")
+		case "error":
+			zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+			log.Error().Msg("Log level set to error (explicit)")
+		default:
+			zerolog.SetGlobalLevel(zerolog.InfoLevel)
+			log.Warn().Str("logLevelSpecified", LogLevel).Msg("Invalid log level, defaulting to info")
+		}
+		return
+	}
+
+	if LogDebug {
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		log.Debug().Msg("Log level set to debug (-v)")
+		return
+	}
 
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	log.Info().Msg("Log level set to info (default)")
 }

@@ -77,6 +77,35 @@ Note: `high-verified` cannot be removed, but verification can be disabled using 
 
 When you run Pipeleak for the first time, it generates a `rules.yml` file based on [this repository](https://github.com/mazen160/secrets-patterns-db/blob/master/db/rules-stable.yml). You can customize your scan rules by modifying this file as needed.
 
-### Keybindings
+### Log Levels
 
-In the `scan` mode you can change interactively between log levels by pressing `t`: Trace, `d`: Debug, `i`: Info, `w`: Warn, `e`: Error. Pressing `s` will output the current status.
+Pipeleak supports different log levels to control output verbosity:
+
+* **info** (default) - Standard informational messages
+* **debug** - Detailed diagnostic information
+* **warn** - Warning messages only
+* **error** - Error messages only
+* **trace** - Very detailed trace-level logging
+
+You can set the log level in two ways:
+
+**Using the verbose flag:**
+```bash
+# Short form - sets debug level
+pipeleak gl scan --token glpat-xxx --gitlab https://gitlab.com -v
+
+# Long form with specific level
+pipeleak gl scan --token glpat-xxx --gitlab https://gitlab.com --log-level debug
+pipeleak gl scan --token glpat-xxx --gitlab https://gitlab.com --log-level trace
+pipeleak gl scan --token glpat-xxx --gitlab https://gitlab.com --log-level warn
+pipeleak gl scan --token glpat-xxx --gitlab https://gitlab.com --log-level error
+```
+
+**Interactive keybindings:**
+During a scan, you can change log levels on the fly by pressing:
+* `t` - Trace level
+* `d` - Debug level
+* `i` - Info level
+* `w` - Warn level
+* `e` - Error level
+* `s` - Output current scan status

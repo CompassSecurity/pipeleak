@@ -18,7 +18,6 @@ type GiteaScanOptions struct {
 	Token                  string
 	GiteaURL               string
 	Artifacts              bool
-	Verbose                bool
 	ConfidenceFilter       []string
 	MaxScanGoRoutines      int
 	TruffleHogVerification bool

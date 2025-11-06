@@ -14,7 +14,6 @@ import (
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
 	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
-	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/yosuke-furukawa/json5/encoding/json5"
@@ -67,13 +66,10 @@ func NewEnumCmd() *cobra.Command {
 	enumCmd.Flags().StringVar(&orderBy, "order-by", "created_at", "Order projects by: id, name, path, created_at, updated_at, star_count, last_activity_at, or similarity")
 	enumCmd.Flags().StringVar(&extendRenovateConfigService, "extendRenovateConfigService", "", "Base URL of the resolver service e.g.  http://localhost:3000 (docker run -ti -p 3000:3000 jfrcomp/renovate-config-resolver:latest). Renovate configs can be extended by shareable preset, resolving them makes enumeration more accurate.")
 
-	enumCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
-
 	return enumCmd
 }
 
 func Enumerate(cmd *cobra.Command, args []string) {
-	logging.SetLogLevel(verbose)
 	git, err := util.GetGitlabClient(gitlabApiToken, gitlabUrl)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed creating gitlab client")
@@ -218,20 +214,20 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 			Bool("hasAutodiscovery", autodiscovery).
 			Bool("hasAutodiscoveryFilters", hasAutodiscoveryFilters).
 			Str("autodiscoveryFilterType", filterType).
-			Str("autodiscoveryFilterValue", filterValue).
-			Bool("hasConfigFile", configFile != nil).
-			Bool("selfHostedConfigFile", selfHostedConfigFile).
-			Str("url", project.WebURL).
-			Msg("Identified Renovate (bot) configuration")
+		Str("autodiscoveryFilterValue", filterValue).
+		Bool("hasConfigFile", configFile != nil).
+		Bool("selfHostedConfigFile", selfHostedConfigFile).
+	Str("url", project.WebURL).
+	Msg("Identified Renovate (bot) configuration")
 
-		if verbose && hasCiCdRenovateConfig {
-			yml, err := format.PrettyPrintYAML(ciCdYml)
-			if err != nil {
-				log.Error().Stack().Err(err).Msg("Failed pretty printing project CI/CD YML")
-				return
-			}
-			log.Info().Msg(format.GetPlatformAgnosticNewline() + yml)
+	if hasCiCdRenovateConfig {
+		yml, err := format.PrettyPrintYAML(ciCdYml)
+		if err != nil {
+			log.Error().Stack().Err(err).Msg("Failed pretty printing project CI/CD YML")
+			return
 		}
+		log.Debug().Msg(format.GetPlatformAgnosticNewline() + yml)
+	}
 	}
 }
 
