@@ -69,5 +69,5 @@ jobs:
         with:
           files: ./src/pipeleak/coverage.out
           flags: unittests
-          name: codecov-umbrella
+          name: codecov-${{ matrix.os }}
         continue-on-error: true
