@@ -63,7 +63,5 @@ For SOCKS5 proxy:
 	}
 	glCmd.MarkFlagsRequiredTogether("gitlab", "token")
 
-	glCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
-
 	return glCmd
 }

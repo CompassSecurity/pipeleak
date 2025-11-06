@@ -40,9 +40,6 @@ func TestNewGitLabRootCmd(t *testing.T) {
 	if flags.Lookup("token") == nil {
 		t.Error("Expected 'token' persistent flag to exist")
 	}
-	if flags.Lookup("verbose") == nil {
-		t.Error("Expected 'verbose' persistent flag to exist")
-	}
 
 	if len(cmd.Commands()) < 8 {
 		t.Errorf("Expected at least 8 subcommands, got %d", len(cmd.Commands()))

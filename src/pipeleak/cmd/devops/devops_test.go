@@ -80,7 +80,4 @@ func TestNewScanCmd(t *testing.T) {
 	if persistentFlags.Lookup("maxBuilds") == nil {
 		t.Error("Expected 'maxBuilds' persistent flag to exist")
 	}
-	if persistentFlags.Lookup("verbose") == nil {
-		t.Error("Expected 'verbose' persistent flag to exist")
-	}
 }

@@ -3,7 +3,6 @@ package vuln
 import (
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/nist"
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/tidwall/gjson"
@@ -36,13 +35,11 @@ func NewVulnCmd() *cobra.Command {
 	}
 	vulnCmd.MarkFlagsRequiredTogether("gitlab", "token")
 
-	vulnCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 	return vulnCmd
 }
 
 func CheckVulns(cmd *cobra.Command, args []string) {
 	if verbose {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		log.Debug().Msg("Verbose log output enabled")
 	}
 

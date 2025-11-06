@@ -78,13 +78,10 @@ pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization
 	scanCmd.Flags().StringVarP(&options.Project, "project", "p", "", "Project name to scan - can be combined with organization")
 	scanCmd.Flags().StringVarP(&options.DevOpsURL, "devops", "d", "https://dev.azure.com", "Azure DevOps base URL")
 
-	scanCmd.PersistentFlags().BoolVarP(&options.Verbose, "verbose", "v", false, "Verbose logging")
-
 	return scanCmd
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	logging.SetLogLevel(options.Verbose)
 	go logging.ShortcutListeners(scanStatus)
 
 	runner.InitScanner(options.ConfidenceFilter)

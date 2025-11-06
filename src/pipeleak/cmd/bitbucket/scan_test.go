@@ -65,9 +65,6 @@ func TestNewScanCmd(t *testing.T) {
 	if persistentFlags.Lookup("maxPipelines") == nil {
 		t.Error("Expected 'maxPipelines' persistent flag to exist")
 	}
-	if persistentFlags.Lookup("verbose") == nil {
-		t.Error("Expected 'verbose' persistent flag to exist")
-	}
 }
 
 func TestBitBucketScanOptions(t *testing.T) {

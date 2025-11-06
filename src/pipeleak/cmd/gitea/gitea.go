@@ -6,10 +6,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	verbose bool
-)
-
 func NewGiteaRootCmd() *cobra.Command {
 	giteaCmd := &cobra.Command{
 		Use:     "gitea [command]",
@@ -20,8 +16,6 @@ func NewGiteaRootCmd() *cobra.Command {
 
 	giteaCmd.AddCommand(enum.NewEnumCmd())
 	giteaCmd.AddCommand(scan.NewScanCmd())
-
-	giteaCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 
 	return giteaCmd
 }

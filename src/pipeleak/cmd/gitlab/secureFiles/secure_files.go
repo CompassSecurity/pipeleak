@@ -2,7 +2,6 @@ package securefiles
 
 import (
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
@@ -35,13 +34,11 @@ func NewSecureFilesCmd() *cobra.Command {
 	}
 	secureFilesCmd.MarkFlagsRequiredTogether("gitlab", "token")
 
-	secureFilesCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 	return secureFilesCmd
 }
 
 func FetchSecureFiles(cmd *cobra.Command, args []string) {
 	if verbose {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		log.Debug().Msg("Verbose log output enabled")
 	}
 

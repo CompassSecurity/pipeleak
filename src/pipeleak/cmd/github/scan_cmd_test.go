@@ -62,9 +62,6 @@ func TestNewScanCmd(t *testing.T) {
 	if flags.Lookup("github") == nil {
 		t.Error("Expected 'github' flag to exist")
 	}
-	if persistentFlags.Lookup("verbose") == nil {
-		t.Error("Expected 'verbose' persistent flag to exist")
-	}
 }
 
 func TestGitHubScanOptions(t *testing.T) {

@@ -31,8 +31,6 @@ func NewRenovateRootCmd() *cobra.Command {
 	}
 	renovateCmd.MarkFlagsRequiredTogether("gitlab", "token")
 
-	renovateCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
-
 	renovateCmd.AddCommand(NewEnumCmd())
 	renovateCmd.AddCommand(NewAutodiscoveryCmd())
 	renovateCmd.AddCommand(NewPrivescCmd())

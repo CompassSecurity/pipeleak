@@ -8,7 +8,6 @@ import (
 var (
 	gitlabApiToken string
 	gitlabUrl      string
-	verbose        bool
 )
 
 func NewRunnersRootCmd() *cobra.Command {
@@ -30,8 +29,6 @@ func NewRunnersRootCmd() *cobra.Command {
 		log.Error().Stack().Err(err).Msg("Unable to require token flag")
 	}
 	runnersCmd.MarkFlagsRequiredTogether("gitlab", "token")
-
-	runnersCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 
 	runnersCmd.AddCommand(NewRunnersListCmd())
 	runnersCmd.AddCommand(NewRunnersExploitCmd())
