@@ -2,7 +2,45 @@ package bitbucket
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
+
+func TestParseFileSize(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected int64
+	}{
+		{
+			name:     "parse megabytes",
+			input:    "500Mb",
+			expected: 500000000,
+		},
+		{
+			name:     "parse gigabytes",
+			input:    "2Gb",
+			expected: 2000000000,
+		},
+		{
+			name:     "parse kilobytes",
+			input:    "1024Kb",
+			expected: 1024000,
+		},
+		{
+			name:     "parse bytes",
+			input:    "1024",
+			expected: 1024,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := parseFileSize(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
 
 func TestNewScanCmd(t *testing.T) {
 	cmd := NewScanCmd()
@@ -65,6 +103,9 @@ func TestNewScanCmd(t *testing.T) {
 	if persistentFlags.Lookup("maxPipelines") == nil {
 		t.Error("Expected 'maxPipelines' persistent flag to exist")
 	}
+	if persistentFlags.Lookup("max-artifact-size") == nil {
+		t.Error("Expected 'max-artifact-size' persistent flag to exist")
+	}
 	if persistentFlags.Lookup("verbose") == nil {
 		t.Error("Expected 'verbose' persistent flag to exist")
 	}
@@ -85,6 +126,7 @@ func TestBitBucketScanOptions(t *testing.T) {
 		After:                  "2025-01-01T00:00:00Z",
 		Artifacts:              true,
 		BitBucketURL:           "https://api.bitbucket.org/2.0",
+		MaxArtifactSize:        524288000,
 		BitBucketCookie:        "cookie123",
 	}
 
@@ -126,6 +168,9 @@ func TestBitBucketScanOptions(t *testing.T) {
 	}
 	if opts.BitBucketURL != "https://api.bitbucket.org/2.0" {
 		t.Errorf("Expected BitBucketURL 'https://api.bitbucket.org/2.0', got %q", opts.BitBucketURL)
+	}
+	if opts.MaxArtifactSize != 524288000 {
+		t.Errorf("Expected MaxArtifactSize 524288000, got %d", opts.MaxArtifactSize)
 	}
 	if opts.BitBucketCookie != "cookie123" {
 		t.Errorf("Expected BitBucketCookie 'cookie123', got %q", opts.BitBucketCookie)
