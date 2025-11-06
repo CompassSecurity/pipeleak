@@ -10,6 +10,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/docker/go-units v0.5.0
 	github.com/gofri/go-github-ratelimit/v2 v2.0.2
+	github.com/google/go-cmp v0.7.0
 	github.com/google/go-github/v69 v69.2.0
 	github.com/headzoo/surf v1.0.1
 	github.com/rs/zerolog v1.34.0
@@ -17,7 +18,7 @@ require (
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
 	github.com/tidwall/gjson v1.18.0
-	github.com/trufflesecurity/trufflehog/v3 v3.90.12
+	github.com/trufflesecurity/trufflehog/v3 v3.90.13
 	gitlab.com/gitlab-org/api/client-go v0.159.0
 	gitlab.com/mitchenielsen/gitlab-ci-go v0.0.4
 	golang.org/x/net v0.46.0
@@ -85,7 +86,6 @@ require (
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
-	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
