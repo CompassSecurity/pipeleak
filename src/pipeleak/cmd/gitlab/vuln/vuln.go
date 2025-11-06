@@ -11,7 +11,6 @@ import (
 var (
 	gitlabApiToken string
 	gitlabUrl      string
-	verbose        bool
 )
 
 func NewVulnCmd() *cobra.Command {
@@ -39,10 +38,6 @@ func NewVulnCmd() *cobra.Command {
 }
 
 func CheckVulns(cmd *cobra.Command, args []string) {
-	if verbose {
-		log.Debug().Msg("Verbose log output enabled")
-	}
-
 	installedVersion := util.DetermineVersion(gitlabUrl, gitlabApiToken)
 	log.Info().Str("version", installedVersion.Version).Msg("GitLab")
 

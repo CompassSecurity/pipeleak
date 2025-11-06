@@ -8,7 +8,6 @@ import (
 var (
 	gitlabApiToken string
 	gitlabUrl      string
-	verbose        bool
 )
 
 func NewRenovateRootCmd() *cobra.Command {

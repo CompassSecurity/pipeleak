@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"code.gitea.io/sdk/gitea"
-	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -12,7 +11,6 @@ import (
 var (
 	giteaApiToken string
 	giteaUrl      string
-	verbose       bool
 )
 
 func NewEnumCmd() *cobra.Command {
@@ -30,8 +28,6 @@ func NewEnumCmd() *cobra.Command {
 }
 
 func Enum(cmd *cobra.Command, args []string) {
-	logging.SetLogLevel(verbose)
-
 	if err := runEnum(giteaUrl, giteaApiToken); err != nil {
 		log.Fatal().Stack().Err(err).Msg("Enumeration failed")
 	}

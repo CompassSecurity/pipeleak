@@ -10,7 +10,6 @@ import (
 var (
 	gitlabApiToken string
 	gitlabUrl      string
-	verbose        bool
 )
 
 func NewSecureFilesCmd() *cobra.Command {
@@ -38,10 +37,6 @@ func NewSecureFilesCmd() *cobra.Command {
 }
 
 func FetchSecureFiles(cmd *cobra.Command, args []string) {
-	if verbose {
-		log.Debug().Msg("Verbose log output enabled")
-	}
-
 	log.Info().Msg("Fetching secure files")
 
 	git, err := util.GetGitlabClient(gitlabApiToken, gitlabUrl)

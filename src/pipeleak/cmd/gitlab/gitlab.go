@@ -17,7 +17,6 @@ import (
 var (
 	gitlabApiToken string
 	gitlabUrl      string
-	verbose        bool
 )
 
 func NewGitLabRootCmd() *cobra.Command {
