@@ -99,15 +99,16 @@ func resolveBinaryPath() {
 func buildBinary(moduleDir, outputPath string) error {
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
-		// Use cmd.exe on Windows
-		cmd = exec.Command("cmd", "/C", fmt.Sprintf("cd /D %q && go build -o %q .", moduleDir, outputPath))
+		// Use Go build directly on Windows
+		cmd = exec.Command("go", "build", "-o", outputPath, ".")
 	} else {
-		// Use bash on Unix-like systems
-		cmd = exec.Command("/bin/bash", "-lc", fmt.Sprintf("cd %q && go build -o %q .", moduleDir, outputPath))
+		// Use Go build directly on Unix-like systems
+		cmd = exec.Command("go", "build", "-o", outputPath, ".")
 	}
+	cmd.Dir = moduleDir
 	cmd.Env = os.Environ()
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	// Note: stdout/stderr are intentionally not wired to keep init() quiet
+	// Errors will be surfaced on first execution if build fails
 	return cmd.Run()
 }
 
