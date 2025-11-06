@@ -158,7 +158,6 @@ func fetchProjects(git *gitlab.Client) {
 		Search:     gitlab.Ptr(projectSearchQuery),
 	}
 
-	// Process projects sequentially (original used parallel per page, but sequential is simpler)
 	err := util.IterateProjects(git, projectOpts, func(project *gitlab.Project) error {
 		log.Debug().Str("url", project.WebURL).Msg("Check project")
 		identifyRenovateBotJob(git, project)
