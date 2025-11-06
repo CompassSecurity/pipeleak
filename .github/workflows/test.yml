@@ -10,8 +10,8 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    name: Go Tests
+  unit-tests:
+    name: Unit Tests
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -35,6 +35,19 @@ jobs:
           $packages = go list ./... | Where-Object { $_ -notmatch '/tests/e2e' }
           go test $packages -v -race -coverprofile=coverage.out -covermode=atomic
         shell: pwsh
+  
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v5
+      
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
       
       - name: Build pipeleak binary for e2e tests (Linux)
         if: runner.os == 'Linux'
