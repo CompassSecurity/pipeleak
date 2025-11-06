@@ -10,38 +10,67 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    name: Go Tests
-    runs-on: ubuntu-latest
+  unit-tests:
+    name: Unit Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v5
       
       - uses: actions/setup-go@v6
         with:
           go-version: stable
+          cache: true
       
-      - name: Run unit tests
+      - name: Run unit tests (Linux)
+        if: runner.os == 'Linux'
         working-directory: ./src/pipeleak
-        run: go test $(go list ./... | grep -v /tests/e2e) -v -race -coverprofile=coverage.out -covermode=atomic
+        run: go test $(go list ./... | grep -v /tests/e2e) -v -race
       
-      - name: Build pipeleak binary for e2e tests
+      - name: Run unit tests (Windows)
+        if: runner.os == 'Windows'
+        working-directory: ./src/pipeleak
+        run: |
+          $packages = go list ./... | Where-Object { $_ -notmatch '/tests/e2e' }
+          go test $packages -v -race
+        shell: pwsh
+  
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v5
+      
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+          cache: true
+      
+      - name: Build pipeleak binary for e2e tests (Linux)
+        if: runner.os == 'Linux'
         working-directory: ./src/pipeleak
         run: go build -o pipeleak .
       
-      - name: Run e2e tests
+      - name: Build pipeleak binary for e2e tests (Windows)
+        if: runner.os == 'Windows'
+        working-directory: ./src/pipeleak
+        run: go build -o pipeleak.exe .
+      
+      - name: Run e2e tests (Linux)
+        if: runner.os == 'Linux'
         working-directory: ./src/pipeleak
         run: go test ./tests/e2e/... -v -timeout 10m
         env:
           PIPELEAK_BINARY: ./pipeleak
       
-      - name: Display coverage
+      - name: Run e2e tests (Windows)
+        if: runner.os == 'Windows'
         working-directory: ./src/pipeleak
-        run: go tool cover -func=coverage.out
-      
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v5
-        with:
-          files: ./src/pipeleak/coverage.out
-          flags: unittests
-          name: codecov-umbrella
-        continue-on-error: true
+        run: go test ./tests/e2e/... -v -timeout 10m
+        env:
+          PIPELEAK_BINARY: ./pipeleak.exe
