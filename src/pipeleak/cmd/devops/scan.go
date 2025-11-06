@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	gounits "github.com/docker/go-units"
+	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	artifactproc "github.com/CompassSecurity/pipeleak/pkg/scan/artifact"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
@@ -88,7 +88,11 @@ pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization
 func Scan(cmd *cobra.Command, args []string) {
 	go logging.ShortcutListeners(scanStatus)
 
-	options.MaxArtifactSize = parseFileSize(maxArtifactSize)
+	byteSize, err := format.ParseHumanSize(maxArtifactSize)
+	if err != nil {
+		log.Fatal().Err(err).Str("size", maxArtifactSize).Msg("Failed parsing max-artifact-size flag")
+	}
+	options.MaxArtifactSize = byteSize
 
 	runner.InitScanner(options.ConfidenceFilter)
 
@@ -104,15 +108,6 @@ func Scan(cmd *cobra.Command, args []string) {
 	}
 
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
-}
-
-func parseFileSize(size string) int64 {
-	byteSize, err := gounits.FromHumanSize(size)
-	if err != nil {
-		log.Fatal().Err(err).Str("size", size).Msg("Failed parsing flag")
-	}
-
-	return byteSize
 }
 
 func scanAuthenticatedUser(client AzureDevOpsApiClient) {

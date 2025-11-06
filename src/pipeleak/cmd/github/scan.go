@@ -7,7 +7,7 @@ import (
 	"sort"
 	"time"
 
-	gounits "github.com/docker/go-units"
+	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
 	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	artifactproc "github.com/CompassSecurity/pipeleak/pkg/scan/artifact"
@@ -95,22 +95,17 @@ pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --user firefart
 func Scan(cmd *cobra.Command, args []string) {
 	go logging.ShortcutListeners(scanStatus)
 
-	options.MaxArtifactSize = parseFileSize(maxArtifactSize)
+	byteSize, err := format.ParseHumanSize(maxArtifactSize)
+	if err != nil {
+		log.Fatal().Err(err).Str("size", maxArtifactSize).Msg("Failed parsing max-artifact-size flag")
+	}
+	options.MaxArtifactSize = byteSize
 
 	options.Context = context.WithValue(context.Background(), github.BypassRateLimitCheck, true)
 	options.Client = setupClient(options.AccessToken, options.GitHubURL)
 	options.HttpClient = httpclient.GetPipeleakHTTPClient("", nil, nil)
 	scan(options.Client)
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
-}
-
-func parseFileSize(size string) int64 {
-	byteSize, err := gounits.FromHumanSize(size)
-	if err != nil {
-		log.Fatal().Err(err).Str("size", size).Msg("Failed parsing flag")
-	}
-
-	return byteSize
 }
 
 func setupClient(accessToken string, baseURL string) *github.Client {

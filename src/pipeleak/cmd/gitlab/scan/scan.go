@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
+	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/CompassSecurity/pipeleak/pkg/logging"
-	gounits "github.com/docker/go-units"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -93,21 +93,16 @@ func Scan(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	options.MaxArtifactSize = parseFileSize(maxArtifactSize)
+	byteSize, err := format.ParseHumanSize(maxArtifactSize)
+	if err != nil {
+		log.Fatal().Err(err).Str("size", maxArtifactSize).Msg("Failed parsing max-artifact-size flag")
+	}
+	options.MaxArtifactSize = byteSize
 
 	version := util.DetermineVersion(options.GitlabUrl, options.GitlabApiToken)
 	log.Info().Str("version", version.Version).Str("revision", version.Revision).Msg("Gitlab Version Check")
 	ScanGitLabPipelines(&options)
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
-}
-
-func parseFileSize(size string) int64 {
-	byteSize, err := gounits.FromHumanSize(size)
-	if err != nil {
-		log.Fatal().Err(err).Str("size", size).Msg("Failed parsing flag")
-	}
-
-	return byteSize
 }
 
 func scanStatus() *zerolog.Event {

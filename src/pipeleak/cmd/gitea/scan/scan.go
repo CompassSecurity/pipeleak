@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
-	gounits "github.com/docker/go-units"
+	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
 	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
@@ -97,7 +97,11 @@ func Scan(cmd *cobra.Command, args []string) {
 		log.Fatal().Err(err).Msg("The provided Gitea URL is not a valid URL")
 	}
 
-	scanOptions.MaxArtifactSize = parseFileSize(maxArtifactSize)
+	byteSize, err := format.ParseHumanSize(maxArtifactSize)
+	if err != nil {
+		log.Fatal().Err(err).Str("size", maxArtifactSize).Msg("Failed parsing max-artifact-size flag")
+	}
+	scanOptions.MaxArtifactSize = byteSize
 
 	scanOptions.Context = context.Background()
 	scanOptions.Client, err = gitea.NewClient(scanOptions.GiteaURL, gitea.SetToken(scanOptions.Token))
@@ -142,15 +146,6 @@ func Scan(cmd *cobra.Command, args []string) {
 
 	scanRepositories(scanOptions.Client)
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
-}
-
-func parseFileSize(size string) int64 {
-	byteSize, err := gounits.FromHumanSize(size)
-	if err != nil {
-		log.Fatal().Err(err).Str("size", size).Msg("Failed parsing flag")
-	}
-
-	return byteSize
 }
 
 func scanStatus() *zerolog.Event {

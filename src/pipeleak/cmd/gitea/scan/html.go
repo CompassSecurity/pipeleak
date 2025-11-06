@@ -390,9 +390,7 @@ func downloadAndScanArtifactWithCookie(repo *gitea.Repository, run ActionWorkflo
 			Str("url", run.HTMLURL).
 			Msg("Skipped large artifact (cookie-based download)")
 		return
-	}
-
-	if int64(len(resp.Body)) > scanOptions.MaxArtifactSize {
+	} else if resp.ContentLength <= 0 && int64(len(resp.Body)) > scanOptions.MaxArtifactSize {
 		log.Debug().
 			Int("bytes", len(resp.Body)).
 			Int64("maxBytes", scanOptions.MaxArtifactSize).

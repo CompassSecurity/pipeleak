@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"time"
 
-	gounits "github.com/docker/go-units"
 	bburl "github.com/CompassSecurity/pipeleak/cmd/bitbucket/internal/url"
 	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/CompassSecurity/pipeleak/pkg/logging"
@@ -91,7 +90,11 @@ func Scan(cmd *cobra.Command, args []string) {
 
 	go logging.ShortcutListeners(scanStatus)
 
-	options.MaxArtifactSize = parseFileSize(maxArtifactSize)
+	byteSize, err := format.ParseHumanSize(maxArtifactSize)
+	if err != nil {
+		log.Fatal().Err(err).Str("size", maxArtifactSize).Msg("Failed parsing max-artifact-size flag")
+	}
+	options.MaxArtifactSize = byteSize
 
 	runner.InitScanner(options.ConfidenceFilter)
 
@@ -116,15 +119,6 @@ func Scan(cmd *cobra.Command, args []string) {
 	}
 
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
-}
-
-func parseFileSize(size string) int64 {
-	byteSize, err := gounits.FromHumanSize(size)
-	if err != nil {
-		log.Fatal().Err(err).Str("size", size).Msg("Failed parsing flag")
-	}
-
-	return byteSize
 }
 
 func scanOwned(client BitBucketApiClient) {

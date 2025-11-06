@@ -2,45 +2,7 @@ package bitbucket
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
-
-func TestParseFileSize(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected int64
-	}{
-		{
-			name:     "parse megabytes",
-			input:    "500Mb",
-			expected: 500000000,
-		},
-		{
-			name:     "parse gigabytes",
-			input:    "2Gb",
-			expected: 2000000000,
-		},
-		{
-			name:     "parse kilobytes",
-			input:    "1024Kb",
-			expected: 1024000,
-		},
-		{
-			name:     "parse bytes",
-			input:    "1024",
-			expected: 1024,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := parseFileSize(tt.input)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
 
 func TestNewScanCmd(t *testing.T) {
 	cmd := NewScanCmd()

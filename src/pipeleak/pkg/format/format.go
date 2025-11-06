@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 
+	gounits "github.com/docker/go-units"
 	"github.com/rs/zerolog/log"
 )
 
@@ -21,4 +22,9 @@ func CalculateZipFileSize(data []byte) uint64 {
 	}
 
 	return totalSize
+}
+
+// ParseHumanSize parses a human-readable size string (e.g., "500Mb", "2Gb") into bytes
+func ParseHumanSize(size string) (int64, error) {
+	return gounits.FromHumanSize(size)
 }
