@@ -22,18 +22,19 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: stable
+          cache: true
       
       - name: Run unit tests (Linux)
         if: runner.os == 'Linux'
         working-directory: ./src/pipeleak
-        run: go test $(go list ./... | grep -v /tests/e2e) -v -race -coverprofile=coverage.out -covermode=atomic
+        run: go test $(go list ./... | grep -v /tests/e2e) -v -race
       
       - name: Run unit tests (Windows)
         if: runner.os == 'Windows'
         working-directory: ./src/pipeleak
         run: |
           $packages = go list ./... | Where-Object { $_ -notmatch '/tests/e2e' }
-          go test $packages -v -race -coverprofile=coverage.out -covermode=atomic
+          go test $packages -v -race
         shell: pwsh
   
   e2e-tests:
@@ -48,6 +49,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: stable
+          cache: true
       
       - name: Build pipeleak binary for e2e tests (Linux)
         if: runner.os == 'Linux'
