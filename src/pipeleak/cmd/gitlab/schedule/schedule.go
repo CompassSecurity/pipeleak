@@ -2,7 +2,6 @@ package schedule
 
 import (
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
@@ -11,7 +10,6 @@ import (
 var (
 	gitlabApiToken string
 	gitlabUrl      string
-	verbose        bool
 )
 
 func NewScheduleCmd() *cobra.Command {
@@ -35,15 +33,10 @@ func NewScheduleCmd() *cobra.Command {
 	}
 	scheduleCmd.MarkFlagsRequiredTogether("gitlab", "token")
 
-	scheduleCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 	return scheduleCmd
 }
 
 func FetchSchedules(cmd *cobra.Command, args []string) {
-	if verbose {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-		log.Debug().Msg("Verbose log output enabled")
-	}
 
 	log.Info().Msg("Fetching schedules and their variables")
 

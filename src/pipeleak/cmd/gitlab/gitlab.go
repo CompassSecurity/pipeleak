@@ -17,7 +17,6 @@ import (
 var (
 	gitlabApiToken string
 	gitlabUrl      string
-	verbose        bool
 )
 
 func NewGitLabRootCmd() *cobra.Command {
@@ -62,8 +61,6 @@ For SOCKS5 proxy:
 		log.Error().Stack().Err(err).Msg("Unable to require token flag")
 	}
 	glCmd.MarkFlagsRequiredTogether("gitlab", "token")
-
-	glCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 
 	return glCmd
 }

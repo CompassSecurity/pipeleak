@@ -2,14 +2,12 @@ package register
 
 import (
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
-	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
 var (
 	gitlabUrl string
-	verbose   bool
 	username  string
 	password  string
 	email     string
@@ -51,6 +49,5 @@ func NewRegisterCmd() *cobra.Command {
 }
 
 func Register(cmd *cobra.Command, args []string) {
-	logging.SetLogLevel(verbose)
 	util.RegisterNewAccount(gitlabUrl, username, password, email)
 }

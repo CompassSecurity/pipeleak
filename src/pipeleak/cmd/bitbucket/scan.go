@@ -21,7 +21,6 @@ import (
 type BitBucketScanOptions struct {
 	Email                  string
 	AccessToken            string
-	Verbose                bool
 	ConfidenceFilter       []string
 	MaxScanGoRoutines      int
 	TruffleHogVerification bool
@@ -78,8 +77,6 @@ pipeleak bb scan --token ATATTxxxxxx --email auser@example.com --public --maxPip
 	scanCmd.PersistentFlags().BoolVarP(&options.Public, "public", "p", false, "Scan all public repositories")
 	scanCmd.PersistentFlags().StringVarP(&options.After, "after", "", "", "Filter public repos by a given date in ISO 8601 format: 2025-04-02T15:00:00+02:00 ")
 
-	scanCmd.PersistentFlags().BoolVarP(&options.Verbose, "verbose", "v", false, "Verbose logging")
-
 	return scanCmd
 }
 
@@ -88,7 +85,6 @@ func Scan(cmd *cobra.Command, args []string) {
 		log.Fatal().Msg("When using --token you must also provide --email")
 	}
 
-	logging.SetLogLevel(options.Verbose)
 	go logging.ShortcutListeners(scanStatus)
 
 	runner.InitScanner(options.ConfidenceFilter)

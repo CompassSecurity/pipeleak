@@ -2,7 +2,6 @@ package variables
 
 import (
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
@@ -11,7 +10,6 @@ import (
 var (
 	gitlabApiToken string
 	gitlabUrl      string
-	verbose        bool
 )
 
 func NewVariablesCmd() *cobra.Command {
@@ -35,16 +33,10 @@ func NewVariablesCmd() *cobra.Command {
 	}
 	variablesCmd.MarkFlagsRequiredTogether("gitlab", "token")
 
-	variablesCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 	return variablesCmd
 }
 
 func FetchVariables(cmd *cobra.Command, args []string) {
-	if verbose {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-		log.Debug().Msg("Verbose log output enabled")
-	}
-
 	log.Info().Msg("Fetching project variables")
 
 	git, err := util.GetGitlabClient(gitlabApiToken, gitlabUrl)

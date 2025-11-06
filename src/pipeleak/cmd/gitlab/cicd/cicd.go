@@ -8,7 +8,6 @@ import (
 var (
 	gitlabApiToken string
 	gitlabUrl      string
-	verbose        bool
 )
 
 func NewCiCdCmd() *cobra.Command {
@@ -29,8 +28,6 @@ func NewCiCdCmd() *cobra.Command {
 		log.Error().Stack().Err(err).Msg("Unable to require token flag")
 	}
 	ciCdCmd.MarkFlagsRequiredTogether("gitlab", "token")
-
-	ciCdCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose logging")
 
 	ciCdCmd.AddCommand(NewYamlCmd())
 

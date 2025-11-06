@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
-	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/perimeterx/marshmallow"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -20,7 +19,6 @@ import (
 )
 
 var (
-	verbose    bool
 	shodanJson string
 )
 
@@ -54,7 +52,6 @@ func NewShodanCmd() *cobra.Command {
 }
 
 func Shodan(cmd *cobra.Command, args []string) {
-	logging.SetLogLevel(verbose)
 
 	jsonFile, err := os.Open(shodanJson)
 	if err != nil {
