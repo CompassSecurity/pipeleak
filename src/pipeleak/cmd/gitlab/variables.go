@@ -73,6 +73,9 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 			if len(pvs) > 0 {
 				log.Warn().Str("project", project.WebURL).Any("variables", pvs).Msg("Project variables")
 			}
+
+			// Fetch pipeline schedule variables
+			fetchPipelineScheduleVariables(git, project)
 		}
 
 		if resp.NextPage == 0 {
@@ -128,4 +131,52 @@ func FetchVariables(cmd *cobra.Command, args []string) {
 	}
 
 	log.Info().Msg("Fetched all variables")
+}
+
+func fetchPipelineScheduleVariables(git *gitlab.Client, project *gitlab.Project) {
+	scheduleOpts := &gitlab.ListPipelineSchedulesOptions{
+		ListOptions: gitlab.ListOptions{
+			PerPage: 100,
+			Page:    1,
+		},
+	}
+
+	for {
+		schedules, resp, err := git.PipelineSchedules.ListPipelineSchedules(project.ID, scheduleOpts)
+
+		if resp == nil {
+			return
+		}
+
+		// If we get a 404, the project has no schedules
+		if resp.StatusCode == 404 {
+			return
+		}
+
+		if err != nil {
+			log.Error().Stack().Err(err).Int("project", project.ID).Msg("Failed fetching pipeline schedules")
+			break
+		}
+
+		for _, schedule := range schedules {
+			detailedSchedule, _, err := git.PipelineSchedules.GetPipelineSchedule(project.ID, schedule.ID)
+			if err != nil {
+				log.Error().Stack().Err(err).Int("scheduleID", schedule.ID).Msg("Failed fetching pipeline schedule details")
+				continue
+			}
+
+			if len(detailedSchedule.Variables) > 0 {
+				log.Warn().
+					Str("project", project.WebURL).
+					Str("schedule", detailedSchedule.Description).
+					Any("variables", detailedSchedule.Variables).
+					Msg("Pipeline schedule variables")
+			}
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+		scheduleOpts.Page = resp.NextPage
+	}
 }

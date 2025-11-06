@@ -18,7 +18,7 @@ func TestGitLabVariables(t *testing.T) {
 		case "/api/v4/projects":
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
-				{"id": 1, "name": "test-project"},
+				{"id": 1, "name": "test-project", "web_url": "https://gitlab.example.com/test-project"},
 			})
 
 		case "/api/v4/projects/1/variables":
@@ -30,6 +30,30 @@ func TestGitLabVariables(t *testing.T) {
 					"protected":     false,
 					"masked":        true,
 					"variable_type": "env_var",
+				},
+			})
+
+		case "/api/v4/projects/1/pipeline_schedules":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
+				{
+					"id":          1,
+					"description": "Nightly build",
+					"ref":         "main",
+				},
+			})
+
+		case "/api/v4/projects/1/pipeline_schedules/1":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"id":          1,
+				"description": "Nightly build",
+				"ref":         "main",
+				"variables": []map[string]interface{}{
+					{
+						"key":   "DEPLOY_ENV",
+						"value": "production",
+					},
 				},
 			})
 
@@ -50,15 +74,42 @@ func TestGitLabVariables(t *testing.T) {
 
 	requests := getRequests()
 	variablesRequestFound := false
+	schedulesRequestFound := false
+	scheduleDetailsRequestFound := false
+	
 	for _, req := range requests {
 		if req.Path == "/api/v4/projects/1/variables" {
 			variablesRequestFound = true
 			assertRequestMethodAndPath(t, req, "GET", "/api/v4/projects/1/variables")
-			break
+		}
+		if req.Path == "/api/v4/projects/1/pipeline_schedules" {
+			schedulesRequestFound = true
+			assertRequestMethodAndPath(t, req, "GET", "/api/v4/projects/1/pipeline_schedules")
+		}
+		if req.Path == "/api/v4/projects/1/pipeline_schedules/1" {
+			scheduleDetailsRequestFound = true
+			assertRequestMethodAndPath(t, req, "GET", "/api/v4/projects/1/pipeline_schedules/1")
 		}
 	}
 
+	assert.True(t, variablesRequestFound, "Should request project variables")
+	assert.True(t, schedulesRequestFound, "Should request pipeline schedules")
+	assert.True(t, scheduleDetailsRequestFound, "Should request pipeline schedule details")
+
+	// Assert that project variables are printed in stdout
+	assert.Contains(t, stdout, "Project variables", "Should log project variables")
+	assert.Contains(t, stdout, "DATABASE_URL", "Should contain the DATABASE_URL variable key")
+	assert.Contains(t, stdout, "postgres://user:pass@localhost/db", "Should contain the DATABASE_URL variable value")
+
+	// Assert that pipeline schedule variables are printed in stdout
+	assert.Contains(t, stdout, "Pipeline schedule variables", "Should log pipeline schedule variables")
+	assert.Contains(t, stdout, "Nightly build", "Should contain the schedule description")
+	assert.Contains(t, stdout, "DEPLOY_ENV", "Should contain the DEPLOY_ENV variable key")
+	assert.Contains(t, stdout, "production", "Should contain the DEPLOY_ENV variable value")
+
 	t.Logf("Variables request made: %v", variablesRequestFound)
+	t.Logf("Schedules request made: %v", schedulesRequestFound)
+	t.Logf("Schedule details request made: %v", scheduleDetailsRequestFound)
 	t.Logf("STDOUT:\n%s", stdout)
 	t.Logf("STDERR:\n%s", stderr)
 }

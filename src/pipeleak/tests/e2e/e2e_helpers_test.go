@@ -20,13 +20,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"regexp"
 	"strings"
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/google/go-cmp/cmp"
 )
 
 // RecordedRequest captures details of an HTTP request received by the mock server
@@ -245,89 +242,6 @@ func assertLogContains(t *testing.T, output string, expected []string) {
 	}
 }
 
-// assertLogNotContains checks if the output does NOT contain specified strings
-//
-//nolint:unused
-func assertLogNotContains(t *testing.T, output string, forbidden []string) {
-	t.Helper()
-	for _, forb := range forbidden {
-		if strings.Contains(output, forb) {
-			t.Errorf("Expected output to NOT contain %q, but it did.\nOutput:\n%s", forb, output)
-		}
-	}
-}
-
-// assertLogMatchesRegex checks if the output matches all provided regex patterns
-//
-// Parameters:
-//   - t: testing.T instance
-//   - output: log output to match against
-//   - patterns: slice of regex pattern strings
-//
-// Example:
-//
-//	assertLogMatchesRegex(t, stdout, []string{`\d+ secrets found`, `Scan completed in \d+\.\d+s`})
-//
-//nolint:unused
-func assertLogMatchesRegex(t *testing.T, output string, patterns []string) {
-	t.Helper()
-	for _, pattern := range patterns {
-		matched, err := regexp.MatchString(pattern, output)
-		if err != nil {
-			t.Fatalf("Invalid regex pattern %q: %v", pattern, err)
-		}
-		if !matched {
-			t.Errorf("Expected output to match pattern %q, but it didn't.\nOutput:\n%s", pattern, output)
-		}
-	}
-}
-
-// compareJSON compares two JSON strings for structural equality
-//
-// This function unmarshals both strings and uses go-cmp to compare them,
-// providing detailed diff output on failure.
-//
-// Parameters:
-//   - t: testing.T instance
-//   - got: actual JSON string
-//   - want: expected JSON string
-//
-// Example:
-//
-//	compareJSON(t, stdout, `{"status":"success","count":5}`)
-//
-//nolint:unused
-func compareJSON(t *testing.T, got, want string) {
-	t.Helper()
-
-	var gotData, wantData interface{}
-
-	if err := json.Unmarshal([]byte(got), &gotData); err != nil {
-		t.Fatalf("Failed to unmarshal 'got' JSON: %v\nJSON:\n%s", err, got)
-	}
-
-	if err := json.Unmarshal([]byte(want), &wantData); err != nil {
-		t.Fatalf("Failed to unmarshal 'want' JSON: %v\nJSON:\n%s", err, want)
-	}
-
-	if diff := cmp.Diff(wantData, gotData); diff != "" {
-		t.Errorf("JSON mismatch (-want +got):\n%s", diff)
-	}
-}
-
-// assertRequestCount verifies the number of HTTP requests received
-//
-//nolint:unused
-func assertRequestCount(t *testing.T, requests []RecordedRequest, expected int) {
-	t.Helper()
-	if len(requests) != expected {
-		t.Errorf("Expected %d requests, got %d", expected, len(requests))
-		for i, req := range requests {
-			t.Logf("Request %d: %s %s", i+1, req.Method, req.Path)
-		}
-	}
-}
-
 // assertRequestMethodAndPath verifies a request has the expected method and path
 func assertRequestMethodAndPath(t *testing.T, req RecordedRequest, method, path string) {
 	t.Helper()
@@ -348,40 +262,7 @@ func assertRequestHeader(t *testing.T, req RecordedRequest, header, expected str
 	}
 }
 
-// assertRequestHeaderContains verifies a request header contains a substring
-//
-//nolint:unused
-func assertRequestHeaderContains(t *testing.T, req RecordedRequest, header, substring string) {
-	t.Helper()
-	actual := req.Headers.Get(header)
-	if !strings.Contains(actual, substring) {
-		t.Errorf("Expected header %s to contain %q, got %q", header, substring, actual)
-	}
-}
-
-// assertRequestBody verifies the request body matches expected content
-//
-//nolint:unused
-func assertRequestBody(t *testing.T, req RecordedRequest, expected string) {
-	t.Helper()
-	actual := string(req.Body)
-	if actual != expected {
-		t.Errorf("Request body mismatch:\nExpected: %s\nGot: %s", expected, actual)
-	}
-}
-
-// assertRequestBodyJSON compares request body as JSON
-//
-//nolint:unused
-//nolint:unused
-func assertRequestBodyJSON(t *testing.T, req RecordedRequest, expected string) {
-	t.Helper()
-	compareJSON(t, string(req.Body), expected)
-}
-
 // dumpRequests prints all recorded requests for debugging
-//
-//nolint:unused
 func dumpRequests(t *testing.T, requests []RecordedRequest) {
 	t.Helper()
 	t.Log("Recorded HTTP requests:")
@@ -399,47 +280,6 @@ func dumpRequests(t *testing.T, requests []RecordedRequest) {
 		if len(req.Body) > 0 {
 			t.Logf("  Body: %s", string(req.Body))
 		}
-	}
-}
-
-// mockGitLabHandler returns a handler for common GitLab API endpoints
-//
-//nolint:unused
-func mockGitLabHandler(t *testing.T, responses map[string]interface{}) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// Set common headers
-		w.Header().Set("Content-Type", "application/json")
-
-		// Route to appropriate response
-		key := r.Method + " " + r.URL.Path
-		if response, ok := responses[key]; ok {
-			if statusCode, ok := response.(int); ok && statusCode >= 400 {
-				w.WriteHeader(statusCode)
-				_ = json.NewEncoder(w).Encode(map[string]string{
-					"error": "API error",
-				})
-				return
-			}
-			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode(response)
-			return
-		}
-
-		// Default 404 response
-		w.WriteHeader(http.StatusNotFound)
-		_ = json.NewEncoder(w).Encode(map[string]string{
-			"error": "not found",
-		})
-	}
-}
-
-// withTimeout wraps a handler with a delay for testing timeout scenarios
-//
-//nolint:unused
-func withTimeout(handler http.HandlerFunc, delay time.Duration) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(delay)
-		handler(w, r)
 	}
 }
 
@@ -464,28 +304,5 @@ func mockSuccessResponse() http.HandlerFunc {
 			"status":  "success",
 			"message": "Operation completed successfully",
 		})
-	}
-}
-
-// createTempConfigFile creates a temporary config file for testing
-//
-//nolint:unused
-func createTempConfigFile(t *testing.T, content string) string {
-	t.Helper()
-	tmpDir := t.TempDir()
-	configPath := fmt.Sprintf("%s/config.yaml", tmpDir)
-	err := os.WriteFile(configPath, []byte(content), 0644)
-	if err != nil {
-		t.Fatalf("Failed to create temp config file: %v", err)
-	}
-	return configPath
-}
-
-// skipIfShort skips the test if running in short mode
-//
-//nolint:unused
-func skipIfShort(t *testing.T, reason string) {
-	if testing.Short() {
-		t.Skipf("Skipping in short mode: %s", reason)
 	}
 }
