@@ -65,6 +65,9 @@ func TestNewScanCmd(t *testing.T) {
 	if persistentFlags.Lookup("maxPipelines") == nil {
 		t.Error("Expected 'maxPipelines' persistent flag to exist")
 	}
+	if persistentFlags.Lookup("max-artifact-size") == nil {
+		t.Error("Expected 'max-artifact-size' persistent flag to exist")
+	}
 }
 
 func TestBitBucketScanOptions(t *testing.T) {
@@ -81,6 +84,7 @@ func TestBitBucketScanOptions(t *testing.T) {
 		After:                  "2025-01-01T00:00:00Z",
 		Artifacts:              true,
 		BitBucketURL:           "https://api.bitbucket.org/2.0",
+		MaxArtifactSize:        524288000,
 		BitBucketCookie:        "cookie123",
 	}
 
@@ -119,6 +123,9 @@ func TestBitBucketScanOptions(t *testing.T) {
 	}
 	if opts.BitBucketURL != "https://api.bitbucket.org/2.0" {
 		t.Errorf("Expected BitBucketURL 'https://api.bitbucket.org/2.0', got %q", opts.BitBucketURL)
+	}
+	if opts.MaxArtifactSize != 524288000 {
+		t.Errorf("Expected MaxArtifactSize 524288000, got %d", opts.MaxArtifactSize)
 	}
 	if opts.BitBucketCookie != "cookie123" {
 		t.Errorf("Expected BitBucketCookie 'cookie123', got %q", opts.BitBucketCookie)

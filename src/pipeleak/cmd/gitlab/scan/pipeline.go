@@ -212,7 +212,21 @@ jobOut:
 		for _, job := range jobs {
 			currentJobCtr += 1
 			log.Trace().Str("url", getJobUrl(git, project, job)).Msg("Enqueue job for scanning")
-			meta := QueueMeta{JobId: job.ID, ProjectId: project.ID, JobWebUrl: getJobUrl(git, project, job), JobName: job.Name, ProjectPathWithNamespace: project.PathWithNamespace}
+
+			// Get artifact size if available
+			var artifactSize int64 = 0
+			if job.ArtifactsFile.Size > 0 {
+				artifactSize = int64(job.ArtifactsFile.Size)
+			}
+
+			meta := QueueMeta{
+				JobId:                    job.ID,
+				ProjectId:                project.ID,
+				JobWebUrl:                getJobUrl(git, project, job),
+				JobName:                  job.Name,
+				ProjectPathWithNamespace: project.PathWithNamespace,
+				ArtifactSize:             artifactSize,
+			}
 			enqueueItem(globQueue, QueueItemJobTrace, meta, waitGroup)
 
 			if options.Artifacts {

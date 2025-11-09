@@ -41,6 +41,7 @@ type QueueMeta struct {
 	JobWebUrl                string
 	JobName                  string
 	ProjectPathWithNamespace string
+	ArtifactSize             int64
 }
 
 type QueueItem struct {
@@ -149,6 +150,17 @@ func analyzeJobTrace(git *gitlab.Client, item QueueItem, options *ScanOptions) {
 }
 
 func analyzeJobArtifact(git *gitlab.Client, item QueueItem, options *ScanOptions) {
+	// Check artifact size before downloading
+	if item.Meta.ArtifactSize > 0 && item.Meta.ArtifactSize > options.MaxArtifactSize {
+		log.Debug().
+			Int64("bytes", item.Meta.ArtifactSize).
+			Int64("maxBytes", options.MaxArtifactSize).
+			Str("name", item.Meta.JobName).
+			Str("url", item.Meta.JobWebUrl).
+			Msg("Skipped large artifact")
+		return
+	}
+
 	data := getJobArtifacts(git, item.Meta.ProjectId, item.Meta.JobId, item.Meta.JobWebUrl, options)
 	if data == nil {
 		return
