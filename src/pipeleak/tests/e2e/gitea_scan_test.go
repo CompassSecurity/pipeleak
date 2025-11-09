@@ -1,6 +1,8 @@
 package e2e
 
 import (
+	"archive/zip"
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -101,6 +103,113 @@ func TestGiteaScan_HappyPath(t *testing.T) {
 
 	t.Logf("STDOUT:\n%s", stdout)
 	t.Logf("STDERR:\n%s", stderr)
+}
+
+// TestGiteaScan_MaxArtifactSize tests the --max-artifact-size flag for Gitea
+func TestGiteaScan_Artifacts_MaxArtifactSize(t *testing.T) {
+
+	// Create small artifact
+	var smallArtifactBuf bytes.Buffer
+	smallZipWriter := zip.NewWriter(&smallArtifactBuf)
+	smallFile, _ := smallZipWriter.Create("small.txt")
+	_, _ = smallFile.Write(bytes.Repeat([]byte("x"), 100*1024)) // 100KB
+	_ = smallZipWriter.Close()
+
+	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		t.Logf("Gitea Mock (MaxArtifactSize): %s %s", r.Method, r.URL.Path)
+
+		serverURL := "http://" + r.Host
+
+		switch r.URL.Path {
+		case "/api/v1", "/api/v1/version":
+			// Gitea version check
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"version": "1.20.0",
+			})
+
+		case "/api/v1/repos/search":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"data": []map[string]interface{}{
+					{
+						"id":        1,
+						"name":      "test-repo",
+						"full_name": "user/test-repo",
+						"html_url":  serverURL + "/user/test-repo",
+						"owner": map[string]interface{}{
+							"login": "user",
+						},
+					},
+				},
+			})
+
+		case "/api/v1/repos/user/test-repo/actions/runs":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"workflow_runs": []map[string]interface{}{
+					{
+						"id":     100,
+						"name":   "test-workflow",
+						"status": "completed",
+					},
+				},
+				"total_count": 1,
+			})
+
+		case "/api/v1/repos/user/test-repo/actions/runs/100/artifacts":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"artifacts": []map[string]interface{}{
+					{
+						"id":                   1001,
+						"name":                 "large-artifact",
+						"size_in_bytes":        100 * 1024 * 1024, // 100MB
+						"archive_download_url": serverURL + "/api/v1/repos/user/test-repo/actions/artifacts/1001/zip",
+					},
+					{
+						"id":                   1002,
+						"name":                 "small-artifact",
+						"size_in_bytes":        100 * 1024, // 100KB
+						"archive_download_url": serverURL + "/api/v1/repos/user/test-repo/actions/artifacts/1002/zip",
+					},
+				},
+				"total_count": 2,
+			})
+
+		case "/api/v1/repos/user/test-repo/actions/artifacts/1001/zip":
+			t.Error("Large artifact should not be downloaded")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("PK\x03\x04"))
+
+		case "/api/v1/repos/user/test-repo/actions/artifacts/1002/zip":
+			w.Header().Set("Content-Type", "application/zip")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(smallArtifactBuf.Bytes())
+
+		default:
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{})
+		}
+	})
+	defer cleanup()
+
+	stdout, stderr, exitErr := runCLI(t, []string{
+		"gitea", "scan",
+		"--gitea", server.URL,
+		"--token", "test-token",
+		"--artifacts",
+		"--max-artifact-size", "50Mb",
+		"--log-level", "debug",
+	}, nil, 15*time.Second)
+
+	assert.Nil(t, exitErr, "Gitea artifact scan with max-artifact-size should succeed")
+
+	output := stdout + stderr
+	t.Logf("Output:\n%s", output)
+
+	// Large artifact should be skipped prior to download (absence of error implies success)
 }
 
 // TestGiteaScan_WithArtifacts tests scanning with artifacts enabled

@@ -38,6 +38,79 @@ func TestBitBucketScan_Artifacts_MissingCookie(t *testing.T) {
 	t.Logf("Output:\n%s", output)
 }
 
+// TestBitBucketScan_MaxArtifactSize tests the --max-artifact-size flag for BitBucket
+func TestBitBucketScan_Artifacts_MaxArtifactSize(t *testing.T) {
+
+	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		t.Logf("BitBucket Mock (MaxArtifactSize): %s %s", r.Method, r.URL.Path)
+
+		switch r.URL.Path {
+		case "/2.0/user":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid":         "user-123",
+				"display_name": "Test User",
+			})
+
+		case "/2.0/workspaces":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"values": []map[string]interface{}{{"slug": "test-workspace", "name": "Test Workspace"}},
+			})
+
+		case "/2.0/repositories/test-workspace":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"values": []map[string]interface{}{{"slug": "test-repo", "name": "Test Repo"}},
+			})
+
+		case "/2.0/repositories/test-workspace/test-repo/pipelines/":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"values": []map[string]interface{}{{
+					"uuid": "pipeline-123", "build_number": 1, "state": map[string]interface{}{"name": "COMPLETED"},
+				}},
+			})
+
+		case "/2.0/repositories/test-workspace/test-repo/pipelines/pipeline-123/steps/":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"values": []map[string]interface{}{{"uuid": "step-123", "name": "Build"}},
+			})
+
+		case "/internal/workspaces/test-workspace/repositories/test-repo/pipelines/1/steps/step-123/artifacts":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"values": []map[string]interface{}{
+					{"uuid": "artifact-large", "name": "large.zip", "file_size_bytes": 100 * 1024 * 1024},
+					{"uuid": "artifact-small", "name": "small.zip", "file_size_bytes": 100 * 1024},
+				},
+			})
+
+		default:
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{})
+		}
+	})
+	defer cleanup()
+
+	stdout, stderr, exitErr := runCLI(t, []string{
+		"bb", "scan",
+		"--bitbucket", server.URL,
+		"--token", "test-token",
+		"--email", "test@example.com",
+		"--cookie", "test-cookie",
+		"--artifacts",
+		"--max-artifact-size", "50Mb",
+		"--workspace", "test-workspace",
+	}, nil, 15*time.Second)
+
+	assert.Nil(t, exitErr, "BitBucket artifact scan with max-artifact-size should succeed")
+
+	output := stdout + stderr
+	t.Logf("Output:\n%s", output)
+}
 func TestBitBucketScan_Artifacts_WithDotEnv(t *testing.T) {
 
 	server, getRequests, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {

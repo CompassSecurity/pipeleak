@@ -144,6 +144,151 @@ API_KEY=sk_test_abcdefghijklmnopqrstuvwxyz123456
 	t.Logf("Output:\n%s", output)
 }
 
+// TestGitHubScan_MaxArtifactSize tests the --max-artifact-size flag for GitHub
+func TestGitHubScan_Artifacts_MaxArtifactSize(t *testing.T) {
+
+	// Create small artifact (100KB)
+	var smallArtifactBuf bytes.Buffer
+	smallZipWriter := zip.NewWriter(&smallArtifactBuf)
+	smallFile, _ := smallZipWriter.Create("small.txt")
+	_, _ = smallFile.Write(bytes.Repeat([]byte("x"), 100*1024)) // 100KB
+	_ = smallZipWriter.Close()
+
+	// Create large artifact (100MB simulation - just metadata)
+	var largeArtifactBuf bytes.Buffer
+	largeZipWriter := zip.NewWriter(&largeArtifactBuf)
+	largeFile, _ := largeZipWriter.Create("large.txt")
+	_, _ = largeFile.Write([]byte("This would be large"))
+	_ = largeZipWriter.Close()
+
+	server, getRequests, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		t.Logf("GitHub Mock (MaxArtifactSize): %s %s", r.Method, r.URL.Path)
+
+		switch r.URL.Path {
+		case "/api/v3/user/repos":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
+				{
+					"id":        1,
+					"name":      "artifact-test",
+					"full_name": "user/artifact-test",
+					"html_url":  "https://github.com/user/artifact-test",
+					"owner":     map[string]interface{}{"login": "user"},
+				},
+			})
+
+		case "/api/v3/repos/user/artifact-test/actions/runs":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"workflow_runs": []map[string]interface{}{
+					{
+						"id":            100,
+						"name":          "test-workflow",
+						"status":        "completed",
+						"display_title": "Test Artifacts",
+						"html_url":      "https://github.com/user/artifact-test/actions/runs/100",
+						"repository": map[string]interface{}{
+							"name":  "artifact-test",
+							"owner": map[string]interface{}{"login": "user"},
+						},
+					},
+				},
+				"total_count": 1,
+			})
+
+		case "/api/v3/repos/user/artifact-test/actions/runs/100/jobs":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"jobs":        []map[string]interface{}{},
+				"total_count": 0,
+			})
+
+		case "/api/v3/repos/user/artifact-test/actions/runs/100/logs":
+			w.Header().Set("Location", "http://"+r.Host+"/download/logs/100.zip")
+			w.WriteHeader(http.StatusFound)
+
+		case "/download/logs/100.zip":
+			w.WriteHeader(http.StatusNotFound)
+
+		case "/api/v3/repos/user/artifact-test/actions/runs/100/artifacts":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"artifacts": []map[string]interface{}{
+					{
+						"id":                   1001,
+						"name":                 "large-artifact",
+						"size_in_bytes":        100 * 1024 * 1024, // 100MB
+						"archive_download_url": "http://" + r.Host + "/api/v3/repos/user/artifact-test/actions/artifacts/1001/zip",
+					},
+					{
+						"id":                   1002,
+						"name":                 "small-artifact",
+						"size_in_bytes":        100 * 1024, // 100KB
+						"archive_download_url": "http://" + r.Host + "/api/v3/repos/user/artifact-test/actions/artifacts/1002/zip",
+					},
+				},
+				"total_count": 2,
+			})
+
+		case "/api/v3/repos/user/artifact-test/actions/artifacts/1001/zip":
+			// Large artifact - should NOT be called if size checking works
+			t.Error("Large artifact download should be skipped before SDK call")
+			w.Header().Set("Location", "http://"+r.Host+"/download/artifact/1001")
+			w.WriteHeader(http.StatusFound)
+
+		case "/api/v3/repos/user/artifact-test/actions/artifacts/1002/zip":
+			// Small artifact - should be downloaded
+			w.Header().Set("Location", "http://"+r.Host+"/download/artifact/1002")
+			w.WriteHeader(http.StatusFound)
+
+		case "/download/artifact/1001":
+			// This should not be called if size checking works
+			t.Error("Large artifact should not be downloaded")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(largeArtifactBuf.Bytes())
+
+		case "/download/artifact/1002":
+			w.Header().Set("Content-Type", "application/zip")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(smallArtifactBuf.Bytes())
+
+		default:
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{})
+		}
+	})
+	defer cleanup()
+
+	stdout, stderr, exitErr := runCLI(t, []string{
+		"gh", "scan",
+		"--github", server.URL,
+		"--token", "ghp_test_token",
+		"--artifacts",
+		"--max-artifact-size", "50Mb", // Only scan artifacts < 50MB
+		"--owned",
+		"--log-level", "debug", // Enable debug logs to see size checking
+	}, nil, 15*time.Second)
+
+	assert.Nil(t, exitErr, "Artifact scan with max-artifact-size should succeed")
+
+	output := stdout + stderr
+	t.Logf("Output:\n%s", output)
+
+	// Verify that large artifact was skipped (logged at debug level)
+	if !assert.Contains(t, output, "Skipped large artifact", "Should log skipping of large artifact due to size filter") {
+		// If debug message not found, at least verify SDK call was not made
+		requests := getRequests()
+		var artifactSDKCalls []RecordedRequest
+		for _, req := range requests {
+			if req.Path == "/api/v3/repos/user/artifact-test/actions/artifacts/1001/zip" {
+				artifactSDKCalls = append(artifactSDKCalls, req)
+			}
+		}
+		assert.Equal(t, 0, len(artifactSDKCalls), "Large artifact SDK call should not be made")
+	}
+}
+
 // TestGitHubScan_Artifacts_NestedArchive tests nested zip handling
 
 func TestGitHubScan_Artifacts_NestedArchive(t *testing.T) {
