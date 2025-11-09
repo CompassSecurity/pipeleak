@@ -22,12 +22,12 @@ func TestScanSingleRepository_Success(t *testing.T) {
 		switch r.URL.Path {
 		case "/repos/" + repoOwner + "/" + repoName:
 			repo := github.Repository{
-				ID:       github.Int64(123),
-				Name:     github.String(repoName),
-				FullName: github.String(repoFullName),
-				HTMLURL:  github.String("https://github.com/" + repoFullName),
+				ID:       github.Ptr(int64(123)),
+				Name:     github.Ptr(repoName),
+				FullName: github.Ptr(repoFullName),
+				HTMLURL:  github.Ptr("https://github.com/" + repoFullName),
 				Owner: &github.User{
-					Login: github.String(repoOwner),
+					Login: github.Ptr(repoOwner),
 				},
 			}
 			w.WriteHeader(http.StatusOK)

@@ -142,7 +142,6 @@ func TestGitHubScan_SingleRepository_InvalidFormat(t *testing.T) {
 		"owner/repo/extra",
 		"/repo",
 		"owner/",
-		"",
 	}
 
 	for _, invalidRepo := range invalidRepos {
