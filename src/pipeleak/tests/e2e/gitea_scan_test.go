@@ -108,11 +108,16 @@ func TestGiteaScan_HappyPath(t *testing.T) {
 // TestGiteaScan_MaxArtifactSize tests the --max-artifact-size flag for Gitea
 func TestGiteaScan_Artifacts_MaxArtifactSize(t *testing.T) {
 
-	// Create small artifact
+	// Create small artifact with secrets
 	var smallArtifactBuf bytes.Buffer
 	smallZipWriter := zip.NewWriter(&smallArtifactBuf)
-	smallFile, _ := smallZipWriter.Create("small.txt")
-	_, _ = smallFile.Write(bytes.Repeat([]byte("x"), 100*1024)) // 100KB
+	smallFile, _ := smallZipWriter.Create("app-config.yaml")
+	_, _ = smallFile.Write([]byte(`database:
+  password: SuperSecretDBPass123!
+  connection_string: mongodb://admin:SecretMongoP@ss@cluster.example.com/prod
+api:
+  key: test_prod_key_abcdefghijklmnopqrstuvwxyz1234567890ABCDEF
+`))
 	_ = smallZipWriter.Close()
 
 	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
@@ -209,7 +214,14 @@ func TestGiteaScan_Artifacts_MaxArtifactSize(t *testing.T) {
 	output := stdout + stderr
 	t.Logf("Output:\n%s", output)
 
-	// Large artifact should be skipped prior to download (absence of error implies success)
+	// Verify that large artifact was skipped
+	assert.Contains(t, output, "Skipped large artifact", "Should log skipping of large artifact")
+	assert.Contains(t, output, "large-artifact", "Should mention large artifact name")
+
+	// Verify that small artifact was scanned successfully
+	assert.Contains(t, output, "small-artifact", "Should process small artifact")
+	assert.Contains(t, output, "HIT", "Should detect secrets in small artifact")
+	assert.Contains(t, output, "app-config.yaml", "Should scan config file in small artifact")
 }
 
 // TestGiteaScan_WithArtifacts tests scanning with artifacts enabled

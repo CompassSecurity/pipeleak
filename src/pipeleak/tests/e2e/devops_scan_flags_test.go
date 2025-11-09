@@ -86,6 +86,16 @@ Build complete`
 // TestAzureDevOpsScan_MaxArtifactSize tests the --max-artifact-size flag for Azure DevOps
 func TestAzureDevOpsScan_MaxArtifactSize(t *testing.T) {
 
+	// Create small artifact with secrets
+	var smallArtifactBuf bytes.Buffer
+	smallZipWriter := zip.NewWriter(&smallArtifactBuf)
+	smallFile, _ := smallZipWriter.Create("secrets.txt")
+	_, _ = smallFile.Write([]byte(`ADMIN_PASSWORD=VerySecretPass123!
+STRIPE_API_KEY=test_api_abcdefghijklmnopqrstuvwxyz1234567890
+DATABASE_URL=postgresql://admin:SuperSecretP@ss@db.local:5432/prod
+`))
+	_ = smallZipWriter.Close()
+
 	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		t.Logf("Azure DevOps Mock (MaxArtifactSize): %s %s", r.Method, r.URL.Path)
@@ -175,7 +185,7 @@ func TestAzureDevOpsScan_MaxArtifactSize(t *testing.T) {
 		case "/download/small":
 			w.Header().Set("Content-Type", "application/zip")
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte("PK\x03\x04"))
+			_, _ = w.Write(smallArtifactBuf.Bytes())
 
 		default:
 			w.WriteHeader(http.StatusOK)
@@ -193,12 +203,22 @@ func TestAzureDevOpsScan_MaxArtifactSize(t *testing.T) {
 		"--project", "TestProject",
 		"--artifacts",
 		"--max-artifact-size", "50Mb",
+		"--log-level", "debug",
 	}, nil, 15*time.Second)
 
 	assert.Nil(t, exitErr, "Azure DevOps artifact scan with max-artifact-size should succeed")
 
 	output := stdout + stderr
 	t.Logf("Output:\n%s", output)
+
+	// Verify that large artifact was skipped
+	assert.Contains(t, output, "Skipped large artifact", "Should log skipping of large artifact")
+	assert.Contains(t, output, "large-artifact", "Should mention large artifact name")
+
+	// Verify that small artifact was scanned successfully
+	assert.Contains(t, output, "small-artifact", "Should process small artifact")
+	assert.Contains(t, output, "HIT", "Should detect secrets in small artifact")
+	assert.Contains(t, output, "secrets.txt", "Should scan secrets.txt file in small artifact")
 }
 
 // TestAzureDevOpsScan_ThreadsConfiguration tests the --threads flag

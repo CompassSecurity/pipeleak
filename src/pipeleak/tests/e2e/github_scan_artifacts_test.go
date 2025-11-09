@@ -147,11 +147,14 @@ API_KEY=sk_test_abcdefghijklmnopqrstuvwxyz123456
 // TestGitHubScan_MaxArtifactSize tests the --max-artifact-size flag for GitHub
 func TestGitHubScan_Artifacts_MaxArtifactSize(t *testing.T) {
 
-	// Create small artifact (100KB)
+	// Create small artifact (100KB) with secrets
 	var smallArtifactBuf bytes.Buffer
 	smallZipWriter := zip.NewWriter(&smallArtifactBuf)
-	smallFile, _ := smallZipWriter.Create("small.txt")
-	_, _ = smallFile.Write(bytes.Repeat([]byte("x"), 100*1024)) // 100KB
+	smallFile, _ := smallZipWriter.Create("config.env")
+	_, _ = smallFile.Write([]byte(`DATABASE_PASSWORD=SuperSecret123!
+API_KEY=test_key_1234567890abcdefghijklmnopqrstuvwxyz
+AWS_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+`))
 	_ = smallZipWriter.Close()
 
 	// Create large artifact (100MB simulation - just metadata)
@@ -270,23 +273,29 @@ func TestGitHubScan_Artifacts_MaxArtifactSize(t *testing.T) {
 		"--log-level", "debug", // Enable debug logs to see size checking
 	}, nil, 15*time.Second)
 
-	assert.Nil(t, exitErr, "Artifact scan with max-artifact-size should succeed")
+	assert.Nil(t, exitErr, "GitHub artifact scan with max-artifact-size should succeed")
 
 	output := stdout + stderr
 	t.Logf("Output:\n%s", output)
 
 	// Verify that large artifact was skipped (logged at debug level)
-	if !assert.Contains(t, output, "Skipped large artifact", "Should log skipping of large artifact due to size filter") {
-		// If debug message not found, at least verify SDK call was not made
-		requests := getRequests()
-		var artifactSDKCalls []RecordedRequest
-		for _, req := range requests {
-			if req.Path == "/api/v3/repos/user/artifact-test/actions/artifacts/1001/zip" {
-				artifactSDKCalls = append(artifactSDKCalls, req)
-			}
+	assert.Contains(t, output, "Skipped large artifact", "Should log skipping of large artifact")
+	assert.Contains(t, output, "large-artifact", "Should mention large artifact name in skip message")
+
+	// Verify that small artifact was downloaded and scanned successfully
+	assert.Contains(t, output, "small-artifact", "Should process small artifact")
+	assert.Contains(t, output, "HIT", "Should detect secrets in small artifact")
+	assert.Contains(t, output, "config.env", "Should scan config.env file in small artifact")
+
+	// Verify SDK call was not made for large artifact
+	requests := getRequests()
+	var largeArtifactSDKCalls []RecordedRequest
+	for _, req := range requests {
+		if req.Path == "/api/v3/repos/user/artifact-test/actions/artifacts/1001/zip" {
+			largeArtifactSDKCalls = append(largeArtifactSDKCalls, req)
 		}
-		assert.Equal(t, 0, len(artifactSDKCalls), "Large artifact SDK call should not be made")
 	}
+	assert.Equal(t, 0, len(largeArtifactSDKCalls), "Large artifact SDK call should not be made")
 }
 
 // TestGitHubScan_Artifacts_NestedArchive tests nested zip handling

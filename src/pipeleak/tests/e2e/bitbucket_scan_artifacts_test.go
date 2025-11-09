@@ -41,6 +41,16 @@ func TestBitBucketScan_Artifacts_MissingCookie(t *testing.T) {
 // TestBitBucketScan_MaxArtifactSize tests the --max-artifact-size flag for BitBucket
 func TestBitBucketScan_Artifacts_MaxArtifactSize(t *testing.T) {
 
+	// Create small artifact with secrets
+	var smallArtifactBuf bytes.Buffer
+	smallZipWriter := zip.NewWriter(&smallArtifactBuf)
+	smallFile, _ := smallZipWriter.Create("credentials.txt")
+	_, _ = smallFile.Write([]byte(`WEBHOOK_SECRET=whsec_abcdefghijklmnopqrstuvwxyz123456789012
+DB_PASSWORD=MySecretDBP@ssw0rd!123
+SENDGRID_API_KEY=SG.1234567890abcdefghijklmnopqrstuvwxyz
+`))
+	_ = smallZipWriter.Close()
+
 	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		t.Logf("BitBucket Mock (MaxArtifactSize): %s %s", r.Method, r.URL.Path)
@@ -88,6 +98,17 @@ func TestBitBucketScan_Artifacts_MaxArtifactSize(t *testing.T) {
 				},
 			})
 
+		case "/internal/workspaces/test-workspace/repositories/test-repo/pipelines/1/steps/step-123/artifacts/artifact-large":
+			t.Error("Large artifact should not be downloaded")
+			w.Header().Set("Content-Type", "application/zip")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("PK\x03\x04"))
+
+		case "/internal/workspaces/test-workspace/repositories/test-repo/pipelines/1/steps/step-123/artifacts/artifact-small":
+			w.Header().Set("Content-Type", "application/zip")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(smallArtifactBuf.Bytes())
+
 		default:
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{})
@@ -104,12 +125,22 @@ func TestBitBucketScan_Artifacts_MaxArtifactSize(t *testing.T) {
 		"--artifacts",
 		"--max-artifact-size", "50Mb",
 		"--workspace", "test-workspace",
+		"--log-level", "debug",
 	}, nil, 15*time.Second)
 
 	assert.Nil(t, exitErr, "BitBucket artifact scan with max-artifact-size should succeed")
 
 	output := stdout + stderr
 	t.Logf("Output:\n%s", output)
+
+	// Verify that large artifact was skipped
+	assert.Contains(t, output, "Skipped large", "Should log skipping of large artifact")
+	assert.Contains(t, output, "large.zip", "Should mention large artifact name")
+
+	// Verify that small artifact was scanned successfully
+	assert.Contains(t, output, "small.zip", "Should process small artifact")
+	assert.Contains(t, output, "HIT", "Should detect secrets in small artifact")
+	assert.Contains(t, output, "credentials.txt", "Should scan credentials file in small artifact")
 }
 func TestBitBucketScan_Artifacts_WithDotEnv(t *testing.T) {
 

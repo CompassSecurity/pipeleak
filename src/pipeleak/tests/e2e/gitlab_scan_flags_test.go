@@ -1,6 +1,8 @@
 package e2e
 
 import (
+	"archive/zip"
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"strings"
@@ -136,6 +138,16 @@ func TestGitLabScan_CookieAuthentication(t *testing.T) {
 // TestGitLabScan_MaxArtifactSize tests the --max-artifact-size flag
 func TestGitLabScan_MaxArtifactSize(t *testing.T) {
 
+	// Create small artifact with secrets
+	var smallArtifactBuf bytes.Buffer
+	smallZipWriter := zip.NewWriter(&smallArtifactBuf)
+	smallFile, _ := smallZipWriter.Create("deployment.env")
+	_, _ = smallFile.Write([]byte(`REDIS_PASSWORD=SuperSecretRedisP@ss!
+JWT_SECRET_KEY=jwt_secret_key_abcdefghijklmnopqrstuvwxyz1234567890
+OAUTH_CLIENT_SECRET=oauth_secret_ABCDEFGHIJKLMNOPQRSTUVWXYZ123456
+`))
+	_ = smallZipWriter.Close()
+
 	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
@@ -173,10 +185,15 @@ func TestGitLabScan_MaxArtifactSize(t *testing.T) {
 				},
 			})
 
-		case "/api/v4/projects/1/jobs/3000/artifacts",
-			"/api/v4/projects/1/jobs/3001/artifacts":
+		case "/api/v4/projects/1/jobs/3000/artifacts":
+			t.Error("Large artifact should not be downloaded")
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte("PK\x03\x04")) // ZIP magic bytes
+
+		case "/api/v4/projects/1/jobs/3001/artifacts":
+			w.Header().Set("Content-Type", "application/zip")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(smallArtifactBuf.Bytes())
 
 		default:
 			w.WriteHeader(http.StatusOK)
@@ -192,13 +209,22 @@ func TestGitLabScan_MaxArtifactSize(t *testing.T) {
 		"--artifacts",
 		"--max-artifact-size", "50Mb", // Only scan artifacts < 50MB
 		"--job-limit", "2",
+		"--log-level", "debug",
 	}, nil, 15*time.Second)
 
-	assert.Nil(t, exitErr, "Scan with max-artifact-size should succeed")
+	assert.Nil(t, exitErr, "GitLab artifact scan with max-artifact-size should succeed")
 
 	output := stdout + stderr
 	t.Logf("Output:\n%s", output)
-	// The scanner should skip artifacts larger than 50MB
+
+	// Verify that large artifact was skipped
+	assert.Contains(t, output, "Skipped large", "Should log skipping of large artifact")
+	assert.Contains(t, output, "large", "Should mention large artifact")
+
+	// Verify that small artifact was scanned successfully
+	assert.Contains(t, output, "small-artifact-job", "Should process small artifact job")
+	assert.Contains(t, output, "HIT", "Should detect secrets in small artifact")
+	assert.Contains(t, output, "deployment.env", "Should scan env file in small artifact")
 }
 
 // TestGitLabScan_QueueFolder tests the --queue flag for custom queue location
