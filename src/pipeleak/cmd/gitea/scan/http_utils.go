@@ -12,8 +12,9 @@ import (
 )
 
 type httpResponse struct {
-	Body       []byte
-	StatusCode int
+	Body          []byte
+	StatusCode    int
+	ContentLength int64
 }
 
 func makeHTTPGetRequest(url string) (*httpResponse, error) {
@@ -30,6 +31,8 @@ func makeHTTPGetRequest(url string) (*httpResponse, error) {
 		return nil, fmt.Errorf("HTTP response is nil")
 	}
 
+	contentLength := resp.ContentLength
+
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
 			log.Debug().Err(err).Msg("Failed to close HTTP response body")
@@ -42,8 +45,9 @@ func makeHTTPGetRequest(url string) (*httpResponse, error) {
 	}
 
 	return &httpResponse{
-		Body:       body,
-		StatusCode: resp.StatusCode,
+		Body:          body,
+		StatusCode:    resp.StatusCode,
+		ContentLength: contentLength,
 	}, nil
 }
 

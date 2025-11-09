@@ -635,11 +635,11 @@ func TestDownloadAndScanArtifact(t *testing.T) {
 
 			if tt.expectPanic {
 				assert.Panics(t, func() {
-					downloadAndScanArtifact(nil, tt.repo, tt.run, tt.artifact)
+					downloadAndScanArtifact(tt.repo, tt.run, tt.artifact)
 				})
 			} else {
 				assert.NotPanics(t, func() {
-					downloadAndScanArtifact(nil, tt.repo, tt.run, tt.artifact)
+					downloadAndScanArtifact(tt.repo, tt.run, tt.artifact)
 				})
 			}
 		})
@@ -1218,7 +1218,7 @@ func TestDownloadAndScanArtifact_SuccessfulZipDownload(t *testing.T) {
 	artifact := ActionArtifact{ID: 789, Name: "test-artifact.zip"}
 
 	assert.NotPanics(t, func() {
-		downloadAndScanArtifact(nil, repo, run, artifact)
+		downloadAndScanArtifact(repo, run, artifact)
 	})
 }
 
@@ -1241,7 +1241,7 @@ func TestDownloadAndScanArtifact_302Redirect(t *testing.T) {
 	artifact := ActionArtifact{ID: 789, Name: "test-artifact"}
 
 	assert.NotPanics(t, func() {
-		downloadAndScanArtifact(nil, repo, run, artifact)
+		downloadAndScanArtifact(repo, run, artifact)
 	})
 }
 
@@ -1258,7 +1258,7 @@ func TestDownloadAndScanArtifact_BuildURLError(t *testing.T) {
 	artifact := ActionArtifact{ID: 789, Name: "test"}
 
 	assert.NotPanics(t, func() {
-		downloadAndScanArtifact(nil, repo, run, artifact)
+		downloadAndScanArtifact(repo, run, artifact)
 	})
 }
 

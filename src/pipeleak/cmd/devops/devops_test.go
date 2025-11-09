@@ -80,4 +80,7 @@ func TestNewScanCmd(t *testing.T) {
 	if persistentFlags.Lookup("maxBuilds") == nil {
 		t.Error("Expected 'maxBuilds' persistent flag to exist")
 	}
+	if persistentFlags.Lookup("max-artifact-size") == nil {
+		t.Error("Expected 'max-artifact-size' persistent flag to exist")
+	}
 }

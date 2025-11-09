@@ -38,6 +38,125 @@ func TestBitBucketScan_Artifacts_MissingCookie(t *testing.T) {
 	t.Logf("Output:\n%s", output)
 }
 
+// TestBitBucketScan_MaxArtifactSize tests the --max-artifact-size flag for BitBucket
+func TestBitBucketScan_Artifacts_MaxArtifactSize(t *testing.T) {
+
+	// Create small artifact with secrets
+	var smallArtifactBuf bytes.Buffer
+	smallZipWriter := zip.NewWriter(&smallArtifactBuf)
+	smallFile, _ := smallZipWriter.Create("credentials.txt")
+	_, _ = smallFile.Write([]byte(`WEBHOOK_SECRET=whsec_abcdefghijklmnopqrstuvwxyz123456789012
+DB_PASSWORD=MySecretDBP@ssw0rd!123
+SENDGRID_API_KEY=SG.1234567890abcdefghijklmnopqrstuvwxyz
+`))
+	_ = smallZipWriter.Close()
+
+	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		t.Logf("BitBucket Mock (MaxArtifactSize): %s %s", r.Method, r.URL.Path)
+
+		switch r.URL.Path {
+		case "/2.0/user":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"uuid":         "user-123",
+				"display_name": "Test User",
+			})
+
+		case "/2.0/workspaces":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"values": []map[string]interface{}{{"slug": "test-workspace", "name": "Test Workspace"}},
+			})
+
+		case "/repositories/test-workspace":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"values": []map[string]interface{}{{"slug": "test-repo", "name": "test-repo"}},
+			})
+
+		case "/repositories/test-workspace/test-repo/pipelines":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"values": []map[string]interface{}{{
+					"uuid": "pipeline-123", "build_number": 1, "state": map[string]interface{}{"name": "COMPLETED"},
+				}},
+			})
+
+		case "/repositories/test-workspace/test-repo/pipelines/pipeline-123/steps":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"values": []map[string]interface{}{{"uuid": "step-123", "name": "Build"}},
+			})
+
+		case "/repositories/test-workspace/test-repo/pipelines/pipeline-123/steps/step-123/log":
+			w.Header().Set("Content-Type", "text/plain")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("Build step completed"))
+
+		case "/!api/internal/repositories/test-workspace/test-repo/pipelines/1/steps/step-123/artifacts":
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"values": []map[string]interface{}{
+					{"uuid": "artifact-large", "name": "large.zip", "file_size_bytes": 100 * 1024 * 1024},
+					{"uuid": "artifact-small", "name": "small.zip", "file_size_bytes": 100 * 1024},
+				},
+			})
+
+		case "/!api/internal/repositories/test-workspace/test-repo/pipelines/1/artifacts":
+			// Some Bitbucket instances list artifacts at the pipeline level
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"values": []map[string]interface{}{
+					{"uuid": "artifact-large", "name": "large.zip", "file_size_bytes": 100 * 1024 * 1024},
+					{"uuid": "artifact-small", "name": "small.zip", "file_size_bytes": 100 * 1024},
+				},
+			})
+
+		case "/!api/internal/repositories/test-workspace/test-repo/pipelines/1/artifacts/artifact-large/content":
+			t.Error("Large artifact should not be downloaded")
+			w.Header().Set("Content-Type", "application/zip")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("PK\x03\x04"))
+
+		case "/!api/internal/repositories/test-workspace/test-repo/pipelines/1/artifacts/artifact-small/content":
+			w.Header().Set("Content-Type", "application/zip")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(smallArtifactBuf.Bytes())
+
+		default:
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{})
+		}
+	})
+	defer cleanup()
+
+	stdout, stderr, exitErr := runCLI(t, []string{
+		"bb", "scan",
+		"--bitbucket", server.URL,
+		"--token", "test-token",
+		"--email", "test@example.com",
+		"--cookie", "test-cookie",
+		"--artifacts",
+		"--max-artifact-size", "50Mb",
+		"--workspace", "test-workspace",
+		"--log-level", "debug",
+	}, nil, 15*time.Second)
+
+	assert.Nil(t, exitErr, "BitBucket artifact scan with max-artifact-size should succeed")
+
+	output := stdout + stderr
+	t.Logf("Output:\n%s", output)
+
+	// Verify that large artifact was skipped
+	assert.Contains(t, output, "Skipped large", "Should log skipping of large artifact")
+	assert.Contains(t, output, "large.zip", "Should mention large artifact name")
+
+	// Verify that small artifact was scanned successfully
+	assert.Contains(t, output, "small.zip", "Should process small artifact")
+	assert.Contains(t, output, "HIT", "Should detect secrets in small artifact")
+	assert.Contains(t, output, "credentials.txt", "Should scan credentials file in small artifact")
+}
 func TestBitBucketScan_Artifacts_WithDotEnv(t *testing.T) {
 
 	server, getRequests, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {

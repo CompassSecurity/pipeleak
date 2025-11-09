@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
 	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	artifactproc "github.com/CompassSecurity/pipeleak/pkg/scan/artifact"
@@ -38,12 +39,14 @@ type GitHubScanOptions struct {
 	Artifacts              bool
 	GitHubURL              string
 	Repo                   string
+	MaxArtifactSize        int64
 	Context                context.Context
 	Client                 *github.Client
 	HttpClient             *retryablehttp.Client
 }
 
 var options = GitHubScanOptions{}
+var maxArtifactSize string
 
 func NewScanCmd() *cobra.Command {
 	scanCmd := &cobra.Command{
@@ -82,6 +85,7 @@ pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --repo owner/repo
 	scanCmd.PersistentFlags().BoolVarP(&options.TruffleHogVerification, "truffleHogVerification", "", true, "Enable the TruffleHog credential verification, will actively test the found credentials and only report those. Disable with --truffleHogVerification=false")
 	scanCmd.PersistentFlags().IntVarP(&options.MaxWorkflows, "maxWorkflows", "", -1, "Max. number of workflows to scan per repository")
 	scanCmd.PersistentFlags().BoolVarP(&options.Artifacts, "artifacts", "a", false, "Scan workflow artifacts")
+	scanCmd.PersistentFlags().StringVarP(&maxArtifactSize, "max-artifact-size", "", "500Mb", "Max file size of an artifact to be included in scanning. Larger files are skipped. Format: https://pkg.go.dev/github.com/docker/go-units#FromHumanSize")
 	scanCmd.Flags().StringVarP(&options.Organization, "org", "", "", "GitHub organization name to scan")
 	scanCmd.Flags().StringVarP(&options.User, "user", "", "", "GitHub user name to scan")
 	scanCmd.PersistentFlags().BoolVarP(&options.Owned, "owned", "", false, "Scan user onwed projects only")
@@ -96,6 +100,12 @@ pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --repo owner/repo
 
 func Scan(cmd *cobra.Command, args []string) {
 	go logging.ShortcutListeners(scanStatus)
+
+	byteSize, err := format.ParseHumanSize(maxArtifactSize)
+	if err != nil {
+		log.Fatal().Err(err).Str("size", maxArtifactSize).Msg("Failed parsing max-artifact-size flag")
+	}
+	options.MaxArtifactSize = byteSize
 
 	options.Context = context.WithValue(context.Background(), github.BypassRateLimitCheck, true)
 	options.Client = setupClient(options.AccessToken, options.GitHubURL)
@@ -527,6 +537,15 @@ func listArtifacts(client *github.Client, workflowRun *github.WorkflowRun) {
 }
 
 func analyzeArtifact(client *github.Client, workflowRun *github.WorkflowRun, artifact *github.Artifact) {
+	if artifact.SizeInBytes != nil && *artifact.SizeInBytes > options.MaxArtifactSize {
+		log.Debug().
+			Int64("bytes", *artifact.SizeInBytes).
+			Int64("maxBytes", options.MaxArtifactSize).
+			Str("name", *artifact.Name).
+			Str("url", *workflowRun.HTMLURL).
+			Msg("Skipped large artifact")
+		return
+	}
 
 	url, resp, err := client.Actions.DownloadArtifact(options.Context, *workflowRun.Repository.Owner.Login, *workflowRun.Repository.Name, *artifact.ID, 5)
 
