@@ -69,13 +69,13 @@ SENDGRID_API_KEY=SG.1234567890abcdefghijklmnopqrstuvwxyz
 				"values": []map[string]interface{}{{"slug": "test-workspace", "name": "Test Workspace"}},
 			})
 
-		case "/2.0/repositories/test-workspace":
+		case "/repositories/test-workspace":
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
-				"values": []map[string]interface{}{{"slug": "test-repo", "name": "Test Repo"}},
+				"values": []map[string]interface{}{{"slug": "test-repo", "name": "test-repo"}},
 			})
 
-		case "/2.0/repositories/test-workspace/test-repo/pipelines/":
+		case "/repositories/test-workspace/test-repo/pipelines":
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"values": []map[string]interface{}{{
@@ -83,13 +83,18 @@ SENDGRID_API_KEY=SG.1234567890abcdefghijklmnopqrstuvwxyz
 				}},
 			})
 
-		case "/2.0/repositories/test-workspace/test-repo/pipelines/pipeline-123/steps/":
+		case "/repositories/test-workspace/test-repo/pipelines/pipeline-123/steps":
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"values": []map[string]interface{}{{"uuid": "step-123", "name": "Build"}},
 			})
 
-		case "/internal/workspaces/test-workspace/repositories/test-repo/pipelines/1/steps/step-123/artifacts":
+		case "/repositories/test-workspace/test-repo/pipelines/pipeline-123/steps/step-123/log":
+			w.Header().Set("Content-Type", "text/plain")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("Build step completed"))
+
+		case "/!api/internal/repositories/test-workspace/test-repo/pipelines/1/steps/step-123/artifacts":
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"values": []map[string]interface{}{
@@ -98,13 +103,23 @@ SENDGRID_API_KEY=SG.1234567890abcdefghijklmnopqrstuvwxyz
 				},
 			})
 
-		case "/internal/workspaces/test-workspace/repositories/test-repo/pipelines/1/steps/step-123/artifacts/artifact-large":
+		case "/!api/internal/repositories/test-workspace/test-repo/pipelines/1/artifacts":
+			// Some Bitbucket instances list artifacts at the pipeline level
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"values": []map[string]interface{}{
+					{"uuid": "artifact-large", "name": "large.zip", "file_size_bytes": 100 * 1024 * 1024},
+					{"uuid": "artifact-small", "name": "small.zip", "file_size_bytes": 100 * 1024},
+				},
+			})
+
+		case "/!api/internal/repositories/test-workspace/test-repo/pipelines/1/artifacts/artifact-large/content":
 			t.Error("Large artifact should not be downloaded")
 			w.Header().Set("Content-Type", "application/zip")
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte("PK\x03\x04"))
 
-		case "/internal/workspaces/test-workspace/repositories/test-repo/pipelines/1/steps/step-123/artifacts/artifact-small":
+		case "/!api/internal/repositories/test-workspace/test-repo/pipelines/1/artifacts/artifact-small/content":
 			w.Header().Set("Content-Type", "application/zip")
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write(smallArtifactBuf.Bytes())

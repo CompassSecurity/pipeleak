@@ -168,22 +168,36 @@ OAUTH_CLIENT_SECRET=oauth_secret_ABCDEFGHIJKLMNOPQRSTUVWXYZ123456
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
 				{
-					"id":   3000,
-					"name": "large-artifact-job",
+					"id":      3000,
+					"name":    "large-artifact-job",
+					"status":  "success",
+					"web_url": "http://" + r.Host + "/project/-/jobs/3000",
 					"artifacts_file": map[string]interface{}{
 						"filename": "large.zip",
 						"size":     1024 * 1024 * 100, // 100MB
 					},
 				},
 				{
-					"id":   3001,
-					"name": "small-artifact-job",
+					"id":      3001,
+					"name":    "small-artifact-job",
+					"status":  "success",
+					"web_url": "http://" + r.Host + "/project/-/jobs/3001",
 					"artifacts_file": map[string]interface{}{
 						"filename": "small.zip",
 						"size":     1024 * 100, // 100KB
 					},
 				},
 			})
+
+		case "/api/v4/projects/1/jobs/3000/trace":
+			w.Header().Set("Content-Type", "text/plain")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("Job 3000 build log"))
+
+		case "/api/v4/projects/1/jobs/3001/trace":
+			w.Header().Set("Content-Type", "text/plain")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("Job 3001 build log"))
 
 		case "/api/v4/projects/1/jobs/3000/artifacts":
 			t.Error("Large artifact should not be downloaded")
@@ -195,9 +209,33 @@ OAUTH_CLIENT_SECRET=oauth_secret_ABCDEFGHIJKLMNOPQRSTUVWXYZ123456
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write(smallArtifactBuf.Bytes())
 
-		default:
+		case "/api/v4/projects/1/jobs":
+			// ListProjectJobs endpoint (not pipeline-specific)
 			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode(map[string]interface{}{})
+			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
+				{
+					"id":       3000,
+					"name":     "large-artifact-job",
+					"status":   "success",
+					"web_url":  "http://" + r.Host + "/project/-/jobs/3000",
+					"pipeline": map[string]interface{}{"id": 300},
+					"artifacts_file": map[string]interface{}{
+						"filename": "large.zip",
+						"size":     1024 * 1024 * 100, // 100MB
+					},
+				},
+				{
+					"id":       3001,
+					"name":     "small-artifact-job",
+					"status":   "success",
+					"web_url":  "http://" + r.Host + "/project/-/jobs/3001",
+					"pipeline": map[string]interface{}{"id": 300},
+					"artifacts_file": map[string]interface{}{
+						"filename": "small.zip",
+						"size":     1024 * 100, // 100KB
+					},
+				},
+			})
 		}
 	})
 	defer cleanup()
