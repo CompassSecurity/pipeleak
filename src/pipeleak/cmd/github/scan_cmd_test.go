@@ -59,6 +59,9 @@ func TestNewScanCmd(t *testing.T) {
 	if flags.Lookup("search") == nil {
 		t.Error("Expected 'search' flag to exist")
 	}
+	if flags.Lookup("repo") == nil {
+		t.Error("Expected 'repo' flag to exist")
+	}
 	if flags.Lookup("github") == nil {
 		t.Error("Expected 'github' flag to exist")
 	}
@@ -115,5 +118,94 @@ func TestGitHubScanOptions(t *testing.T) {
 	}
 	if opts.GitHubURL != "https://api.github.com" {
 		t.Errorf("Expected GitHubURL 'https://api.github.com', got %q", opts.GitHubURL)
+	}
+}
+
+func TestValidateRepoFormat(t *testing.T) {
+	tests := []struct {
+		name        string
+		repo        string
+		wantOwner   string
+		wantName    string
+		wantValid   bool
+	}{
+		{
+			name:      "valid repo format",
+			repo:      "owner/repo",
+			wantOwner: "owner",
+			wantName:  "repo",
+			wantValid: true,
+		},
+		{
+			name:      "valid repo with hyphen",
+			repo:      "my-org/my-repo",
+			wantOwner: "my-org",
+			wantName:  "my-repo",
+			wantValid: true,
+		},
+		{
+			name:      "valid repo with underscore",
+			repo:      "my_org/my_repo",
+			wantOwner: "my_org",
+			wantName:  "my_repo",
+			wantValid: true,
+		},
+		{
+			name:      "invalid - missing owner",
+			repo:      "/repo",
+			wantOwner: "",
+			wantName:  "",
+			wantValid: false,
+		},
+		{
+			name:      "invalid - missing repo",
+			repo:      "owner/",
+			wantOwner: "",
+			wantName:  "",
+			wantValid: false,
+		},
+		{
+			name:      "invalid - no slash",
+			repo:      "ownerrepo",
+			wantOwner: "",
+			wantName:  "",
+			wantValid: false,
+		},
+		{
+			name:      "invalid - multiple slashes",
+			repo:      "owner/repo/extra",
+			wantOwner: "",
+			wantName:  "",
+			wantValid: false,
+		},
+		{
+			name:      "invalid - empty string",
+			repo:      "",
+			wantOwner: "",
+			wantName:  "",
+			wantValid: false,
+		},
+		{
+			name:      "invalid - only slash",
+			repo:      "/",
+			wantOwner: "",
+			wantName:  "",
+			wantValid: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotOwner, gotName, gotValid := validateRepoFormat(tt.repo)
+			if gotOwner != tt.wantOwner {
+				t.Errorf("validateRepoFormat() gotOwner = %v, want %v", gotOwner, tt.wantOwner)
+			}
+			if gotName != tt.wantName {
+				t.Errorf("validateRepoFormat() gotName = %v, want %v", gotName, tt.wantName)
+			}
+			if gotValid != tt.wantValid {
+				t.Errorf("validateRepoFormat() gotValid = %v, want %v", gotValid, tt.wantValid)
+			}
+		})
 	}
 }

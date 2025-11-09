@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/CompassSecurity/pipeleak/pkg/format"
@@ -37,6 +38,7 @@ type GitHubScanOptions struct {
 	SearchQuery            string
 	Artifacts              bool
 	GitHubURL              string
+	Repo                   string
 	MaxArtifactSize        int64
 	Context                context.Context
 	Client                 *github.Client
@@ -66,6 +68,9 @@ pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --maxWorkflows 10 --
 
 # Scan repositories of a user
 pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --user firefart
+
+# Scan a single repository
+pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --repo owner/repo
 		`,
 		Run: Scan,
 	}
@@ -86,8 +91,9 @@ pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --user firefart
 	scanCmd.PersistentFlags().BoolVarP(&options.Owned, "owned", "", false, "Scan user onwed projects only")
 	scanCmd.PersistentFlags().BoolVarP(&options.Public, "public", "p", false, "Scan all public repositories")
 	scanCmd.Flags().StringVarP(&options.SearchQuery, "search", "s", "", "GitHub search query")
+	scanCmd.Flags().StringVarP(&options.Repo, "repo", "r", "", "Scan a single repository in the format owner/repo")
 	scanCmd.Flags().StringVarP(&options.GitHubURL, "github", "g", "https://api.github.com", "GitHub API base URL")
-	scanCmd.MarkFlagsMutuallyExclusive("owned", "org", "user", "public", "search")
+	scanCmd.MarkFlagsMutuallyExclusive("owned", "org", "user", "public", "search", "repo")
 
 	return scanCmd
 }
@@ -135,25 +141,26 @@ func setupClient(accessToken string, baseURL string) *github.Client {
 }
 
 func scan(client *github.Client) {
-	if options.Owned {
+	runner.InitScanner(options.ConfidenceFilter)
+	
+	if options.Repo != "" {
+		log.Info().Str("repository", options.Repo).Msg("Scanning single repository")
+		scanSingleRepository(client, options.Repo)
+	} else if options.Owned {
 		log.Info().Msg("Scanning authenticated user's owned repositories actions")
+		scanRepositories(client)
 	} else if options.User != "" {
 		log.Info().Str("users", options.User).Msg("Scanning user's repositories actions")
+		scanRepositories(client)
 	} else if options.SearchQuery != "" {
 		log.Info().Str("query", options.SearchQuery).Msg("Searching repositories")
+		searchRepositories(client, options.SearchQuery)
 	} else if options.Public {
 		log.Info().Msg("Scanning most recent public repositories")
-	} else {
-		log.Info().Str("organization", options.Organization).Msg("Scanning organization repositories actions")
-	}
-
-	runner.InitScanner(options.ConfidenceFilter)
-	if options.Public {
 		id := identifyNewestPublicProjectId(client)
 		scanAllPublicRepositories(client, id)
-	} else if options.SearchQuery != "" {
-		searchRepositories(client, options.SearchQuery)
 	} else {
+		log.Info().Str("organization", options.Organization).Msg("Scanning organization repositories actions")
 		scanRepositories(client)
 	}
 }
@@ -262,6 +269,32 @@ func scanRepositories(client *github.Client) {
 	} else {
 		scanAuthenticatedUserRepositories(client, options.Owned)
 	}
+}
+
+func validateRepoFormat(repo string) (owner, name string, valid bool) {
+	parts := strings.Split(repo, "/")
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", "", false
+	}
+	return parts[0], parts[1], true
+}
+
+func scanSingleRepository(client *github.Client, repoFullName string) {
+	owner, name, valid := validateRepoFormat(repoFullName)
+	if !valid {
+		log.Fatal().Str("repo", repoFullName).Msg("Invalid repository format. Expected: owner/repo")
+	}
+
+	repo, resp, err := client.Repositories.Get(options.Context, owner, name)
+	if resp != nil && resp.StatusCode == 404 {
+		log.Fatal().Str("repo", repoFullName).Msg("Repository not found")
+	}
+	if err != nil {
+		log.Fatal().Stack().Err(err).Str("repo", repoFullName).Msg("Failed fetching repository")
+	}
+
+	log.Debug().Str("name", *repo.Name).Str("url", *repo.HTMLURL).Msg("Scan")
+	iterateWorkflowRuns(client, repo)
 }
 
 func scanOrgRepositories(client *github.Client, organization string) {
