@@ -92,3 +92,21 @@ func TestSetGlobalLogLevel_Invalid(t *testing.T) {
 		t.Errorf("Expected InfoLevel for invalid, got %v", zerolog.GlobalLevel())
 	}
 }
+
+func TestGlobalColorFlagRegistered(t *testing.T) {
+	flag := rootCmd.PersistentFlags().Lookup("color")
+	if flag == nil {
+		t.Fatal("Global color flag not registered")
+	}
+
+	if flag.DefValue != "true" {
+		t.Errorf("Expected default value 'true' for color flag, got %s", flag.DefValue)
+	}
+}
+
+func TestGlobalLogFileFlagRegistered(t *testing.T) {
+	flag := rootCmd.PersistentFlags().Lookup("logfile")
+	if flag == nil {
+		t.Fatal("Global logfile flag not registered")
+	}
+}

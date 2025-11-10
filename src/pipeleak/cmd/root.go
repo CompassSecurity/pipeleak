@@ -25,7 +25,7 @@ var (
 		Long:    "Pipeleak is a tool designed to scan CI/CD job output logs and artifacts for potential secrets.",
 		Example: "pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			initLogger()
+			initLogger(cmd)
 			setGlobalLogLevel(cmd)
 		},
 	}
@@ -49,10 +49,10 @@ func init() {
 	rootCmd.AddCommand(gitea.NewGiteaRootCmd())
 	rootCmd.AddCommand(docs.NewDocsCmd(rootCmd))
 	rootCmd.PersistentFlags().BoolVarP(&JsonLogoutput, "json", "", false, "Use JSON as log output format")
-	rootCmd.PersistentFlags().BoolVarP(&LogColor, "coloredLog", "", true, "Output the human-readable log in color")
 	rootCmd.PersistentFlags().StringVarP(&LogFile, "logfile", "l", "", "Log output to a file")
 	rootCmd.PersistentFlags().BoolVarP(&LogDebug, "verbose", "v", false, "Enable debug logging (shortcut for --log-level=debug)")
 	rootCmd.PersistentFlags().StringVar(&LogLevel, "log-level", "", "Set log level globally (debug, info, warn, error). Example: --log-level=warn")
+	rootCmd.PersistentFlags().BoolVar(&LogColor, "color", true, "Enable colored log output (auto-disabled when using --logfile)")
 
 	rootCmd.AddGroup(&cobra.Group{ID: "GitHub", Title: "GitHub Commands"})
 	rootCmd.AddGroup(&cobra.Group{ID: "GitLab", Title: "GitLab Commands"})
@@ -92,8 +92,10 @@ func (cw *CustomWriter) Write(p []byte) (n int, err error) {
 	return originalLen, nil
 }
 
-func initLogger() {
+func initLogger(cmd *cobra.Command) {
 	defaultOut := &CustomWriter{Writer: os.Stdout}
+	colorEnabled := LogColor
+
 	if LogFile != "" {
 		runLogFile, err := os.OpenFile(
 			LogFile,
@@ -104,12 +106,17 @@ func initLogger() {
 			panic(err)
 		}
 		defaultOut = &CustomWriter{Writer: runLogFile}
+
+		rootFlags := cmd.Root().PersistentFlags()
+		if !rootFlags.Changed("color") {
+			colorEnabled = false
+		}
 	}
 
 	if JsonLogoutput {
 		log.Logger = zerolog.New(defaultOut).With().Timestamp().Logger()
 	} else {
-		output := zerolog.ConsoleWriter{Out: defaultOut, TimeFormat: time.RFC3339, NoColor: !LogColor}
+		output := zerolog.ConsoleWriter{Out: defaultOut, TimeFormat: time.RFC3339, NoColor: !colorEnabled}
 		log.Logger = zerolog.New(output).With().Timestamp().Logger()
 	}
 }
