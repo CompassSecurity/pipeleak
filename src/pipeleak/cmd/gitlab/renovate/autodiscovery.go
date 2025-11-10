@@ -120,7 +120,7 @@ pipeleak gl renovate autodiscovery --token glpat-xxxxxxxxxxx --gitlab https://gi
     `,
 		Run: Generate,
 	}
-	autodiscoveryCmd.Flags().StringVarP(&repoName, "repoName", "r", "", "The name for the created repository")
+	autodiscoveryCmd.Flags().StringVarP(&repoName, "repo-name", "r", "", "The name for the created repository")
 	autodiscoveryCmd.Flags().StringVarP(&username, "username", "u", "", "The username of the victim Renovate Bot user to invite")
 
 	return autodiscoveryCmd

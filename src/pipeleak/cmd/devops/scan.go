@@ -74,8 +74,8 @@ pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization
 
 	scanCmd.Flags().StringSliceVarP(&options.ConfidenceFilter, "confidence", "", []string{}, "Filter for confidence level, separate by comma if multiple. See readme for more info.")
 	scanCmd.PersistentFlags().IntVarP(&options.MaxScanGoRoutines, "threads", "", 4, "Nr of threads used to scan")
-	scanCmd.PersistentFlags().BoolVarP(&options.TruffleHogVerification, "truffleHogVerification", "", true, "Enable the TruffleHog credential verification, will actively test the found credentials and only report those. Disable with --truffleHogVerification=false")
-	scanCmd.PersistentFlags().IntVarP(&options.MaxBuilds, "maxBuilds", "", -1, "Max. number of builds to scan per project")
+	scanCmd.PersistentFlags().BoolVarP(&options.TruffleHogVerification, "truffle-hog-verification", "", true, "Enable the TruffleHog credential verification, will actively test the found credentials and only report those. Disable with --truffle-hog-verification=false")
+	scanCmd.PersistentFlags().IntVarP(&options.MaxBuilds, "max-builds", "", -1, "Max. number of builds to scan per project")
 	scanCmd.PersistentFlags().BoolVarP(&options.Artifacts, "artifacts", "a", false, "Scan workflow artifacts")
 	scanCmd.PersistentFlags().StringVarP(&maxArtifactSize, "max-artifact-size", "", "500Mb", "Max file size of an artifact to be included in scanning. Larger files are skipped. Format: https://pkg.go.dev/github.com/docker/go-units#FromHumanSize")
 	scanCmd.Flags().StringVarP(&options.Organization, "organization", "o", "", "Organization name to scan")

@@ -572,7 +572,7 @@ func TestGiteaScan_TruffleHogVerification(t *testing.T) {
 		},
 		{
 			name: "verification_disabled",
-			args: []string{"gitea", "scan", "--gitea", server.URL, "--token", "test", "--truffleHogVerification=false"},
+			args: []string{"gitea", "scan", "--gitea", server.URL, "--token", "test", "--truffle-hog-verification=false"},
 		},
 	}
 

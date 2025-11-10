@@ -389,7 +389,7 @@ func TestGitHubScan_MaxWorkflows(t *testing.T) {
 		"--github", server.URL,
 		"--token", "ghp_test_token",
 		"--owned",
-		"--maxWorkflows", "2",
+		"--max-workflows", "2",
 	}, nil, 15*time.Second)
 
 	assert.Nil(t, exitErr, "Max workflows scan should succeed")

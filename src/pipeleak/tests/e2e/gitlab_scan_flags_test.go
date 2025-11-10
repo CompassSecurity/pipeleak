@@ -363,7 +363,7 @@ Job complete`
 		"gl", "scan",
 		"--gitlab", server.URL,
 		"--token", "glpat-test-token",
-		"--truffleHogVerification=false",
+		"--truffle-hog-verification=false",
 		"--job-limit", "1",
 	}, nil, 15*time.Second)
 

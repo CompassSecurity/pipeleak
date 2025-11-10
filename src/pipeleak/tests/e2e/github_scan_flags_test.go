@@ -259,7 +259,7 @@ func TestGitHubScan_PublicRepositories(t *testing.T) {
 		"--github", server.URL,
 		"--token", "ghp_test_token",
 		"--public",
-		"--maxWorkflows", "1", // Limit workflows to avoid long test runs
+		"--max-workflows", "1", // Limit workflows to avoid long test runs
 	}, nil, 20*time.Second)
 
 	assert.Nil(t, exitErr, "Public repos scan should succeed")
@@ -388,7 +388,7 @@ func TestGitHubScan_TruffleHogVerificationDisabled(t *testing.T) {
 		"--github", server.URL,
 		"--token", "ghp_test_token",
 		"--owned",
-		"--truffleHogVerification=false",
+		"--truffle-hog-verification=false",
 	}, nil, 15*time.Second)
 
 	assert.Nil(t, exitErr, "Scan with TruffleHog verification disabled should succeed")
