@@ -182,7 +182,7 @@ func TestInitLogger_FileOutputWithExplicitColor(t *testing.T) {
 		Use: "test",
 	}
 	testCmd.PersistentFlags().BoolVar(&LogColor, "color", true, "Enable colored log output")
-	testCmd.PersistentFlags().Set("color", "true") // Explicitly set
+	_ = testCmd.PersistentFlags().Set("color", "true") // Explicitly set
 
 	// This should respect the explicit color=true even with logfile
 	initLogger(testCmd)
