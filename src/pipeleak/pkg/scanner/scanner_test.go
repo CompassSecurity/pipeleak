@@ -38,7 +38,7 @@ func TestPatternElementTypeAlias(t *testing.T) {
 	assert.Equal(t, "AKIA[0-9A-Z]{16}", pattern.Pattern.Regex)
 }
 
-func TestSecretsPatterns TypeAlias(t *testing.T) {
+func TestSecretsPatternsTypeAlias(t *testing.T) {
 	patterns := SecretsPatterns{
 		Patterns: []PatternElement{
 			{
