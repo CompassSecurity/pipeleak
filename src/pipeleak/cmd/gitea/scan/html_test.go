@@ -643,7 +643,7 @@ func TestScanArtifactsWithCookie_WithArtifacts(t *testing.T) {
 		scanArtifactsWithCookie(repo, runID, runURL)
 	})
 	
-	// Verify the function attempted to fetch artifacts
+
 	assert.GreaterOrEqual(t, issuesCallCount+jobsCallCount+artifactCallCount, 1, "Should make HTTP requests to fetch artifacts")
 }
 
@@ -679,6 +679,6 @@ func TestScanArtifactsWithCookie_FetchError(t *testing.T) {
 		scanArtifactsWithCookie(repo, runID, runURL)
 	})
 	
-	// Verify function attempted to fetch data and handled errors gracefully
+
 	assert.GreaterOrEqual(t, issuesCallCount+errorCallCount, 1, "Should make at least one HTTP request")
 }

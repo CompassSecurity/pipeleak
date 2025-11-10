@@ -416,10 +416,10 @@ func TestLogHTTPError(t *testing.T) {
 				logHTTPError(tt.statusCode, tt.operation, tt.ctx)
 			})
 			
-			// Verify log output contains status code
+
 			output := buf.String()
 			assert.Contains(t, output, tt.operation, "Log should contain operation name")
-			// Note: Status code is logged as integer, so we just verify logging occurred
+
 			assert.NotEmpty(t, output, "Should have logged error information")
 		})
 	}

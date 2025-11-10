@@ -71,7 +71,6 @@ func TestDetermineFileAction(t *testing.T) {
 }
 
 func TestLogFinding(t *testing.T) {
-	// Capture log output for verification
 	var buf bytes.Buffer
 	oldLogger := log.Logger
 	log.Logger = zerolog.New(&buf).With().Timestamp().Logger()
@@ -129,12 +128,10 @@ func TestLogFinding(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			buf.Reset()
 			
-			// Execute the function
 			assert.NotPanics(t, func() {
 				logFinding(tt.finding, tt.repoFullName, tt.runID, tt.jobID, tt.jobName, tt.url)
 			})
 
-			// Verify log output contains expected strings
 			output := buf.String()
 			for _, expected := range tt.expectInLog {
 				assert.Contains(t, output, expected, "Expected log to contain %q", expected)
@@ -204,7 +201,6 @@ func TestProcessZipArtifact(t *testing.T) {
 				Name:    "Test Run",
 			}
 
-			// Execute - should not panic
 			assert.NotPanics(t, func() {
 				processZipArtifact(tt.zipContent, repo, run, tt.artifactName)
 			})
@@ -216,7 +212,6 @@ func TestProcessZipArtifact_NilRepo(t *testing.T) {
 	zipContent := []byte("test")
 	run := ActionWorkflowRun{ID: 123}
 
-	// Execute - should handle nil gracefully
 	assert.NotPanics(t, func() {
 		processZipArtifact(zipContent, nil, run, "test-artifact")
 	})
@@ -226,7 +221,6 @@ func TestScanLogs_NilRepo(t *testing.T) {
 	logBytes := []byte("test log content")
 	run := ActionWorkflowRun{ID: 123}
 
-	// Execute - should handle nil gracefully
 	assert.NotPanics(t, func() {
 		scanLogs(logBytes, nil, run, 456, "test-job")
 	})
@@ -243,7 +237,6 @@ func TestScanLogs_EmptyLogs(t *testing.T) {
 		HTMLURL: "https://gitea.example.com/owner/repo/actions/runs/123",
 	}
 
-	// Execute - should not panic
 	assert.NotPanics(t, func() {
 		scanLogs(logBytes, repo, run, 456, "test-job")
 	})
@@ -322,11 +315,9 @@ func TestScanArtifactContent(t *testing.T) {
 }
 
 func TestProcessZipArtifact_ConcurrentFileProcessing(t *testing.T) {
-	// Create a zip with multiple files to test concurrent processing
 	buf := new(bytes.Buffer)
 	w := zip.NewWriter(buf)
 
-	// Add multiple files
 	for i := 1; i <= 10; i++ {
 		f, _ := w.Create(string(rune('a'+i-1)) + ".txt")
 		_, _ = f.Write([]byte("content " + string(rune('0'+i))))
@@ -346,7 +337,6 @@ func TestProcessZipArtifact_ConcurrentFileProcessing(t *testing.T) {
 		Name:    "Test Run",
 	}
 
-	// Execute - should process all files concurrently without panic
 	assert.NotPanics(t, func() {
 		processZipArtifact(buf.Bytes(), repo, run, "concurrent-test-artifact")
 	})

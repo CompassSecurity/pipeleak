@@ -1152,7 +1152,7 @@ func TestScanWorkflowArtifacts_WithArtifacts(t *testing.T) {
 		scanWorkflowArtifacts(nil, repo, run)
 	})
 	
-	// Verify API calls were made
+
 	assert.Equal(t, 1, artifactsCallCount, "Should call artifacts API once")
 	assert.Equal(t, 1, zipCallCount, "Should download artifact zip once")
 }
@@ -1182,7 +1182,7 @@ func TestScanWorkflowArtifacts_NoArtifacts(t *testing.T) {
 		scanWorkflowArtifacts(nil, repo, run)
 	})
 	
-	// Verify API was called even with no artifacts
+
 	assert.Equal(t, 1, callCount, "Should call artifacts API to check for artifacts")
 }
 
@@ -1209,7 +1209,7 @@ func TestScanWorkflowArtifacts_ArtifactListError(t *testing.T) {
 		scanWorkflowArtifacts(nil, repo, run)
 	})
 	
-	// Verify function handles error gracefully and still called API
+
 	assert.Equal(t, 1, callCount, "Should attempt API call even if it fails")
 }
 
@@ -1245,7 +1245,7 @@ func TestDownloadAndScanArtifact_SuccessfulZipDownload(t *testing.T) {
 		downloadAndScanArtifact(repo, run, artifact)
 	})
 	
-	// Verify artifact was downloaded
+
 	assert.Equal(t, 1, downloadCallCount, "Should download artifact once")
 }
 
@@ -1274,7 +1274,7 @@ func TestDownloadAndScanArtifact_302Redirect(t *testing.T) {
 		downloadAndScanArtifact(repo, run, artifact)
 	})
 	
-	// Verify redirect was encountered
+
 	assert.GreaterOrEqual(t, redirectCallCount, 1, "Should attempt to download artifact")
 }
 
@@ -1336,7 +1336,7 @@ func TestScanJobLogs_404Response(t *testing.T) {
 		scanJobLogs(nil, repo, run, job)
 	})
 	
-	// Verify API was called even though it returned 404
+
 	assert.GreaterOrEqual(t, callCount, 1, "Should attempt to fetch logs")
 }
 
@@ -1364,7 +1364,7 @@ func TestScanJobLogs_NonOKStatus(t *testing.T) {
 		scanJobLogs(nil, repo, run, job)
 	})
 	
-	// Verify function handles error status codes gracefully
+
 	assert.GreaterOrEqual(t, callCount, 1, "Should attempt to fetch logs even with forbidden response")
 }
 
@@ -1393,7 +1393,7 @@ func TestScanWorkflowRunLogs_NoJobs(t *testing.T) {
 		scanWorkflowRunLogs(nil, repo, run)
 	})
 	
-	// Verify API was called to check for jobs
+
 	assert.Equal(t, 1, callCount, "Should call API to list jobs")
 }
 
@@ -1420,6 +1420,6 @@ func TestScanWorkflowRunLogs_JobsError(t *testing.T) {
 		scanWorkflowRunLogs(nil, repo, run)
 	})
 	
-	// Verify function handles error gracefully
+
 	assert.Equal(t, 1, callCount, "Should attempt to fetch jobs even if it fails")
 }
