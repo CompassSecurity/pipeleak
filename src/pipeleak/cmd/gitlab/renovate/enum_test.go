@@ -126,18 +126,40 @@ func TestValidateOrderBy(t *testing.T) {
 		{"accepts star_count", "star_count", false},
 		{"accepts last_activity_at", "last_activity_at", false},
 		{"accepts similarity", "similarity", false},
+		// Invalid cases commented out because validateOrderBy calls log.Fatal()
+		// which terminates the test process. In production code, these would fail:
+		// {"rejects invalid", "invalid", true},
+		// {"rejects empty", "", true},
+		// {"rejects random", "random_value", true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// validateOrderBy calls log.Fatal on invalid input
-			// Since we can't easily test log.Fatal without restructuring,
-			// we'll just verify valid inputs don't panic
+			// We can only test valid inputs don't panic
 			if !tt.shouldFail {
 				assert.NotPanics(t, func() {
 					validateOrderBy(tt.orderBy)
-				})
+				}, "Valid orderBy values should not panic")
 			}
+			// Note: Invalid cases cannot be tested without refactoring validateOrderBy
+			// to return an error instead of calling log.Fatal()
+		})
+	}
+}
+
+// TestValidOrderByValues verifies all allowed values are accepted
+func TestValidOrderByValues(t *testing.T) {
+	validValues := []string{
+		"id", "name", "path", "created_at", 
+		"updated_at", "star_count", "last_activity_at", "similarity",
+	}
+	
+	for _, value := range validValues {
+		t.Run("validates_"+value, func(t *testing.T) {
+			assert.NotPanics(t, func() {
+				validateOrderBy(value)
+			}, "orderBy=%s should be valid", value)
 		})
 	}
 }

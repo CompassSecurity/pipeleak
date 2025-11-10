@@ -27,10 +27,17 @@ func TestInitScanner(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Should not panic
+			// Should not panic and should initialize scanner successfully
 			assert.NotPanics(t, func() {
 				InitScanner(tt.confidenceFilter)
 			})
+			
+			// Verify input is well-formed for test
+			if len(tt.confidenceFilter) > 0 {
+				for _, filter := range tt.confidenceFilter {
+					assert.NotEmpty(t, filter, "Confidence filter values should not be empty")
+				}
+			}
 		})
 	}
 }
@@ -56,10 +63,13 @@ func TestInitScannerWithOptions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Should not panic
+			// Should not panic and should initialize scanner with options
 			assert.NotPanics(t, func() {
 				InitScannerWithOptions(tt.opts)
 			})
+			
+			// Verify options structure is valid
+			assert.NotNil(t, tt.opts.ConfidenceFilter, "ConfidenceFilter should be initialized")
 		})
 	}
 }

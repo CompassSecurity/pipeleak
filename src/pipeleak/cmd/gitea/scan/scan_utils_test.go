@@ -7,6 +7,9 @@ import (
 	"testing"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/CompassSecurity/pipeleak/pkg/scanner"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -68,42 +71,74 @@ func TestDetermineFileAction(t *testing.T) {
 }
 
 func TestLogFinding(t *testing.T) {
-	// This test primarily ensures the function doesn't panic
-	// In production, you'd want to capture and verify log output
+	// Capture log output for verification
+	var buf bytes.Buffer
+	oldLogger := log.Logger
+	log.Logger = zerolog.New(&buf).With().Timestamp().Logger()
+	defer func() { log.Logger = oldLogger }()
+
 	tests := []struct {
 		name         string
+		finding      scanner.Finding
 		repoFullName string
 		runID        int64
 		jobID        int64
 		jobName      string
 		url          string
+		expectInLog  []string
 	}{
 		{
-			name:         "complete finding info",
+			name: "complete finding info",
+			finding: scanner.Finding{
+				Pattern: scanner.PatternElement{
+					Pattern: scanner.PatternPattern{
+						Name:       "Test Secret",
+						Confidence: "high",
+					},
+				},
+				Text: "secret_value_123",
+			},
 			repoFullName: "owner/repo",
 			runID:        123,
 			jobID:        456,
 			jobName:      "test-job",
 			url:          "https://gitea.example.com/owner/repo/actions/runs/123",
+			expectInLog:  []string{"Test Secret", "high", "owner/repo", "test-job", "secret_value_123"},
 		},
 		{
-			name:         "finding without job info",
+			name: "finding without job info",
+			finding: scanner.Finding{
+				Pattern: scanner.PatternElement{
+					Pattern: scanner.PatternPattern{
+						Name:       "AWS Key",
+						Confidence: "medium",
+					},
+				},
+				Text: "AKIAIOSFODNN7EXAMPLE",
+			},
 			repoFullName: "owner/repo",
 			runID:        123,
 			jobID:        0,
 			jobName:      "",
 			url:          "https://gitea.example.com/owner/repo/actions/runs/123",
+			expectInLog:  []string{"AWS Key", "medium", "owner/repo", "AKIAIOSFODNN7EXAMPLE"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// This test verifies the function doesn't panic
+			buf.Reset()
+			
+			// Execute the function
 			assert.NotPanics(t, func() {
-				// Note: In a real test, you'd mock the scanner.Finding struct
-				// For now, we're just testing the function signature
-				// logFinding(finding, tt.repoFullName, tt.runID, tt.jobID, tt.jobName, tt.url)
+				logFinding(tt.finding, tt.repoFullName, tt.runID, tt.jobID, tt.jobName, tt.url)
 			})
+
+			// Verify log output contains expected strings
+			output := buf.String()
+			for _, expected := range tt.expectInLog {
+				assert.Contains(t, output, expected, "Expected log to contain %q", expected)
+			}
 		})
 	}
 }
