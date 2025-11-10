@@ -1369,7 +1369,10 @@ func TestScanJobLogs_NonOKStatus(t *testing.T) {
 }
 
 func TestScanWorkflowRunLogs_NoJobs(t *testing.T) {
+	callCount := 0
+	
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"total_count": 0, "jobs": []}`))
@@ -1389,10 +1392,16 @@ func TestScanWorkflowRunLogs_NoJobs(t *testing.T) {
 	assert.NotPanics(t, func() {
 		scanWorkflowRunLogs(nil, repo, run)
 	})
+	
+	// Verify API was called to check for jobs
+	assert.Equal(t, 1, callCount, "Should call API to list jobs")
 }
 
 func TestScanWorkflowRunLogs_JobsError(t *testing.T) {
+	callCount := 0
+	
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer server.Close()
@@ -1410,4 +1419,7 @@ func TestScanWorkflowRunLogs_JobsError(t *testing.T) {
 	assert.NotPanics(t, func() {
 		scanWorkflowRunLogs(nil, repo, run)
 	})
+	
+	// Verify function handles error gracefully
+	assert.Equal(t, 1, callCount, "Should attempt to fetch jobs even if it fails")
 }
