@@ -20,15 +20,15 @@ func NewPrivescCmd() *cobra.Command {
 		Use:     "privesc",
 		Short:   "Inject a malicious CI/CD Job into the protected default branch abusing Renovate Bot's access",
 		Long:    "Inject a job into the CI/CD pipeline of the project's default branch by adding a commit (race condition) to a Renovate Bot branch, which is then auto-merged into the main branch. Assumes the Renovate Bot has owner/maintainer access whereas you only have developer access. See https://blog.compass-security.com/2025/05/renovate-keeping-your-updates-secure/",
-		Example: `pipeleak gl renovate privesc --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com --repoName mygroup/myproject --renovateBranchesRegex 'renovate/.*'`,
+		Example: `pipeleak gl renovate privesc --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com --repo-name mygroup/myproject --renovate-branches-regex 'renovate/.*'`,
 		Run:     Exploit,
 	}
-	privescCmd.Flags().StringVarP(&renovateBranchesRegex, "renovateBranchesRegex", "b", "renovate/.*", "The branch name regex expression to match the Renovate Bot branch names (default: 'renovate/.*')")
-	privescCmd.Flags().StringVarP(&repoName, "repoName", "r", "", "The repository to target")
+	privescCmd.Flags().StringVarP(&renovateBranchesRegex, "renovate-branches-regex", "b", "renovate/.*", "The branch name regex expression to match the Renovate Bot branch names (default: 'renovate/.*')")
+	privescCmd.Flags().StringVarP(&repoName, "repo-name", "r", "", "The repository to target")
 
-	err := privescCmd.MarkFlagRequired("repoName")
+	err := privescCmd.MarkFlagRequired("repo-name")
 	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("Unable to require repoName flag")
+		log.Fatal().Stack().Err(err).Msg("Unable to require repo-name flag")
 	}
 
 	return privescCmd
@@ -49,7 +49,7 @@ func Exploit(cmd *cobra.Command, args []string) {
 
 	regex, err := regexp.Compile(renovateBranchesRegex)
 	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("The provided renovateBranchesRegex regex is invalid")
+		log.Fatal().Stack().Err(err).Msg("The provided renovate-branches-regex regex is invalid")
 	}
 
 	projectAccessLevel := getUserAccessLevel(project)

@@ -68,8 +68,8 @@ func TestNewAutodiscoveryCmd(t *testing.T) {
 	}
 
 	flags := cmd.Flags()
-	if flags.Lookup("repoName") == nil {
-		t.Error("Expected 'repoName' flag to exist")
+	if flags.Lookup("repo-name") == nil {
+		t.Error("Expected 'repo-name' flag to exist")
 	}
 	if flags.Lookup("username") == nil {
 		t.Error("Expected 'username' flag to exist")
@@ -100,10 +100,10 @@ func TestNewPrivescCmd(t *testing.T) {
 	}
 
 	flags := cmd.Flags()
-	if flags.Lookup("renovateBranchesRegex") == nil {
-		t.Error("Expected 'renovateBranchesRegex' flag to exist")
+	if flags.Lookup("renovate-branches-regex") == nil {
+		t.Error("Expected 'renovate-branches-regex' flag to exist")
 	}
-	if flags.Lookup("repoName") == nil {
-		t.Error("Expected 'repoName' flag to exist")
+	if flags.Lookup("repo-name") == nil {
+		t.Error("Expected 'repo-name' flag to exist")
 	}
 }

@@ -363,7 +363,7 @@ func TestBitBucketScan_Public_HappyPath(t *testing.T) {
 		"--email", "testuser",
 		"--token", "testtoken",
 		"--public",
-		"--maxPipelines", "1",
+		"--max-pipelines", "1",
 	}, nil, 10*time.Second)
 
 	assert.Nil(t, exitErr, "Public scan should succeed")
@@ -422,7 +422,7 @@ func TestBitBucketScan_Public_WithAfter(t *testing.T) {
 		"--token", "testtoken",
 		"--public",
 		"--after", "2025-04-02T15:00:00+02:00",
-		"--maxPipelines", "1",
+		"--max-pipelines", "1",
 	}, nil, 10*time.Second)
 
 	assert.Nil(t, exitErr, "Public scan with after filter should succeed")

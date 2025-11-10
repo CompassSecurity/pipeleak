@@ -59,11 +59,11 @@ func TestNewScanCmd(t *testing.T) {
 	if persistentFlags.Lookup("threads") == nil {
 		t.Error("Expected 'threads' persistent flag to exist")
 	}
-	if persistentFlags.Lookup("truffleHogVerification") == nil {
-		t.Error("Expected 'truffleHogVerification' persistent flag to exist")
+	if persistentFlags.Lookup("truffle-hog-verification") == nil {
+		t.Error("Expected 'truffle-hog-verification' persistent flag to exist")
 	}
-	if persistentFlags.Lookup("maxPipelines") == nil {
-		t.Error("Expected 'maxPipelines' persistent flag to exist")
+	if persistentFlags.Lookup("max-pipelines") == nil {
+		t.Error("Expected 'max-pipelines' persistent flag to exist")
 	}
 	if persistentFlags.Lookup("max-artifact-size") == nil {
 		t.Error("Expected 'max-artifact-size' persistent flag to exist")
