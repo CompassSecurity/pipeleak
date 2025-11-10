@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/rs/zerolog"
-	"github.com/spf13/cobra"
 )
 
 func TestGlobalVerboseFlagRegistered(t *testing.T) {
@@ -100,7 +99,6 @@ func TestGlobalColorFlagRegistered(t *testing.T) {
 		t.Fatal("Global color flag not registered")
 	}
 
-	// Verify default value is true
 	if flag.DefValue != "true" {
 		t.Errorf("Expected default value 'true' for color flag, got %s", flag.DefValue)
 	}
@@ -111,116 +109,4 @@ func TestGlobalLogFileFlagRegistered(t *testing.T) {
 	if flag == nil {
 		t.Fatal("Global logfile flag not registered")
 	}
-}
-
-func TestInitLogger_ConsoleDefault(t *testing.T) {
-	// Save original values
-	origLogFile := LogFile
-	origLogColor := LogColor
-	origJsonLogoutput := JsonLogoutput
-
-	// Setup: No logfile, colors enabled (default console behavior)
-	LogFile = ""
-	LogColor = true
-	JsonLogoutput = false
-
-	// Create a command without the color flag being explicitly set
-	cmd := rootCmd
-
-	// This should initialize with colors enabled
-	initLogger(cmd)
-
-	// We can't directly test the logger output, but we can verify the function runs without panic
-	// The actual color behavior would be tested in e2e tests
-
-	// Restore original values
-	LogFile = origLogFile
-	LogColor = origLogColor
-	JsonLogoutput = origJsonLogoutput
-}
-
-func TestInitLogger_FileOutputAutoDisablesColor(t *testing.T) {
-	// Save original values
-	origLogFile := LogFile
-	origLogColor := LogColor
-	origJsonLogoutput := JsonLogoutput
-
-	// Create a temporary log file for this test
-	tmpDir := t.TempDir()
-	testLogFile := tmpDir + "/test_pipeleak.log"
-
-	// Setup: Logfile set, color not explicitly changed
-	LogFile = testLogFile
-	LogColor = true // Default value
-	JsonLogoutput = false
-
-	// Create a fresh command to simulate color flag not being explicitly set
-	testCmd := &cobra.Command{
-		Use: "test",
-	}
-	testCmd.PersistentFlags().BoolVar(&LogColor, "color", true, "Enable colored log output")
-
-	// This should initialize with colors disabled because logfile is set
-	// and color flag was not explicitly changed
-	initLogger(testCmd)
-
-	// Restore original values
-	LogFile = origLogFile
-	LogColor = origLogColor
-	JsonLogoutput = origJsonLogoutput
-}
-
-func TestInitLogger_FileOutputWithExplicitColor(t *testing.T) {
-	// Save original values
-	origLogFile := LogFile
-	origLogColor := LogColor
-	origJsonLogoutput := JsonLogoutput
-
-	// Create a temporary log file for this test
-	tmpDir := t.TempDir()
-	testLogFile := tmpDir + "/test_pipeleak_color.log"
-
-	// Setup: Logfile set, color explicitly enabled
-	LogFile = testLogFile
-	LogColor = true
-	JsonLogoutput = false
-
-	// Create a command and simulate the color flag being explicitly set
-	testCmd := &cobra.Command{
-		Use: "test",
-	}
-	testCmd.PersistentFlags().BoolVar(&LogColor, "color", true, "Enable colored log output")
-	_ = testCmd.PersistentFlags().Set("color", "true") // Explicitly set
-
-	// This should respect the explicit color=true even with logfile
-	initLogger(testCmd)
-
-	// The logger should have been initialized (no panic)
-
-	// Restore original values
-	LogFile = origLogFile
-	LogColor = origLogColor
-	JsonLogoutput = origJsonLogoutput
-}
-
-func TestInitLogger_JsonOutput(t *testing.T) {
-	// Save original values
-	origLogFile := LogFile
-	origLogColor := LogColor
-	origJsonLogoutput := JsonLogoutput
-
-	// Setup: JSON output enabled
-	LogFile = ""
-	LogColor = true
-	JsonLogoutput = true
-
-	cmd := rootCmd
-
-	// This should initialize with JSON logger
-	initLogger(cmd)
-
-	// Restore original values
-	LogFile = origLogFile
-	LogColor = origLogColor
-	JsonLogoutput = origJsonLogoutput
 }

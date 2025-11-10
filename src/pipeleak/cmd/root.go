@@ -107,8 +107,6 @@ func initLogger(cmd *cobra.Command) {
 		}
 		defaultOut = &CustomWriter{Writer: runLogFile}
 
-		// Disable color by default for file output unless explicitly set via flag
-		// Check the root command's flags since that's where the flag is registered
 		rootFlags := cmd.Root().PersistentFlags()
 		if !rootFlags.Changed("color") {
 			colorEnabled = false
