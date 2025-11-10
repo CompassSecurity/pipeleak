@@ -38,7 +38,7 @@ func TestBitBucketScan_MaxPipelines(t *testing.T) {
 
 		case "/repositories/test-workspace/test-repo/pipelines":
 			pipelinesReturned++
-			// Return 5 pipelines but maxPipelines=2 should limit scanning
+			// Return 5 pipelines but max-pipelines=2 should limit scanning
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"values": []map[string]interface{}{
@@ -63,7 +63,7 @@ func TestBitBucketScan_MaxPipelines(t *testing.T) {
 		"--email", "testuser",
 		"--token", "testtoken",
 		"--workspace", "test-workspace",
-		"--maxPipelines", "2",
+		"--max-pipelines", "2",
 	}, nil, 10*time.Second)
 
 	assert.Nil(t, exitErr, "MaxPipelines scan should succeed")
@@ -214,7 +214,7 @@ func TestBitBucketScan_Threads(t *testing.T) {
 		"--token", "testtoken",
 		"--workspace", "test-workspace",
 		"--threads", "2",
-		"--maxPipelines", "1",
+		"--max-pipelines", "1",
 	}, nil, 10*time.Second)
 
 	assert.Nil(t, exitErr, "Thread scan should succeed")
@@ -330,7 +330,7 @@ func TestBitBucketScan_TruffleHogVerification(t *testing.T) {
 		"--email", "testuser",
 		"--token", "testtoken",
 		"--workspace", "test-workspace",
-		"--truffleHogVerification=false",
+		"--truffle-hog-verification=false",
 	}, nil, 15*time.Second)
 
 	assert.Nil(t, exitErr, "Scan with verification disabled should succeed")
@@ -407,7 +407,7 @@ func TestBitBucketScan_Pagination(t *testing.T) {
 		"--email", "testuser",
 		"--token", "testtoken",
 		"--workspace", "test-workspace",
-		"--maxPipelines", "1",
+		"--max-pipelines", "1",
 	}, nil, 15*time.Second)
 
 	assert.Nil(t, exitErr, "Paginated scan should succeed")

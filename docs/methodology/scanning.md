@@ -42,7 +42,7 @@ pipeleak gl scan -g https://gitlab.com -t glpat-[redacted] --cookie [redacted] -
 Sometimes you need to scan through a proxy and avoid making too much noise. Disable TruffleHog verification, configure your proxy using environment variables, save logs to disk, and turn off colored logs for easier grepping. Make sure to scan slowly by only using one thread and limit traffic by settting an artifact size limit.
 
 ```bash
-HTTP_PROXY=http://127.0.0.1:8080 pipeleak gl scan -g https://gitlab.internal-company.com -t glpat-[redacted] --threads 1 --max-artifact-size 5mb --truffleHogVerification=false --verbose --logfile pipeleak_out --job-limit 10
+HTTP_PROXY=http://127.0.0.1:8080 pipeleak gl scan -g https://gitlab.internal-company.com -t glpat-[redacted] --threads 1 --max-artifact-size 5mb --truffle-hog-verification=false --verbose --logfile pipeleak_out --job-limit 10
 ```
 
 ## Custom Rules
@@ -76,7 +76,7 @@ patterns:
 When you run Pipeleak, you'll see results for your custom rule and any built-in rules:
 
 ```bash
-pipeleak gl scan -g https://gitlab.com -t glpat-[redacted] --truffleHogVerification=false --verbose
+pipeleak gl scan -g https://gitlab.com -t glpat-[redacted] --truffle-hog-verification=false --verbose
 2025-09-30T11:39:08Z WRN HIT confidence=custom-confidence jobName=build-job-hidden ruleName="Pipeleak Custom Rule" url=gitlab.com/testgroup/project/-/jobs/11547853360 value="PIPELEAK_HIT=secret"
 ```
 
@@ -85,7 +85,7 @@ pipeleak gl scan -g https://gitlab.com -t glpat-[redacted] --truffleHogVerificat
 In the scan mode you can change interactively between log levels by pressing `t`: Trace, `d`: Debug, `i`: Info, `w`: Warn, `e`: Error. Pressing `s` will output the current status.
 
 ```bash
-pipeleak gl scan -g https://gitlab.com -t glpat-[redacted] --truffleHogVerification=false --verbose
+pipeleak gl scan -g https://gitlab.com -t glpat-[redacted] --truffle-hog-verification=false --verbose
 [Pressed d]
 2025-09-30T11:42:58Z INF New Log level logLevel=debug
 ```

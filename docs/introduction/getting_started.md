@@ -107,7 +107,7 @@ However if you want to add custom levels, you can define any value in the `rules
 
 To scan only for a specific level, you can specify it via CLI flag e.g `--confidence=high,medium`. Define multiple by comma separating the values.
 
-Note: `high-verified` cannot be removed, but verification can be disabled using `--truffleHogVerification=false`.
+Note: `high-verified` cannot be removed, but verification can be disabled using `--truffle-hog-verification=false`.
 
 ### Customizing Scan Rules
 

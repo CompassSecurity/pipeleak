@@ -297,7 +297,7 @@ func TestAzureDevOpsScan_ThreadsConfiguration(t *testing.T) {
 	}
 }
 
-// TestAzureDevOpsScan_MaxBuilds tests the --maxBuilds flag
+// TestAzureDevOpsScan_MaxBuilds tests the --max-builds flag
 func TestAzureDevOpsScan_MaxBuilds(t *testing.T) {
 
 	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
@@ -378,10 +378,10 @@ func TestAzureDevOpsScan_MaxBuilds(t *testing.T) {
 		"--token", "azure-pat-token",
 		"--username", "testuser",
 		"--organization", "myorg",
-		"--maxBuilds", "2", // Limit to 2 builds
+		"--max-builds", "2", // Limit to 2 builds
 	}, nil, 15*time.Second)
 
-	assert.Nil(t, exitErr, "Scan with maxBuilds limit should succeed")
+	assert.Nil(t, exitErr, "Scan with max-builds limit should succeed")
 
 	output := stdout + stderr
 	t.Logf("Output:\n%s", output)
@@ -453,7 +453,7 @@ func TestAzureDevOpsScan_VerboseLogging(t *testing.T) {
 	// The actual log level check would require inspecting the output format
 }
 
-// TestAzureDevOpsScan_TruffleHogVerificationDisabled tests --truffleHogVerification=false
+// TestAzureDevOpsScan_TruffleHogVerificationDisabled tests --truffle-hog-verification=false
 func TestAzureDevOpsScan_TruffleHogVerificationDisabled(t *testing.T) {
 
 	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
@@ -537,7 +537,7 @@ Build complete`
 		"--token", "azure-pat-token",
 		"--username", "testuser",
 		"--organization", "myorg",
-		"--truffleHogVerification=false",
+		"--truffle-hog-verification=false",
 		"--artifacts",
 	}, nil, 15*time.Second)
 
