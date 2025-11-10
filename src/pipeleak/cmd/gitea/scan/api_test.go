@@ -1250,7 +1250,10 @@ func TestDownloadAndScanArtifact_SuccessfulZipDownload(t *testing.T) {
 }
 
 func TestDownloadAndScanArtifact_302Redirect(t *testing.T) {
+	redirectCallCount := 0
+	
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		redirectCallCount++
 		w.WriteHeader(http.StatusFound)
 		w.Header().Set("Location", "/redirect-target")
 	}))
@@ -1270,6 +1273,9 @@ func TestDownloadAndScanArtifact_302Redirect(t *testing.T) {
 	assert.NotPanics(t, func() {
 		downloadAndScanArtifact(repo, run, artifact)
 	})
+	
+	// Verify redirect was encountered
+	assert.GreaterOrEqual(t, redirectCallCount, 1, "Should attempt to download artifact")
 }
 
 func TestDownloadAndScanArtifact_BuildURLError(t *testing.T) {
@@ -1307,7 +1313,10 @@ func TestScanJobLogs_BuildURLError(t *testing.T) {
 }
 
 func TestScanJobLogs_404Response(t *testing.T) {
+	callCount := 0
+	
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
 		w.WriteHeader(http.StatusNotFound)
 	}))
 	defer server.Close()
@@ -1326,10 +1335,16 @@ func TestScanJobLogs_404Response(t *testing.T) {
 	assert.NotPanics(t, func() {
 		scanJobLogs(nil, repo, run, job)
 	})
+	
+	// Verify API was called even though it returned 404
+	assert.GreaterOrEqual(t, callCount, 1, "Should attempt to fetch logs")
 }
 
 func TestScanJobLogs_NonOKStatus(t *testing.T) {
+	callCount := 0
+	
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
 		w.WriteHeader(http.StatusForbidden)
 	}))
 	defer server.Close()
@@ -1348,6 +1363,9 @@ func TestScanJobLogs_NonOKStatus(t *testing.T) {
 	assert.NotPanics(t, func() {
 		scanJobLogs(nil, repo, run, job)
 	})
+	
+	// Verify function handles error status codes gracefully
+	assert.GreaterOrEqual(t, callCount, 1, "Should attempt to fetch logs even with forbidden response")
 }
 
 func TestScanWorkflowRunLogs_NoJobs(t *testing.T) {

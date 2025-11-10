@@ -606,14 +606,21 @@ func TestScanArtifactsWithCookie(t *testing.T) {
 }
 
 func TestScanArtifactsWithCookie_WithArtifacts(t *testing.T) {
+	issuesCallCount := 0
+	jobsCallCount := 0
+	artifactCallCount := 0
+	
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/issues":
+			issuesCallCount++
 			w.WriteHeader(http.StatusOK)
 		case "/owner/repo/actions/runs/123/jobs/0":
+			jobsCallCount++
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"artifacts": [{"name": "artifact1", "size": 1024, "url": "/owner/repo/actions/runs/123/artifacts/artifact1"}]}`))
 		case "/owner/repo/actions/runs/123/artifacts/artifact1":
+			artifactCallCount++
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte("artifact content"))
 		}
@@ -635,6 +642,9 @@ func TestScanArtifactsWithCookie_WithArtifacts(t *testing.T) {
 	assert.NotPanics(t, func() {
 		scanArtifactsWithCookie(repo, runID, runURL)
 	})
+	
+	// Verify the function attempted to fetch artifacts
+	assert.GreaterOrEqual(t, issuesCallCount+jobsCallCount+artifactCallCount, 1, "Should make HTTP requests to fetch artifacts")
 }
 
 func TestScanArtifactsWithCookie_FetchError(t *testing.T) {
