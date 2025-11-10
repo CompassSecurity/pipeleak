@@ -145,8 +145,12 @@ func TestInitLogger_FileOutputAutoDisablesColor(t *testing.T) {
 	origLogColor := LogColor
 	origJsonLogoutput := JsonLogoutput
 
+	// Create a temporary log file for this test
+	tmpDir := t.TempDir()
+	testLogFile := tmpDir + "/test_pipeleak.log"
+
 	// Setup: Logfile set, color not explicitly changed
-	LogFile = "/tmp/test_pipeleak.log"
+	LogFile = testLogFile
 	LogColor = true // Default value
 	JsonLogoutput = false
 
@@ -172,8 +176,12 @@ func TestInitLogger_FileOutputWithExplicitColor(t *testing.T) {
 	origLogColor := LogColor
 	origJsonLogoutput := JsonLogoutput
 
+	// Create a temporary log file for this test
+	tmpDir := t.TempDir()
+	testLogFile := tmpDir + "/test_pipeleak_color.log"
+
 	// Setup: Logfile set, color explicitly enabled
-	LogFile = "/tmp/test_pipeleak_color.log"
+	LogFile = testLogFile
 	LogColor = true
 	JsonLogoutput = false
 
