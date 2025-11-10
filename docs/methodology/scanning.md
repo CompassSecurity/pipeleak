@@ -42,7 +42,7 @@ pipeleak gl scan -g https://gitlab.com -t glpat-[redacted] --cookie [redacted] -
 Sometimes you need to scan through a proxy and avoid making too much noise. Disable TruffleHog verification, configure your proxy using environment variables, save logs to disk, and turn off colored logs for easier grepping. Make sure to scan slowly by only using one thread and limit traffic by settting an artifact size limit.
 
 ```bash
-HTTP_PROXY=http://127.0.0.1:8080 pipeleak gl scan -g https://gitlab.internal-company.com -t glpat-[redacted] --threads 1 --max-artifact-size 5mb --truffleHogVerification=false --verbose --logfile pipeleak_out --coloredLog=false --job-limit 10
+HTTP_PROXY=http://127.0.0.1:8080 pipeleak gl scan -g https://gitlab.internal-company.com -t glpat-[redacted] --threads 1 --max-artifact-size 5mb --truffleHogVerification=false --verbose --logfile pipeleak_out --job-limit 10
 ```
 
 ## Custom Rules

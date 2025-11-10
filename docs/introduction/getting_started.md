@@ -30,8 +30,8 @@ Once secrets are discovered, further exploitation often requires additional tool
 1. Visit the [Pipeleak GitHub Releases](https://github.com/CompassSecurity/pipeleak/releases) page.
 
 2. Download the binary for your operating system and architecture:
-   - For Linux: `pipeleak-<version>-linux-amd64.tar.gz`
-   - For macOS: `pipeleak-<version>-darwin-amd64.tar.gz` or `pipeleak-<version>-darwin-arm64.tar.gz`
+   - For Linux: `pipeleak-<version>-linux-<arch>.tar.gz`
+   - For macOS: `pipeleak-<version>-darwin-<arch>.tar.gz`
 
 3. Extract the archive:
    ```bash

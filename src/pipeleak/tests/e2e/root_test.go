@@ -140,8 +140,8 @@ func TestRootCommand_LogFile(t *testing.T) {
 	}
 }
 
-// TestRootCommand_ColoredLog tests --coloredLog flag
-func TestRootCommand_ColoredLog(t *testing.T) {
+// TestRootCommand_Color tests --color flag
+func TestRootCommand_Color(t *testing.T) {
 
 	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -155,12 +155,12 @@ func TestRootCommand_ColoredLog(t *testing.T) {
 		flag string
 	}{
 		{
-			name: "colored_enabled",
-			flag: "--coloredLog=true",
+			name: "color_enabled",
+			flag: "--color=true",
 		},
 		{
-			name: "colored_disabled",
-			flag: "--coloredLog=false",
+			name: "color_disabled",
+			flag: "--color=false",
 		},
 	}
 
