@@ -638,11 +638,16 @@ func TestScanArtifactsWithCookie_WithArtifacts(t *testing.T) {
 }
 
 func TestScanArtifactsWithCookie_FetchError(t *testing.T) {
+	issuesCallCount := 0
+	errorCallCount := 0
+	
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/issues":
+			issuesCallCount++
 			w.WriteHeader(http.StatusOK)
 		default:
+			errorCallCount++
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 	}))
@@ -663,4 +668,7 @@ func TestScanArtifactsWithCookie_FetchError(t *testing.T) {
 	assert.NotPanics(t, func() {
 		scanArtifactsWithCookie(repo, runID, runURL)
 	})
+	
+	// Verify function attempted to fetch data and handled errors gracefully
+	assert.GreaterOrEqual(t, issuesCallCount+errorCallCount, 1, "Should make at least one HTTP request")
 }
