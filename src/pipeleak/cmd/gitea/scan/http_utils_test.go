@@ -1,6 +1,7 @@
 package scan
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"net/http"
@@ -9,6 +10,8 @@ import (
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -403,11 +406,20 @@ func TestLogHTTPError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// This test verifies the function doesn't panic
-			// In a real scenario, you'd want to capture and verify log output
+			// Capture log output for verification
+			var buf bytes.Buffer
+			oldLogger := log.Logger
+			log.Logger = zerolog.New(&buf).With().Timestamp().Logger()
+			defer func() { log.Logger = oldLogger }()
+
 			assert.NotPanics(t, func() {
 				logHTTPError(tt.statusCode, tt.operation, tt.ctx)
 			})
+
+			output := buf.String()
+			assert.Contains(t, output, tt.operation, "Log should contain operation name")
+
+			assert.NotEmpty(t, output, "Should have logged error information")
 		})
 	}
 }

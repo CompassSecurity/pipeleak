@@ -7,6 +7,9 @@ import (
 	"testing"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/CompassSecurity/pipeleak/pkg/scanner"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -68,42 +71,71 @@ func TestDetermineFileAction(t *testing.T) {
 }
 
 func TestLogFinding(t *testing.T) {
-	// This test primarily ensures the function doesn't panic
-	// In production, you'd want to capture and verify log output
+	var buf bytes.Buffer
+	oldLogger := log.Logger
+	log.Logger = zerolog.New(&buf).With().Timestamp().Logger()
+	defer func() { log.Logger = oldLogger }()
+
 	tests := []struct {
 		name         string
+		finding      scanner.Finding
 		repoFullName string
 		runID        int64
 		jobID        int64
 		jobName      string
 		url          string
+		expectInLog  []string
 	}{
 		{
-			name:         "complete finding info",
+			name: "complete finding info",
+			finding: scanner.Finding{
+				Pattern: scanner.PatternElement{
+					Pattern: scanner.PatternPattern{
+						Name:       "Test Secret",
+						Confidence: "high",
+					},
+				},
+				Text: "secret_value_123",
+			},
 			repoFullName: "owner/repo",
 			runID:        123,
 			jobID:        456,
 			jobName:      "test-job",
 			url:          "https://gitea.example.com/owner/repo/actions/runs/123",
+			expectInLog:  []string{"Test Secret", "high", "owner/repo", "test-job", "secret_value_123"},
 		},
 		{
-			name:         "finding without job info",
+			name: "finding without job info",
+			finding: scanner.Finding{
+				Pattern: scanner.PatternElement{
+					Pattern: scanner.PatternPattern{
+						Name:       "AWS Key",
+						Confidence: "medium",
+					},
+				},
+				Text: "AKIAIOSFODNN7EXAMPLE",
+			},
 			repoFullName: "owner/repo",
 			runID:        123,
 			jobID:        0,
 			jobName:      "",
 			url:          "https://gitea.example.com/owner/repo/actions/runs/123",
+			expectInLog:  []string{"AWS Key", "medium", "owner/repo", "AKIAIOSFODNN7EXAMPLE"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// This test verifies the function doesn't panic
+			buf.Reset()
+
 			assert.NotPanics(t, func() {
-				// Note: In a real test, you'd mock the scanner.Finding struct
-				// For now, we're just testing the function signature
-				// logFinding(finding, tt.repoFullName, tt.runID, tt.jobID, tt.jobName, tt.url)
+				logFinding(tt.finding, tt.repoFullName, tt.runID, tt.jobID, tt.jobName, tt.url)
 			})
+
+			output := buf.String()
+			for _, expected := range tt.expectInLog {
+				assert.Contains(t, output, expected, "Expected log to contain %q", expected)
+			}
 		})
 	}
 }
@@ -169,7 +201,6 @@ func TestProcessZipArtifact(t *testing.T) {
 				Name:    "Test Run",
 			}
 
-			// Execute - should not panic
 			assert.NotPanics(t, func() {
 				processZipArtifact(tt.zipContent, repo, run, tt.artifactName)
 			})
@@ -181,7 +212,6 @@ func TestProcessZipArtifact_NilRepo(t *testing.T) {
 	zipContent := []byte("test")
 	run := ActionWorkflowRun{ID: 123}
 
-	// Execute - should handle nil gracefully
 	assert.NotPanics(t, func() {
 		processZipArtifact(zipContent, nil, run, "test-artifact")
 	})
@@ -191,7 +221,6 @@ func TestScanLogs_NilRepo(t *testing.T) {
 	logBytes := []byte("test log content")
 	run := ActionWorkflowRun{ID: 123}
 
-	// Execute - should handle nil gracefully
 	assert.NotPanics(t, func() {
 		scanLogs(logBytes, nil, run, 456, "test-job")
 	})
@@ -208,7 +237,6 @@ func TestScanLogs_EmptyLogs(t *testing.T) {
 		HTMLURL: "https://gitea.example.com/owner/repo/actions/runs/123",
 	}
 
-	// Execute - should not panic
 	assert.NotPanics(t, func() {
 		scanLogs(logBytes, repo, run, 456, "test-job")
 	})
@@ -287,11 +315,9 @@ func TestScanArtifactContent(t *testing.T) {
 }
 
 func TestProcessZipArtifact_ConcurrentFileProcessing(t *testing.T) {
-	// Create a zip with multiple files to test concurrent processing
 	buf := new(bytes.Buffer)
 	w := zip.NewWriter(buf)
 
-	// Add multiple files
 	for i := 1; i <= 10; i++ {
 		f, _ := w.Create(string(rune('a'+i-1)) + ".txt")
 		_, _ = f.Write([]byte("content " + string(rune('0'+i))))
@@ -311,7 +337,6 @@ func TestProcessZipArtifact_ConcurrentFileProcessing(t *testing.T) {
 		Name:    "Test Run",
 	}
 
-	// Execute - should process all files concurrently without panic
 	assert.NotPanics(t, func() {
 		processZipArtifact(buf.Bytes(), repo, run, "concurrent-test-artifact")
 	})

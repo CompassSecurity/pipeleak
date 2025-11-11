@@ -123,11 +123,11 @@ func TestGitHubScanOptions(t *testing.T) {
 
 func TestValidateRepoFormat(t *testing.T) {
 	tests := []struct {
-		name        string
-		repo        string
-		wantOwner   string
-		wantName    string
-		wantValid   bool
+		name      string
+		repo      string
+		wantOwner string
+		wantName  string
+		wantValid bool
 	}{
 		{
 			name:      "valid repo format",

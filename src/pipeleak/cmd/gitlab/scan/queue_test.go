@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	gitlab "gitlab.com/gitlab-org/api/client-go"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
 // withCapturedLogs temporarily routes zerolog output to a buffer for assertions.
@@ -24,11 +24,11 @@ func withCapturedLogs(t *testing.T, level zerolog.Level, fn func(buf *bytes.Buff
 func TestAnalyzeJobArtifact_SkipsLargeArtifactPreDownload(t *testing.T) {
 	// Arrange: artifact is larger than the configured max — should skip before any download
 	item := QueueItem{Meta: QueueMeta{
-		ProjectId:     1,
-		JobId:         3000,
-		JobWebUrl:     "http://gitlab.local/-/jobs/3000",
-		JobName:       "large-artifact-job",
-		ArtifactSize:  100 * 1024 * 1024, // 100MB
+		ProjectId:    1,
+		JobId:        3000,
+		JobWebUrl:    "http://gitlab.local/-/jobs/3000",
+		JobName:      "large-artifact-job",
+		ArtifactSize: 100 * 1024 * 1024, // 100MB
 	}}
 	opts := &ScanOptions{MaxArtifactSize: 50 * 1024 * 1024, MaxScanGoRoutines: 1}
 
