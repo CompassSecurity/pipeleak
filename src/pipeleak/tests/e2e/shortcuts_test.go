@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestShortcuts_DoNotBreakScans verifies that the global shortcut listener doesn't break scan commands
 func TestShortcuts_DoNotBreakScans(t *testing.T) {
 	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -17,7 +16,6 @@ func TestShortcuts_DoNotBreakScans(t *testing.T) {
 	})
 	defer cleanup()
 
-	// Test multiple scan commands to ensure shortcuts work globally
 	tests := []struct {
 		name string
 		args []string
@@ -51,14 +49,8 @@ func TestShortcuts_DoNotBreakScans(t *testing.T) {
 
 			output := stdout + stderr
 
-			// Explicit assertions
 			assert.NotEmpty(t, output, "Output should not be empty")
-			
-			// Verify the log level initialization happened (proves PersistentPreRun executed)
-			// This indirectly confirms ShortcutListeners was registered
 			assert.Contains(t, output, "Log level set to", "Should show log level initialization")
-			
-			// Verify no panic or keyboard error messages
 			assert.NotContains(t, output, "Failed hooking keyboard bindings", 
 				"Should not fail to hook keyboard bindings")
 			assert.NotContains(t, output, "panic", 
@@ -70,7 +62,6 @@ func TestShortcuts_DoNotBreakScans(t *testing.T) {
 	}
 }
 
-// TestShortcuts_WorkWithNonScanCommands verifies shortcuts are registered for all commands
 func TestShortcuts_WorkWithNonScanCommands(t *testing.T) {
 	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -108,13 +99,8 @@ func TestShortcuts_WorkWithNonScanCommands(t *testing.T) {
 
 			output := stdout + stderr
 
-			// Explicit assertions
 			assert.NotEmpty(t, output, "Output should not be empty")
-			
-			// Verify log level initialization (proves ShortcutListeners is registered globally)
 			assert.Contains(t, output, "Log level set to", "Should show log level initialization")
-			
-			// Verify no keyboard binding errors
 			assert.NotContains(t, output, "Failed hooking keyboard bindings", 
 				"Should not fail to hook keyboard bindings")
 
@@ -124,7 +110,6 @@ func TestShortcuts_WorkWithNonScanCommands(t *testing.T) {
 	}
 }
 
-// TestShortcuts_GlobalLogLevelChanges verifies log level can be changed via flags
 func TestShortcuts_GlobalLogLevelChanges(t *testing.T) {
 	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -170,27 +155,21 @@ func TestShortcuts_GlobalLogLevelChanges(t *testing.T) {
 	}
 }
 
-// TestShortcuts_NoPanicOnStartup ensures ShortcutListeners initialization doesn't panic
 func TestShortcuts_NoPanicOnStartup(t *testing.T) {
-	// Run a simple command that should succeed
 	stdout, stderr, exitErr := runCLI(t, []string{"--help"}, nil, 5*time.Second)
 
 	output := stdout + stderr
 	
-	// Explicit assertions to ensure the command ran properly
 	assert.NotEmpty(t, output, "Help output should not be empty")
 	assert.Contains(t, output, "pipeleak", "Help should mention pipeleak")
 	assert.Contains(t, output, "Usage:", "Help should show usage")
 	assert.Nil(t, exitErr, "Help command should succeed without error")
-	
-	// Verify no panic-related messages
 	assert.NotContains(t, output, "panic", "Should not contain panic messages")
 	assert.NotContains(t, output, "runtime error", "Should not contain runtime errors")
 
 	t.Logf("Output:\n%s", output)
 }
 
-// TestShortcuts_OnlyOneLogLevelMessage verifies ShortcutListeners is registered only once per command
 func TestShortcuts_OnlyOneLogLevelMessage(t *testing.T) {
 	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -203,12 +182,9 @@ func TestShortcuts_OnlyOneLogLevelMessage(t *testing.T) {
 
 	output := stdout + stderr
 	
-	// Count occurrences of "Log level set to info (default)"
-	// Should appear exactly once, not multiple times
 	count := 0
 	logLevelMsg := "Log level set to info (default)"
 	
-	// Simple count by searching for the message
 	remaining := output
 	for {
 		idx := len(remaining)
