@@ -49,13 +49,20 @@ func TestShortcuts_DoNotBreakScans(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			stdout, stderr, exitErr := runCLI(t, tt.args, nil, 10*time.Second)
 
-			// The command should run without panicking or crashing
-			// Exit errors are OK as long as they're not related to shortcuts
 			output := stdout + stderr
 
+			// Explicit assertions
+			assert.NotEmpty(t, output, "Output should not be empty")
+			
 			// Verify the log level initialization happened (proves PersistentPreRun executed)
 			// This indirectly confirms ShortcutListeners was registered
 			assert.Contains(t, output, "Log level set to", "Should show log level initialization")
+			
+			// Verify no panic or keyboard error messages
+			assert.NotContains(t, output, "Failed hooking keyboard bindings", 
+				"Should not fail to hook keyboard bindings")
+			assert.NotContains(t, output, "panic", 
+				"Should not contain panic messages")
 
 			t.Logf("Exit error: %v", exitErr)
 			t.Logf("Output:\n%s", output)
@@ -101,8 +108,15 @@ func TestShortcuts_WorkWithNonScanCommands(t *testing.T) {
 
 			output := stdout + stderr
 
+			// Explicit assertions
+			assert.NotEmpty(t, output, "Output should not be empty")
+			
 			// Verify log level initialization (proves ShortcutListeners is registered globally)
 			assert.Contains(t, output, "Log level set to", "Should show log level initialization")
+			
+			// Verify no keyboard binding errors
+			assert.NotContains(t, output, "Failed hooking keyboard bindings", 
+				"Should not fail to hook keyboard bindings")
 
 			t.Logf("Exit error: %v", exitErr)
 			t.Logf("Output:\n%s", output)
@@ -148,9 +162,76 @@ func TestShortcuts_GlobalLogLevelChanges(t *testing.T) {
 
 			output := stdout + stderr
 			assert.Contains(t, output, tt.expected, "Should show correct log level")
+			assert.NotEmpty(t, output, "Output should not be empty")
 
 			t.Logf("Exit error: %v", exitErr)
 			t.Logf("Output:\n%s", output)
 		})
 	}
+}
+
+// TestShortcuts_NoPanicOnStartup ensures ShortcutListeners initialization doesn't panic
+func TestShortcuts_NoPanicOnStartup(t *testing.T) {
+	// Run a simple command that should succeed
+	stdout, stderr, exitErr := runCLI(t, []string{"--help"}, nil, 5*time.Second)
+
+	output := stdout + stderr
+	
+	// Explicit assertions to ensure the command ran properly
+	assert.NotEmpty(t, output, "Help output should not be empty")
+	assert.Contains(t, output, "pipeleak", "Help should mention pipeleak")
+	assert.Contains(t, output, "Usage:", "Help should show usage")
+	assert.Nil(t, exitErr, "Help command should succeed without error")
+	
+	// Verify no panic-related messages
+	assert.NotContains(t, output, "panic", "Should not contain panic messages")
+	assert.NotContains(t, output, "runtime error", "Should not contain runtime errors")
+
+	t.Logf("Output:\n%s", output)
+}
+
+// TestShortcuts_OnlyOneLogLevelMessage verifies ShortcutListeners is registered only once per command
+func TestShortcuts_OnlyOneLogLevelMessage(t *testing.T) {
+	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`[]`))
+	})
+	defer cleanup()
+
+	stdout, stderr, exitErr := runCLI(t, []string{"gl", "scan", "--gitlab", server.URL, "--token", "test"}, nil, 10*time.Second)
+
+	output := stdout + stderr
+	
+	// Count occurrences of "Log level set to info (default)"
+	// Should appear exactly once, not multiple times
+	count := 0
+	logLevelMsg := "Log level set to info (default)"
+	
+	// Simple count by searching for the message
+	remaining := output
+	for {
+		idx := len(remaining)
+		for i := 0; i <= len(remaining)-len(logLevelMsg); i++ {
+			if remaining[i:i+len(logLevelMsg)] == logLevelMsg {
+				count++
+				idx = i + len(logLevelMsg)
+				break
+			}
+		}
+		if idx >= len(remaining) {
+			break
+		}
+		remaining = remaining[idx:]
+		if len(remaining) < len(logLevelMsg) {
+			break
+		}
+	}
+
+	assert.Equal(t, 1, count, "Log level initialization message should appear exactly once, not %d times", count)
+	assert.NotEmpty(t, output, "Output should not be empty")
+
+	t.Logf("Exit error: %v", exitErr)
+	t.Logf("Found %d occurrences of log level message", count)
+	t.Logf("Output:\n%s", output)
 }
