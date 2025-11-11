@@ -13,6 +13,7 @@ import (
 	"github.com/CompassSecurity/pipeleak/cmd/gitea"
 	"github.com/CompassSecurity/pipeleak/cmd/github"
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab"
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -27,6 +28,7 @@ var (
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			initLogger(cmd)
 			setGlobalLogLevel(cmd)
+			go logging.ShortcutListeners(globalStatus)
 		},
 	}
 	JsonLogoutput bool
@@ -154,4 +156,8 @@ func setGlobalLogLevel(cmd *cobra.Command) {
 
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	log.Info().Msg("Log level set to info (default)")
+}
+
+func globalStatus() *zerolog.Event {
+	return log.Info().Str("status", "ready")
 }
