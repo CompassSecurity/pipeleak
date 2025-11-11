@@ -5,10 +5,12 @@ import (
 	"strconv"
 
 	"github.com/CompassSecurity/pipeleak/pkg/format"
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	artifactproc "github.com/CompassSecurity/pipeleak/pkg/scan/artifact"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -84,6 +86,8 @@ pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization
 }
 
 func Scan(cmd *cobra.Command, args []string) {
+	logging.RegisterStatusHook(scanStatus)
+
 	byteSize, err := format.ParseHumanSize(maxArtifactSize)
 	if err != nil {
 		log.Fatal().Err(err).Str("size", maxArtifactSize).Msg("Failed parsing max-artifact-size flag")
@@ -104,6 +108,10 @@ func Scan(cmd *cobra.Command, args []string) {
 	}
 
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
+}
+
+func scanStatus() *zerolog.Event {
+	return log.Info().Str("debug", "nothing to show ✔️")
 }
 
 func scanAuthenticatedUser(client AzureDevOpsApiClient) {

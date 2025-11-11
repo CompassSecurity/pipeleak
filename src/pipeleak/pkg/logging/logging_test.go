@@ -56,3 +56,49 @@ func TestShortcutStatusFN(t *testing.T) {
 		t.Error("Expected non-nil zerolog.Event")
 	}
 }
+
+func TestRegisterStatusHook(t *testing.T) {
+	// Reset to default
+	statusHook = nil
+
+	customHook := func() *zerolog.Event {
+		logger := zerolog.New(io.Discard)
+		return logger.Info().Str("custom", "hook")
+	}
+
+	RegisterStatusHook(customHook)
+
+	hook := GetStatusHook()
+	if hook == nil {
+		t.Fatal("Expected status hook to be registered")
+	}
+
+	// Verify the hook works
+	event := hook()
+	if event == nil {
+		t.Error("Expected non-nil event from registered hook")
+	}
+}
+
+func TestGetStatusHook_Default(t *testing.T) {
+	// Reset to default
+	statusHook = nil
+
+	hook := GetStatusHook()
+	if hook == nil {
+		t.Fatal("Expected default status hook")
+	}
+
+	// Verify default hook works
+	event := hook()
+	if event == nil {
+		t.Error("Expected non-nil event from default hook")
+	}
+}
+
+func TestDefaultStatusHook(t *testing.T) {
+	event := defaultStatusHook()
+	if event == nil {
+		t.Error("Expected non-nil event from default status hook")
+	}
+}

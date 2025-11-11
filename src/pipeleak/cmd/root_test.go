@@ -111,13 +111,6 @@ func TestGlobalLogFileFlagRegistered(t *testing.T) {
 	}
 }
 
-func TestGlobalStatus(t *testing.T) {
-	event := globalStatus()
-	if event == nil {
-		t.Fatal("globalStatus should return non-nil event")
-	}
-}
-
 func TestPersistentPreRunRegistered(t *testing.T) {
 	if rootCmd.PersistentPreRun == nil {
 		t.Fatal("PersistentPreRun should be registered")

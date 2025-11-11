@@ -28,7 +28,7 @@ var (
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			initLogger(cmd)
 			setGlobalLogLevel(cmd)
-			go logging.ShortcutListeners(globalStatus)
+			go logging.ShortcutListeners(nil)
 		},
 	}
 	JsonLogoutput bool
@@ -156,8 +156,4 @@ func setGlobalLogLevel(cmd *cobra.Command) {
 
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	log.Info().Msg("Log level set to info (default)")
-}
-
-func globalStatus() *zerolog.Event {
-	return log.Info().Str("status", "ready")
 }

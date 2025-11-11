@@ -1,6 +1,8 @@
 package logging
 
 import (
+	"sync"
+
 	"atomicgo.dev/keyboard"
 	"atomicgo.dev/keyboard/keys"
 	"github.com/rs/zerolog"
@@ -15,6 +17,32 @@ func SetLogLevel(verbose bool) {
 }
 
 type ShortcutStatusFN func() *zerolog.Event
+
+var (
+	statusHookMutex sync.RWMutex
+	statusHook      ShortcutStatusFN
+)
+
+// RegisterStatusHook allows commands to register a custom status function
+func RegisterStatusHook(hook ShortcutStatusFN) {
+	statusHookMutex.Lock()
+	defer statusHookMutex.Unlock()
+	statusHook = hook
+}
+
+// GetStatusHook returns the registered status hook or a default one
+func GetStatusHook() ShortcutStatusFN {
+	statusHookMutex.RLock()
+	defer statusHookMutex.RUnlock()
+	if statusHook != nil {
+		return statusHook
+	}
+	return defaultStatusHook
+}
+
+func defaultStatusHook() *zerolog.Event {
+	return log.Info().Str("status", "nothing to show")
+}
 
 func ShortcutListeners(status ShortcutStatusFN) {
 	err := keyboard.Listen(func(key keys.Key) (stop bool, err error) {
@@ -48,7 +76,9 @@ func ShortcutListeners(status ShortcutStatusFN) {
 			}
 
 			if key.String() == "s" {
-				log := status()
+				// Use the registered status hook or default
+				currentHook := GetStatusHook()
+				log := currentHook()
 				log.Msg("Status")
 			}
 		}

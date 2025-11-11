@@ -6,6 +6,8 @@ import (
 
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
 	"github.com/CompassSecurity/pipeleak/pkg/format"
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -83,6 +85,8 @@ pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com -
 }
 
 func Scan(cmd *cobra.Command, args []string) {
+	logging.RegisterStatusHook(scanStatus)
+
 	_, err := url.ParseRequestURI(options.GitlabUrl)
 	if err != nil {
 		log.Fatal().Msg("The provided GitLab URL is not a valid URL")
@@ -99,4 +103,9 @@ func Scan(cmd *cobra.Command, args []string) {
 	log.Info().Str("version", version.Version).Str("revision", version.Revision).Msg("Gitlab Version Check")
 	ScanGitLabPipelines(&options)
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
+}
+
+func scanStatus() *zerolog.Event {
+	queueLength := GetQueueStatus()
+	return log.Info().Int("pendingjobs", queueLength)
 }

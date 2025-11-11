@@ -10,6 +10,7 @@ import (
 
 	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	artifactproc "github.com/CompassSecurity/pipeleak/pkg/scan/artifact"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
@@ -19,6 +20,7 @@ import (
 	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit/github_secondary_ratelimit"
 	"github.com/google/go-github/v69/github"
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -97,6 +99,8 @@ pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --repo owner/repo
 }
 
 func Scan(cmd *cobra.Command, args []string) {
+	logging.RegisterStatusHook(scanStatus)
+
 	byteSize, err := format.ParseHumanSize(maxArtifactSize)
 	if err != nil {
 		log.Fatal().Err(err).Str("size", maxArtifactSize).Msg("Failed parsing max-artifact-size flag")
@@ -159,6 +163,19 @@ func scan(client *github.Client) {
 		log.Info().Str("organization", options.Organization).Msg("Scanning organization repositories actions")
 		scanRepositories(client)
 	}
+}
+
+func scanStatus() *zerolog.Event {
+	rateLimit, resp, err := options.Client.RateLimit.Get(options.Context)
+	if resp == nil {
+		return log.Info().Str("rateLimit", "You're rate limited, just wait ✨")
+	}
+
+	if err != nil {
+		log.Fatal().Stack().Err(err).Msg("Failed fetching rate limit stats")
+	}
+
+	return log.Info().Int("coreRateLimitRemaining", rateLimit.Core.Remaining).Time("coreRateLimitReset", rateLimit.Core.Reset.Time).Int("searchRateLimitRemaining", rateLimit.Search.Remaining).Time("searchRateLimitReset", rateLimit.Search.Reset.Time)
 }
 
 func searchRepositories(client *github.Client, query string) {
