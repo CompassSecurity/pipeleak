@@ -141,10 +141,10 @@ func TestValidateOrderBy(t *testing.T) {
 
 func TestValidOrderByValues(t *testing.T) {
 	validValues := []string{
-		"id", "name", "path", "created_at", 
+		"id", "name", "path", "created_at",
 		"updated_at", "star_count", "last_activity_at", "similarity",
 	}
-	
+
 	for _, value := range validValues {
 		t.Run("validates_"+value, func(t *testing.T) {
 			assert.NotPanics(t, func() {

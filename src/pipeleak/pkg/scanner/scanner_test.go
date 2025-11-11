@@ -113,7 +113,7 @@ func TestDetectionResultTypeAlias(t *testing.T) {
 			} else {
 				assert.NoError(t, tt.result.Error)
 			}
-			
+
 			if !tt.expectError && len(tt.result.Findings) > 0 {
 				assert.NotEmpty(t, tt.result.Findings[0].Text)
 			}

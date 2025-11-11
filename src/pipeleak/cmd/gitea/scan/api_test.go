@@ -1112,7 +1112,7 @@ func TestListWorkflowRuns_PaginationArrayFormat(t *testing.T) {
 func TestScanWorkflowArtifacts_WithArtifacts(t *testing.T) {
 	artifactsCallCount := 0
 	zipCallCount := 0
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/v1/repos/owner/test-repo/actions/runs/123/artifacts":
@@ -1151,7 +1151,6 @@ func TestScanWorkflowArtifacts_WithArtifacts(t *testing.T) {
 	assert.NotPanics(t, func() {
 		scanWorkflowArtifacts(nil, repo, run)
 	})
-	
 
 	assert.Equal(t, 1, artifactsCallCount, "Should call artifacts API once")
 	assert.Equal(t, 1, zipCallCount, "Should download artifact zip once")
@@ -1159,7 +1158,7 @@ func TestScanWorkflowArtifacts_WithArtifacts(t *testing.T) {
 
 func TestScanWorkflowArtifacts_NoArtifacts(t *testing.T) {
 	callCount := 0
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
 		w.Header().Set("Content-Type", "application/json")
@@ -1181,14 +1180,13 @@ func TestScanWorkflowArtifacts_NoArtifacts(t *testing.T) {
 	assert.NotPanics(t, func() {
 		scanWorkflowArtifacts(nil, repo, run)
 	})
-	
 
 	assert.Equal(t, 1, callCount, "Should call artifacts API to check for artifacts")
 }
 
 func TestScanWorkflowArtifacts_ArtifactListError(t *testing.T) {
 	callCount := 0
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
 		w.WriteHeader(http.StatusForbidden)
@@ -1208,14 +1206,13 @@ func TestScanWorkflowArtifacts_ArtifactListError(t *testing.T) {
 	assert.NotPanics(t, func() {
 		scanWorkflowArtifacts(nil, repo, run)
 	})
-	
 
 	assert.Equal(t, 1, callCount, "Should attempt API call even if it fails")
 }
 
 func TestDownloadAndScanArtifact_SuccessfulZipDownload(t *testing.T) {
 	downloadCallCount := 0
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		downloadCallCount++
 		buf := new(bytes.Buffer)
@@ -1244,14 +1241,13 @@ func TestDownloadAndScanArtifact_SuccessfulZipDownload(t *testing.T) {
 	assert.NotPanics(t, func() {
 		downloadAndScanArtifact(repo, run, artifact)
 	})
-	
 
 	assert.Equal(t, 1, downloadCallCount, "Should download artifact once")
 }
 
 func TestDownloadAndScanArtifact_302Redirect(t *testing.T) {
 	redirectCallCount := 0
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		redirectCallCount++
 		w.WriteHeader(http.StatusFound)
@@ -1273,7 +1269,6 @@ func TestDownloadAndScanArtifact_302Redirect(t *testing.T) {
 	assert.NotPanics(t, func() {
 		downloadAndScanArtifact(repo, run, artifact)
 	})
-	
 
 	assert.GreaterOrEqual(t, redirectCallCount, 1, "Should attempt to download artifact")
 }
@@ -1314,7 +1309,7 @@ func TestScanJobLogs_BuildURLError(t *testing.T) {
 
 func TestScanJobLogs_404Response(t *testing.T) {
 	callCount := 0
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
 		w.WriteHeader(http.StatusNotFound)
@@ -1335,14 +1330,13 @@ func TestScanJobLogs_404Response(t *testing.T) {
 	assert.NotPanics(t, func() {
 		scanJobLogs(nil, repo, run, job)
 	})
-	
 
 	assert.GreaterOrEqual(t, callCount, 1, "Should attempt to fetch logs")
 }
 
 func TestScanJobLogs_NonOKStatus(t *testing.T) {
 	callCount := 0
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
 		w.WriteHeader(http.StatusForbidden)
@@ -1363,14 +1357,13 @@ func TestScanJobLogs_NonOKStatus(t *testing.T) {
 	assert.NotPanics(t, func() {
 		scanJobLogs(nil, repo, run, job)
 	})
-	
 
 	assert.GreaterOrEqual(t, callCount, 1, "Should attempt to fetch logs even with forbidden response")
 }
 
 func TestScanWorkflowRunLogs_NoJobs(t *testing.T) {
 	callCount := 0
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
 		w.Header().Set("Content-Type", "application/json")
@@ -1392,14 +1385,13 @@ func TestScanWorkflowRunLogs_NoJobs(t *testing.T) {
 	assert.NotPanics(t, func() {
 		scanWorkflowRunLogs(nil, repo, run)
 	})
-	
 
 	assert.Equal(t, 1, callCount, "Should call API to list jobs")
 }
 
 func TestScanWorkflowRunLogs_JobsError(t *testing.T) {
 	callCount := 0
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
 		w.WriteHeader(http.StatusInternalServerError)
@@ -1419,7 +1411,6 @@ func TestScanWorkflowRunLogs_JobsError(t *testing.T) {
 	assert.NotPanics(t, func() {
 		scanWorkflowRunLogs(nil, repo, run)
 	})
-	
 
 	assert.Equal(t, 1, callCount, "Should attempt to fetch jobs even if it fails")
 }

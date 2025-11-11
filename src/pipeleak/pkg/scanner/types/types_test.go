@@ -70,10 +70,10 @@ func TestPatternElement(t *testing.T) {
 
 func TestSecretsPatterns(t *testing.T) {
 	tests := []struct {
-		name         string
-		patterns     SecretsPatterns
-		expectCount  int
-		expectEmpty  bool
+		name        string
+		patterns    SecretsPatterns
+		expectCount int
+		expectEmpty bool
 	}{
 		{
 			name: "multiple patterns",
@@ -121,10 +121,10 @@ func TestSecretsPatterns(t *testing.T) {
 
 func TestFinding(t *testing.T) {
 	tests := []struct {
-		name        string
-		finding     Finding
-		expectText  string
-		expectName  string
+		name       string
+		finding    Finding
+		expectText string
+		expectName string
 	}{
 		{
 			name: "AWS key finding",

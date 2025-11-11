@@ -45,16 +45,16 @@ func TestCalculateZipFileSize(t *testing.T) {
 			createZip: func() []byte {
 				buf := new(bytes.Buffer)
 				w := zip.NewWriter(buf)
-				
+
 				f1, _ := w.Create("file1.txt")
 				_, _ = f1.Write([]byte("12345"))
-				
+
 				f2, _ := w.Create("file2.txt")
 				_, _ = f2.Write([]byte("1234567890"))
-				
+
 				f3, _ := w.Create("file3.txt")
 				_, _ = f3.Write([]byte("abc"))
-				
+
 				_ = w.Close()
 				return buf.Bytes()
 			},
@@ -66,12 +66,12 @@ func TestCalculateZipFileSize(t *testing.T) {
 			createZip: func() []byte {
 				buf := new(bytes.Buffer)
 				w := zip.NewWriter(buf)
-				
+
 				// Create a file with repeating content (compresses well)
 				f, _ := w.Create("repeating.txt")
 				content := bytes.Repeat([]byte("A"), 1000)
 				_, _ = f.Write(content)
-				
+
 				_ = w.Close()
 				return buf.Bytes()
 			},
@@ -83,10 +83,10 @@ func TestCalculateZipFileSize(t *testing.T) {
 			createZip: func() []byte {
 				buf := new(bytes.Buffer)
 				w := zip.NewWriter(buf)
-				
+
 				f1, _ := w.Create("dir/subdir/file.txt")
 				_, _ = f1.Write([]byte("nested content"))
-				
+
 				_ = w.Close()
 				return buf.Bytes()
 			},
@@ -123,7 +123,7 @@ func TestCalculateZipFileSize(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			data := tt.createZip()
 			size := CalculateZipFileSize(data)
-			
+
 			assert.Equal(t, tt.expectedSize, size, tt.description)
 		})
 	}
@@ -133,10 +133,10 @@ func TestCalculateZipFileSize_LargeFile(t *testing.T) {
 	// Test with a larger file to ensure uint64 handling
 	buf := new(bytes.Buffer)
 	w := zip.NewWriter(buf)
-	
+
 	f, err := w.Create("large.bin")
 	require.NoError(t, err)
-	
+
 	// Write 1MB of data
 	largeData := make([]byte, 1024*1024)
 	for i := range largeData {
@@ -144,10 +144,10 @@ func TestCalculateZipFileSize_LargeFile(t *testing.T) {
 	}
 	_, err = f.Write(largeData)
 	require.NoError(t, err)
-	
+
 	err = w.Close()
 	require.NoError(t, err)
-	
+
 	size := CalculateZipFileSize(buf.Bytes())
 	assert.Equal(t, uint64(1024*1024), size, "Should handle large files correctly")
 }
@@ -155,15 +155,15 @@ func TestCalculateZipFileSize_LargeFile(t *testing.T) {
 func TestCalculateZipFileSize_MultipleFilesWithZeroSize(t *testing.T) {
 	buf := new(bytes.Buffer)
 	w := zip.NewWriter(buf)
-	
+
 	// Create multiple empty files
 	for i := 0; i < 5; i++ {
 		f, _ := w.Create("empty_file_" + string(rune('0'+i)) + ".txt")
 		_, _ = f.Write([]byte{})
 	}
-	
+
 	_ = w.Close()
-	
+
 	size := CalculateZipFileSize(buf.Bytes())
 	assert.Equal(t, uint64(0), size, "Multiple empty files should total 0 bytes")
 }
@@ -171,7 +171,7 @@ func TestCalculateZipFileSize_MultipleFilesWithZeroSize(t *testing.T) {
 func TestCalculateZipFileSize_MixedSizes(t *testing.T) {
 	buf := new(bytes.Buffer)
 	w := zip.NewWriter(buf)
-	
+
 	// Mix of different sized files
 	files := []struct {
 		name    string
@@ -182,16 +182,16 @@ func TestCalculateZipFileSize_MixedSizes(t *testing.T) {
 		{"medium.txt", bytes.Repeat([]byte("z"), 1000)},
 		{"empty.txt", []byte{}},
 	}
-	
+
 	expectedTotal := uint64(0)
 	for _, file := range files {
 		f, _ := w.Create(file.name)
 		_, _ = f.Write(file.content)
 		expectedTotal += uint64(len(file.content))
 	}
-	
+
 	_ = w.Close()
-	
+
 	size := CalculateZipFileSize(buf.Bytes())
 	assert.Equal(t, expectedTotal, size, "Should correctly sum mixed file sizes")
 }

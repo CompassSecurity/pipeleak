@@ -127,7 +127,7 @@ func TestLogFinding(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			buf.Reset()
-			
+
 			assert.NotPanics(t, func() {
 				logFinding(tt.finding, tt.repoFullName, tt.runID, tt.jobID, tt.jobName, tt.url)
 			})

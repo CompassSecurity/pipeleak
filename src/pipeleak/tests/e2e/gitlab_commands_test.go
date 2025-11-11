@@ -76,7 +76,7 @@ func TestGitLabVariables(t *testing.T) {
 	variablesRequestFound := false
 	schedulesRequestFound := false
 	scheduleDetailsRequestFound := false
-	
+
 	for _, req := range requests {
 		if req.Path == "/api/v4/projects/1/variables" {
 			variablesRequestFound = true

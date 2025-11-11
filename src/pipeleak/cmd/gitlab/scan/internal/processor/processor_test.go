@@ -397,7 +397,7 @@ func TestProcessArtifactFile(t *testing.T) {
 			assert.NotPanics(t, func() {
 				ProcessArtifactFile(tt.fileName, tt.content)
 			}, tt.description)
-			
+
 			assert.NotEmpty(t, tt.fileName, "Filename should not be empty")
 			if !tt.expectEmpty {
 				assert.NotEmpty(t, tt.content, "Test content should not be empty when expecting findings")

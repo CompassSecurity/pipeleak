@@ -415,7 +415,6 @@ func TestLogHTTPError(t *testing.T) {
 			assert.NotPanics(t, func() {
 				logHTTPError(tt.statusCode, tt.operation, tt.ctx)
 			})
-			
 
 			output := buf.String()
 			assert.Contains(t, output, tt.operation, "Log should contain operation name")

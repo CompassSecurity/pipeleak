@@ -142,7 +142,7 @@ func setupClient(accessToken string, baseURL string) *github.Client {
 
 func scan(client *github.Client) {
 	runner.InitScanner(options.ConfidenceFilter)
-	
+
 	if options.Repo != "" {
 		log.Info().Str("repository", options.Repo).Msg("Scanning single repository")
 		scanSingleRepository(client, options.Repo)
