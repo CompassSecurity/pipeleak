@@ -23,14 +23,12 @@ var (
 	statusHook      ShortcutStatusFN
 )
 
-// RegisterStatusHook allows commands to register a custom status function
 func RegisterStatusHook(hook ShortcutStatusFN) {
 	statusHookMutex.Lock()
 	defer statusHookMutex.Unlock()
 	statusHook = hook
 }
 
-// GetStatusHook returns the registered status hook or a default one
 func GetStatusHook() ShortcutStatusFN {
 	statusHookMutex.RLock()
 	defer statusHookMutex.RUnlock()
@@ -41,7 +39,7 @@ func GetStatusHook() ShortcutStatusFN {
 }
 
 func defaultStatusHook() *zerolog.Event {
-	return log.Info().Str("status", "nothing to show")
+	return log.Info().Str("status", "🤖 still at it - doing my leeky thing.")
 }
 
 func ShortcutListeners(status ShortcutStatusFN) {
@@ -76,7 +74,6 @@ func ShortcutListeners(status ShortcutStatusFN) {
 			}
 
 			if key.String() == "s" {
-				// Use the registered status hook or default
 				currentHook := GetStatusHook()
 				log := currentHook()
 				log.Msg("Status")

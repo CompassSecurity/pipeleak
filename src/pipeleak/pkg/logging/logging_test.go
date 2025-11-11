@@ -118,8 +118,8 @@ func TestGetStatusHook_Default(t *testing.T) {
 	event.Msg("Status")
 
 	output := buf.String()
-	if !strings.Contains(output, `"status":"nothing to show"`) {
-		t.Errorf("Expected default status output to contain 'nothing to show', got: %s", output)
+	if !strings.Contains(output, `"status":"🤖 still at it - doing my leeky thing."`) {
+		t.Errorf("Expected default status output to contain correct message, got: %s", output)
 	}
 }
 
@@ -137,8 +137,8 @@ func TestDefaultStatusHook(t *testing.T) {
 	event.Msg("Status")
 
 	output := buf.String()
-	if !strings.Contains(output, `"status":"nothing to show"`) {
-		t.Errorf("Expected output to contain 'nothing to show', got: %s", output)
+	if !strings.Contains(output, `"status":"🤖 still at it - doing my leeky thing."`) {
+		t.Errorf("Expected output to contain correct status message, got: %s", output)
 	}
 	if !strings.Contains(output, `"message":"Status"`) {
 		t.Errorf("Expected output to contain Status message, got: %s", output)
