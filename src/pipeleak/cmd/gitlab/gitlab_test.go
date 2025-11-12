@@ -91,6 +91,7 @@ func TestNewEnumCmd(t *testing.T) {
 
 	if cmd == nil {
 		t.Fatal("Expected non-nil command")
+		return
 	}
 
 	if cmd.Use != "enum" {
@@ -107,6 +108,7 @@ func TestNewRegisterCmd(t *testing.T) {
 
 	if cmd == nil {
 		t.Fatal("Expected non-nil command")
+		return
 	}
 
 	if cmd.Use != "register" {
@@ -137,6 +139,7 @@ func TestNewShodanCmd(t *testing.T) {
 
 	if cmd == nil {
 		t.Fatal("Expected non-nil command")
+		return
 	}
 
 	if cmd.Use != "shodan" {
