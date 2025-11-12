@@ -1,7 +1,7 @@
 package register
 
 import (
-	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
+	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
