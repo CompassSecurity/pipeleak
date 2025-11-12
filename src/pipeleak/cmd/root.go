@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"os"
 	"runtime"
@@ -18,6 +19,9 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
+
+// TerminalRestorer is a function that can be called to restore terminal state
+var TerminalRestorer func()
 
 var (
 	rootCmd = &cobra.Command{
@@ -70,6 +74,24 @@ type CustomWriter struct {
 
 func (cw *CustomWriter) Write(p []byte) (n int, err error) {
 	originalLen := len(p)
+
+	// Check if this is a fatal log message and restore terminal state if so
+	var logEntry map[string]interface{}
+	if err := json.Unmarshal(p, &logEntry); err == nil {
+		if level, ok := logEntry["level"].(string); ok && level == "fatal" {
+			if TerminalRestorer != nil {
+				TerminalRestorer()
+			}
+		}
+	} else {
+		// Check if it's a console-formatted fatal log
+		if bytes.Contains(p, []byte("fatal")) || bytes.Contains(p, []byte("FTL")) {
+			if TerminalRestorer != nil {
+				TerminalRestorer()
+			}
+		}
+	}
+
 	if bytes.HasSuffix(p, []byte("\n")) {
 		p = bytes.TrimSuffix(p, []byte("\n"))
 	}
