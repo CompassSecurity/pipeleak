@@ -3,6 +3,7 @@ package bitbucket
 import (
 	"testing"
 
+	bburl "github.com/CompassSecurity/pipeleak/pkg/bitbucket/url"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -51,7 +52,7 @@ func TestBuildWebArtifactUrl(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := buildWebArtifactUrl(tt.workspaceSlug, tt.repoSlug, tt.buildNumber, tt.stepUUID)
+			result := bburl.BuildPipelineStepArtifactURL("https://bitbucket.org", tt.workspaceSlug, tt.repoSlug, tt.buildNumber, tt.stepUUID)
 			assert.Equal(t, tt.expectedURL, result)
 		})
 	}

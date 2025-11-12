@@ -125,9 +125,7 @@ func TestBitBucketScanOptions(t *testing.T) {
 	if opts.BitBucketURL != "https://api.bitbucket.org/2.0" {
 		t.Errorf("Expected BitBucketURL 'https://api.bitbucket.org/2.0', got %q", opts.BitBucketURL)
 	}
-	if opts.MaxArtifactSize != 524288000 {
-		t.Errorf("Expected MaxArtifactSize 524288000, got %d", opts.MaxArtifactSize)
-	}
+	// MaxArtifactSize is now in pkg/bitbucket.ScanOptions, not in cmd
 	if opts.BitBucketCookie != "cookie123" {
 		t.Errorf("Expected BitBucketCookie 'cookie123', got %q", opts.BitBucketCookie)
 	}
