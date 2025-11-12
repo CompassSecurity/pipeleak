@@ -2,6 +2,8 @@ package github
 
 import (
 	"testing"
+
+	pkggithub "github.com/CompassSecurity/pipeleak/pkg/github"
 )
 
 func TestNewScanCmd(t *testing.T) {
@@ -197,15 +199,15 @@ func TestValidateRepoFormat(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotOwner, gotName, gotValid := validateRepoFormat(tt.repo)
+			gotOwner, gotName, gotValid := pkggithub.ValidateRepoFormat(tt.repo)
 			if gotOwner != tt.wantOwner {
-				t.Errorf("validateRepoFormat() gotOwner = %v, want %v", gotOwner, tt.wantOwner)
+				t.Errorf("pkggithub.ValidateRepoFormat() gotOwner = %v, want %v", gotOwner, tt.wantOwner)
 			}
 			if gotName != tt.wantName {
-				t.Errorf("validateRepoFormat() gotName = %v, want %v", gotName, tt.wantName)
+				t.Errorf("pkggithub.ValidateRepoFormat() gotName = %v, want %v", gotName, tt.wantName)
 			}
 			if gotValid != tt.wantValid {
-				t.Errorf("validateRepoFormat() gotValid = %v, want %v", gotValid, tt.wantValid)
+				t.Errorf("pkggithub.ValidateRepoFormat() gotValid = %v, want %v", gotValid, tt.wantValid)
 			}
 		})
 	}

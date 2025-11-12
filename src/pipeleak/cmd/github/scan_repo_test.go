@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	pkggithub "github.com/CompassSecurity/pipeleak/pkg/github"
 	"github.com/google/go-github/v69/github"
 	"github.com/stretchr/testify/assert"
 )
@@ -60,7 +61,7 @@ func TestScanSingleRepository_Success(t *testing.T) {
 		MaxScanGoRoutines: 1,
 	}
 
-	owner, name, valid := validateRepoFormat(repoFullName)
+	owner, name, valid := pkggithub.ValidateRepoFormat(repoFullName)
 	assert.True(t, valid)
 	assert.Equal(t, repoOwner, owner)
 	assert.Equal(t, repoName, name)
@@ -116,7 +117,7 @@ func TestScanSingleRepository_ValidFormats(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, _, valid := validateRepoFormat(tt.repo)
+			_, _, valid := pkggithub.ValidateRepoFormat(tt.repo)
 			assert.Equal(t, tt.wantValid, valid)
 		})
 	}

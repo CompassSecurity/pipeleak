@@ -3,6 +3,7 @@ package github
 import (
 	"testing"
 
+	pkggithub "github.com/CompassSecurity/pipeleak/pkg/github"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -79,7 +80,7 @@ func TestDeleteHighestXKeys(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := deleteHighestXKeys(tt.input, tt.nrKeys)
+			result := pkggithub.DeleteHighestXKeys(tt.input, tt.nrKeys)
 			assert.Equal(t, tt.expected, result, "Result map should match expected")
 		})
 	}

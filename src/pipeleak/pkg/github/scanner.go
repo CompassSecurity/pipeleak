@@ -217,6 +217,11 @@ func deleteHighestXKeys(m map[int64]struct{}, nrKeys int) map[int64]struct{} {
 	return m
 }
 
+// DeleteHighestXKeys removes the highest nrKeys keys from the map.
+func DeleteHighestXKeys(m map[int64]struct{}, nrKeys int) map[int64]struct{} {
+	return deleteHighestXKeys(m, nrKeys)
+}
+
 func (s *scanner) scanRepositories() {
 	if s.options.Organization != "" {
 		s.scanOrgRepositories(s.options.Organization)
@@ -233,6 +238,12 @@ func validateRepoFormat(repo string) (owner, name string, valid bool) {
 		return "", "", false
 	}
 	return parts[0], parts[1], true
+}
+
+// ValidateRepoFormat validates the format of a repository string.
+// Returns owner, name and whether the format is valid.
+func ValidateRepoFormat(repo string) (owner, name string, valid bool) {
+	return validateRepoFormat(repo)
 }
 
 func (s *scanner) scanSingleRepository(repoFullName string) {
