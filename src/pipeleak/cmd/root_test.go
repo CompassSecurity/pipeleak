@@ -97,6 +97,7 @@ func TestGlobalColorFlagRegistered(t *testing.T) {
 	flag := rootCmd.PersistentFlags().Lookup("color")
 	if flag == nil {
 		t.Fatal("Global color flag not registered")
+		return
 	}
 
 	if flag.DefValue != "true" {
