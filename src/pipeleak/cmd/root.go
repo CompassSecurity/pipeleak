@@ -19,6 +19,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// TerminalRestorer is a function that can be called to restore terminal state
+var TerminalRestorer func()
+
 var (
 	rootCmd = &cobra.Command{
 		Use:     "pipeleak",
@@ -70,6 +73,7 @@ type CustomWriter struct {
 
 func (cw *CustomWriter) Write(p []byte) (n int, err error) {
 	originalLen := len(p)
+
 	if bytes.HasSuffix(p, []byte("\n")) {
 		p = bytes.TrimSuffix(p, []byte("\n"))
 	}
@@ -94,6 +98,17 @@ func (cw *CustomWriter) Write(p []byte) (n int, err error) {
 	return originalLen, nil
 }
 
+// FatalHook is a zerolog hook that restores terminal state before fatal exits
+type FatalHook struct{}
+
+func (h FatalHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
+	if level == zerolog.FatalLevel {
+		if TerminalRestorer != nil {
+			TerminalRestorer()
+		}
+	}
+}
+
 func initLogger(cmd *cobra.Command) {
 	defaultOut := &CustomWriter{Writer: os.Stdout}
 	colorEnabled := LogColor
@@ -115,12 +130,15 @@ func initLogger(cmd *cobra.Command) {
 		}
 	}
 
+	// Create the fatal hook to restore terminal state
+	fatalHook := FatalHook{}
+
 	if JsonLogoutput {
 		// For JSON output, wrap with HitLevelWriter to transform level field
 		hitWriter := &logging.HitLevelWriter{}
 		hitWriter.SetOutput(defaultOut)
 		logging.SetGlobalHitWriter(hitWriter)
-		log.Logger = zerolog.New(hitWriter).With().Timestamp().Logger()
+		log.Logger = zerolog.New(hitWriter).With().Timestamp().Logger().Hook(fatalHook)
 	} else {
 		// For console output, use custom FormatLevel to color the hit level
 		output := zerolog.ConsoleWriter{
@@ -133,7 +151,7 @@ func initLogger(cmd *cobra.Command) {
 		hitWriter := &logging.HitLevelWriter{}
 		hitWriter.SetOutput(&output)
 		logging.SetGlobalHitWriter(hitWriter)
-		log.Logger = zerolog.New(hitWriter).With().Timestamp().Logger()
+		log.Logger = zerolog.New(hitWriter).With().Timestamp().Logger().Hook(fatalHook)
 	}
 }
 
