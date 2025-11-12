@@ -145,3 +145,9 @@ func ParseLevel(levelStr string) (zerolog.Level, error) {
 	}
 	return zerolog.ParseLevel(levelStr)
 }
+
+// SetGlobalHitWriter sets the global HitLevelWriter for testing purposes.
+// This should only be used in tests to capture hit log output.
+func SetGlobalHitWriter(writer *HitLevelWriter) {
+	globalHitWriter = writer
+}

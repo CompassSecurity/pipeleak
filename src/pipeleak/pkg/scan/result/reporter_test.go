@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/CompassSecurity/pipeleak/pkg/scanner"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -11,10 +12,6 @@ import (
 )
 
 func TestReportFinding(t *testing.T) {
-	// Capture log output for verification
-	var buf bytes.Buffer
-	log.Logger = zerolog.New(&buf)
-
 	tests := []struct {
 		name           string
 		finding        scanner.Finding
@@ -100,7 +97,12 @@ func TestReportFinding(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			buf.Reset()
+			// Capture log output for verification with HitLevelWriter
+			var buf bytes.Buffer
+			hitWriter := logging.NewHitLevelWriter(&buf)
+			log.Logger = zerolog.New(hitWriter)
+			logging.SetGlobalHitWriter(hitWriter)
+
 			ReportFinding(tt.finding, tt.opts)
 
 			output := buf.String()
@@ -116,7 +118,9 @@ func TestReportFinding(t *testing.T) {
 
 func TestReportFindings(t *testing.T) {
 	var buf bytes.Buffer
-	log.Logger = zerolog.New(&buf)
+	hitWriter := logging.NewHitLevelWriter(&buf)
+	log.Logger = zerolog.New(hitWriter)
+	logging.SetGlobalHitWriter(hitWriter)
 
 	findings := []scanner.Finding{
 		{
@@ -159,7 +163,9 @@ func TestReportFindings(t *testing.T) {
 
 func TestReportFindingWithCustomFields(t *testing.T) {
 	var buf bytes.Buffer
-	log.Logger = zerolog.New(&buf)
+	hitWriter := logging.NewHitLevelWriter(&buf)
+	log.Logger = zerolog.New(hitWriter)
+	logging.SetGlobalHitWriter(hitWriter)
 
 	finding := scanner.Finding{
 		Pattern: scanner.PatternElement{
@@ -193,7 +199,9 @@ func TestReportFindingWithCustomFields(t *testing.T) {
 
 func TestReportFindings_EmptyList(t *testing.T) {
 	var buf bytes.Buffer
-	log.Logger = zerolog.New(&buf)
+	hitWriter := logging.NewHitLevelWriter(&buf)
+	log.Logger = zerolog.New(hitWriter)
+	logging.SetGlobalHitWriter(hitWriter)
 
 	findings := []scanner.Finding{}
 	opts := ReportOptions{
