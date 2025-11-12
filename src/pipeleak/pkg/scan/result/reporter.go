@@ -1,8 +1,8 @@
 package result
 
 import (
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/CompassSecurity/pipeleak/pkg/scanner"
-	"github.com/rs/zerolog/log"
 )
 
 type ReportOptions struct {
@@ -18,7 +18,7 @@ func ReportFindings(findings []scanner.Finding, opts ReportOptions) {
 }
 
 func ReportFinding(finding scanner.Finding, opts ReportOptions) {
-	event := log.Warn().
+	event := logging.Hit().
 		Str("confidence", finding.Pattern.Pattern.Confidence).
 		Str("ruleName", finding.Pattern.Pattern.Name).
 		Str("value", finding.Text)
@@ -38,7 +38,7 @@ func ReportFinding(finding scanner.Finding, opts ReportOptions) {
 }
 
 func ReportFindingWithCustomFields(finding scanner.Finding, customFields map[string]string) {
-	event := log.Warn().
+	event := logging.Hit().
 		Str("confidence", finding.Pattern.Pattern.Confidence).
 		Str("ruleName", finding.Pattern.Pattern.Name).
 		Str("value", finding.Text)
