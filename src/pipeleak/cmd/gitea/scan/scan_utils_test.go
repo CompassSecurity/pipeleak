@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/CompassSecurity/pipeleak/pkg/scanner"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -73,7 +74,9 @@ func TestDetermineFileAction(t *testing.T) {
 func TestLogFinding(t *testing.T) {
 	var buf bytes.Buffer
 	oldLogger := log.Logger
-	log.Logger = zerolog.New(&buf).With().Timestamp().Logger()
+	hitWriter := logging.NewHitLevelWriter(&buf)
+	log.Logger = zerolog.New(hitWriter).With().Timestamp().Logger()
+	logging.SetGlobalHitWriter(hitWriter)
 	defer func() { log.Logger = oldLogger }()
 
 	tests := []struct {
