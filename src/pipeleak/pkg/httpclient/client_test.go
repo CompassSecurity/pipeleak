@@ -86,6 +86,7 @@ func TestGetPipeleakHTTPClient(t *testing.T) {
 		client := GetPipeleakHTTPClient("", nil, nil)
 		if client == nil {
 			t.Fatal("Expected non-nil client")
+			return
 		}
 		if client.Logger != nil {
 			t.Error("Expected logger to be nil")
@@ -99,6 +100,7 @@ func TestGetPipeleakHTTPClient(t *testing.T) {
 		client := GetPipeleakHTTPClient("", nil, headers)
 		if client == nil {
 			t.Fatal("Expected non-nil client")
+			return
 		}
 
 		hrt, ok := client.HTTPClient.Transport.(*HeaderRoundTripper)
@@ -118,6 +120,7 @@ func TestGetPipeleakHTTPClient(t *testing.T) {
 		client := GetPipeleakHTTPClient("http://example.com", cookies, nil)
 		if client == nil {
 			t.Fatal("Expected non-nil client")
+			return
 		}
 		if client.HTTPClient.Jar == nil {
 			t.Error("Expected cookie jar to be set")
