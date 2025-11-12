@@ -64,7 +64,7 @@ func GetPipeleakHTTPClient(cookieUrl string, cookies []*http.Cookie, defaultHead
 		}
 
 		if resp.StatusCode == 429 || (resp.StatusCode >= 500 && resp.StatusCode != 501) {
-			log.Trace().Int("statusCode", resp.StatusCode).Msg("Retrying HTTP request")
+			log.Trace().Str("url", resp.Request.URL.String()).Int("statusCode", resp.StatusCode).Msg("Retrying HTTP request")
 			return true, nil
 		}
 
