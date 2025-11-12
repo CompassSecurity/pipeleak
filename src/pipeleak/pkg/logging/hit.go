@@ -11,8 +11,9 @@ import (
 )
 
 // HitLevel defines a custom log level for security finding hits.
-// It is implemented as a wrapper around WarnLevel but appears as "hit" in JSON output.
-// This level is used to distinguish security scan results from regular warnings.
+// The constant is set to WarnLevel for compatibility, but Hit() events are logged at
+// ErrorLevel to ensure they always appear regardless of the global log level setting.
+// The HitLevelWriter transforms these logs to appear as "level":"hit" in the output.
 const HitLevel zerolog.Level = zerolog.WarnLevel
 
 // HitLevelWriter wraps an io.Writer to transform logs with the hit marker to use "hit" as the level.
