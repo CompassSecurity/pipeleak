@@ -1,17 +1,7 @@
 package bitbucket
 
 import (
-	"context"
-	"strconv"
-	"time"
-
-	bburl "github.com/CompassSecurity/pipeleak/cmd/bitbucket/internal/url"
-	"github.com/CompassSecurity/pipeleak/pkg/format"
-	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
-	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
-	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
-	"github.com/CompassSecurity/pipeleak/pkg/scanner"
-	"github.com/h2non/filetype"
+	"github.com/CompassSecurity/pipeleak/pkg/bitbucket"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -29,9 +19,6 @@ type BitBucketScanOptions struct {
 	After                  string
 	Artifacts              bool
 	BitBucketURL           string
-	MaxArtifactSize        int64
-	Context                context.Context
-	Client                 BitBucketApiClient
 	BitBucketCookie        string
 }
 
@@ -86,276 +73,28 @@ func Scan(cmd *cobra.Command, args []string) {
 		log.Fatal().Msg("When using --token you must also provide --email")
 	}
 
-	byteSize, err := format.ParseHumanSize(maxArtifactSize)
+	scanOpts, err := bitbucket.InitializeOptions(
+		options.Email,
+		options.AccessToken,
+		options.BitBucketCookie,
+		options.BitBucketURL,
+		options.Workspace,
+		options.After,
+		maxArtifactSize,
+		options.Owned,
+		options.Public,
+		options.Artifacts,
+		options.TruffleHogVerification,
+		options.MaxPipelines,
+		options.MaxScanGoRoutines,
+		options.ConfidenceFilter,
+	)
 	if err != nil {
 		log.Fatal().Err(err).Str("size", maxArtifactSize).Msg("Failed parsing max-artifact-size flag")
 	}
-	options.MaxArtifactSize = byteSize
 
-	runner.InitScanner(options.ConfidenceFilter)
-
-	options.Context = context.Background()
-	options.Client = NewClient(options.Email, options.AccessToken, options.BitBucketCookie, options.BitBucketURL)
-
-	if len(options.BitBucketCookie) > 0 {
-		options.Client.GetuserInfo()
-	}
-
-	if options.Public {
-		log.Info().Msg("Scanning public repos")
-		scanPublic(options.Client, options.After)
-	} else if options.Owned {
-		log.Info().Msg("Scanning current user owned workspaces")
-		scanOwned(options.Client)
-	} else if options.Workspace != "" {
-		log.Info().Str("name", options.Workspace).Msg("Scanning a workspace")
-		scanWorkspace(options.Client, options.Workspace)
-	} else {
-		log.Error().Msg("Specify a scan mode --public, --owned, --workspace")
-	}
-
-	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
-}
-
-func scanOwned(client BitBucketApiClient) {
-	next := ""
-	for {
-		workspaces, nextUrl, _, err := client.ListOwnedWorkspaces(next)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed fetching workspaces")
-		}
-
-		for _, workspace := range workspaces {
-			log.Trace().Str("name", workspace.Name).Msg("Workspace")
-			listWorkspaceRepos(client, workspace.Slug)
-		}
-
-		if nextUrl == "" {
-			break
-		}
-		next = nextUrl
-	}
-}
-
-func scanWorkspace(client BitBucketApiClient, workspace string) {
-	next := ""
-	for {
-		repos, nextUrl, _, err := client.ListWorkspaceRepositoires(next, workspace)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed fetching workspace")
-		}
-
-		for _, repo := range repos {
-			log.Debug().Str("url", repo.Links.HTML.Href).Time("created", repo.CreatedOn).Time("updated", repo.UpdatedOn).Msg("Repo")
-			listRepoPipelines(client, workspace, repo.Name)
-		}
-
-		if nextUrl == "" {
-			break
-		}
-		next = nextUrl
-	}
-}
-
-func scanPublic(client BitBucketApiClient, after string) {
-	afterTime := time.Time{}
-	if after != "" {
-		afterTime = format.ParseISO8601(after)
-	}
-	log.Info().Time("after", afterTime).Msg("Scanning repos after")
-	next := ""
-	for {
-		repos, nextUrl, _, err := client.ListPublicRepositories(next, afterTime)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed fetching public repositories")
-		}
-
-		for _, repo := range repos {
-			log.Debug().Str("url", repo.Links.HTML.Href).Time("created", repo.CreatedOn).Time("updated", repo.UpdatedOn).Msg("Repo")
-			listRepoPipelines(client, repo.Workspace.Name, repo.Name)
-		}
-
-		if nextUrl == "" {
-			break
-		}
-		next = nextUrl
-	}
-}
-
-func listWorkspaceRepos(client BitBucketApiClient, workspaceSlug string) {
-	next := ""
-	for {
-		repos, nextUrl, _, err := client.ListWorkspaceRepositoires(next, workspaceSlug)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed fetching workspace repos")
-		}
-
-		for _, repo := range repos {
-			log.Debug().Str("url", repo.Links.HTML.Href).Time("created", repo.CreatedOn).Time("updated", repo.UpdatedOn).Msg("Repo")
-			listRepoPipelines(client, workspaceSlug, repo.Name)
-		}
-		if nextUrl == "" {
-			break
-		}
-		next = nextUrl
-	}
-}
-
-func listRepoPipelines(client BitBucketApiClient, workspaceSlug string, repoSlug string) {
-	pipelineCount := 0
-	next := ""
-	for {
-		pipelines, nextUrl, _, err := client.ListRepositoryPipelines(next, workspaceSlug, repoSlug)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed fetching repo pipelines")
-		}
-
-		for _, pipeline := range pipelines {
-			log.Trace().Int("buildNr", pipeline.BuildNumber).Str("uuid", pipeline.UUID).Msg("Pipeline")
-			listPipelineSteps(client, workspaceSlug, repoSlug, pipeline.UUID)
-			if options.Artifacts {
-				log.Trace().Int("buildNr", pipeline.BuildNumber).Str("uuid", pipeline.UUID).Msg("Fetch pipeline artifacts")
-				listArtifacts(client, workspaceSlug, repoSlug, pipeline.BuildNumber)
-				listDownloadArtifacts(client, workspaceSlug, repoSlug)
-			}
-
-			pipelineCount = pipelineCount + 1
-			if pipelineCount >= options.MaxPipelines && options.MaxPipelines > 0 {
-				log.Debug().Str("workspace", workspaceSlug).Str("repo", repoSlug).Msg("Reached max pipelines runs, skip remaining")
-				return
-			}
-		}
-
-		if nextUrl == "" {
-			break
-		}
-		next = nextUrl
-	}
-}
-
-func listArtifacts(client BitBucketApiClient, workspaceSlug string, repoSlug string, buildId int) {
-	next := ""
-	for {
-		artifacts, nextUrl, _, err := client.ListPipelineArtifacts(next, workspaceSlug, repoSlug, buildId)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed fetching pipeline download artifacts")
-		}
-
-		for _, art := range artifacts {
-			if int64(art.FileSizeBytes) > options.MaxArtifactSize {
-				log.Debug().
-					Int("bytes", art.FileSizeBytes).
-					Int64("maxBytes", options.MaxArtifactSize).
-					Str("name", art.Name).
-					Int("buildId", buildId).
-					Msg("Skipped large pipeline artifact")
-				continue
-			}
-
-			log.Trace().Str("name", art.Name).Msg("Pipeline Artifact")
-			artifactBytes := client.GetPipelineArtifact(workspaceSlug, repoSlug, buildId, art.UUID)
-
-			if filetype.IsArchive(artifactBytes) {
-				scanner.HandleArchiveArtifact(art.Name, artifactBytes, buildWebArtifactUrl(workspaceSlug, repoSlug, buildId, art.StepUUID), "Build "+strconv.Itoa(buildId), options.TruffleHogVerification)
-			}
-		}
-
-		if nextUrl == "" {
-			break
-		}
-		next = nextUrl
-	}
-}
-
-func listDownloadArtifacts(client BitBucketApiClient, workspaceSlug string, repoSlug string) {
-	next := ""
-	for {
-		downloadArtifacts, nextUrl, _, err := client.ListDownloadArtifacts(next, workspaceSlug, repoSlug)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed fetching pipeline download artifacts")
-		}
-
-		for _, artifact := range downloadArtifacts {
-			if int64(artifact.Size) > options.MaxArtifactSize {
-				log.Debug().
-					Int("bytes", artifact.Size).
-					Int64("maxBytes", options.MaxArtifactSize).
-					Str("name", artifact.Name).
-					Msg("Skipped large download artifact")
-				continue
-			}
-
-			log.Trace().Str("name", artifact.Name).Str("creator", artifact.User.DisplayName).Msg("Download Artifact")
-			getDownloadArtifact(client, artifact.Links.Self.Href, constructDownloadArtifactWebUrl(workspaceSlug, repoSlug, artifact.Name), artifact.Name)
-		}
-
-		if nextUrl == "" {
-			break
-		}
-		next = nextUrl
-	}
-}
-
-func listPipelineSteps(client BitBucketApiClient, workspaceSlug string, repoSlug string, pipelineUuid string) {
-	next := ""
-	for {
-		steps, nextUrl, _, err := client.ListPipelineSteps(next, workspaceSlug, repoSlug, pipelineUuid)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed fetching pipeline steps")
-		}
-
-		for _, step := range steps {
-			log.Trace().Str("step", step.UUID).Msg("Step")
-			getSteplog(client, workspaceSlug, repoSlug, pipelineUuid, step.UUID)
-		}
-
-		if nextUrl == "" {
-			break
-		}
-		next = nextUrl
-	}
-}
-
-func constructDownloadArtifactWebUrl(workspaceSlug string, repoSlug string, artifactName string) string {
-	baseWebURL := bburl.GetWebBaseURL(options.BitBucketURL)
-	webURL, err := bburl.BuildDownloadArtifactWebURL(baseWebURL, workspaceSlug, repoSlug, artifactName)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Unable to build artifact download URL")
-	}
-	return webURL
-}
-
-func getSteplog(client BitBucketApiClient, workspaceSlug string, repoSlug string, pipelineUuid string, stepUUID string) {
-	logBytes, _, err := client.GetStepLog(workspaceSlug, repoSlug, pipelineUuid, stepUUID)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed fetching pipeline steps")
-	}
-
-	logResult, err := logline.ProcessLogs(logBytes, logline.ProcessOptions{
-		MaxGoRoutines:     options.MaxScanGoRoutines,
-		VerifyCredentials: options.TruffleHogVerification,
-	})
-	if err != nil {
-		log.Debug().Err(err).Str("stepUUid", stepUUID).Msg("Failed detecting secrets")
-		return
-	}
-
-	baseWebURL := bburl.GetWebBaseURL(options.BitBucketURL)
-	runURL := bburl.BuildPipelineStepURL(baseWebURL, workspaceSlug, repoSlug, pipelineUuid, stepUUID)
-	result.ReportFindings(logResult.Findings, result.ReportOptions{
-		LocationURL: runURL,
-	})
-}
-
-func getDownloadArtifact(client BitBucketApiClient, downloadUrl string, webUrl string, filename string) {
-	fileBytes := client.GetDownloadArtifact(downloadUrl)
-	if len(fileBytes) == 0 {
-		return
-	}
-
-	if filetype.IsArchive(fileBytes) {
-		scanner.HandleArchiveArtifact(filename, fileBytes, webUrl, "Download Artifact", options.TruffleHogVerification)
-	} else {
-		scanner.DetectFileHits(fileBytes, webUrl, "Download Artifact", filename, "", options.TruffleHogVerification)
+	scanner := bitbucket.NewScanner(scanOpts)
+	if err := scanner.Scan(); err != nil {
+		log.Fatal().Err(err).Msg("Scan failed")
 	}
 }
