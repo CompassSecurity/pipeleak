@@ -85,7 +85,7 @@ func TestBitBucketScanOptions(t *testing.T) {
 		After:                  "2025-01-01T00:00:00Z",
 		Artifacts:              true,
 		BitBucketURL:           "https://api.bitbucket.org/2.0",
-		MaxArtifactSize:        524288000,
+		// MaxArtifactSize is now in pkg/bitbucket.ScanOptions
 		BitBucketCookie:        "cookie123",
 	}
 
