@@ -28,6 +28,7 @@ var (
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			initLogger(cmd)
 			setGlobalLogLevel(cmd)
+			go logging.ShortcutListeners(nil)
 		},
 	}
 	JsonLogoutput bool

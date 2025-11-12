@@ -97,6 +97,7 @@ func TestGlobalColorFlagRegistered(t *testing.T) {
 	flag := rootCmd.PersistentFlags().Lookup("color")
 	if flag == nil {
 		t.Fatal("Global color flag not registered")
+		return
 	}
 
 	if flag.DefValue != "true" {
@@ -108,5 +109,11 @@ func TestGlobalLogFileFlagRegistered(t *testing.T) {
 	flag := rootCmd.PersistentFlags().Lookup("logfile")
 	if flag == nil {
 		t.Fatal("Global logfile flag not registered")
+	}
+}
+
+func TestPersistentPreRunRegistered(t *testing.T) {
+	if rootCmd.PersistentPreRun == nil {
+		t.Fatal("PersistentPreRun should be registered")
 	}
 }

@@ -99,7 +99,7 @@ pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --repo owner/repo
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	go logging.ShortcutListeners(scanStatus)
+	logging.RegisterStatusHook(scanStatus)
 
 	byteSize, err := format.ParseHumanSize(maxArtifactSize)
 	if err != nil {
