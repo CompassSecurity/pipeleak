@@ -54,9 +54,9 @@ func TestScanSingleRepository_Success(t *testing.T) {
 	defer func() { options = originalOptions }()
 
 	options = GitHubScanOptions{
-		Context:        context.Background(),
-		Client:         client,
-		MaxWorkflows:   1,
+		Context:           context.Background(),
+		Client:            client,
+		MaxWorkflows:      1,
 		MaxScanGoRoutines: 1,
 	}
 
@@ -98,8 +98,8 @@ func TestScanSingleRepository_NotFound(t *testing.T) {
 
 func TestScanSingleRepository_ValidFormats(t *testing.T) {
 	tests := []struct {
-		name     string
-		repo     string
+		name      string
+		repo      string
 		wantValid bool
 	}{
 		{"valid simple", "owner/repo", true},
