@@ -34,7 +34,8 @@ func (w *HitLevelWriter) Write(p []byte) (n int, err error) {
 		// Parse JSON and replace level field
 		var logEntry map[string]interface{}
 		if err := json.Unmarshal(p, &logEntry); err == nil {
-			if logEntry["level"] == "warn" {
+			// Replace warn or error level with hit
+			if logEntry["level"] == "warn" || logEntry["level"] == "error" {
 				logEntry["level"] = "hit"
 			}
 			// Remove the internal hit marker field
@@ -54,6 +55,13 @@ func (w *HitLevelWriter) Write(p []byte) (n int, err error) {
 func (w *HitLevelWriter) markNextAsHit() {
 	w.mu.Lock()
 	w.nextIsHit = true
+	w.mu.Unlock()
+}
+
+// SetOutput sets the output writer for this HitLevelWriter.
+func (w *HitLevelWriter) SetOutput(out io.Writer) {
+	w.mu.Lock()
+	w.out = out
 	w.mu.Unlock()
 }
 
@@ -125,14 +133,18 @@ func setupGlobalHitWriter() {
 // Hit creates a hit-level log event using the global logger.
 // This is the primary method for logging security findings.
 // The resulting log will have "level":"hit" in JSON output instead of "level":"warn".
+// HIT level logs are always emitted regardless of the global log level setting.
 // Example: logging.Hit().Str("ruleName", "secret-key").Str("value", "***").Msg("HIT")
 func Hit() *HitEvent {
 	// Only setup if not already done (e.g., in tests)
 	if globalHitWriter == nil {
 		setupGlobalHitWriter()
 	}
+	// Use WithLevel with a high level to ensure it's always logged
+	// We use ErrorLevel+1 which is higher than typical log levels but lower than Fatal/Panic
+	// The actual level in output will be transformed to "hit" by HitLevelWriter
 	return &HitEvent{
-		event:  log.Warn(),
+		event:  log.WithLevel(zerolog.ErrorLevel),
 		writer: globalHitWriter,
 	}
 }

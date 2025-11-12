@@ -13,6 +13,7 @@ import (
 	"github.com/CompassSecurity/pipeleak/cmd/gitea"
 	"github.com/CompassSecurity/pipeleak/cmd/github"
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab"
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -114,10 +115,66 @@ func initLogger(cmd *cobra.Command) {
 	}
 
 	if JsonLogoutput {
-		log.Logger = zerolog.New(defaultOut).With().Timestamp().Logger()
+		// For JSON output, wrap with HitLevelWriter to transform level field
+		hitWriter := &logging.HitLevelWriter{}
+		hitWriter.SetOutput(defaultOut)
+		logging.SetGlobalHitWriter(hitWriter)
+		log.Logger = zerolog.New(hitWriter).With().Timestamp().Logger()
 	} else {
-		output := zerolog.ConsoleWriter{Out: defaultOut, TimeFormat: time.RFC3339, NoColor: !colorEnabled}
-		log.Logger = zerolog.New(output).With().Timestamp().Logger()
+		// For console output, use custom FormatLevel to color the hit level
+		output := zerolog.ConsoleWriter{
+			Out:         defaultOut,
+			TimeFormat:  time.RFC3339,
+			NoColor:     !colorEnabled,
+			FormatLevel: formatLevelWithHitColor(colorEnabled),
+		}
+		// Wrap with HitLevelWriter to transform JSON before ConsoleWriter processes it
+		hitWriter := &logging.HitLevelWriter{}
+		hitWriter.SetOutput(&output)
+		logging.SetGlobalHitWriter(hitWriter)
+		log.Logger = zerolog.New(hitWriter).With().Timestamp().Logger()
+	}
+}
+
+// formatLevelWithHitColor returns a custom level formatter that adds a distinct color for the "hit" level.
+// The hit level uses magenta (color 35) to distinguish it from other log levels.
+func formatLevelWithHitColor(colorEnabled bool) zerolog.Formatter {
+	return func(i interface{}) string {
+		var level string
+		if ll, ok := i.(string); ok {
+			level = ll
+		} else {
+			return ""
+		}
+
+		if !colorEnabled {
+			return level
+		}
+
+		// Custom color for hit level - using bright magenta (35) to stand out
+		if level == "hit" {
+			return "\x1b[35m" + level + "\x1b[0m"
+		}
+
+		// Use zerolog's default colors for other levels
+		switch level {
+		case "trace":
+			return "\x1b[90m" + level + "\x1b[0m"
+		case "debug":
+			return level
+		case "info":
+			return "\x1b[32m" + level + "\x1b[0m"
+		case "warn":
+			return "\x1b[33m" + level + "\x1b[0m"
+		case "error":
+			return "\x1b[31m" + level + "\x1b[0m"
+		case "fatal":
+			return "\x1b[31m" + level + "\x1b[0m"
+		case "panic":
+			return "\x1b[31m" + level + "\x1b[0m"
+		default:
+			return level
+		}
 	}
 }
 
