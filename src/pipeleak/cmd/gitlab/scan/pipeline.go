@@ -255,5 +255,8 @@ func getJobUrl(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job) str
 }
 
 func GetQueueStatus() int {
+	if globQueue == nil {
+		return 0
+	}
 	return int(globQueue.Depth())
 }
