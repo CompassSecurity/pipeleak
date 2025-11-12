@@ -9,6 +9,7 @@ func TestNewRenovateRootCmd(t *testing.T) {
 
 	if cmd == nil {
 		t.Fatal("Expected non-nil command")
+		return
 	}
 
 	if cmd.Use != "renovate" {
@@ -41,6 +42,7 @@ func TestNewEnumCmd(t *testing.T) {
 
 	if cmd == nil {
 		t.Fatal("Expected non-nil command")
+		return
 	}
 
 	if cmd.Use != "enum [no options!]" {
@@ -57,6 +59,7 @@ func TestNewAutodiscoveryCmd(t *testing.T) {
 
 	if cmd == nil {
 		t.Fatal("Expected non-nil command")
+		return
 	}
 
 	if cmd.Use != "autodiscovery" {
@@ -81,6 +84,7 @@ func TestNewPrivescCmd(t *testing.T) {
 
 	if cmd == nil {
 		t.Fatal("Expected non-nil command")
+		return
 	}
 
 	if cmd.Use != "privesc" {

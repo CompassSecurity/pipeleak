@@ -85,7 +85,7 @@ pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com -
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	go logging.ShortcutListeners(scanStatus)
+	logging.RegisterStatusHook(scanStatus)
 
 	_, err := url.ParseRequestURI(options.GitlabUrl)
 	if err != nil {

@@ -15,6 +15,7 @@ func TestNewGitLabRootCmd(t *testing.T) {
 
 	if cmd == nil {
 		t.Fatal("Expected non-nil command")
+		return
 	}
 
 	if cmd.Use != "gl [command]" {
@@ -51,6 +52,7 @@ func TestNewVulnCmd(t *testing.T) {
 
 	if cmd == nil {
 		t.Fatal("Expected non-nil command")
+		return
 	}
 
 	if cmd.Use != "vuln" {
@@ -67,6 +69,7 @@ func TestNewVariablesCmd(t *testing.T) {
 
 	if cmd == nil {
 		t.Fatal("Expected non-nil command")
+		return
 	}
 
 	if cmd.Use != "variables" {
@@ -88,6 +91,7 @@ func TestNewEnumCmd(t *testing.T) {
 
 	if cmd == nil {
 		t.Fatal("Expected non-nil command")
+		return
 	}
 
 	if cmd.Use != "enum" {
@@ -104,6 +108,7 @@ func TestNewRegisterCmd(t *testing.T) {
 
 	if cmd == nil {
 		t.Fatal("Expected non-nil command")
+		return
 	}
 
 	if cmd.Use != "register" {
@@ -134,6 +139,7 @@ func TestNewShodanCmd(t *testing.T) {
 
 	if cmd == nil {
 		t.Fatal("Expected non-nil command")
+		return
 	}
 
 	if cmd.Use != "shodan" {

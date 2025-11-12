@@ -9,9 +9,7 @@ import (
 	"code.gitea.io/sdk/gitea"
 	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
-	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -86,8 +84,6 @@ pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com 
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	go logging.ShortcutListeners(scanStatus)
-
 	if scanOptions.StartRunID > 0 && scanOptions.Repository == "" {
 		log.Fatal().Msg("--start-run-id can only be used with --repository flag")
 	}
@@ -146,10 +142,6 @@ func Scan(cmd *cobra.Command, args []string) {
 
 	scanRepositories(scanOptions.Client)
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
-}
-
-func scanStatus() *zerolog.Event {
-	return log.Info().Str("status", "scanning... ✨✨ nothing more yet ✨✨")
 }
 
 func scanRepositories(client *gitea.Client) {

@@ -7,13 +7,11 @@ import (
 
 	bburl "github.com/CompassSecurity/pipeleak/cmd/bitbucket/internal/url"
 	"github.com/CompassSecurity/pipeleak/pkg/format"
-	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
 	"github.com/CompassSecurity/pipeleak/pkg/scanner"
 	"github.com/h2non/filetype"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -87,8 +85,6 @@ func Scan(cmd *cobra.Command, args []string) {
 	if options.AccessToken != "" && options.Email == "" {
 		log.Fatal().Msg("When using --token you must also provide --email")
 	}
-
-	go logging.ShortcutListeners(scanStatus)
 
 	byteSize, err := format.ParseHumanSize(maxArtifactSize)
 	if err != nil {
@@ -362,8 +358,4 @@ func getDownloadArtifact(client BitBucketApiClient, downloadUrl string, webUrl s
 	} else {
 		scanner.DetectFileHits(fileBytes, webUrl, "Download Artifact", filename, "", options.TruffleHogVerification)
 	}
-}
-
-func scanStatus() *zerolog.Event {
-	return log.Info().Str("debug", "nothing to show ✔️")
 }

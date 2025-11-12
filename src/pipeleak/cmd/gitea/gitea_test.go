@@ -9,6 +9,7 @@ func TestNewGiteaRootCmd(t *testing.T) {
 
 	if cmd == nil {
 		t.Fatal("Expected non-nil command")
+		return
 	}
 
 	if cmd.Use != "gitea [command]" {
