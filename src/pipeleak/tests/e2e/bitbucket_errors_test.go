@@ -30,10 +30,10 @@ func TestBitBucketScan_MissingCredentials(t *testing.T) {
 		"--owned", // Need a scan mode
 	}, nil, 5*time.Second)
 
-	// The command completes but logs authentication errors
+	// The command exits early with authentication error when trying to get user info
 	output := stdout + stderr
 	assert.Contains(t, output, "401", "Should show 401 authentication error when credentials missing")
-	assert.Contains(t, output, "owned workspaces", "Should attempt to list owned workspaces")
+	assert.Contains(t, output, "Failed to get user info", "Should fail at user info validation")
 	t.Logf("Output:\n%s", output)
 }
 

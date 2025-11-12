@@ -323,7 +323,7 @@ func InitializeOptions(token, giteaURL, repository, organization, cookie, maxArt
 func ValidateCookie(opts ScanOptions) error {
 	// Set the global scanOptions for helper functions
 	scanOptions = opts
-	
+
 	// Call the internal validateCookie function from html.go
 	validateCookie()
 	return nil

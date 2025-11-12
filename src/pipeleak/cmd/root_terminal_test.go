@@ -103,9 +103,9 @@ func TestCustomWriter_WritesCorrectly(t *testing.T) {
 		tmpDir := t.TempDir()
 		logFile := filepath.Join(tmpDir, "test.log")
 
-	f, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY, 0644)
-	require.NoError(t, err)
-	defer func() { _ = f.Close() }()
+		f, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY, 0644)
+		require.NoError(t, err)
+		defer func() { _ = f.Close() }()
 
 		writer := &CustomWriter{Writer: f}
 
@@ -115,8 +115,8 @@ func TestCustomWriter_WritesCorrectly(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, len(testLog), n, "Should return original length")
 
-	// Read back and verify
-	_ = f.Close()
+		// Read back and verify
+		_ = f.Close()
 		content, err := os.ReadFile(logFile)
 		require.NoError(t, err)
 		assert.Contains(t, string(content), "test", "Log content should be written")

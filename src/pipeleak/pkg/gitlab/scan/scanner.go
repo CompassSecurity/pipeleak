@@ -32,7 +32,7 @@ func NewScanner(opts *ScanOptions) Scanner {
 func (s *gitlabScanner) Scan() error {
 	version := util.DetermineVersion(s.options.GitlabUrl, s.options.GitlabApiToken)
 	log.Info().Str("version", version.Version).Str("revision", version.Revision).Msg("Gitlab Version Check")
-	
+
 	ScanGitLabPipelines(s.options)
 	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
 	return nil

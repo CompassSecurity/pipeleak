@@ -86,7 +86,7 @@ func TestBitBucketScanOptions(t *testing.T) {
 		Artifacts:              true,
 		BitBucketURL:           "https://api.bitbucket.org/2.0",
 		// MaxArtifactSize is now in pkg/bitbucket.ScanOptions
-		BitBucketCookie:        "cookie123",
+		BitBucketCookie: "cookie123",
 	}
 
 	if opts.Email != "test@example.com" {
