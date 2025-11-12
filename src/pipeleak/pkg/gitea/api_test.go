@@ -1,4 +1,4 @@
-package scan
+package gitea
 
 import (
 	"archive/zip"
@@ -169,7 +169,7 @@ func TestListWorkflowRuns(t *testing.T) {
 			}
 			scanOptions.RunsLimit = tt.setupRunsLimit
 
-			runs, err := listWorkflowRuns(nil, tt.repo)
+			runs, err := ListWorkflowRuns(nil, tt.repo)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -749,7 +749,7 @@ func TestListWorkflowRuns_Pagination(t *testing.T) {
 				Owner:    &gitea.User{UserName: "owner"},
 			}
 
-			runs, err := listWorkflowRuns(nil, repo)
+			runs, err := ListWorkflowRuns(nil, repo)
 
 			assert.NoError(t, err)
 			assert.Len(t, runs, tt.expectedRuns, tt.description)
@@ -1051,7 +1051,7 @@ func TestListWorkflowRuns_PaginationWithRunsLimit(t *testing.T) {
 				Owner:    &gitea.User{UserName: "owner"},
 			}
 
-			runs, err := listWorkflowRuns(nil, repo)
+			runs, err := ListWorkflowRuns(nil, repo)
 
 			assert.NoError(t, err)
 			assert.Len(t, runs, tt.expectedRuns, tt.description)
@@ -1102,7 +1102,7 @@ func TestListWorkflowRuns_PaginationArrayFormat(t *testing.T) {
 		Owner:    &gitea.User{UserName: "owner"},
 	}
 
-	runs, err := listWorkflowRuns(nil, repo)
+	runs, err := ListWorkflowRuns(nil, repo)
 
 	assert.NoError(t, err)
 	assert.Equal(t, 110, len(runs), "Should fetch 50+50+10 runs from array format")

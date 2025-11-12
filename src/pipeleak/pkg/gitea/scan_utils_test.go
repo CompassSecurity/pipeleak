@@ -1,4 +1,4 @@
-package scan
+package gitea
 
 import (
 	"archive/zip"

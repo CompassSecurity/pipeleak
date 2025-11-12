@@ -1,4 +1,4 @@
-package scan
+package gitea
 
 import (
 	"context"
@@ -94,6 +94,11 @@ type ActionJob struct {
 type ActionJobsResponse struct {
 	TotalCount int64       `json:"total_count"`
 	Jobs       []ActionJob `json:"jobs"`
+}
+
+// ListWorkflowRuns retrieves workflow runs for a repository.
+func ListWorkflowRuns(client *gitea.Client, repo *gitea.Repository) ([]ActionWorkflowRun, error) {
+	return listWorkflowRuns(client, repo)
 }
 
 func listWorkflowRuns(client *gitea.Client, repo *gitea.Repository) ([]ActionWorkflowRun, error) {
