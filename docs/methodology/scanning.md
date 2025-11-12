@@ -24,12 +24,12 @@ pipeleak gl scan -g https://gitlab.com -t glpat-[redacted] --cookie [redacted] -
 2025-09-30T09:53:30Z INF Gitlab Version Check revision=f0455ea9f90 version=18.5.0-pre
 2025-09-30T09:53:30Z INF Fetching projects
 2025-09-30T09:53:30Z INF Provided GitLab session cookie is valid
-2025-09-30T09:53:33Z WRN HIT confidence=low jobName=archives-job ruleName=api_key url=gitlab.com/testgroup/project/-/jobs/11484162851 value="m$ mkdir archive_data $ echo \"datadog_api_key=secrets.txt file hit\" > archive_data/secrets_in_ar"
-2025-09-30T09:53:36Z WRN HIT DOTENV: Check artifacts page which is the only place to download the dotenv file confidence=high ruleName="Generic - 1719" url=gitlab.com/testgroup/project/-/jobs/11484162842 value="datadog_api_key=dotenv ONLY file hit, no other artifacts "
-2025-09-30T09:53:37Z WRN HIT Artifact confidence=high file=an_artifact.txt jobName=artifact-job ruleName="Generic - 1719" url=gitlab.com/testgroup/project/-/jobs/11484162833 value="datadog_api_key=secret_artifact_value "
+2025-09-30T09:53:33Z HIT confidence=low jobName=archives-job ruleName=api_key url=gitlab.com/testgroup/project/-/jobs/11484162851 value="m$ mkdir archive_data $ echo \"datadog_api_key=secrets.txt file hit\" > archive_data/secrets_in_ar"
+2025-09-30T09:53:36Z HIT DOTENV: Check artifacts page which is the only place to download the dotenv file confidence=high ruleName="Generic - 1719" url=gitlab.com/testgroup/project/-/jobs/11484162842 value="datadog_api_key=dotenv ONLY file hit, no other artifacts "
+2025-09-30T09:53:37Z HIT Artifact confidence=high file=an_artifact.txt jobName=artifact-job ruleName="Generic - 1719" url=gitlab.com/testgroup/project/-/jobs/11484162833 value="datadog_api_key=secret_artifact_value "
 ```
 
-As shown, Pipeleak can detect secrets in job logs, dotenv files, and build artifacts. Manually review the hits to verify if they're valid credentials. If you see `confidence=high-verified`, it's very likely a real credential, as Pipeleak has tested it against the respective service.
+As shown, Pipeleak can detect secrets in job logs, dotenv files, and build artifacts. Security findings are logged at the custom `hit` level to distinguish them from regular warnings. Manually review the hits to verify if they're valid credentials. If you see `confidence=high-verified`, it's very likely a real credential, as Pipeleak has tested it against the respective service.
 
 If you find a repository that looks particularly interesting e.g. `secret-pipelines`, you can scan all its job logs, not just the most recent ones:
 
@@ -77,8 +77,21 @@ When you run Pipeleak, you'll see results for your custom rule and any built-in 
 
 ```bash
 pipeleak gl scan -g https://gitlab.com -t glpat-[redacted] --truffle-hog-verification=false --verbose
-2025-09-30T11:39:08Z WRN HIT confidence=custom-confidence jobName=build-job-hidden ruleName="Pipeleak Custom Rule" url=gitlab.com/testgroup/project/-/jobs/11547853360 value="PIPELEAK_HIT=secret"
+2025-09-30T11:39:08Z HIT confidence=custom-confidence jobName=build-job-hidden ruleName="Pipeleak Custom Rule" url=gitlab.com/testgroup/project/-/jobs/11547853360 value="PIPELEAK_HIT=secret"
 ```
+
+## Log Levels
+
+Pipeleak uses structured JSON logging with the following levels:
+
+- `trace`: Most detailed logging, includes all operations
+- `debug`: Detailed information for debugging
+- `info`: General informational messages
+- `warn`: Warning messages for potential issues
+- `hit`: **Custom level for security findings** - indicates a potential secret or credential has been detected
+- `error`: Error messages for failures
+
+The `hit` level is a custom log level specifically for security findings, making it easy to filter and process detected secrets separately from other log messages.
 
 ## Interactive Log Level
 
