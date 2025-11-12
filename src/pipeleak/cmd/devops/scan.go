@@ -1,14 +1,7 @@
 package devops
 
 import (
-	"context"
-	"strconv"
-
-	"github.com/CompassSecurity/pipeleak/pkg/format"
-	artifactproc "github.com/CompassSecurity/pipeleak/pkg/scan/artifact"
-	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
-	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
-	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
+	"github.com/CompassSecurity/pipeleak/pkg/devops"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -24,9 +17,6 @@ type DevOpsScanOptions struct {
 	Project                string
 	Artifacts              bool
 	DevOpsURL              string
-	MaxArtifactSize        int64
-	Context                context.Context
-	Client                 AzureDevOpsApiClient
 }
 
 var options = DevOpsScanOptions{}
@@ -84,196 +74,25 @@ pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	byteSize, err := format.ParseHumanSize(maxArtifactSize)
+	scanOpts, err := devops.InitializeOptions(
+		options.Username,
+		options.AccessToken,
+		options.DevOpsURL,
+		options.Organization,
+		options.Project,
+		maxArtifactSize,
+		options.Artifacts,
+		options.TruffleHogVerification,
+		options.MaxBuilds,
+		options.MaxScanGoRoutines,
+		options.ConfidenceFilter,
+	)
 	if err != nil {
 		log.Fatal().Err(err).Str("size", maxArtifactSize).Msg("Failed parsing max-artifact-size flag")
 	}
-	options.MaxArtifactSize = byteSize
 
-	runner.InitScanner(options.ConfidenceFilter)
-
-	options.Context = context.Background()
-	options.Client = NewClient(options.Username, options.AccessToken, options.DevOpsURL)
-
-	if options.Organization == "" && options.Project == "" {
-		scanAuthenticatedUser(options.Client)
-	} else if options.Organization != "" && options.Project == "" {
-		scanOrganization(options.Client, options.Organization)
-	} else if options.Organization != "" && options.Project != "" {
-		scanProject(options.Client, options.Organization, options.Project)
-	}
-
-	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
-}
-
-func scanAuthenticatedUser(client AzureDevOpsApiClient) {
-	log.Info().Msg("Scanning authenticated user")
-
-	user, _, err := client.GetAuthenticatedUser()
-	if err != nil {
-		log.Error().Err(err).Msg("Failed fetching authenticated user")
-	}
-
-	log.Info().Str("displayName", user.DisplayName).Msg("Authenticated User")
-	listAccounts(client, user.ID)
-}
-
-func scanOrganization(client AzureDevOpsApiClient, organization string) {
-	log.Info().Str("organization", organization).Msg("Scanning organization")
-	listProjects(client, organization)
-}
-
-func scanProject(client AzureDevOpsApiClient, organization string, project string) {
-	log.Info().Str("organization", organization).Str("project", project).Msg("Scanning project")
-	listBuilds(client, organization, project)
-}
-
-func listAccounts(client AzureDevOpsApiClient, userId string) {
-	accounts, _, err := client.ListAccounts(userId)
-	if err != nil {
-		log.Fatal().Err(err).Str("userId", userId).Msg("Failed fetching accounts")
-	}
-
-	if len(accounts) == 0 {
-		log.Info().Msg("No accounts found, check your token access scope!")
-		return
-	}
-
-	for _, account := range accounts {
-		log.Debug().Str("name", account.AccountName).Msg("Scanning Account")
-		listProjects(client, account.AccountName)
-	}
-}
-
-func listProjects(client AzureDevOpsApiClient, organization string) {
-	continuationToken := ""
-	for {
-		projects, _, ctoken, err := client.ListProjects(continuationToken, organization)
-
-		if err != nil {
-			log.Fatal().Err(err).Str("organization", organization).Msg("Failed fetching projects")
-		}
-
-		for _, project := range projects {
-			listBuilds(client, organization, project.Name)
-		}
-
-		if ctoken == "" {
-			break
-		}
-		continuationToken = ctoken
-	}
-}
-
-func listBuilds(client AzureDevOpsApiClient, organization string, project string) {
-	buildsCount := 0
-	continuationToken := ""
-	for {
-		builds, _, ctoken, err := client.ListBuilds(continuationToken, organization, project)
-		if err != nil {
-			log.Error().Err(err).Str("organization", organization).Str("project", project).Msg("Failed fetching builds")
-		}
-
-		for _, build := range builds {
-			log.Debug().Str("url", build.Links.Web.Href).Msg("Build")
-			listLogs(client, organization, project, build.ID, build.Links.Web.Href)
-
-			if options.Artifacts {
-				listArtifacts(client, organization, project, build.ID, build.Links.Web.Href)
-			}
-
-			buildsCount = buildsCount + 1
-			if buildsCount >= options.MaxBuilds && options.MaxBuilds > 0 {
-				log.Trace().Str("organization", organization).Str("project", project).Msg("Reached MaxBuild runs, skip remaining")
-				return
-			}
-		}
-
-		if ctoken == "" {
-			break
-		}
-		continuationToken = ctoken
-	}
-}
-
-func listLogs(client AzureDevOpsApiClient, organization string, project string, buildId int, buildWebUrl string) {
-	logs, _, err := client.ListBuildLogs(organization, project, buildId)
-	if err != nil {
-		log.Error().Err(err).Str("organization", organization).Str("project", project).Int("build", buildId).Msg("Failed fetching build logs")
-	}
-
-	for _, logEntry := range logs {
-		log.Trace().Str("url", logEntry.URL).Msg("Download log")
-		logLines, _, err := client.GetLog(organization, project, buildId, logEntry.ID)
-		if err != nil {
-			log.Error().Err(err).Str("organization", organization).Str("project", project).Int("build", buildId).Int("logId", logEntry.ID).Msg("Failed fetching build log lines")
-		}
-
-		scanLogLines(logLines, buildWebUrl)
-	}
-}
-
-func scanLogLines(logs []byte, buildWebUrl string) {
-	logResult, err := logline.ProcessLogs(logs, logline.ProcessOptions{
-		MaxGoRoutines:     options.MaxScanGoRoutines,
-		VerifyCredentials: options.TruffleHogVerification,
-	})
-	if err != nil {
-		log.Debug().Err(err).Str("build", buildWebUrl).Msg("Failed detecting secrets of a single log line")
-		return
-	}
-
-	result.ReportFindings(logResult.Findings, result.ReportOptions{
-		LocationURL: buildWebUrl,
-	})
-}
-
-func listArtifacts(client AzureDevOpsApiClient, organization string, project string, buildId int, buildWebUrl string) {
-	continuationToken := ""
-	for {
-		artifacts, _, ctoken, err := client.ListBuildArtifacts(continuationToken, organization, project, buildId)
-		if err != nil {
-			log.Error().Err(err).Str("organization", organization).Str("project", project).Int("build", buildId).Msg("Failed fetching build artifacts")
-		}
-
-		for _, artifact := range artifacts {
-			log.Trace().Str("name", artifact.Name).Msg("Analyze artifact")
-			analyzeArtifact(client, artifact, buildWebUrl)
-		}
-
-		if ctoken == "" {
-			break
-		}
-		continuationToken = ctoken
-	}
-}
-
-func analyzeArtifact(client AzureDevOpsApiClient, art Artifact, buildWebUrl string) {
-	artifactSize, err := strconv.ParseInt(art.Resource.Properties.Artifactsize, 10, 64)
-	if err == nil && artifactSize > options.MaxArtifactSize {
-		log.Debug().
-			Int64("bytes", artifactSize).
-			Int64("maxBytes", options.MaxArtifactSize).
-			Str("name", art.Name).
-			Str("url", buildWebUrl).
-			Msg("Skipped large artifact")
-		return
-	}
-
-	zipBytes, _, err := client.DownloadArtifactZip(art.Resource.DownloadURL)
-	if err != nil {
-		log.Err(err).Msg("Failed downloading artifact")
-		return
-	}
-
-	_, err = artifactproc.ProcessZipArtifact(zipBytes, artifactproc.ProcessOptions{
-		MaxGoRoutines:     options.MaxScanGoRoutines,
-		VerifyCredentials: options.TruffleHogVerification,
-		BuildURL:          buildWebUrl,
-		ArtifactName:      art.Name,
-	})
-	if err != nil {
-		log.Err(err).Msg("Failed processing artifact")
-		return
+	scanner := devops.NewScanner(scanOpts)
+	if err := scanner.Scan(); err != nil {
+		log.Fatal().Err(err).Msg("Scan failed")
 	}
 }
