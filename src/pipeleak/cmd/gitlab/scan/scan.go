@@ -1,6 +1,7 @@
 package scan
 
 import (
+	"github.com/CompassSecurity/pipeleak/pkg/config"
 	"github.com/CompassSecurity/pipeleak/pkg/gitlab/scan"
 	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/rs/zerolog"
@@ -9,23 +10,21 @@ import (
 )
 
 type ScanOptions struct {
-	GitlabUrl              string
-	GitlabApiToken         string
-	GitlabCookie           string
-	ProjectSearchQuery     string
-	Artifacts              bool
-	Owned                  bool
-	Member                 bool
-	Repository             string
-	Namespace              string
-	JobLimit               int
-	ConfidenceFilter       []string
-	MaxScanGoRoutines      int
-	QueueFolder            string
-	TruffleHogVerification bool
+	config.CommonScanOptions
+	GitlabUrl          string
+	GitlabApiToken     string
+	GitlabCookie       string
+	ProjectSearchQuery string
+	Member             bool
+	Repository         string
+	Namespace          string
+	JobLimit           int
+	QueueFolder        string
 }
 
-var options = ScanOptions{}
+var options = ScanOptions{
+	CommonScanOptions: config.DefaultCommonScanOptions(),
+}
 var maxArtifactSize string
 
 func NewScanCmd() *cobra.Command {
@@ -98,6 +97,17 @@ pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com -
 }
 
 func Scan(cmd *cobra.Command, args []string) {
+	// Validate inputs using shared validation functions
+	if err := config.ValidateURL(options.GitlabUrl, "GitLab URL"); err != nil {
+		log.Fatal().Err(err).Msg("Invalid GitLab URL")
+	}
+	if err := config.ValidateToken(options.GitlabApiToken, "GitLab API Token"); err != nil {
+		log.Fatal().Err(err).Msg("Invalid GitLab API Token")
+	}
+	if err := config.ValidateThreadCount(options.MaxScanGoRoutines); err != nil {
+		log.Fatal().Err(err).Msg("Invalid thread count")
+	}
+
 	scanOpts, err := scan.InitializeOptions(
 		options.GitlabUrl,
 		options.GitlabApiToken,

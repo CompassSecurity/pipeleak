@@ -1,6 +1,7 @@
 package scan
 
 import (
+	"github.com/CompassSecurity/pipeleak/pkg/config"
 	pkgscan "github.com/CompassSecurity/pipeleak/pkg/github/scan"
 	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/rs/zerolog"
@@ -9,22 +10,20 @@ import (
 )
 
 type GitHubScanOptions struct {
-	AccessToken            string
-	ConfidenceFilter       []string
-	MaxScanGoRoutines      int
-	TruffleHogVerification bool
-	MaxWorkflows           int
-	Organization           string
-	Owned                  bool
-	User                   string
-	Public                 bool
-	SearchQuery            string
-	Artifacts              bool
-	GitHubURL              string
-	Repo                   string
+	config.CommonScanOptions
+	AccessToken  string
+	MaxWorkflows int
+	Organization string
+	User         string
+	Public       bool
+	SearchQuery  string
+	GitHubURL    string
+	Repo         string
 }
 
-var options = GitHubScanOptions{}
+var options = GitHubScanOptions{
+	CommonScanOptions: config.DefaultCommonScanOptions(),
+}
 var maxArtifactSize string
 
 func NewScanCmd() *cobra.Command {
@@ -78,6 +77,17 @@ pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --repo owner/repo
 }
 
 func Scan(cmd *cobra.Command, args []string) {
+	// Validate inputs using shared validation functions
+	if err := config.ValidateURL(options.GitHubURL, "GitHub URL"); err != nil {
+		log.Fatal().Err(err).Msg("Invalid GitHub URL")
+	}
+	if err := config.ValidateToken(options.AccessToken, "GitHub Access Token"); err != nil {
+		log.Fatal().Err(err).Msg("Invalid GitHub Access Token")
+	}
+	if err := config.ValidateThreadCount(options.MaxScanGoRoutines); err != nil {
+		log.Fatal().Err(err).Msg("Invalid thread count")
+	}
+
 	scanOpts, err := pkgscan.InitializeOptions(
 		options.AccessToken,
 		options.GitHubURL,

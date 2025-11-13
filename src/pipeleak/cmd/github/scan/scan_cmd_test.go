@@ -3,6 +3,7 @@ package scan
 import (
 	"testing"
 
+	"github.com/CompassSecurity/pipeleak/pkg/config"
 	pkggithub "github.com/CompassSecurity/pipeleak/pkg/github/scan"
 )
 
@@ -72,18 +73,20 @@ func TestNewScanCmd(t *testing.T) {
 
 func TestGitHubScanOptions(t *testing.T) {
 	opts := GitHubScanOptions{
-		AccessToken:            "ghp_test123",
-		ConfidenceFilter:       []string{"high", "verified"},
-		MaxScanGoRoutines:      8,
-		TruffleHogVerification: true,
-		MaxWorkflows:           20,
-		Organization:           "apache",
-		Owned:                  false,
-		User:                   "testuser",
-		Public:                 true,
-		SearchQuery:            "security",
-		Artifacts:              true,
-		GitHubURL:              "https://api.github.com",
+		CommonScanOptions: config.CommonScanOptions{
+			ConfidenceFilter:       []string{"high", "verified"},
+			MaxScanGoRoutines:      8,
+			TruffleHogVerification: true,
+			Artifacts:              true,
+			Owned:                  false,
+		},
+		AccessToken:  "ghp_test123",
+		MaxWorkflows: 20,
+		Organization: "apache",
+		User:         "testuser",
+		Public:       true,
+		SearchQuery:  "security",
+		GitHubURL:    "https://api.github.com",
 	}
 
 	if opts.AccessToken != "ghp_test123" {

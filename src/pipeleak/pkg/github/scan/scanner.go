@@ -14,6 +14,7 @@ import (
 	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
+	pkgscanner "github.com/CompassSecurity/pipeleak/pkg/scanner"
 	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit"
 	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit/github_primary_ratelimit"
 	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit/github_secondary_ratelimit"
@@ -45,9 +46,9 @@ type ScanOptions struct {
 }
 
 // Scanner provides methods for scanning GitHub repositories for secrets.
+// It extends pkgscanner.BaseScanner with GitHub-specific functionality.
 type Scanner interface {
-	// Scan performs a scan based on the provided options
-	Scan() error
+	pkgscanner.BaseScanner
 	// GetRateLimitStatus returns the current rate limit status
 	GetRateLimitStatus() *zerolog.Event
 }
@@ -56,6 +57,9 @@ type Scanner interface {
 type scanner struct {
 	options ScanOptions
 }
+
+// Ensure scanner implements pkgscanner.BaseScanner
+var _ pkgscanner.BaseScanner = (*scanner)(nil)
 
 // NewScanner creates a new GitHub scanner with the provided options.
 func NewScanner(opts ScanOptions) Scanner {
