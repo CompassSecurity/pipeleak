@@ -25,6 +25,7 @@ func RandomStringN(n int) string {
 	letterBytes := "abcdefghijklmnopqrstuvwxyz"
 	b := make([]byte, n)
 	for i := range b {
+		// #nosec G404 - Random string generation for non-security purposes (identifiers, filenames)
 		b[i] = letterBytes[rand.Intn(len(letterBytes))]
 	}
 	return string(b)
