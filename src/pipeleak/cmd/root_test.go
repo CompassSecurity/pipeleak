@@ -227,3 +227,64 @@ func TestCustomWriter_WritesCorrectly(t *testing.T) {
 		assert.Contains(t, string(content), "test", "Log content should be written")
 	})
 }
+
+func TestInitLogger_AppendsToExistingFile(t *testing.T) {
+	t.Run("Logs_warning_when_appending_to_existing_file", func(t *testing.T) {
+		// Create a temporary directory and log file
+		tmpDir := t.TempDir()
+		logFile := filepath.Join(tmpDir, "existing.log")
+
+		// Create the log file with some initial content
+		err := os.WriteFile(logFile, []byte("Initial log content\n"), 0644)
+		require.NoError(t, err)
+
+		// Set up log level
+		origLogger := zerolog.GlobalLevel()
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+		defer zerolog.SetGlobalLevel(origLogger)
+
+		// Set LogFile and call initLogger
+		origLogFile := LogFile
+		LogFile = logFile
+		defer func() { LogFile = origLogFile }()
+
+		// Call initLogger which should detect the existing file and log a warning
+		initLogger(rootCmd)
+
+		// Read the log file content to see if warning was written
+		logContent, err := os.ReadFile(logFile)
+		require.NoError(t, err)
+
+		// The warning should be in the log file
+		logStr := string(logContent)
+		assert.Contains(t, logStr, "Appending to existing log file", "Should log warning message to file")
+		assert.Contains(t, logStr, logFile, "Should include the log file path")
+	})
+
+	t.Run("Does_not_log_warning_for_new_file", func(t *testing.T) {
+		// Create a temporary directory (but no log file)
+		tmpDir := t.TempDir()
+		logFile := filepath.Join(tmpDir, "new.log")
+
+		// Set up log level
+		origLogger := zerolog.GlobalLevel()
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+		defer zerolog.SetGlobalLevel(origLogger)
+
+		// Set LogFile and call initLogger
+		origLogFile := LogFile
+		LogFile = logFile
+		defer func() { LogFile = origLogFile }()
+
+		// Call initLogger which should NOT log a warning for a new file
+		initLogger(rootCmd)
+
+		// Read the log file content
+		logContent, err := os.ReadFile(logFile)
+		require.NoError(t, err)
+
+		// The warning should NOT be in the log file
+		logStr := string(logContent)
+		assert.NotContains(t, logStr, "Appending to existing log file", "Should not log warning for new file")
+	})
+}
