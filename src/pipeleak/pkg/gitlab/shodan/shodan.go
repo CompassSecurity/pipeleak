@@ -53,6 +53,7 @@ func NewShodanCmd() *cobra.Command {
 
 func Shodan(cmd *cobra.Command, args []string) {
 
+	// #nosec G304 - User-provided file path via CLI flag, user controls their own filesystem
 	jsonFile, err := os.Open(shodanJson)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("failed opening file")

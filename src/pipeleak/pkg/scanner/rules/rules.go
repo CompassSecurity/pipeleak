@@ -33,6 +33,7 @@ func DownloadRules() {
 }
 
 func downloadFile(url string, filepath string) error {
+	// #nosec G304 - Creating file for rules download at controlled internal temp path
 	out, err := os.Create(filepath)
 	if err != nil {
 		return err

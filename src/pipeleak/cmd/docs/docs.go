@@ -57,6 +57,7 @@ func generateDocs(cmd *cobra.Command, dir string, level int) error {
 		filename = filepath.Join(dir, getFileName(cmd, level))
 	}
 
+	// #nosec G304 - Creating docs markdown file at controlled internal path during docs generation
 	f, err := os.Create(filename)
 	if err != nil {
 		return err
@@ -174,6 +175,7 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 	for _, fname := range assetFiles {
 		src := filepath.Join("..", "..", "docs", fname)
 		dst := filepath.Join(assetsDir, fname)
+		// #nosec G304 - Reading doc assets from controlled internal paths during docs generation
 		data, err := os.ReadFile(src)
 		if err != nil {
 			return err
@@ -354,11 +356,13 @@ func copyDir(src, dst string) error {
 }
 
 func copyFile(src, dst string) error {
+	// #nosec G304 - Copying docs files between controlled internal paths during docs generation
 	in, err := os.Open(src)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = in.Close() }()
+	// #nosec G304 - Creating docs destination file at controlled internal path during docs generation
 	out, err := os.Create(dst)
 	if err != nil {
 		return err
