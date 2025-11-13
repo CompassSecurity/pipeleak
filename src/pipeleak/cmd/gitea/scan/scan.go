@@ -1,7 +1,7 @@
 package scan
 
 import (
-	"github.com/CompassSecurity/pipeleak/pkg/gitea"
+	giteascan "github.com/CompassSecurity/pipeleak/pkg/gitea/scan"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -95,7 +95,7 @@ func Scan(cmd *cobra.Command, args []string) {
 		log.Fatal().Msg("--start-run-id can only be used with --repository flag")
 	}
 
-	scanOpts, err := gitea.InitializeOptions(
+	scanOpts, err := giteascan.InitializeOptions(
 		scanOptions.Token,
 		scanOptions.GiteaURL,
 		scanOptions.Repository,
@@ -116,12 +116,12 @@ func Scan(cmd *cobra.Command, args []string) {
 
 	// Validate cookie if provided
 	if scanOptions.Cookie != "" {
-		if err := gitea.ValidateCookie(scanOpts); err != nil {
+		if err := giteascan.ValidateCookie(scanOpts); err != nil {
 			log.Fatal().Err(err).Msg("Cookie validation failed")
 		}
 	}
 
-	scanner := gitea.NewScanner(scanOpts)
+	scanner := giteascan.NewScanner(scanOpts)
 	if err := scanner.Scan(); err != nil {
 		log.Fatal().Err(err).Msg("Scan failed")
 	}
