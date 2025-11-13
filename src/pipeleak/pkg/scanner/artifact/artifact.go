@@ -97,7 +97,7 @@ func HandleArchiveArtifactWithDepth(archivefileName string, content []byte, jobW
 			}
 
 			currentFileName := path.Base(fPath)
-			
+
 			if filetype.IsArchive(fileBytes) {
 				log.Trace().Str("fileName", currentFileName).Str("parentArchive", archivefileName).Int("depth", depth).Msg("Detected nested archive, recursing")
 				HandleArchiveArtifactWithDepth(currentFileName, fileBytes, jobWebUrl, jobName, enableTruffleHogVerification, depth+1)
