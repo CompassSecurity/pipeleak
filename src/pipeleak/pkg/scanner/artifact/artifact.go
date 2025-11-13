@@ -61,7 +61,7 @@ func HandleArchiveArtifactWithDepth(archivefileName string, content []byte, jobW
 		return
 	}
 
-	err = os.WriteFile(tmpArchiveFile.Name(), content, 0666)
+	err = os.WriteFile(tmpArchiveFile.Name(), content, 0600)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("Failed writing archive to disk")
 		return
