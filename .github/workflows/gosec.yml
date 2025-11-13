@@ -21,4 +21,4 @@ jobs:
       - name: Run Gosec Security Scanner
         uses: securego/gosec@master
         with:
-          args: '-no-fail ./src/pipeleak/...'
+          args: './src/pipeleak/...'
