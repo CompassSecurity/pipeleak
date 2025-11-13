@@ -2,6 +2,8 @@ package scan
 
 import (
 	"testing"
+
+	"github.com/CompassSecurity/pipeleak/pkg/config"
 )
 
 func TestNewScanCmd(t *testing.T) {
@@ -73,19 +75,21 @@ func TestNewScanCmd(t *testing.T) {
 
 func TestBitBucketScanOptions(t *testing.T) {
 	opts := BitBucketScanOptions{
-		Email:                  "test@example.com",
-		AccessToken:            "token123",
-		ConfidenceFilter:       []string{"high", "medium"},
-		MaxScanGoRoutines:      4,
-		TruffleHogVerification: true,
-		MaxPipelines:           10,
-		Workspace:              "myworkspace",
-		Owned:                  true,
-		Public:                 false,
-		After:                  "2025-01-01T00:00:00Z",
-		Artifacts:              true,
-		BitBucketURL:           "https://api.bitbucket.org/2.0",
-		BitBucketCookie:        "cookie123",
+		CommonScanOptions: config.CommonScanOptions{
+			ConfidenceFilter:       []string{"high", "medium"},
+			MaxScanGoRoutines:      4,
+			TruffleHogVerification: true,
+			Artifacts:              true,
+			Owned:                  true,
+		},
+		Email:           "test@example.com",
+		AccessToken:     "token123",
+		MaxPipelines:    10,
+		Workspace:       "myworkspace",
+		Public:          false,
+		After:           "2025-01-01T00:00:00Z",
+		BitBucketURL:    "https://api.bitbucket.org/2.0",
+		BitBucketCookie: "cookie123",
 	}
 
 	if opts.Email != "test@example.com" {

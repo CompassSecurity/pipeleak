@@ -1,0 +1,32 @@
+// Package config provides shared configuration types and validation helpers for pipeleak.
+// This package centralizes common configuration patterns across all platform scanners.
+package config
+
+// CommonScanOptions contains configuration fields that are shared across all platform scanners.
+// This helps reduce duplication and ensures consistency in option handling.
+type CommonScanOptions struct {
+	// ConfidenceFilter filters results by confidence level
+	ConfidenceFilter []string
+	// MaxScanGoRoutines controls the number of concurrent scanning threads
+	MaxScanGoRoutines int
+	// TruffleHogVerification enables/disables TruffleHog credential verification
+	TruffleHogVerification bool
+	// Artifacts enables/disables artifact scanning
+	Artifacts bool
+	// MaxArtifactSize is the maximum size of artifacts to scan (in bytes)
+	MaxArtifactSize int64
+	// Owned filters to only owned repositories
+	Owned bool
+}
+
+// DefaultCommonScanOptions returns sensible default values for common scan options.
+func DefaultCommonScanOptions() CommonScanOptions {
+	return CommonScanOptions{
+		ConfidenceFilter:       []string{},
+		MaxScanGoRoutines:      4,
+		TruffleHogVerification: true,
+		Artifacts:              false,
+		MaxArtifactSize:        500 * 1024 * 1024, // 500MB
+		Owned:                  false,
+	}
+}

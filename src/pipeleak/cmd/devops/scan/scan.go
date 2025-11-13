@@ -1,25 +1,25 @@
 package scan
 
 import (
+	"github.com/CompassSecurity/pipeleak/pkg/config"
 	pkgscan "github.com/CompassSecurity/pipeleak/pkg/devops/scan"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
 type DevOpsScanOptions struct {
-	Username               string
-	AccessToken            string
-	ConfidenceFilter       []string
-	MaxScanGoRoutines      int
-	TruffleHogVerification bool
-	MaxBuilds              int
-	Organization           string
-	Project                string
-	Artifacts              bool
-	DevOpsURL              string
+	config.CommonScanOptions
+	Username     string
+	AccessToken  string
+	MaxBuilds    int
+	Organization string
+	Project      string
+	DevOpsURL    string
 }
 
-var options = DevOpsScanOptions{}
+var options = DevOpsScanOptions{
+	CommonScanOptions: config.DefaultCommonScanOptions(),
+}
 var maxArtifactSize string
 
 func NewScanCmd() *cobra.Command {
@@ -74,6 +74,16 @@ pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization
 }
 
 func Scan(cmd *cobra.Command, args []string) {
+	if err := config.ValidateURL(options.DevOpsURL, "Azure DevOps URL"); err != nil {
+		log.Fatal().Err(err).Msg("Invalid Azure DevOps URL")
+	}
+	if err := config.ValidateToken(options.AccessToken, "Azure DevOps Access Token"); err != nil {
+		log.Fatal().Err(err).Msg("Invalid Azure DevOps Access Token")
+	}
+	if err := config.ValidateThreadCount(options.MaxScanGoRoutines); err != nil {
+		log.Fatal().Err(err).Msg("Invalid thread count")
+	}
+
 	scanOpts, err := pkgscan.InitializeOptions(
 		options.Username,
 		options.AccessToken,

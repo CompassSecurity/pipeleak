@@ -1,3 +1,5 @@
+// Package httpclient provides a centralized HTTP client configuration for pipeleak.
+// It offers a retryable HTTP client with cookie support, custom headers, and proxy configuration.
 package httpclient
 
 import (
@@ -12,6 +14,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// HeaderRoundTripper is an http.RoundTripper that adds default headers to requests.
+// Headers are only added if they're not already present in the request.
 type HeaderRoundTripper struct {
 	Headers map[string]string
 	Next    http.RoundTripper
@@ -20,21 +24,35 @@ type HeaderRoundTripper struct {
 // RoundTrip adds default headers when they're not present on the request
 // and delegates to the next RoundTripper.
 func (hrt *HeaderRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	if hrt.Headers == nil || hrt.Next == nil {
-		return hrt.Next.RoundTrip(req)
+	if hrt.Next == nil {
+		return nil, http.ErrNotSupported
 	}
 
-	for k, v := range hrt.Headers {
-		if req.Header.Get(k) == "" {
-			req.Header.Set(k, v)
+	if hrt.Headers != nil {
+		for k, v := range hrt.Headers {
+			if req.Header.Get(k) == "" {
+				req.Header.Set(k, v)
+			}
 		}
 	}
+
 	return hrt.Next.RoundTrip(req)
 }
 
-// GetPipeleakHTTPClient returns a configured retryablehttp client with optional
-// cookie jar and default headers. This is a drop-in replacement for the
-// helper-level function but lives in a focused package.
+// GetPipeleakHTTPClient creates and configures a retryable HTTP client for pipeleak operations.
+// It supports:
+//   - Cookie jar configuration for session management
+//   - Custom default headers
+//   - Automatic retry logic for 429 and 5xx errors (except 501)
+//   - HTTP proxy support via HTTP_PROXY environment variable
+//   - TLS certificate verification bypass (InsecureSkipVerify)
+//
+// Parameters:
+//   - cookieUrl: The URL to associate cookies with (required if cookies are provided)
+//   - cookies: Optional cookies to add to the jar
+//   - defaultHeaders: Optional headers to add to all requests
+//
+// Returns a configured *retryablehttp.Client ready for use.
 func GetPipeleakHTTPClient(cookieUrl string, cookies []*http.Cookie, defaultHeaders map[string]string) *retryablehttp.Client {
 	var jar http.CookieJar
 
@@ -69,7 +87,11 @@ func GetPipeleakHTTPClient(cookieUrl string, cookies []*http.Cookie, defaultHead
 		}
 
 		if resp.StatusCode == 429 || (resp.StatusCode >= 500 && resp.StatusCode != 501) {
-			log.Trace().Int("statusCode", resp.StatusCode).Msg("Retrying HTTP request")
+			url := ""
+			if resp.Request != nil && resp.Request.URL != nil {
+				url = resp.Request.URL.String()
+			}
+			log.Trace().Str("url", url).Int("statusCode", resp.StatusCode).Msg("Retrying HTTP request")
 			return true, nil
 		}
 

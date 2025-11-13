@@ -5,23 +5,21 @@ import (
 
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
 	"github.com/CompassSecurity/pipeleak/pkg/format"
+	"github.com/CompassSecurity/pipeleak/pkg/scanner"
 	"github.com/rs/zerolog/log"
 )
 
-// Scanner provides methods for scanning GitLab projects for secrets.
 type Scanner interface {
-	// Scan performs a scan based on the provided options
-	Scan() error
-	// GetQueueStatus returns the current queue status
+	scanner.BaseScanner
 	GetQueueStatus() int
 }
 
-// gitlabScanner implements the Scanner interface.
 type gitlabScanner struct {
 	options *ScanOptions
 }
 
-// NewScanner creates a new GitLab scanner with the provided options.
+var _ scanner.BaseScanner = (*gitlabScanner)(nil)
+
 func NewScanner(opts *ScanOptions) Scanner {
 	return &gitlabScanner{
 		options: opts,

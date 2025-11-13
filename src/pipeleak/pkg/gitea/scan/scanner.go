@@ -10,6 +10,7 @@ import (
 	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
+	pkgscanner "github.com/CompassSecurity/pipeleak/pkg/scanner"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog/log"
 )
@@ -17,22 +18,18 @@ import (
 // ScanOptions is an alias for GiteaScanOptions for interface consistency with other providers.
 type ScanOptions = GiteaScanOptions
 
-// scanOptions is a package-level variable used by helper functions in api.go, html.go, etc.
-// It is set by the scanner when Scan() is called.
 var scanOptions GiteaScanOptions
 
-// Scanner provides methods for scanning Gitea repositories for secrets.
 type Scanner interface {
-	// Scan performs a scan based on the provided options
-	Scan() error
+	pkgscanner.BaseScanner
 }
 
-// giteaScanner implements the Scanner interface.
 type giteaScanner struct {
 	options ScanOptions
 }
 
-// NewScanner creates a new Gitea scanner with the provided options.
+var _ pkgscanner.BaseScanner = (*giteaScanner)(nil)
+
 func NewScanner(opts ScanOptions) Scanner {
 	return &giteaScanner{
 		options: opts,

@@ -9,6 +9,7 @@ import (
 	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
+	pkgscanner "github.com/CompassSecurity/pipeleak/pkg/scanner"
 	"github.com/rs/zerolog/log"
 )
 
@@ -29,18 +30,16 @@ type ScanOptions struct {
 	Client                 AzureDevOpsApiClient
 }
 
-// Scanner provides methods for scanning Azure DevOps repositories for secrets.
 type Scanner interface {
-	// Scan performs a scan based on the provided options
-	Scan() error
+	pkgscanner.BaseScanner
 }
 
-// devOpsScanner is the concrete implementation of the Scanner interface.
 type devOpsScanner struct {
 	options ScanOptions
 }
 
-// NewScanner creates a new Azure DevOps scanner with the provided options.
+var _ pkgscanner.BaseScanner = (*devOpsScanner)(nil)
+
 func NewScanner(opts ScanOptions) Scanner {
 	return &devOpsScanner{
 		options: opts,

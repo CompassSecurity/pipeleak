@@ -10,7 +10,7 @@ import (
 	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
-	"github.com/CompassSecurity/pipeleak/pkg/scanner"
+	pkgscanner "github.com/CompassSecurity/pipeleak/pkg/scanner"
 	"github.com/h2non/filetype"
 	"github.com/rs/zerolog/log"
 )
@@ -35,18 +35,16 @@ type ScanOptions struct {
 	HasProvidedCookie      bool
 }
 
-// Scanner provides methods for scanning BitBucket repositories for secrets.
 type Scanner interface {
-	// Scan performs a scan based on the provided options
-	Scan() error
+	pkgscanner.BaseScanner
 }
 
-// bbScanner is the concrete implementation of the Scanner interface.
 type bbScanner struct {
 	options ScanOptions
 }
 
-// NewScanner creates a new BitBucket scanner with the provided options.
+var _ pkgscanner.BaseScanner = (*bbScanner)(nil)
+
 func NewScanner(opts ScanOptions) Scanner {
 	return &bbScanner{
 		options: opts,
@@ -217,7 +215,7 @@ func (s *bbScanner) listArtifacts(workspaceSlug string, repoSlug string, buildId
 			artifactBytes := s.options.Client.GetPipelineArtifact(workspaceSlug, repoSlug, buildId, art.UUID)
 
 			if filetype.IsArchive(artifactBytes) {
-				scanner.HandleArchiveArtifact(art.Name, artifactBytes, s.buildWebArtifactUrl(workspaceSlug, repoSlug, buildId, art.StepUUID), "Build "+strconv.Itoa(buildId), s.options.TruffleHogVerification)
+				pkgscanner.HandleArchiveArtifact(art.Name, artifactBytes, s.buildWebArtifactUrl(workspaceSlug, repoSlug, buildId, art.StepUUID), "Build "+strconv.Itoa(buildId), s.options.TruffleHogVerification)
 			}
 		}
 
@@ -320,9 +318,9 @@ func (s *bbScanner) getDownloadArtifact(downloadUrl string, webUrl string, filen
 	}
 
 	if filetype.IsArchive(fileBytes) {
-		scanner.HandleArchiveArtifact(filename, fileBytes, webUrl, "Download Artifact", s.options.TruffleHogVerification)
+		pkgscanner.HandleArchiveArtifact(filename, fileBytes, webUrl, "Download Artifact", s.options.TruffleHogVerification)
 	} else {
-		scanner.DetectFileHits(fileBytes, webUrl, "Download Artifact", filename, "", s.options.TruffleHogVerification)
+		pkgscanner.DetectFileHits(fileBytes, webUrl, "Download Artifact", filename, "", s.options.TruffleHogVerification)
 	}
 }
 

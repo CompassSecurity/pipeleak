@@ -2,27 +2,26 @@ package scan
 
 import (
 	pkgscan "github.com/CompassSecurity/pipeleak/pkg/bitbucket/scan"
+	"github.com/CompassSecurity/pipeleak/pkg/config"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
 type BitBucketScanOptions struct {
-	Email                  string
-	AccessToken            string
-	ConfidenceFilter       []string
-	MaxScanGoRoutines      int
-	TruffleHogVerification bool
-	MaxPipelines           int
-	Workspace              string
-	Owned                  bool
-	Public                 bool
-	After                  string
-	Artifacts              bool
-	BitBucketURL           string
-	BitBucketCookie        string
+	config.CommonScanOptions
+	Email           string
+	AccessToken     string
+	MaxPipelines    int
+	Workspace       string
+	Public          bool
+	After           string
+	BitBucketURL    string
+	BitBucketCookie string
 }
 
-var options = BitBucketScanOptions{}
+var options = BitBucketScanOptions{
+	CommonScanOptions: config.DefaultCommonScanOptions(),
+}
 var maxArtifactSize string
 
 func NewScanCmd() *cobra.Command {
@@ -71,6 +70,18 @@ pipeleak bb scan --token ATATTxxxxxx --email auser@example.com --public --maxPip
 func Scan(cmd *cobra.Command, args []string) {
 	if options.AccessToken != "" && options.Email == "" {
 		log.Fatal().Msg("When using --token you must also provide --email")
+	}
+
+	if err := config.ValidateURL(options.BitBucketURL, "BitBucket URL"); err != nil {
+		log.Fatal().Err(err).Msg("Invalid BitBucket URL")
+	}
+	if options.AccessToken != "" {
+		if err := config.ValidateToken(options.AccessToken, "BitBucket API Token"); err != nil {
+			log.Fatal().Err(err).Msg("Invalid BitBucket API Token")
+		}
+	}
+	if err := config.ValidateThreadCount(options.MaxScanGoRoutines); err != nil {
+		log.Fatal().Err(err).Msg("Invalid thread count")
 	}
 
 	scanOpts, err := pkgscan.InitializeOptions(
