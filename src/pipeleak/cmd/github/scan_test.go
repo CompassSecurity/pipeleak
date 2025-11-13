@@ -3,7 +3,7 @@ package github
 import (
 	"testing"
 
-	pkggithub "github.com/CompassSecurity/pipeleak/pkg/github"
+	pkggithub "github.com/CompassSecurity/pipeleak/pkg/github/scan"
 	"github.com/stretchr/testify/assert"
 )
 

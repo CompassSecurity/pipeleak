@@ -1,7 +1,7 @@
 package devops
 
 import (
-	"github.com/CompassSecurity/pipeleak/pkg/devops"
+	"github.com/CompassSecurity/pipeleak/pkg/devops/scan"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -74,7 +74,7 @@ pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	scanOpts, err := devops.InitializeOptions(
+	scanOpts, err := scan.InitializeOptions(
 		options.Username,
 		options.AccessToken,
 		options.DevOpsURL,
@@ -91,7 +91,7 @@ func Scan(cmd *cobra.Command, args []string) {
 		log.Fatal().Err(err).Str("size", maxArtifactSize).Msg("Failed parsing max-artifact-size flag")
 	}
 
-	scanner := devops.NewScanner(scanOpts)
+	scanner := scan.NewScanner(scanOpts)
 	if err := scanner.Scan(); err != nil {
 		log.Fatal().Err(err).Msg("Scan failed")
 	}

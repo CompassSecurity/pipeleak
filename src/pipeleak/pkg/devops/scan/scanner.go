@@ -1,4 +1,4 @@
-package devops
+package scan
 
 import (
 	"context"
