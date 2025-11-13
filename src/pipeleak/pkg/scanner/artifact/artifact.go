@@ -5,7 +5,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/CompassSecurity/pipeleak/internal/fileperms"
 	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/CompassSecurity/pipeleak/pkg/scanner/engine"
@@ -62,7 +61,7 @@ func HandleArchiveArtifactWithDepth(archivefileName string, content []byte, jobW
 		return
 	}
 
-	err = os.WriteFile(tmpArchiveFile.Name(), content, fileperms.FileUserReadWrite)
+	err = os.WriteFile(tmpArchiveFile.Name(), content, format.FileUserReadWrite)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("Failed writing archive to disk")
 		return

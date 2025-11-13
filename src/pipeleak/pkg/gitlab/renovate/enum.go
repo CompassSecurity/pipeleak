@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
-	"github.com/CompassSecurity/pipeleak/internal/fileperms"
 	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
 	"github.com/rs/zerolog/log"
@@ -448,7 +447,7 @@ func dumpConfigFileContents(project *gitlab.Project, ciCdYml string, renovateCon
 	} else {
 		if len(ciCdYml) > 0 {
 			ciCdPath := filepath.Join(projectDir, "gitlab-ci.yml")
-			if err := os.WriteFile(ciCdPath, []byte(ciCdYml), fileperms.FileUserReadWrite); err != nil {
+			if err := os.WriteFile(ciCdPath, []byte(ciCdYml), format.FileUserReadWrite); err != nil {
 				log.Error().Err(err).Str("file", ciCdPath).Msg("Failed to write CI/CD YAML to disk")
 			}
 		}
@@ -459,7 +458,7 @@ func dumpConfigFileContents(project *gitlab.Project, ciCdYml string, renovateCon
 				safeFilename = "renovate.json"
 			}
 			configPath := filepath.Join(projectDir, safeFilename)
-			if err := os.WriteFile(configPath, []byte(renovateConfigFile), fileperms.FileUserReadWrite); err != nil {
+			if err := os.WriteFile(configPath, []byte(renovateConfigFile), format.FileUserReadWrite); err != nil {
 				log.Error().Err(err).Str("file", configPath).Msg("Failed to write Renovate config to disk")
 			}
 		}

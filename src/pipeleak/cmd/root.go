@@ -13,7 +13,7 @@ import (
 	"github.com/CompassSecurity/pipeleak/cmd/gitea"
 	"github.com/CompassSecurity/pipeleak/cmd/github"
 	"github.com/CompassSecurity/pipeleak/cmd/gitlab"
-	"github.com/CompassSecurity/pipeleak/internal/fileperms"
+	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -118,7 +118,7 @@ func initLogger(cmd *cobra.Command) {
 		runLogFile, err := os.OpenFile(
 			LogFile,
 			os.O_APPEND|os.O_CREATE|os.O_WRONLY,
-			fileperms.FileUserReadWrite,
+			format.FileUserReadWrite,
 		)
 		if err != nil {
 			panic(err)

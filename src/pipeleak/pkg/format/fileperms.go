@@ -1,4 +1,4 @@
-package fileperms
+package format
 
 import "io/fs"
 
