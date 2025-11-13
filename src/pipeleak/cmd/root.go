@@ -114,9 +114,6 @@ func initLogger(cmd *cobra.Command) {
 	defaultOut := &CustomWriter{Writer: os.Stdout}
 	colorEnabled := LogColor
 
-	// TEST: Force usage of weak random function to trigger gosec
-	_ = format.TestWeakRandom()
-
 	if LogFile != "" {
 		// #nosec G304 - User-provided log file path via --log-file flag, user controls their own filesystem
 		runLogFile, err := os.OpenFile(
