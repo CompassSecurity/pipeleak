@@ -22,21 +22,16 @@ type ScanOptions = GiteaScanOptions
 // It is set by the scanner when Scan() is called.
 var scanOptions GiteaScanOptions
 
-// Scanner provides methods for scanning Gitea repositories for secrets.
-// It implements pkgscanner.BaseScanner.
 type Scanner interface {
 	pkgscanner.BaseScanner
 }
 
-// giteaScanner implements the Scanner interface.
 type giteaScanner struct {
 	options ScanOptions
 }
 
-// Ensure giteaScanner implements pkgscanner.BaseScanner
 var _ pkgscanner.BaseScanner = (*giteaScanner)(nil)
 
-// NewScanner creates a new Gitea scanner with the provided options.
 func NewScanner(opts ScanOptions) Scanner {
 	return &giteaScanner{
 		options: opts,

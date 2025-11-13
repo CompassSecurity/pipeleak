@@ -77,7 +77,6 @@ pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --repo owner/repo
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	// Validate inputs using shared validation functions
 	if err := config.ValidateURL(options.GitHubURL, "GitHub URL"); err != nil {
 		log.Fatal().Err(err).Msg("Invalid GitHub URL")
 	}

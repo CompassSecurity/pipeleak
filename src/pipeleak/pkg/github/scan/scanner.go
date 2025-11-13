@@ -45,23 +45,17 @@ type ScanOptions struct {
 	HttpClient             *retryablehttp.Client
 }
 
-// Scanner provides methods for scanning GitHub repositories for secrets.
-// It extends pkgscanner.BaseScanner with GitHub-specific functionality.
 type Scanner interface {
 	pkgscanner.BaseScanner
-	// GetRateLimitStatus returns the current rate limit status
 	GetRateLimitStatus() *zerolog.Event
 }
 
-// scanner is the concrete implementation of the Scanner interface.
 type scanner struct {
 	options ScanOptions
 }
 
-// Ensure scanner implements pkgscanner.BaseScanner
 var _ pkgscanner.BaseScanner = (*scanner)(nil)
 
-// NewScanner creates a new GitHub scanner with the provided options.
 func NewScanner(opts ScanOptions) Scanner {
 	return &scanner{
 		options: opts,

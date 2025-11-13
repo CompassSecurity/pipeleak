@@ -30,21 +30,16 @@ type ScanOptions struct {
 	Client                 AzureDevOpsApiClient
 }
 
-// Scanner provides methods for scanning Azure DevOps repositories for secrets.
-// It implements pkgscanner.BaseScanner.
 type Scanner interface {
 	pkgscanner.BaseScanner
 }
 
-// devOpsScanner is the concrete implementation of the Scanner interface.
 type devOpsScanner struct {
 	options ScanOptions
 }
 
-// Ensure devOpsScanner implements pkgscanner.BaseScanner
 var _ pkgscanner.BaseScanner = (*devOpsScanner)(nil)
 
-// NewScanner creates a new Azure DevOps scanner with the provided options.
 func NewScanner(opts ScanOptions) Scanner {
 	return &devOpsScanner{
 		options: opts,

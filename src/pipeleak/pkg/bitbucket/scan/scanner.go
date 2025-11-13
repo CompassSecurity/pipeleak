@@ -35,21 +35,16 @@ type ScanOptions struct {
 	HasProvidedCookie      bool
 }
 
-// Scanner provides methods for scanning BitBucket repositories for secrets.
-// It implements pkgscanner.BaseScanner.
 type Scanner interface {
 	pkgscanner.BaseScanner
 }
 
-// bbScanner is the concrete implementation of the Scanner interface.
 type bbScanner struct {
 	options ScanOptions
 }
 
-// Ensure bbScanner implements pkgscanner.BaseScanner
 var _ pkgscanner.BaseScanner = (*bbScanner)(nil)
 
-// NewScanner creates a new BitBucket scanner with the provided options.
 func NewScanner(opts ScanOptions) Scanner {
 	return &bbScanner{
 		options: opts,

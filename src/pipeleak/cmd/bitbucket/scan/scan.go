@@ -72,7 +72,6 @@ func Scan(cmd *cobra.Command, args []string) {
 		log.Fatal().Msg("When using --token you must also provide --email")
 	}
 
-	// Validate inputs using shared validation functions
 	if err := config.ValidateURL(options.BitBucketURL, "BitBucket URL"); err != nil {
 		log.Fatal().Err(err).Msg("Invalid BitBucket URL")
 	}

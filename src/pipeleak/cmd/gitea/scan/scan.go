@@ -94,7 +94,6 @@ func Scan(cmd *cobra.Command, args []string) {
 		log.Fatal().Msg("--start-run-id can only be used with --repository flag")
 	}
 
-	// Validate inputs using shared validation functions
 	if err := config.ValidateURL(scanOptions.GiteaURL, "Gitea URL"); err != nil {
 		log.Fatal().Err(err).Msg("Invalid Gitea URL")
 	}

@@ -9,23 +9,17 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Scanner provides methods for scanning GitLab projects for secrets.
-// It extends scanner.BaseScanner with GitLab-specific functionality.
 type Scanner interface {
 	scanner.BaseScanner
-	// GetQueueStatus returns the current queue status
 	GetQueueStatus() int
 }
 
-// gitlabScanner implements the Scanner interface.
 type gitlabScanner struct {
 	options *ScanOptions
 }
 
-// Ensure gitlabScanner implements scanner.BaseScanner
 var _ scanner.BaseScanner = (*gitlabScanner)(nil)
 
-// NewScanner creates a new GitLab scanner with the provided options.
 func NewScanner(opts *ScanOptions) Scanner {
 	return &gitlabScanner{
 		options: opts,

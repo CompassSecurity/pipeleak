@@ -74,7 +74,6 @@ pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	// Validate inputs using shared validation functions
 	if err := config.ValidateURL(options.DevOpsURL, "Azure DevOps URL"); err != nil {
 		log.Fatal().Err(err).Msg("Invalid Azure DevOps URL")
 	}
