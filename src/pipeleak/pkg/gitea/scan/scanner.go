@@ -10,6 +10,7 @@ import (
 	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
+	pkgscanner "github.com/CompassSecurity/pipeleak/pkg/scanner"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog/log"
 )
@@ -22,15 +23,18 @@ type ScanOptions = GiteaScanOptions
 var scanOptions GiteaScanOptions
 
 // Scanner provides methods for scanning Gitea repositories for secrets.
+// It implements pkgscanner.BaseScanner.
 type Scanner interface {
-	// Scan performs a scan based on the provided options
-	Scan() error
+	pkgscanner.BaseScanner
 }
 
 // giteaScanner implements the Scanner interface.
 type giteaScanner struct {
 	options ScanOptions
 }
+
+// Ensure giteaScanner implements pkgscanner.BaseScanner
+var _ pkgscanner.BaseScanner = (*giteaScanner)(nil)
 
 // NewScanner creates a new Gitea scanner with the provided options.
 func NewScanner(opts ScanOptions) Scanner {

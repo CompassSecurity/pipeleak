@@ -1,27 +1,26 @@
 package scan
 
 import (
+	"github.com/CompassSecurity/pipeleak/pkg/config"
 	giteascan "github.com/CompassSecurity/pipeleak/pkg/gitea/scan"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
 type GiteaScanOptions struct {
-	Token                  string
-	GiteaURL               string
-	Artifacts              bool
-	ConfidenceFilter       []string
-	MaxScanGoRoutines      int
-	TruffleHogVerification bool
-	Owned                  bool
-	Organization           string
-	Repository             string
-	Cookie                 string
-	RunsLimit              int
-	StartRunID             int64
+	config.CommonScanOptions
+	Token        string
+	GiteaURL     string
+	Organization string
+	Repository   string
+	Cookie       string
+	RunsLimit    int
+	StartRunID   int64
 }
 
-var scanOptions = GiteaScanOptions{}
+var scanOptions = GiteaScanOptions{
+	CommonScanOptions: config.DefaultCommonScanOptions(),
+}
 var maxArtifactSize string
 
 func NewScanCmd() *cobra.Command {
@@ -93,6 +92,17 @@ pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com 
 func Scan(cmd *cobra.Command, args []string) {
 	if scanOptions.StartRunID > 0 && scanOptions.Repository == "" {
 		log.Fatal().Msg("--start-run-id can only be used with --repository flag")
+	}
+
+	// Validate inputs using shared validation functions
+	if err := config.ValidateURL(scanOptions.GiteaURL, "Gitea URL"); err != nil {
+		log.Fatal().Err(err).Msg("Invalid Gitea URL")
+	}
+	if err := config.ValidateToken(scanOptions.Token, "Gitea Access Token"); err != nil {
+		log.Fatal().Err(err).Msg("Invalid Gitea Access Token")
+	}
+	if err := config.ValidateThreadCount(scanOptions.MaxScanGoRoutines); err != nil {
+		log.Fatal().Err(err).Msg("Invalid thread count")
 	}
 
 	scanOpts, err := giteascan.InitializeOptions(
