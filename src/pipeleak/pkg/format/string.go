@@ -25,7 +25,6 @@ func RandomStringN(n int) string {
 	letterBytes := "abcdefghijklmnopqrstuvwxyz"
 	b := make([]byte, n)
 	for i := range b {
-		// TEST: Temporarily removed to verify gosec workflow fails on issues
 		b[i] = letterBytes[rand.Intn(len(letterBytes))]
 	}
 	return string(b)
