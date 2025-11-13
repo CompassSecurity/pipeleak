@@ -1,3 +1,5 @@
+// Package config provides shared configuration types and validation helpers for pipeleak.
+// This package centralizes common configuration patterns across all platform scanners.
 package config
 
 // CommonScanOptions contains configuration fields that are shared across all platform scanners.
