@@ -19,14 +19,6 @@ jobs:
         with:
           go-version: stable
       - name: Run Gosec Security Scanner
-        run: |
-          go install github.com/securego/gosec/v2/cmd/gosec@latest
-          gosec -no-fail -fmt=json -out=results.json -exclude-generated ./src/pipeleak/... || true
-          gosec -no-fail -exclude-generated ./src/pipeleak/... || true
-        working-directory: ./
-      - name: Upload results
-        uses: actions/upload-artifact@v4
-        if: always()
+        uses: securego/gosec@master
         with:
-          name: gosec-results
-          path: results.json
+          args: './src/pipeleak/...'
