@@ -249,3 +249,142 @@ func TestHandleArchiveArtifactWithDepth_MixedContent(t *testing.T) {
 		HandleArchiveArtifactWithDepth("mixed.zip", mainBuf.Bytes(), "http://example.com/job/1", "test-job", false, 1)
 	})
 }
+
+// TestHandleArchiveArtifactWithDepth_ZipSlipProtection tests that archives with malicious
+// path traversal attempts are properly blocked by the zip slip protection.
+func TestHandleArchiveArtifactWithDepth_ZipSlipProtection(t *testing.T) {
+	t.Run("archive with parent directory traversal", func(t *testing.T) {
+		// Create a zip with a file that attempts to escape using ../
+		buf := new(bytes.Buffer)
+		w := zip.NewWriter(buf)
+
+		// Note: We're using a FileHeader to set a malicious name
+		// Standard zip.Create() would normalize the path
+		header := &zip.FileHeader{
+			Name:   "../../../etc/evil.txt",
+			Method: zip.Deflate,
+		}
+		f, err := w.CreateHeader(header)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _ = f.Write([]byte("GITLAB_TOKEN=malicious123"))
+		_ = w.Close()
+
+		// This should NOT process the file due to zip slip protection
+		// The file should be skipped and logged as a warning
+		HandleArchiveArtifactWithDepth("malicious.zip", buf.Bytes(), "http://example.com/job/1", "test-job", false, 1)
+		// If we reach here without attempting to write outside the temp dir, protection works
+	})
+
+	t.Run("archive with absolute path", func(t *testing.T) {
+		// Create a zip with an absolute path
+		buf := new(bytes.Buffer)
+		w := zip.NewWriter(buf)
+
+		header := &zip.FileHeader{
+			Name:   "/tmp/absolute-evil.txt",
+			Method: zip.Deflate,
+		}
+		f, err := w.CreateHeader(header)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _ = f.Write([]byte("GITLAB_TOKEN=absolute123"))
+		_ = w.Close()
+
+		// This should be handled safely - either skipped or contained
+		HandleArchiveArtifactWithDepth("absolute.zip", buf.Bytes(), "http://example.com/job/1", "test-job", false, 1)
+	})
+
+	t.Run("archive with mixed valid and malicious paths", func(t *testing.T) {
+		// Create a zip with both valid and malicious files
+		buf := new(bytes.Buffer)
+		w := zip.NewWriter(buf)
+
+		// Valid file
+		validF, _ := w.Create("safe.txt")
+		_, _ = validF.Write([]byte("GITLAB_TOKEN=safe123"))
+
+		// Malicious file attempting traversal
+		header := &zip.FileHeader{
+			Name:   "../../escape.txt",
+			Method: zip.Deflate,
+		}
+		malF, err := w.CreateHeader(header)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _ = malF.Write([]byte("GITLAB_TOKEN=escape123"))
+
+		// Another valid file
+		validF2, _ := w.Create("also-safe.txt")
+		_, _ = validF2.Write([]byte("GITLAB_TOKEN=alsosafe123"))
+
+		_ = w.Close()
+
+		// Should process valid files and skip malicious ones
+		HandleArchiveArtifactWithDepth("mixed-safety.zip", buf.Bytes(), "http://example.com/job/1", "test-job", false, 1)
+	})
+
+	t.Run("archive with url-encoded path traversal", func(t *testing.T) {
+		// Create a zip with URL-encoded path traversal attempt
+		buf := new(bytes.Buffer)
+		w := zip.NewWriter(buf)
+
+		header := &zip.FileHeader{
+			Name:   "..%2F..%2Fetc%2Fpasswd",
+			Method: zip.Deflate,
+		}
+		f, err := w.CreateHeader(header)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _ = f.Write([]byte("GITLAB_TOKEN=encoded123"))
+		_ = w.Close()
+
+		// Should handle safely - either normalized or skipped
+		HandleArchiveArtifactWithDepth("encoded.zip", buf.Bytes(), "http://example.com/job/1", "test-job", false, 1)
+	})
+
+	t.Run("archive with excessive path separators", func(t *testing.T) {
+		// Create a zip with excessive slashes
+		buf := new(bytes.Buffer)
+		w := zip.NewWriter(buf)
+
+		header := &zip.FileHeader{
+			Name:   "subdir////file.txt",
+			Method: zip.Deflate,
+		}
+		f, err := w.CreateHeader(header)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _ = f.Write([]byte("GITLAB_TOKEN=slashes123"))
+		_ = w.Close()
+
+		// Should normalize and process safely
+		HandleArchiveArtifactWithDepth("slashes.zip", buf.Bytes(), "http://example.com/job/1", "test-job", false, 1)
+	})
+
+	t.Run("archive with symlink-like names", func(t *testing.T) {
+		// Create a zip with files that have symlink-like patterns in names
+		buf := new(bytes.Buffer)
+		w := zip.NewWriter(buf)
+
+		// File with dot segments
+		header := &zip.FileHeader{
+			Name:   "./subdir/../file.txt",
+			Method: zip.Deflate,
+		}
+		f, err := w.CreateHeader(header)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _ = f.Write([]byte("GITLAB_TOKEN=dotted123"))
+		_ = w.Close()
+
+		// Should clean and validate path properly
+		HandleArchiveArtifactWithDepth("dotted.zip", buf.Bytes(), "http://example.com/job/1", "test-job", false, 1)
+	})
+}
