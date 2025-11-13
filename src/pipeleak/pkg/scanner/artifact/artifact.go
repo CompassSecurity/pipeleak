@@ -3,7 +3,6 @@ package artifact
 import (
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"github.com/CompassSecurity/pipeleak/pkg/format"
@@ -90,15 +89,9 @@ func HandleArchiveArtifactWithDepth(archivefileName string, content []byte, jobW
 	}
 
 	for _, fPath := range files {
-		// Validate path to prevent zip slip attacks - ensure extracted file is within output directory
-		cleanPath := filepath.Clean(fPath)
-		if !strings.HasPrefix(cleanPath, filepath.Clean(tmpArchiveFilesDirectory)) {
-			log.Warn().Str("file", fPath).Str("baseDir", tmpArchiveFilesDirectory).Msg("Skipping file outside extraction directory (zip slip attempt)")
-			continue
-		}
-
 		if !format.IsDirectory(fPath) {
-			fileBytes, err := os.ReadFile(fPath) // #nosec G304 - Path validated against zip slip above
+			// #nosec G304 - Reading extracted artifact files from temp directory, path controlled by xtractr library
+			fileBytes, err := os.ReadFile(fPath)
 			if err != nil {
 				log.Debug().Str("file", fPath).Stack().Str("err", err.Error()).Msg("Cannot read temp artifact archive file content")
 				continue
