@@ -1,0 +1,1965 @@
+{
+	"Golang errors": {
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/bitbucket/bitbucket.go": [
+			{
+				"line": 4,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/bitbucket/scan (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/bitbucket/scan/scan.go": [
+			{
+				"line": 4,
+				"column": 10,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/bitbucket/scan (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/config (invalid package name: \"\")"
+			},
+			{
+				"line": 6,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 7,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			},
+			{
+				"line": 53,
+				"column": 46,
+				"error": "options.Artifacts undefined (type BitBucketScanOptions has no field or method Artifacts)"
+			},
+			{
+				"line": 57,
+				"column": 43,
+				"error": "options.ConfidenceFilter undefined (type BitBucketScanOptions has no field or method ConfidenceFilter)"
+			},
+			{
+				"line": 58,
+				"column": 45,
+				"error": "options.MaxScanGoRoutines undefined (type BitBucketScanOptions has no field or method MaxScanGoRoutines)"
+			},
+			{
+				"line": 59,
+				"column": 46,
+				"error": "options.TruffleHogVerification undefined (type BitBucketScanOptions has no field or method TruffleHogVerification)"
+			},
+			{
+				"line": 63,
+				"column": 46,
+				"error": "options.Owned undefined (type BitBucketScanOptions has no field or method Owned)"
+			},
+			{
+				"line": 83,
+				"column": 47,
+				"error": "options.MaxScanGoRoutines undefined (type BitBucketScanOptions has no field or method MaxScanGoRoutines)"
+			},
+			{
+				"line": 95,
+				"column": 11,
+				"error": "options.Owned undefined (type BitBucketScanOptions has no field or method Owned)"
+			},
+			{
+				"line": 97,
+				"column": 11,
+				"error": "options.Artifacts undefined (type BitBucketScanOptions has no field or method Artifacts)"
+			},
+			{
+				"line": 98,
+				"column": 11,
+				"error": "options.TruffleHogVerification undefined (type BitBucketScanOptions has no field or method TruffleHogVerification)"
+			},
+			{
+				"line": 100,
+				"column": 11,
+				"error": "options.MaxScanGoRoutines undefined (type BitBucketScanOptions has no field or method MaxScanGoRoutines)"
+			},
+			{
+				"line": 101,
+				"column": 11,
+				"error": "options.ConfidenceFilter undefined (type BitBucketScanOptions has no field or method ConfidenceFilter)"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/devops/devops.go": [
+			{
+				"line": 4,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/devops/scan (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/devops/scan/scan.go": [
+			{
+				"line": 4,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/config (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 10,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/devops/scan (invalid package name: \"\")"
+			},
+			{
+				"line": 6,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 7,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			},
+			{
+				"line": 63,
+				"column": 43,
+				"error": "options.ConfidenceFilter undefined (type DevOpsScanOptions has no field or method ConfidenceFilter)"
+			},
+			{
+				"line": 64,
+				"column": 45,
+				"error": "options.MaxScanGoRoutines undefined (type DevOpsScanOptions has no field or method MaxScanGoRoutines)"
+			},
+			{
+				"line": 65,
+				"column": 46,
+				"error": "options.TruffleHogVerification undefined (type DevOpsScanOptions has no field or method TruffleHogVerification)"
+			},
+			{
+				"line": 67,
+				"column": 46,
+				"error": "options.Artifacts undefined (type DevOpsScanOptions has no field or method Artifacts)"
+			},
+			{
+				"line": 83,
+				"column": 47,
+				"error": "options.MaxScanGoRoutines undefined (type DevOpsScanOptions has no field or method MaxScanGoRoutines)"
+			},
+			{
+				"line": 94,
+				"column": 11,
+				"error": "options.Artifacts undefined (type DevOpsScanOptions has no field or method Artifacts)"
+			},
+			{
+				"line": 95,
+				"column": 11,
+				"error": "options.TruffleHogVerification undefined (type DevOpsScanOptions has no field or method TruffleHogVerification)"
+			},
+			{
+				"line": 97,
+				"column": 11,
+				"error": "options.MaxScanGoRoutines undefined (type DevOpsScanOptions has no field or method MaxScanGoRoutines)"
+			},
+			{
+				"line": 98,
+				"column": 11,
+				"error": "options.ConfidenceFilter undefined (type DevOpsScanOptions has no field or method ConfidenceFilter)"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/docs/docs.go": [
+			{
+				"line": 12,
+				"column": 2,
+				"error": "could not import golang.org/x/text/cases (invalid package name: \"\")"
+			},
+			{
+				"line": 13,
+				"column": 2,
+				"error": "could not import golang.org/x/text/language (invalid package name: \"\")"
+			},
+			{
+				"line": 14,
+				"column": 2,
+				"error": "could not import gopkg.in/yaml.v3 (invalid package name: \"\")"
+			},
+			{
+				"line": 16,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/format (invalid package name: \"\")"
+			},
+			{
+				"line": 17,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 18,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			},
+			{
+				"line": 19,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra/doc (invalid package name: \"\")"
+			},
+			{
+				"line": 285,
+				"column": 19,
+				"error": "undefined: yaml"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/gitea/enum/enum.go": [
+			{
+				"line": 4,
+				"column": 10,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/gitea/enum (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/gitea/gitea.go": [
+			{
+				"line": 4,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitea/enum (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitea/scan (invalid package name: \"\")"
+			},
+			{
+				"line": 6,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/gitea/scan/scan.go": [
+			{
+				"line": 4,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/config (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 12,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/gitea/scan (invalid package name: \"\")"
+			},
+			{
+				"line": 6,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 7,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			},
+			{
+				"line": 77,
+				"column": 40,
+				"error": "scanOptions.Artifacts undefined (type GiteaScanOptions has no field or method Artifacts)"
+			},
+			{
+				"line": 79,
+				"column": 40,
+				"error": "scanOptions.Owned undefined (type GiteaScanOptions has no field or method Owned)"
+			},
+			{
+				"line": 85,
+				"column": 47,
+				"error": "scanOptions.ConfidenceFilter undefined (type GiteaScanOptions has no field or method ConfidenceFilter)"
+			},
+			{
+				"line": 86,
+				"column": 49,
+				"error": "scanOptions.MaxScanGoRoutines undefined (type GiteaScanOptions has no field or method MaxScanGoRoutines)"
+			},
+			{
+				"line": 87,
+				"column": 50,
+				"error": "scanOptions.TruffleHogVerification undefined (type GiteaScanOptions has no field or method TruffleHogVerification)"
+			},
+			{
+				"line": 103,
+				"column": 51,
+				"error": "scanOptions.MaxScanGoRoutines undefined (type GiteaScanOptions has no field or method MaxScanGoRoutines)"
+			},
+			{
+				"line": 114,
+				"column": 15,
+				"error": "scanOptions.Owned undefined (type GiteaScanOptions has no field or method Owned)"
+			},
+			{
+				"line": 115,
+				"column": 15,
+				"error": "scanOptions.Artifacts undefined (type GiteaScanOptions has no field or method Artifacts)"
+			},
+			{
+				"line": 116,
+				"column": 15,
+				"error": "scanOptions.TruffleHogVerification undefined (type GiteaScanOptions has no field or method TruffleHogVerification)"
+			},
+			{
+				"line": 119,
+				"column": 15,
+				"error": "scanOptions.MaxScanGoRoutines undefined (type GiteaScanOptions has no field or method MaxScanGoRoutines)"
+			},
+			{
+				"line": 120,
+				"column": 15,
+				"error": "scanOptions.ConfidenceFilter undefined (type GiteaScanOptions has no field or method ConfidenceFilter)"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/github/github.go": [
+			{
+				"line": 4,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/github/scan (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/github/scan/scan.go": [
+			{
+				"line": 4,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/config (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 10,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/github/scan (invalid package name: \"\")"
+			},
+			{
+				"line": 6,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/logging (invalid package name: \"\")"
+			},
+			{
+				"line": 7,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog (invalid package name: \"\")"
+			},
+			{
+				"line": 8,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 9,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			},
+			{
+				"line": 61,
+				"column": 43,
+				"error": "options.ConfidenceFilter undefined (type GitHubScanOptions has no field or method ConfidenceFilter)"
+			},
+			{
+				"line": 62,
+				"column": 45,
+				"error": "options.MaxScanGoRoutines undefined (type GitHubScanOptions has no field or method MaxScanGoRoutines)"
+			},
+			{
+				"line": 63,
+				"column": 46,
+				"error": "options.TruffleHogVerification undefined (type GitHubScanOptions has no field or method TruffleHogVerification)"
+			},
+			{
+				"line": 65,
+				"column": 46,
+				"error": "options.Artifacts undefined (type GitHubScanOptions has no field or method Artifacts)"
+			},
+			{
+				"line": 69,
+				"column": 46,
+				"error": "options.Owned undefined (type GitHubScanOptions has no field or method Owned)"
+			},
+			{
+				"line": 86,
+				"column": 47,
+				"error": "options.MaxScanGoRoutines undefined (type GitHubScanOptions has no field or method MaxScanGoRoutines)"
+			},
+			{
+				"line": 98,
+				"column": 11,
+				"error": "options.Owned undefined (type GitHubScanOptions has no field or method Owned)"
+			},
+			{
+				"line": 100,
+				"column": 11,
+				"error": "options.Artifacts undefined (type GitHubScanOptions has no field or method Artifacts)"
+			},
+			{
+				"line": 101,
+				"column": 11,
+				"error": "options.TruffleHogVerification undefined (type GitHubScanOptions has no field or method TruffleHogVerification)"
+			},
+			{
+				"line": 103,
+				"column": 11,
+				"error": "options.MaxScanGoRoutines undefined (type GitHubScanOptions has no field or method MaxScanGoRoutines)"
+			},
+			{
+				"line": 104,
+				"column": 11,
+				"error": "options.ConfidenceFilter undefined (type GitHubScanOptions has no field or method ConfidenceFilter)"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/gitlab/cicd/cicd.go": [
+			{
+				"line": 4,
+				"column": 10,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/gitlab/cicd (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/gitlab/enum/enum.go": [
+			{
+				"line": 4,
+				"column": 10,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/gitlab/enum (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/gitlab/gitlab.go": [
+			{
+				"line": 4,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitlab/cicd (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitlab/enum (invalid package name: \"\")"
+			},
+			{
+				"line": 6,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitlab/renovate (invalid package name: \"\")"
+			},
+			{
+				"line": 7,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitlab/runners (invalid package name: \"\")"
+			},
+			{
+				"line": 8,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitlab/scan (invalid package name: \"\")"
+			},
+			{
+				"line": 9,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitlab/schedule (invalid package name: \"\")"
+			},
+			{
+				"line": 10,
+				"column": 14,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitlab/secureFiles (invalid package name: \"\")"
+			},
+			{
+				"line": 11,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitlab/variables (invalid package name: \"\")"
+			},
+			{
+				"line": 12,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitlab/vuln (invalid package name: \"\")"
+			},
+			{
+				"line": 13,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 14,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/gitlab/gitlab_unauth.go": [
+			{
+				"line": 4,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitlab/register (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitlab/shodan (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/gitlab/nist/nist.go": [
+			{
+				"line": 4,
+				"column": 10,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/gitlab/nist (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/gitlab/register/register.go": [
+			{
+				"line": 4,
+				"column": 14,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/gitlab/register (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/gitlab/renovate/renovate.go": [
+			{
+				"line": 4,
+				"column": 14,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/gitlab/renovate (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/gitlab/runners/runners.go": [
+			{
+				"line": 4,
+				"column": 13,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/gitlab/runners (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/gitlab/scan/scan.go": [
+			{
+				"line": 4,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/config (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/gitlab/scan (invalid package name: \"\")"
+			},
+			{
+				"line": 6,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/logging (invalid package name: \"\")"
+			},
+			{
+				"line": 7,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog (invalid package name: \"\")"
+			},
+			{
+				"line": 8,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 9,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			},
+			{
+				"line": 83,
+				"column": 43,
+				"error": "options.ConfidenceFilter undefined (type ScanOptions has no field or method ConfidenceFilter)"
+			},
+			{
+				"line": 85,
+				"column": 46,
+				"error": "options.Artifacts undefined (type ScanOptions has no field or method Artifacts)"
+			},
+			{
+				"line": 86,
+				"column": 46,
+				"error": "options.Owned undefined (type ScanOptions has no field or method Owned)"
+			},
+			{
+				"line": 92,
+				"column": 45,
+				"error": "options.MaxScanGoRoutines undefined (type ScanOptions has no field or method MaxScanGoRoutines)"
+			},
+			{
+				"line": 94,
+				"column": 46,
+				"error": "options.TruffleHogVerification undefined (type ScanOptions has no field or method TruffleHogVerification)"
+			},
+			{
+				"line": 106,
+				"column": 47,
+				"error": "options.MaxScanGoRoutines undefined (type ScanOptions has no field or method MaxScanGoRoutines)"
+			},
+			{
+				"line": 119,
+				"column": 11,
+				"error": "options.Artifacts undefined (type ScanOptions has no field or method Artifacts)"
+			},
+			{
+				"line": 120,
+				"column": 11,
+				"error": "options.Owned undefined (type ScanOptions has no field or method Owned)"
+			},
+			{
+				"line": 122,
+				"column": 11,
+				"error": "options.TruffleHogVerification undefined (type ScanOptions has no field or method TruffleHogVerification)"
+			},
+			{
+				"line": 124,
+				"column": 11,
+				"error": "options.MaxScanGoRoutines undefined (type ScanOptions has no field or method MaxScanGoRoutines)"
+			},
+			{
+				"line": 125,
+				"column": 11,
+				"error": "options.ConfidenceFilter undefined (type ScanOptions has no field or method ConfidenceFilter)"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/gitlab/schedule/schedule.go": [
+			{
+				"line": 4,
+				"column": 14,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/gitlab/schedule (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/gitlab/secureFiles/secure_files.go": [
+			{
+				"line": 4,
+				"column": 17,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/gitlab/secureFiles (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/gitlab/shodan/shodan.go": [
+			{
+				"line": 4,
+				"column": 12,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/gitlab/shodan (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/gitlab/util/util.go": [
+			{
+				"line": 12,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/httpclient (invalid package name: \"\")"
+			},
+			{
+				"line": 13,
+				"column": 2,
+				"error": "could not import github.com/PuerkitoBio/goquery (invalid package name: \"\")"
+			},
+			{
+				"line": 14,
+				"column": 2,
+				"error": "could not import github.com/headzoo/surf (invalid package name: \"\")"
+			},
+			{
+				"line": 15,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 16,
+				"column": 9,
+				"error": "could not import gitlab.com/gitlab-org/api/client-go (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/gitlab/variables/variables.go": [
+			{
+				"line": 4,
+				"column": 15,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/gitlab/variables (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/gitlab/vuln/vuln.go": [
+			{
+				"line": 4,
+				"column": 10,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/gitlab/vuln (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/cmd/root.go": [
+			{
+				"line": 10,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/bitbucket (invalid package name: \"\")"
+			},
+			{
+				"line": 11,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/devops (invalid package name: \"\")"
+			},
+			{
+				"line": 12,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/docs (invalid package name: \"\")"
+			},
+			{
+				"line": 13,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitea (invalid package name: \"\")"
+			},
+			{
+				"line": 14,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/github (invalid package name: \"\")"
+			},
+			{
+				"line": 15,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitlab (invalid package name: \"\")"
+			},
+			{
+				"line": 16,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/format (invalid package name: \"\")"
+			},
+			{
+				"line": 17,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/logging (invalid package name: \"\")"
+			},
+			{
+				"line": 18,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog (invalid package name: \"\")"
+			},
+			{
+				"line": 19,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 20,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/main.go": [
+			{
+				"line": 8,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd (invalid package name: \"\")"
+			},
+			{
+				"line": 9,
+				"column": 2,
+				"error": "could not import golang.org/x/term (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/bitbucket/scan/api.go": [
+			{
+				"line": 12,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 14,
+				"column": 2,
+				"error": "could not import resty.dev/v3 (invalid package name: \"\")"
+			},
+			{
+				"line": 19,
+				"column": 18,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 41,
+				"column": 13,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 41,
+				"column": 76,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 59,
+				"column": 13,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 71,
+				"column": 92,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 94,
+				"column": 121,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 125,
+				"column": 119,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 164,
+				"column": 134,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 200,
+				"column": 153,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 230,
+				"column": 127,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 257,
+				"column": 140,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 308,
+				"column": 149,
+				"error": "undefined: resty"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/bitbucket/scan/scanner.go": [
+			{
+				"line": 8,
+				"column": 8,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/bitbucket/url (invalid package name: \"\")"
+			},
+			{
+				"line": 9,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/format (invalid package name: \"\")"
+			},
+			{
+				"line": 10,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scan/logline (invalid package name: \"\")"
+			},
+			{
+				"line": 11,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scan/result (invalid package name: \"\")"
+			},
+			{
+				"line": 12,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scan/runner (invalid package name: \"\")"
+			},
+			{
+				"line": 13,
+				"column": 13,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scanner (invalid package name: \"\")"
+			},
+			{
+				"line": 14,
+				"column": 2,
+				"error": "could not import github.com/h2non/filetype (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/config/validation.go": [
+			{
+				"line": 7,
+				"column": 2,
+				"error": "could not import github.com/docker/go-units (invalid package name: \"\")"
+			},
+			{
+				"line": 34,
+				"column": 15,
+				"error": "undefined: units"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/devops/scan/api.go": [
+			{
+				"line": 8,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 10,
+				"column": 2,
+				"error": "could not import resty.dev/v3 (invalid package name: \"\")"
+			},
+			{
+				"line": 15,
+				"column": 11,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 25,
+				"column": 14,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 25,
+				"column": 77,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 30,
+				"column": 13,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 42,
+				"column": 76,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 67,
+				"column": 73,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 93,
+				"column": 104,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 122,
+				"column": 116,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 153,
+				"column": 109,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 181,
+				"column": 109,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 206,
+				"column": 73,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 223,
+				"column": 140,
+				"error": "undefined: resty"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/devops/scan/scanner.go": [
+			{
+				"line": 7,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/format (invalid package name: \"\")"
+			},
+			{
+				"line": 8,
+				"column": 15,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scan/artifact (invalid package name: \"\")"
+			},
+			{
+				"line": 9,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scan/logline (invalid package name: \"\")"
+			},
+			{
+				"line": 10,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scan/result (invalid package name: \"\")"
+			},
+			{
+				"line": 11,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scan/runner (invalid package name: \"\")"
+			},
+			{
+				"line": 12,
+				"column": 13,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scanner (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/format/format.go": [
+			{
+				"line": 7,
+				"column": 10,
+				"error": "could not import github.com/docker/go-units (invalid package name: \"\")"
+			},
+			{
+				"line": 8,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/format/html.go": [
+			{
+				"line": 7,
+				"column": 2,
+				"error": "could not import golang.org/x/net/html (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/format/yaml.go": [
+			{
+				"line": 6,
+				"column": 2,
+				"error": "could not import gopkg.in/yaml.v3 (invalid package name: \"\")"
+			},
+			{
+				"line": 10,
+				"column": 11,
+				"error": "undefined: yaml"
+			},
+			{
+				"line": 12,
+				"column": 9,
+				"error": "undefined: yaml"
+			},
+			{
+				"line": 18,
+				"column": 13,
+				"error": "undefined: yaml"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitea/enum/enum.go": [
+			{
+				"line": 6,
+				"column": 2,
+				"error": "could not import code.gitea.io/sdk/gitea (invalid package name: \"\")"
+			},
+			{
+				"line": 7,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 8,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitea/scan/api.go": [
+			{
+				"line": 12,
+				"column": 2,
+				"error": "could not import code.gitea.io/sdk/gitea (invalid package name: \"\")"
+			},
+			{
+				"line": 13,
+				"column": 2,
+				"error": "could not import github.com/hashicorp/go-retryablehttp (invalid package name: \"\")"
+			},
+			{
+				"line": 14,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 33,
+				"column": 26,
+				"error": "undefined: retryablehttp"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitea/scan/html.go": [
+			{
+				"line": 15,
+				"column": 2,
+				"error": "could not import github.com/wandb/parallel (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitea/scan/scan_utils.go": [
+			{
+				"line": 7,
+				"column": 15,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scan/artifact (invalid package name: \"\")"
+			},
+			{
+				"line": 8,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scan/logline (invalid package name: \"\")"
+			},
+			{
+				"line": 9,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scan/result (invalid package name: \"\")"
+			},
+			{
+				"line": 10,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scanner (invalid package name: \"\")"
+			},
+			{
+				"line": 11,
+				"column": 2,
+				"error": "could not import github.com/h2non/filetype (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitea/scan/scanner.go": [
+			{
+				"line": 10,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/format (invalid package name: \"\")"
+			},
+			{
+				"line": 11,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/httpclient (invalid package name: \"\")"
+			},
+			{
+				"line": 12,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scan/runner (invalid package name: \"\")"
+			},
+			{
+				"line": 272,
+				"column": 18,
+				"error": "undefined: retryablehttp"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/github/scan/scanner.go": [
+			{
+				"line": 11,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/format (invalid package name: \"\")"
+			},
+			{
+				"line": 12,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/httpclient (invalid package name: \"\")"
+			},
+			{
+				"line": 13,
+				"column": 15,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scan/artifact (invalid package name: \"\")"
+			},
+			{
+				"line": 14,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scan/logline (invalid package name: \"\")"
+			},
+			{
+				"line": 15,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scan/result (invalid package name: \"\")"
+			},
+			{
+				"line": 16,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scan/runner (invalid package name: \"\")"
+			},
+			{
+				"line": 17,
+				"column": 13,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scanner (invalid package name: \"\")"
+			},
+			{
+				"line": 18,
+				"column": 2,
+				"error": "could not import github.com/gofri/go-github-ratelimit/v2/github_ratelimit (invalid package name: \"\")"
+			},
+			{
+				"line": 19,
+				"column": 2,
+				"error": "could not import github.com/gofri/go-github-ratelimit/v2/github_ratelimit/github_primary_ratelimit (invalid package name: \"\")"
+			},
+			{
+				"line": 20,
+				"column": 2,
+				"error": "could not import github.com/gofri/go-github-ratelimit/v2/github_ratelimit/github_secondary_ratelimit (invalid package name: \"\")"
+			},
+			{
+				"line": 21,
+				"column": 2,
+				"error": "could not import github.com/google/go-github/v69/github (invalid package name: \"\")"
+			},
+			{
+				"line": 22,
+				"column": 2,
+				"error": "could not import github.com/hashicorp/go-retryablehttp (invalid package name: \"\")"
+			},
+			{
+				"line": 23,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog (invalid package name: \"\")"
+			},
+			{
+				"line": 24,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 45,
+				"column": 26,
+				"error": "undefined: retryablehttp"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitlab/cicd/cicd.go": [
+			{
+				"line": 4,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitlab/cicd/yaml.go": [
+			{
+				"line": 4,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitlab/util (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/format (invalid package name: \"\")"
+			},
+			{
+				"line": 8,
+				"column": 9,
+				"error": "could not import gitlab.com/gitlab-org/api/client-go (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitlab/enum/enum.go": [
+			{
+				"line": 10,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitlab/util (invalid package name: \"\")"
+			},
+			{
+				"line": 11,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 12,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			},
+			{
+				"line": 13,
+				"column": 9,
+				"error": "could not import gitlab.com/gitlab-org/api/client-go (invalid package name: \"\")"
+			},
+			{
+				"line": 15,
+				"column": 2,
+				"error": "could not import resty.dev/v3 (invalid package name: \"\")"
+			},
+			{
+				"line": 66,
+				"column": 13,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 66,
+				"column": 43,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 129,
+				"column": 30,
+				"error": "undefined: resty"
+			},
+			{
+				"line": 166,
+				"column": 35,
+				"error": "undefined: resty"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitlab/nist/nist.go": [
+			{
+				"line": 6,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/httpclient (invalid package name: \"\")"
+			},
+			{
+				"line": 7,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitlab/register/register.go": [
+			{
+				"line": 4,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/gitlab/util (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 6,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitlab/renovate/autodiscovery.go": [
+			{
+				"line": 4,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitlab/util (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/format (invalid package name: \"\")"
+			},
+			{
+				"line": 6,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 7,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			},
+			{
+				"line": 8,
+				"column": 11,
+				"error": "could not import gitlab.com/gitlab-org/api/client-go (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitlab/renovate/enum.go": [
+			{
+				"line": 16,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/httpclient (invalid package name: \"\")"
+			},
+			{
+				"line": 19,
+				"column": 2,
+				"error": "could not import github.com/yosuke-furukawa/json5/encoding/json5 (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitlab/renovate/privesc.go": [
+			{
+				"line": 10,
+				"column": 5,
+				"error": "could not import gitlab.com/mitchenielsen/gitlab-ci-go (invalid package name: \"\")"
+			},
+			{
+				"line": 11,
+				"column": 2,
+				"error": "could not import gopkg.in/yaml.v3 (invalid package name: \"\")"
+			},
+			{
+				"line": 179,
+				"column": 8,
+				"error": "undefined: yaml"
+			},
+			{
+				"line": 189,
+				"column": 19,
+				"error": "undefined: yaml"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitlab/runners/exploit.go": [
+			{
+				"line": 4,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			},
+			{
+				"line": 6,
+				"column": 8,
+				"error": "could not import gitlab.com/gitlab-org/api/client-go (invalid package name: \"\")"
+			},
+			{
+				"line": 7,
+				"column": 5,
+				"error": "could not import gitlab.com/mitchenielsen/gitlab-ci-go (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitlab/runners/internal/processor/runners.go": [
+			{
+				"line": 6,
+				"column": 9,
+				"error": "could not import gitlab.com/gitlab-org/api/client-go (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitlab/runners/list.go": [
+			{
+				"line": 6,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitlab/util (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitlab/scan/internal/processor/artifact.go": [
+			{
+				"line": 9,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scanner (invalid package name: \"\")"
+			},
+			{
+				"line": 10,
+				"column": 2,
+				"error": "could not import github.com/h2non/filetype (invalid package name: \"\")"
+			},
+			{
+				"line": 11,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 12,
+				"column": 2,
+				"error": "could not import github.com/wandb/parallel (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitlab/scan/pipeline.go": [
+			{
+				"line": 9,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitlab/util (invalid package name: \"\")"
+			},
+			{
+				"line": 10,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scanner (invalid package name: \"\")"
+			},
+			{
+				"line": 11,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/system (invalid package name: \"\")"
+			},
+			{
+				"line": 12,
+				"column": 2,
+				"error": "could not import github.com/nsqio/go-diskqueue (invalid package name: \"\")"
+			},
+			{
+				"line": 13,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 14,
+				"column": 9,
+				"error": "could not import gitlab.com/gitlab-org/api/client-go (invalid package name: \"\")"
+			},
+			{
+				"line": 17,
+				"column": 15,
+				"error": "undefined: diskqueue"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitlab/scan/queue.go": [
+			{
+				"line": 20,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/format (invalid package name: \"\")"
+			},
+			{
+				"line": 21,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/httpclient (invalid package name: \"\")"
+			},
+			{
+				"line": 22,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/logging (invalid package name: \"\")"
+			},
+			{
+				"line": 24,
+				"column": 2,
+				"error": "could not import github.com/h2non/filetype (invalid package name: \"\")"
+			},
+			{
+				"line": 27,
+				"column": 2,
+				"error": "could not import github.com/wandb/parallel (invalid package name: \"\")"
+			},
+			{
+				"line": 54,
+				"column": 40,
+				"error": "undefined: diskqueue"
+			},
+			{
+				"line": 80,
+				"column": 7,
+				"error": "undefined: diskqueue"
+			},
+			{
+				"line": 88,
+				"column": 12,
+				"error": "undefined: diskqueue"
+			},
+			{
+				"line": 120,
+				"column": 24,
+				"error": "undefined: diskqueue"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitlab/schedule/schedule.go": [
+			{
+				"line": 4,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitlab/util (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 6,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			},
+			{
+				"line": 7,
+				"column": 9,
+				"error": "could not import gitlab.com/gitlab-org/api/client-go (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitlab/secureFiles/api.go": [
+			{
+				"line": 9,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/httpclient (invalid package name: \"\")"
+			},
+			{
+				"line": 10,
+				"column": 2,
+				"error": "could not import github.com/hashicorp/go-retryablehttp (invalid package name: \"\")"
+			},
+			{
+				"line": 11,
+				"column": 2,
+				"error": "could not import github.com/tidwall/gjson (invalid package name: \"\")"
+			},
+			{
+				"line": 25,
+				"column": 14,
+				"error": "undefined: retryablehttp"
+			},
+			{
+				"line": 65,
+				"column": 14,
+				"error": "undefined: retryablehttp"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitlab/secureFiles/secure_files.go": [
+			{
+				"line": 4,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitlab/util (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 6,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			},
+			{
+				"line": 7,
+				"column": 9,
+				"error": "could not import gitlab.com/gitlab-org/api/client-go (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitlab/shodan/shodan.go": [
+			{
+				"line": 14,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/httpclient (invalid package name: \"\")"
+			},
+			{
+				"line": 15,
+				"column": 2,
+				"error": "could not import github.com/perimeterx/marshmallow (invalid package name: \"\")"
+			},
+			{
+				"line": 16,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 17,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			},
+			{
+				"line": 18,
+				"column": 2,
+				"error": "could not import github.com/wandb/parallel (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitlab/util/util.go": [
+			{
+				"line": 12,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/httpclient (invalid package name: \"\")"
+			},
+			{
+				"line": 13,
+				"column": 2,
+				"error": "could not import github.com/PuerkitoBio/goquery (invalid package name: \"\")"
+			},
+			{
+				"line": 14,
+				"column": 2,
+				"error": "could not import github.com/headzoo/surf (invalid package name: \"\")"
+			},
+			{
+				"line": 15,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 16,
+				"column": 9,
+				"error": "could not import gitlab.com/gitlab-org/api/client-go (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitlab/variables/variables.go": [
+			{
+				"line": 4,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/cmd/gitlab/util (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 6,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			},
+			{
+				"line": 7,
+				"column": 9,
+				"error": "could not import gitlab.com/gitlab-org/api/client-go (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/gitlab/vuln/vuln.go": [
+			{
+				"line": 4,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/gitlab/nist (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/gitlab/util (invalid package name: \"\")"
+			},
+			{
+				"line": 6,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 7,
+				"column": 2,
+				"error": "could not import github.com/spf13/cobra (invalid package name: \"\")"
+			},
+			{
+				"line": 8,
+				"column": 2,
+				"error": "could not import github.com/tidwall/gjson (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/httpclient/client.go": [
+			{
+				"line": 13,
+				"column": 2,
+				"error": "could not import github.com/hashicorp/go-retryablehttp (invalid package name: \"\")"
+			},
+			{
+				"line": 14,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 56,
+				"column": 105,
+				"error": "undefined: retryablehttp"
+			},
+			{
+				"line": 74,
+				"column": 12,
+				"error": "undefined: retryablehttp"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/logging/hit.go": [
+			{
+				"line": 9,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog (invalid package name: \"\")"
+			},
+			{
+				"line": 10,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/logging/logging.go": [
+			{
+				"line": 6,
+				"column": 2,
+				"error": "could not import atomicgo.dev/keyboard (invalid package name: \"\")"
+			},
+			{
+				"line": 7,
+				"column": 2,
+				"error": "could not import atomicgo.dev/keyboard/keys (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/scan/artifact/processor.go": [
+			{
+				"line": 9,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scanner (invalid package name: \"\")"
+			},
+			{
+				"line": 10,
+				"column": 2,
+				"error": "could not import github.com/h2non/filetype (invalid package name: \"\")"
+			},
+			{
+				"line": 11,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 12,
+				"column": 2,
+				"error": "could not import github.com/wandb/parallel (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/scan/logline/processor.go": [
+			{
+				"line": 8,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scanner (invalid package name: \"\")"
+			},
+			{
+				"line": 9,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/scan/result/reporter.go": [
+			{
+				"line": 4,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/logging (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scanner (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/scan/runner/scanner.go": [
+			{
+				"line": 4,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scanner (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/scanner/artifact/artifact.go": [
+			{
+				"line": 8,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/format (invalid package name: \"\")"
+			},
+			{
+				"line": 9,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/logging (invalid package name: \"\")"
+			},
+			{
+				"line": 10,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scanner/engine (invalid package name: \"\")"
+			},
+			{
+				"line": 11,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scanner/types (invalid package name: \"\")"
+			},
+			{
+				"line": 12,
+				"column": 2,
+				"error": "could not import github.com/h2non/filetype (invalid package name: \"\")"
+			},
+			{
+				"line": 13,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 14,
+				"column": 2,
+				"error": "could not import golift.io/xtractr (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/scanner/engine/engine.go": [
+			{
+				"line": 12,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scanner/rules (invalid package name: \"\")"
+			},
+			{
+				"line": 13,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scanner/types (invalid package name: \"\")"
+			},
+			{
+				"line": 14,
+				"column": 2,
+				"error": "could not import github.com/acarl005/stripansi (invalid package name: \"\")"
+			},
+			{
+				"line": 15,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 16,
+				"column": 2,
+				"error": "could not import github.com/rxwycdh/rxhash (invalid package name: \"\")"
+			},
+			{
+				"line": 17,
+				"column": 2,
+				"error": "could not import github.com/trufflesecurity/trufflehog/v3/pkg/engine/defaults (invalid package name: \"\")"
+			},
+			{
+				"line": 18,
+				"column": 2,
+				"error": "could not import github.com/wandb/parallel (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/scanner/rules/rules.go": [
+			{
+				"line": 10,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/httpclient (invalid package name: \"\")"
+			},
+			{
+				"line": 11,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scanner/types (invalid package name: \"\")"
+			},
+			{
+				"line": 12,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			},
+			{
+				"line": 13,
+				"column": 2,
+				"error": "could not import github.com/trufflesecurity/trufflehog/v3/pkg/detectors (invalid package name: \"\")"
+			},
+			{
+				"line": 14,
+				"column": 2,
+				"error": "could not import github.com/trufflesecurity/trufflehog/v3/pkg/engine/defaults (invalid package name: \"\")"
+			},
+			{
+				"line": 15,
+				"column": 2,
+				"error": "could not import gopkg.in/yaml.v3 (invalid package name: \"\")"
+			},
+			{
+				"line": 67,
+				"column": 9,
+				"error": "undefined: yaml"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/scanner/scanner.go": [
+			{
+				"line": 4,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scanner/artifact (invalid package name: \"\")"
+			},
+			{
+				"line": 5,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scanner/engine (invalid package name: \"\")"
+			},
+			{
+				"line": 6,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scanner/rules (invalid package name: \"\")"
+			},
+			{
+				"line": 7,
+				"column": 2,
+				"error": "could not import github.com/CompassSecurity/pipeleak/pkg/scanner/types (invalid package name: \"\")"
+			}
+		],
+		"/home/runner/work/pipeleak/pipeleak/src/pipeleak/pkg/system/shutdown.go": [
+			{
+				"line": 8,
+				"column": 2,
+				"error": "could not import github.com/rs/zerolog/log (invalid package name: \"\")"
+			}
+		]
+	},
+	"Issues": [],
+	"Stats": {
+		"files": 96,
+		"lines": 11180,
+		"nosec": 13,
+		"found": 0
+	},
+	"GosecVersion": "dev"
+}
