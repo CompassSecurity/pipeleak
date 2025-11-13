@@ -93,16 +93,20 @@ func HandleArchiveArtifactWithDepth(archivefileName string, content []byte, jobW
 			fileBytes, err := os.ReadFile(fPath)
 			if err != nil {
 				log.Debug().Str("file", fPath).Stack().Str("err", err.Error()).Msg("Cannot read temp artifact archive file content")
+				continue
 			}
 
+			currentFileName := path.Base(fPath)
+			
 			if filetype.IsArchive(fileBytes) {
-				log.Trace().Str("fileName", archivefileName).Msg("Detected archive, recursing")
-				HandleArchiveArtifactWithDepth(archivefileName, fileBytes, jobWebUrl, jobName, enableTruffleHogVerification, depth+1)
+				log.Trace().Str("fileName", currentFileName).Str("parentArchive", archivefileName).Int("depth", depth).Msg("Detected nested archive, recursing")
+				HandleArchiveArtifactWithDepth(currentFileName, fileBytes, jobWebUrl, jobName, enableTruffleHogVerification, depth+1)
+				continue
 			}
 
 			kind, _ := filetype.Match(fileBytes)
 			if kind == filetype.Unknown {
-				DetectFileHits(fileBytes, jobWebUrl, jobName, path.Base(fPath), archivefileName, enableTruffleHogVerification)
+				DetectFileHits(fileBytes, jobWebUrl, jobName, currentFileName, archivefileName, enableTruffleHogVerification)
 			}
 		}
 	}
