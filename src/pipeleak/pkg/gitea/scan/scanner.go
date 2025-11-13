@@ -18,8 +18,6 @@ import (
 // ScanOptions is an alias for GiteaScanOptions for interface consistency with other providers.
 type ScanOptions = GiteaScanOptions
 
-// scanOptions is a package-level variable used by helper functions in api.go, html.go, etc.
-// It is set by the scanner when Scan() is called.
 var scanOptions GiteaScanOptions
 
 type Scanner interface {
