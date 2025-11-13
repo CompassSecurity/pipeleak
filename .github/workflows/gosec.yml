@@ -21,4 +21,16 @@ jobs:
       - name: Run Gosec Security Scanner
         uses: securego/gosec@master
         with:
-          args: '-fmt sarif -out results.sarif ./src/pipeleak/...'
+          args: '-no-fail -fmt json -out results.json ./src/pipeleak/...'
+      
+      - name: Check Gosec Results
+        run: |
+          ls -alh
+          FOUND=$(jq '.Stats.found // 0' results.json)
+          echo "Gosec found $FOUND issue(s)"
+          if [ "$FOUND" -gt 0 ]; then
+            echo "❌ Security issues detected! Please fix them before merging."
+            exit 1
+          else
+            echo "✅ No security issues found."
+          fi
