@@ -25,8 +25,6 @@ jobs:
       
       - name: Check Gosec Results
         run: |
-          ls -alh
-          cat results.json
           FOUND=$(jq '.Stats.found // 0' results.json)
           echo "Gosec found $FOUND issue(s)"
           if [ "$FOUND" -gt 0 ]; then
