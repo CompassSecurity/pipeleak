@@ -5,7 +5,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewShodanCmd creates the shodan command.
 func NewShodanCmd() *cobra.Command {
 	return pkgshodan.NewShodanCmd()
 }

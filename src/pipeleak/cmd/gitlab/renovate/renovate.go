@@ -5,7 +5,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewRenovateRootCmd creates the renovate root command.
 func NewRenovateRootCmd() *cobra.Command {
 	return pkgrenovate.NewRenovateRootCmd()
 }

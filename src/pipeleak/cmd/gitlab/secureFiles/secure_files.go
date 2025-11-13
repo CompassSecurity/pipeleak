@@ -5,7 +5,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewSecureFilesCmd creates the secure files command.
 func NewSecureFilesCmd() *cobra.Command {
 	return pkgsecurefiles.NewSecureFilesCmd()
 }

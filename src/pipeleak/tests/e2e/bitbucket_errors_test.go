@@ -27,11 +27,11 @@ func TestBitBucketScan_MissingCredentials(t *testing.T) {
 	stdout, stderr, _ := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--owned",                  // Need a scan mode
-		"-a",                       // Artifacts flag
-		"-c", "invalid-cookie",     // Cookie flag
-		"-t", "invalid-token",      // Token flag
-		"-e", "test@example.com",   // Email flag
+		"--owned",              // Need a scan mode
+		"-a",                   // Artifacts flag
+		"-c", "invalid-cookie", // Cookie flag
+		"-t", "invalid-token", // Token flag
+		"-e", "test@example.com", // Email flag
 	}, nil, 5*time.Second)
 
 	// The command exits early with authentication error when trying to get user info

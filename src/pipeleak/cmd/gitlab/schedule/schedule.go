@@ -5,7 +5,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewScheduleCmd creates the schedule command.
 func NewScheduleCmd() *cobra.Command {
 	return pkgschedule.NewScheduleCmd()
 }

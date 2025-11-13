@@ -5,7 +5,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewRegisterCmd creates the register command.
 func NewRegisterCmd() *cobra.Command {
 	return pkgregister.NewRegisterCmd()
 }
