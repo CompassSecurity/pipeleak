@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+// TestWeakRandom is a test function to verify gosec detects issues
+func TestWeakRandom() int {
+	return rand.Intn(100)
+}
+
 func ContainsI(a string, b string) bool {
 	return strings.Contains(
 		strings.ToLower(a),
