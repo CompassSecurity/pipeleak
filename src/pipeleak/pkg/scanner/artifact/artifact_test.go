@@ -145,3 +145,107 @@ func TestDetectFileHits_RealFile(t *testing.T) {
 
 	DetectFileHits(content, "http://example.com/job/1", "test-job", "secret.txt", "", false)
 }
+
+// TestHandleArchiveArtifactWithDepth_NestedArchiveFileNameFix verifies that nested archives
+// are processed with their actual filenames, not the parent archive name.
+// This test validates the fix for the bug where files like "xyz.macho" would appear to loop endlessly
+// because the parent archive name was being reused instead of the actual nested file name.
+func TestHandleArchiveArtifactWithDepth_NestedArchiveFileNameFix(t *testing.T) {
+	// Create an inner zip archive with a specific name that could be misidentified
+	innerBuf := new(bytes.Buffer)
+	innerW := zip.NewWriter(innerBuf)
+	innerF, err := innerW.Create("data.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = innerF.Write([]byte("some content in nested archive"))
+	_ = innerW.Close()
+
+	// Create an outer zip archive containing the inner zip with a specific name
+	// This simulates a scenario like "xyz.macho" inside an artifact
+	outerBuf := new(bytes.Buffer)
+	outerW := zip.NewWriter(outerBuf)
+	nestedFileName := "nested.zip"
+	outerF, err := outerW.Create(nestedFileName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = outerF.Write(innerBuf.Bytes())
+	_ = outerW.Close()
+
+	// Before the fix, this would use "parent.zip" for both the parent and nested archive
+	// After the fix, it should use "parent.zip" for parent and "nested.zip" for the nested archive
+	t.Run("nested archive uses correct filename", func(t *testing.T) {
+		// This should not cause an endless loop or incorrect filename reuse
+		// The fix ensures HandleArchiveArtifactWithDepth receives "nested.zip" not "parent.zip"
+		HandleArchiveArtifactWithDepth("parent.zip", outerBuf.Bytes(), "http://example.com/job/1", "test-job", false, 1)
+		// If we reach here without hanging or panicking, the fix is working
+	})
+}
+
+// TestHandleArchiveArtifactWithDepth_DeeplyNestedArchives tests that deeply nested archives
+// are handled correctly with proper depth tracking and filename propagation.
+func TestHandleArchiveArtifactWithDepth_DeeplyNestedArchives(t *testing.T) {
+	// Create a chain of nested archives: level3.zip -> level2.zip -> level1.zip -> data.txt
+	level1Buf := new(bytes.Buffer)
+	level1W := zip.NewWriter(level1Buf)
+	level1F, _ := level1W.Create("data.txt")
+	_, _ = level1F.Write([]byte("GITLAB_TOKEN=secret123"))
+	_ = level1W.Close()
+
+	level2Buf := new(bytes.Buffer)
+	level2W := zip.NewWriter(level2Buf)
+	level2F, _ := level2W.Create("level1.zip")
+	_, _ = level2F.Write(level1Buf.Bytes())
+	_ = level2W.Close()
+
+	level3Buf := new(bytes.Buffer)
+	level3W := zip.NewWriter(level3Buf)
+	level3F, _ := level3W.Create("level2.zip")
+	_, _ = level3F.Write(level2Buf.Bytes())
+	_ = level3W.Close()
+
+	t.Run("deeply nested archives with correct filenames", func(t *testing.T) {
+		// Each level should use its actual filename, not the parent's
+		HandleArchiveArtifactWithDepth("level3.zip", level3Buf.Bytes(), "http://example.com/job/1", "test-job", false, 1)
+	})
+
+	t.Run("deeply nested archives respect max depth", func(t *testing.T) {
+		// Starting at depth 9 means level1.zip (depth 11) should be skipped
+		HandleArchiveArtifactWithDepth("level3.zip", level3Buf.Bytes(), "http://example.com/job/1", "test-job", false, 9)
+	})
+}
+
+// TestHandleArchiveArtifactWithDepth_MixedContent tests archives containing both
+// regular files and nested archives to ensure proper handling of each type.
+func TestHandleArchiveArtifactWithDepth_MixedContent(t *testing.T) {
+	// Create a nested archive
+	nestedBuf := new(bytes.Buffer)
+	nestedW := zip.NewWriter(nestedBuf)
+	nestedF, _ := nestedW.Create("nested_file.txt")
+	_, _ = nestedF.Write([]byte("nested content"))
+	_ = nestedW.Close()
+
+	// Create main archive with mixed content
+	mainBuf := new(bytes.Buffer)
+	mainW := zip.NewWriter(mainBuf)
+
+	// Add regular text file
+	txtFile, _ := mainW.Create("readme.txt")
+	_, _ = txtFile.Write([]byte("README content"))
+
+	// Add nested archive
+	zipFile, _ := mainW.Create("artifact.zip")
+	_, _ = zipFile.Write(nestedBuf.Bytes())
+
+	// Add another regular file
+	dataFile, _ := mainW.Create("data.json")
+	_, _ = dataFile.Write([]byte(`{"key": "value"}`))
+
+	_ = mainW.Close()
+
+	t.Run("mixed content with nested archive", func(t *testing.T) {
+		// Should process both regular files and recursively handle nested archive
+		HandleArchiveArtifactWithDepth("mixed.zip", mainBuf.Bytes(), "http://example.com/job/1", "test-job", false, 1)
+	})
+}

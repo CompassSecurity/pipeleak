@@ -2,6 +2,8 @@ package devops
 
 import (
 	"testing"
+
+	"github.com/CompassSecurity/pipeleak/cmd/devops/scan"
 )
 
 func TestNewAzureDevOpsRootCmd(t *testing.T) {
@@ -35,7 +37,7 @@ func TestNewAzureDevOpsRootCmd(t *testing.T) {
 }
 
 func TestNewScanCmd(t *testing.T) {
-	cmd := NewScanCmd()
+	cmd := scan.NewScanCmd()
 
 	if cmd == nil {
 		t.Fatal("Expected non-nil command")

@@ -27,13 +27,17 @@ func TestBitBucketScan_MissingCredentials(t *testing.T) {
 	stdout, stderr, _ := runCLI(t, []string{
 		"bb", "scan",
 		"--bitbucket", server.URL,
-		"--owned", // Need a scan mode
+		"--owned",              // Need a scan mode
+		"-a",                   // Artifacts flag
+		"-c", "invalid-cookie", // Cookie flag
+		"-t", "invalid-token", // Token flag
+		"-e", "test@example.com", // Email flag
 	}, nil, 5*time.Second)
 
-	// The command completes but logs authentication errors
+	// The command exits early with authentication error when trying to get user info
 	output := stdout + stderr
 	assert.Contains(t, output, "401", "Should show 401 authentication error when credentials missing")
-	assert.Contains(t, output, "owned workspaces", "Should attempt to list owned workspaces")
+	assert.Contains(t, output, "Failed to get user info", "Should fail at user info validation")
 	t.Logf("Output:\n%s", output)
 }
 

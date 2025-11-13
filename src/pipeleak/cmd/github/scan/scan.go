@@ -1,0 +1,107 @@
+package scan
+
+import (
+	pkgscan "github.com/CompassSecurity/pipeleak/pkg/github/scan"
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
+)
+
+type GitHubScanOptions struct {
+	AccessToken            string
+	ConfidenceFilter       []string
+	MaxScanGoRoutines      int
+	TruffleHogVerification bool
+	MaxWorkflows           int
+	Organization           string
+	Owned                  bool
+	User                   string
+	Public                 bool
+	SearchQuery            string
+	Artifacts              bool
+	GitHubURL              string
+	Repo                   string
+}
+
+var options = GitHubScanOptions{}
+var maxArtifactSize string
+
+func NewScanCmd() *cobra.Command {
+	scanCmd := &cobra.Command{
+		Use:   "scan [no options!]",
+		Short: "Scan GitHub Actions",
+		Long:  `Scan GitHub Actions workflow runs and artifacts for secrets`,
+		Example: `
+# Scan owned repositories including their artifacts
+pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --owned
+
+# Scan repositories of an organization
+pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --maxWorkflows 10 --org apache
+
+# Scan public repositories
+pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --maxWorkflows 10 --public
+
+# Scan by search term
+pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --maxWorkflows 10 --search iac
+
+# Scan repositories of a user
+pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --user firefart
+
+# Scan a single repository
+pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --repo owner/repo
+		`,
+		Run: Scan,
+	}
+	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "GitHub Personal Access Token - https://github.com/settings/tokens")
+	err := scanCmd.MarkFlagRequired("token")
+	if err != nil {
+		log.Fatal().Msg("Unable to require token flag")
+	}
+
+	scanCmd.Flags().StringSliceVarP(&options.ConfidenceFilter, "confidence", "", []string{}, "Filter for confidence level, separate by comma if multiple. See readme for more info.")
+	scanCmd.PersistentFlags().IntVarP(&options.MaxScanGoRoutines, "threads", "", 4, "Nr of threads used to scan")
+	scanCmd.PersistentFlags().BoolVarP(&options.TruffleHogVerification, "truffle-hog-verification", "", true, "Enable the TruffleHog credential verification, will actively test the found credentials and only report those. Disable with --truffle-hog-verification=false")
+	scanCmd.PersistentFlags().IntVarP(&options.MaxWorkflows, "max-workflows", "", -1, "Max. number of workflows to scan per repository")
+	scanCmd.PersistentFlags().BoolVarP(&options.Artifacts, "artifacts", "a", false, "Scan workflow artifacts")
+	scanCmd.PersistentFlags().StringVarP(&maxArtifactSize, "max-artifact-size", "", "500Mb", "Max file size of an artifact to be included in scanning. Larger files are skipped. Format: https://pkg.go.dev/github.com/docker/go-units#FromHumanSize")
+	scanCmd.Flags().StringVarP(&options.Organization, "org", "", "", "GitHub organization name to scan")
+	scanCmd.Flags().StringVarP(&options.User, "user", "", "", "GitHub user name to scan")
+	scanCmd.PersistentFlags().BoolVarP(&options.Owned, "owned", "", false, "Scan user onwed projects only")
+	scanCmd.PersistentFlags().BoolVarP(&options.Public, "public", "p", false, "Scan all public repositories")
+	scanCmd.Flags().StringVarP(&options.SearchQuery, "search", "s", "", "GitHub search query")
+	scanCmd.Flags().StringVarP(&options.Repo, "repo", "r", "", "Scan a single repository in the format owner/repo")
+	scanCmd.Flags().StringVarP(&options.GitHubURL, "github", "g", "https://api.github.com", "GitHub API base URL")
+	scanCmd.MarkFlagsMutuallyExclusive("owned", "org", "user", "public", "search", "repo")
+
+	return scanCmd
+}
+
+func Scan(cmd *cobra.Command, args []string) {
+	scanOpts, err := pkgscan.InitializeOptions(
+		options.AccessToken,
+		options.GitHubURL,
+		options.Repo,
+		options.Organization,
+		options.User,
+		options.SearchQuery,
+		maxArtifactSize,
+		options.Owned,
+		options.Public,
+		options.Artifacts,
+		options.TruffleHogVerification,
+		options.MaxWorkflows,
+		options.MaxScanGoRoutines,
+		options.ConfidenceFilter,
+	)
+	if err != nil {
+		log.Fatal().Err(err).Str("size", maxArtifactSize).Msg("Failed parsing max-artifact-size flag")
+	}
+
+	scanner := pkgscan.NewScanner(scanOpts)
+	logging.RegisterStatusHook(func() *zerolog.Event { return scanner.GetRateLimitStatus() })
+
+	if err := scanner.Scan(); err != nil {
+		log.Fatal().Err(err).Msg("Scan failed")
+	}
+}

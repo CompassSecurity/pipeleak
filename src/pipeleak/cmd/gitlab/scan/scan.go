@@ -1,16 +1,29 @@
 package scan
 
 import (
-	"net/url"
-	"os"
-
-	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
-	"github.com/CompassSecurity/pipeleak/pkg/format"
+	"github.com/CompassSecurity/pipeleak/pkg/gitlab/scan"
 	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
+
+type ScanOptions struct {
+	GitlabUrl              string
+	GitlabApiToken         string
+	GitlabCookie           string
+	ProjectSearchQuery     string
+	Artifacts              bool
+	Owned                  bool
+	Member                 bool
+	Repository             string
+	Namespace              string
+	JobLimit               int
+	ConfidenceFilter       []string
+	MaxScanGoRoutines      int
+	QueueFolder            string
+	TruffleHogVerification bool
+}
 
 var options = ScanOptions{}
 var maxArtifactSize string
@@ -85,27 +98,34 @@ pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com -
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	logging.RegisterStatusHook(scanStatus)
-
-	_, err := url.ParseRequestURI(options.GitlabUrl)
+	scanOpts, err := scan.InitializeOptions(
+		options.GitlabUrl,
+		options.GitlabApiToken,
+		options.GitlabCookie,
+		options.ProjectSearchQuery,
+		options.Repository,
+		options.Namespace,
+		options.QueueFolder,
+		maxArtifactSize,
+		options.Artifacts,
+		options.Owned,
+		options.Member,
+		options.TruffleHogVerification,
+		options.JobLimit,
+		options.MaxScanGoRoutines,
+		options.ConfidenceFilter,
+	)
 	if err != nil {
-		log.Fatal().Msg("The provided GitLab URL is not a valid URL")
-		os.Exit(1)
+		log.Fatal().Err(err).Msg("Failed initializing scan options")
 	}
 
-	byteSize, err := format.ParseHumanSize(maxArtifactSize)
-	if err != nil {
-		log.Fatal().Err(err).Str("size", maxArtifactSize).Msg("Failed parsing max-artifact-size flag")
+	scanner := scan.NewScanner(scanOpts)
+	logging.RegisterStatusHook(func() *zerolog.Event {
+		queueLength := scanner.GetQueueStatus()
+		return log.Info().Int("pendingjobs", queueLength)
+	})
+
+	if err := scanner.Scan(); err != nil {
+		log.Fatal().Err(err).Msg("Scan failed")
 	}
-	options.MaxArtifactSize = byteSize
-
-	version := util.DetermineVersion(options.GitlabUrl, options.GitlabApiToken)
-	log.Info().Str("version", version.Version).Str("revision", version.Revision).Msg("Gitlab Version Check")
-	ScanGitLabPipelines(&options)
-	log.Info().Msg("Scan Finished, Bye Bye 🏳️‍🌈🔥")
-}
-
-func scanStatus() *zerolog.Event {
-	queueLength := GetQueueStatus()
-	return log.Info().Int("pendingjobs", queueLength)
 }
