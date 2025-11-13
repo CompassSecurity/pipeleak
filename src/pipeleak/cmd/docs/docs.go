@@ -422,14 +422,14 @@ func Docs(cmd *cobra.Command, args []string) {
 		siteDir := filepath.Join(outputDir, "site")
 		log.Info().Msgf("Serving docs %s at http://localhost:8000 ... (Ctrl+C to quit)", siteDir)
 		http.Handle("/", http.FileServer(http.Dir(siteDir)))
-		
+
 		server := &http.Server{
 			Addr:         ":8000",
 			ReadTimeout:  15 * time.Second,
 			WriteTimeout: 15 * time.Second,
 			IdleTimeout:  60 * time.Second,
 		}
-		
+
 		if err := server.ListenAndServe(); err != nil {
 			log.Fatal().Err(err).Msg("Failed to start HTTP server")
 		}
