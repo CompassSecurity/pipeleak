@@ -1,6 +1,7 @@
 package devops
 
 import (
+	"github.com/CompassSecurity/pipeleak/cmd/devops/scan"
 	"github.com/spf13/cobra"
 )
 
@@ -11,7 +12,7 @@ func NewAzureDevOpsRootCmd() *cobra.Command {
 		GroupID: "AzureDevOps",
 	}
 
-	dvoCmd.AddCommand(NewScanCmd())
+	dvoCmd.AddCommand(scan.NewScanCmd())
 
 	return dvoCmd
 }

@@ -1,6 +1,7 @@
 package github
 
 import (
+	"github.com/CompassSecurity/pipeleak/cmd/github/scan"
 	"github.com/spf13/cobra"
 )
 
@@ -11,7 +12,7 @@ func NewGitHubRootCmd() *cobra.Command {
 		GroupID: "GitHub",
 	}
 
-	ghCmd.AddCommand(NewScanCmd())
+	ghCmd.AddCommand(scan.NewScanCmd())
 
 	return ghCmd
 }

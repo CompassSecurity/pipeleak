@@ -1,6 +1,7 @@
 package bitbucket
 
 import (
+	"github.com/CompassSecurity/pipeleak/cmd/bitbucket/scan"
 	"github.com/spf13/cobra"
 )
 
@@ -11,7 +12,7 @@ func NewBitBucketRootCmd() *cobra.Command {
 		GroupID: "BitBucket",
 	}
 
-	bbCmd.AddCommand(NewScanCmd())
+	bbCmd.AddCommand(scan.NewScanCmd())
 
 	return bbCmd
 }

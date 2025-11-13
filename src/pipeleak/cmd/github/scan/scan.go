@@ -1,7 +1,7 @@
-package github
+package scan
 
 import (
-	"github.com/CompassSecurity/pipeleak/pkg/github/scan"
+	pkgscan "github.com/CompassSecurity/pipeleak/pkg/github/scan"
 	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -78,7 +78,7 @@ pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --repo owner/repo
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	scanOpts, err := scan.InitializeOptions(
+	scanOpts, err := pkgscan.InitializeOptions(
 		options.AccessToken,
 		options.GitHubURL,
 		options.Repo,
@@ -98,7 +98,7 @@ func Scan(cmd *cobra.Command, args []string) {
 		log.Fatal().Err(err).Str("size", maxArtifactSize).Msg("Failed parsing max-artifact-size flag")
 	}
 
-	scanner := scan.NewScanner(scanOpts)
+	scanner := pkgscan.NewScanner(scanOpts)
 	logging.RegisterStatusHook(func() *zerolog.Event { return scanner.GetRateLimitStatus() })
 
 	if err := scanner.Scan(); err != nil {

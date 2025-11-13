@@ -1,7 +1,7 @@
-package bitbucket
+package scan
 
 import (
-	"github.com/CompassSecurity/pipeleak/pkg/bitbucket/scan"
+	pkgscan "github.com/CompassSecurity/pipeleak/pkg/bitbucket/scan"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -73,7 +73,7 @@ func Scan(cmd *cobra.Command, args []string) {
 		log.Fatal().Msg("When using --token you must also provide --email")
 	}
 
-	scanOpts, err := scan.InitializeOptions(
+	scanOpts, err := pkgscan.InitializeOptions(
 		options.Email,
 		options.AccessToken,
 		options.BitBucketCookie,
@@ -93,7 +93,7 @@ func Scan(cmd *cobra.Command, args []string) {
 		log.Fatal().Err(err).Str("size", maxArtifactSize).Msg("Failed parsing max-artifact-size flag")
 	}
 
-	scanner := scan.NewScanner(scanOpts)
+	scanner := pkgscan.NewScanner(scanOpts)
 	if err := scanner.Scan(); err != nil {
 		log.Fatal().Err(err).Msg("Scan failed")
 	}
