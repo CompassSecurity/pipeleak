@@ -32,6 +32,7 @@ type ScanOptions struct {
 	MaxArtifactSize        int64
 	Context                context.Context
 	Client                 BitBucketApiClient
+	HasProvidedCookie      bool
 }
 
 // Scanner provides methods for scanning BitBucket repositories for secrets.
@@ -56,7 +57,7 @@ func NewScanner(opts ScanOptions) Scanner {
 func (s *bbScanner) Scan() error {
 	runner.InitScanner(s.options.ConfidenceFilter)
 
-	if len(s.options.Client.BaseURL) > 0 {
+	if s.options.HasProvidedCookie {
 		s.options.Client.GetuserInfo()
 	}
 
@@ -354,5 +355,6 @@ func InitializeOptions(email, accessToken, bitBucketCookie, bitBucketURL, worksp
 		MaxArtifactSize:        byteSize,
 		Context:                ctx,
 		Client:                 client,
+		HasProvidedCookie:      bitBucketCookie != "",
 	}, nil
 }
