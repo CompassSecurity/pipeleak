@@ -114,7 +114,6 @@ func Scan(cmd *cobra.Command, args []string) {
 		log.Fatal().Err(err).Msg("Failed initializing scan options")
 	}
 
-	// Validate cookie if provided
 	if scanOptions.Cookie != "" {
 		if err := giteascan.ValidateCookie(scanOpts); err != nil {
 			log.Fatal().Err(err).Msg("Cookie validation failed")

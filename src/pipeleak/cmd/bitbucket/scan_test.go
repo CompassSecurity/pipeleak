@@ -85,7 +85,6 @@ func TestBitBucketScanOptions(t *testing.T) {
 		After:                  "2025-01-01T00:00:00Z",
 		Artifacts:              true,
 		BitBucketURL:           "https://api.bitbucket.org/2.0",
-		// MaxArtifactSize is now in pkg/bitbucket.ScanOptions
 		BitBucketCookie: "cookie123",
 	}
 
@@ -125,7 +124,6 @@ func TestBitBucketScanOptions(t *testing.T) {
 	if opts.BitBucketURL != "https://api.bitbucket.org/2.0" {
 		t.Errorf("Expected BitBucketURL 'https://api.bitbucket.org/2.0', got %q", opts.BitBucketURL)
 	}
-	// MaxArtifactSize is now in pkg/bitbucket.ScanOptions, not in cmd
 	if opts.BitBucketCookie != "cookie123" {
 		t.Errorf("Expected BitBucketCookie 'cookie123', got %q", opts.BitBucketCookie)
 	}
