@@ -13,6 +13,7 @@ import (
 	"golang.org/x/text/language"
 	"gopkg.in/yaml.v3"
 
+	"github.com/CompassSecurity/pipeleak/internal/fileperms"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
@@ -48,7 +49,7 @@ func generateDocs(cmd *cobra.Command, dir string, level int) error {
 
 	if len(cmd.Commands()) > 0 {
 		dir = filepath.Join(dir, cmd.Name())
-		if err := os.MkdirAll(dir, 0750); err != nil {
+		if err := os.MkdirAll(dir, fileperms.DirUserGroupRead); err != nil {
 			return err
 		}
 		filename = filepath.Join(dir, "index.md")
@@ -165,7 +166,7 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 	nav = append([]map[string]interface{}{introEntry, methodologyEntry}, nav...)
 
 	assetsDir := filepath.Join(outputDir, "pipeleak", "assets")
-	if err := os.MkdirAll(assetsDir, 0750); err != nil {
+	if err := os.MkdirAll(assetsDir, fileperms.DirUserGroupRead); err != nil {
 		return err
 	}
 
@@ -178,7 +179,7 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 			return err
 		}
 		// #nosec G306 - Documentation assets should be world-readable
-		if err := os.WriteFile(dst, data, 0644); err != nil {
+		if err := os.WriteFile(dst, data, fileperms.FilePublicRead); err != nil {
 			return err
 		}
 	}
@@ -286,7 +287,7 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 
 	filename := filepath.Join(outputDir, "mkdocs.yml")
 	// #nosec G306 - mkdocs.yml is a public documentation configuration file
-	return os.WriteFile(filename, yamlData, 0644)
+	return os.WriteFile(filename, yamlData, fileperms.FilePublicRead)
 }
 
 var serve bool
@@ -333,7 +334,7 @@ func copyDir(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(dst, 0750); err != nil {
+	if err := os.MkdirAll(dst, fileperms.DirUserGroupRead); err != nil {
 		return err
 	}
 	for _, entry := range entries {
@@ -385,7 +386,7 @@ func Docs(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	if err := os.MkdirAll(outputDir, 0750); err != nil {
+	if err := os.MkdirAll(outputDir, fileperms.DirUserGroupRead); err != nil {
 		log.Fatal().Err(err).Msg("Failed to create pipeleak directory")
 	}
 
