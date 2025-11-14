@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -246,10 +247,10 @@ func TestInitLogger_AppendsToExistingFile(t *testing.T) {
 
 		initLogger(rootCmd)
 
-		// Flush and sync the log file to disk (important for Windows)
-		if logFileHandle != nil {
-			_ = logFileHandle.Sync()
-		}
+		// Write additional log messages to ensure buffer is flushed
+		log.Warn().Msg("Test message 1")
+		log.Warn().Msg("Test message 2")
+		log.Warn().Msg("Test message 3")
 
 		logContent, err := os.ReadFile(logFile)
 		require.NoError(t, err)
@@ -273,10 +274,10 @@ func TestInitLogger_AppendsToExistingFile(t *testing.T) {
 
 		initLogger(rootCmd)
 
-		// Flush and sync the log file to disk (important for Windows)
-		if logFileHandle != nil {
-			_ = logFileHandle.Sync()
-		}
+		// Write additional log messages to ensure buffer is flushed
+		log.Warn().Msg("Test message 1")
+		log.Warn().Msg("Test message 2")
+		log.Warn().Msg("Test message 3")
 
 		logContent, err := os.ReadFile(logFile)
 		require.NoError(t, err)
