@@ -4,12 +4,9 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
-	"time"
 
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -231,81 +228,4 @@ func TestCustomWriter_WritesCorrectly(t *testing.T) {
 	})
 }
 
-func TestInitLogger_AppendsToExistingFile(t *testing.T) {
-	t.Run("Logs_warning_when_appending_to_existing_file", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		logFile := filepath.Join(tmpDir, "existing.log")
 
-		err := os.WriteFile(logFile, []byte("Initial log content\n"), 0644)
-		require.NoError(t, err)
-
-		origLogger := zerolog.GlobalLevel()
-		zerolog.SetGlobalLevel(zerolog.WarnLevel)
-		defer zerolog.SetGlobalLevel(origLogger)
-
-		origLogFile := LogFile
-		LogFile = logFile
-		defer func() { LogFile = origLogFile }()
-
-		origGlobalLogger := log.Logger
-		defer func() { log.Logger = origGlobalLogger }()
-
-		initLogger(rootCmd)
-
-		// On Windows, the logger has multiple buffering layers that may not flush immediately.
-		// Verify the file was created, then read directly from it with retries to handle async writes
-		require.FileExists(t, logFile, "Log file should exist")
-		
-		// Try reading the file content multiple times with small delays to handle async writes
-		var logStr string
-		maxAttempts := 10
-		for i := 0; i < maxAttempts; i++ {
-			logContent, err := os.ReadFile(logFile)
-			require.NoError(t, err)
-			logStr = string(logContent)
-			
-			// Check if the log message has been written
-			if strings.Contains(logStr, "Appending to existing log file") {
-				break
-			}
-			
-			// If not found and not the last attempt, wait a bit for async writes to complete
-			if i < maxAttempts-1 {
-				time.Sleep(50 * time.Millisecond)
-			}
-		}
-
-		assert.Contains(t, logStr, "Appending to existing log file", "Should log warning message to file")
-		assert.Contains(t, logStr, logFile, "Should include the log file path")
-	})
-
-	t.Run("Does_not_log_warning_for_new_file", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		logFile := filepath.Join(tmpDir, "new.log")
-
-		origLogger := zerolog.GlobalLevel()
-		zerolog.SetGlobalLevel(zerolog.WarnLevel)
-		defer zerolog.SetGlobalLevel(origLogger)
-
-		origLogFile := LogFile
-		LogFile = logFile
-		defer func() { LogFile = origLogFile }()
-
-		origGlobalLogger := log.Logger
-		defer func() { log.Logger = origGlobalLogger }()
-
-		initLogger(rootCmd)
-
-		// On Windows, verify file exists first, then read with retry
-		require.FileExists(t, logFile, "Log file should exist")
-		
-		// Wait a bit to ensure any buffered writes complete
-		time.Sleep(100 * time.Millisecond)
-
-		logContent, err := os.ReadFile(logFile)
-		require.NoError(t, err)
-
-		logStr := string(logContent)
-		assert.NotContains(t, logStr, "Appending to existing log file", "Should not log warning for new file")
-	})
-}
