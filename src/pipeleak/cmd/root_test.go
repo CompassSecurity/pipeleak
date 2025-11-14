@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -246,20 +247,34 @@ func TestInitLogger_AppendsToExistingFile(t *testing.T) {
 		LogFile = logFile
 		defer func() { LogFile = origLogFile }()
 
+		origGlobalLogger := log.Logger
+		defer func() { log.Logger = origGlobalLogger }()
+
 		initLogger(rootCmd)
 
-		// Write additional log messages to ensure buffer is flushed
-		log.Warn().Msg("Test message 1")
-		log.Warn().Msg("Test message 2")
-		log.Warn().Msg("Test message 3")
+		// On Windows, the logger has multiple buffering layers that may not flush immediately.
+		// Verify the file was created, then read directly from it with retries to handle async writes
+		require.FileExists(t, logFile, "Log file should exist")
+		
+		// Try reading the file content multiple times with small delays to handle async writes
+		var logStr string
+		maxAttempts := 10
+		for i := 0; i < maxAttempts; i++ {
+			logContent, err := os.ReadFile(logFile)
+			require.NoError(t, err)
+			logStr = string(logContent)
+			
+			// Check if the log message has been written
+			if strings.Contains(logStr, "Appending to existing log file") {
+				break
+			}
+			
+			// If not found and not the last attempt, wait a bit for async writes to complete
+			if i < maxAttempts-1 {
+				time.Sleep(50 * time.Millisecond)
+			}
+		}
 
-		// Small delay to allow async writes to complete
-		time.Sleep(100 * time.Millisecond)
-
-		logContent, err := os.ReadFile(logFile)
-		require.NoError(t, err)
-
-		logStr := string(logContent)
 		assert.Contains(t, logStr, "Appending to existing log file", "Should log warning message to file")
 		assert.Contains(t, logStr, logFile, "Should include the log file path")
 	})
@@ -276,14 +291,15 @@ func TestInitLogger_AppendsToExistingFile(t *testing.T) {
 		LogFile = logFile
 		defer func() { LogFile = origLogFile }()
 
+		origGlobalLogger := log.Logger
+		defer func() { log.Logger = origGlobalLogger }()
+
 		initLogger(rootCmd)
 
-		// Write additional log messages to ensure buffer is flushed
-		log.Warn().Msg("Test message 1")
-		log.Warn().Msg("Test message 2")
-		log.Warn().Msg("Test message 3")
-
-		// Small delay to allow async writes to complete
+		// On Windows, verify file exists first, then read with retry
+		require.FileExists(t, logFile, "Log file should exist")
+		
+		// Wait a bit to ensure any buffered writes complete
 		time.Sleep(100 * time.Millisecond)
 
 		logContent, err := os.ReadFile(logFile)
