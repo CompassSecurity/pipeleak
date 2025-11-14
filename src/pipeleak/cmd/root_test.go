@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -243,14 +244,7 @@ func TestInitLogger_AppendsToExistingFile(t *testing.T) {
 
 		origLogFile := LogFile
 		LogFile = logFile
-		defer func() {
-			LogFile = origLogFile
-			// Close the log file handle to release the file lock on Windows
-			if logFileHandle != nil {
-				logFileHandle.Close()
-				logFileHandle = nil
-			}
-		}()
+		defer func() { LogFile = origLogFile }()
 
 		initLogger(rootCmd)
 
@@ -258,6 +252,9 @@ func TestInitLogger_AppendsToExistingFile(t *testing.T) {
 		log.Warn().Msg("Test message 1")
 		log.Warn().Msg("Test message 2")
 		log.Warn().Msg("Test message 3")
+
+		// Small delay to allow async writes to complete
+		time.Sleep(100 * time.Millisecond)
 
 		logContent, err := os.ReadFile(logFile)
 		require.NoError(t, err)
@@ -277,14 +274,7 @@ func TestInitLogger_AppendsToExistingFile(t *testing.T) {
 
 		origLogFile := LogFile
 		LogFile = logFile
-		defer func() {
-			LogFile = origLogFile
-			// Close the log file handle to release the file lock on Windows
-			if logFileHandle != nil {
-				logFileHandle.Close()
-				logFileHandle = nil
-			}
-		}()
+		defer func() { LogFile = origLogFile }()
 
 		initLogger(rootCmd)
 
@@ -292,6 +282,9 @@ func TestInitLogger_AppendsToExistingFile(t *testing.T) {
 		log.Warn().Msg("Test message 1")
 		log.Warn().Msg("Test message 2")
 		log.Warn().Msg("Test message 3")
+
+		// Small delay to allow async writes to complete
+		time.Sleep(100 * time.Millisecond)
 
 		logContent, err := os.ReadFile(logFile)
 		require.NoError(t, err)
