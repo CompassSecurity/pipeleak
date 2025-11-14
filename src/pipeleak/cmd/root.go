@@ -116,7 +116,6 @@ func initLogger(cmd *cobra.Command) {
 	fileExists := false
 
 	if LogFile != "" {
-		// Check if file exists before opening
 		if _, err := os.Stat(LogFile); err == nil {
 			fileExists = true
 		}
@@ -138,7 +137,6 @@ func initLogger(cmd *cobra.Command) {
 		}
 	}
 
-	// Create the fatal hook to restore terminal state
 	fatalHook := FatalHook{}
 
 	if JsonLogoutput {
@@ -162,7 +160,6 @@ func initLogger(cmd *cobra.Command) {
 		log.Logger = zerolog.New(hitWriter).With().Timestamp().Logger().Hook(fatalHook)
 	}
 
-	// Log warning if we're appending to an existing file (after logger is configured)
 	if fileExists && LogFile != "" {
 		log.Warn().Str("logfile", LogFile).Msg("Appending to existing log file")
 	}
