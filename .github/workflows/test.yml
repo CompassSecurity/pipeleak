@@ -34,8 +34,7 @@ jobs:
         working-directory: ./src/pipeleak
         run: |
           $packages = go list ./... | Where-Object { $_ -notmatch '/tests/e2e' }
-          $packagesStr = $packages -join ' '
-          Invoke-Expression "go test $packagesStr -v -race"
+          go test $packages -v -race
         shell: pwsh
   
   e2e-tests:
