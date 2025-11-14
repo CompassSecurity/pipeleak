@@ -40,6 +40,7 @@ var (
 	LogColor      bool
 	LogDebug      bool
 	LogLevel      string
+	logFileHandle *os.File // For testing: stores the log file handle to allow proper flushing
 )
 
 func Execute() error {
@@ -129,6 +130,7 @@ func initLogger(cmd *cobra.Command) {
 		if err != nil {
 			panic(err)
 		}
+		logFileHandle = runLogFile // Store for potential flushing/closing
 		defaultOut = &CustomWriter{Writer: runLogFile}
 
 		rootFlags := cmd.Root().PersistentFlags()

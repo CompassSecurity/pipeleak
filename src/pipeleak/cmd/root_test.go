@@ -246,6 +246,11 @@ func TestInitLogger_AppendsToExistingFile(t *testing.T) {
 
 		initLogger(rootCmd)
 
+		// Flush and sync the log file to disk (important for Windows)
+		if logFileHandle != nil {
+			_ = logFileHandle.Sync()
+		}
+
 		logContent, err := os.ReadFile(logFile)
 		require.NoError(t, err)
 
@@ -267,6 +272,11 @@ func TestInitLogger_AppendsToExistingFile(t *testing.T) {
 		defer func() { LogFile = origLogFile }()
 
 		initLogger(rootCmd)
+
+		// Flush and sync the log file to disk (important for Windows)
+		if logFileHandle != nil {
+			_ = logFileHandle.Sync()
+		}
 
 		logContent, err := os.ReadFile(logFile)
 		require.NoError(t, err)
