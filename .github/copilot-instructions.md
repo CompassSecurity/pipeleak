@@ -84,6 +84,7 @@ golangci-lint run --timeout=10m
 3. **Logging**: Use zerolog for structured logging with appropriate levels (trace, debug, info, warn, error, fatal)
 4. **Testing**: Write tests for new functionality; maintain existing test coverage
 5. **Documentation**: Update documentation when adding or modifying features
+6. **Comments**: Only add comments that provide useful context and additional understanding; avoid obvious or redundant comments
 
 ### Command Structure
 
@@ -97,7 +98,6 @@ golangci-lint run --timeout=10m
 - Keep business logic in `pkg/` packages
 - Keep CLI interface code in `cmd/` packages
 - Separate concerns: commands orchestrate, packages implement
-- Use internal packages for implementation details not meant for external use
 
 ### Testing Conventions
 
@@ -116,6 +116,7 @@ golangci-lint run --timeout=10m
   - `warn`: Warning messages
   - `error`: Error conditions
   - `fatal`: Fatal errors that require program termination
+  - `hit`: Special log level used exclusively for logging detected secrets
 - Use structured logging with fields: `log.Info().Str("key", "value").Msg("message")`
 - Log context-relevant information to aid debugging
 
