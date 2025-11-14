@@ -234,20 +234,8 @@ func TestInitLogger_AppendsToExistingFile(t *testing.T) {
 		tmpDir := t.TempDir()
 		logFile := filepath.Join(tmpDir, "existing.log")
 
-		t.Logf("Test setup: tmpDir=%s, logFile=%s", tmpDir, logFile)
-
 		err := os.WriteFile(logFile, []byte("Initial log content\n"), 0644)
 		require.NoError(t, err)
-
-		// Verify initial file was written
-		initialContent, err := os.ReadFile(logFile)
-		require.NoError(t, err)
-		t.Logf("Initial file content (len=%d): %q", len(initialContent), string(initialContent))
-
-		// Check file exists
-		fileInfo, err := os.Stat(logFile)
-		require.NoError(t, err)
-		t.Logf("File exists before initLogger: size=%d, mode=%v", fileInfo.Size(), fileInfo.Mode())
 
 		origLogger := zerolog.GlobalLevel()
 		zerolog.SetGlobalLevel(zerolog.WarnLevel)
@@ -255,26 +243,26 @@ func TestInitLogger_AppendsToExistingFile(t *testing.T) {
 
 		origLogFile := LogFile
 		LogFile = logFile
-		defer func() { LogFile = origLogFile }()
+		defer func() {
+			LogFile = origLogFile
+			// Close the log file handle to release the file lock on Windows
+			if logFileHandle != nil {
+				logFileHandle.Close()
+				logFileHandle = nil
+			}
+		}()
 
-		t.Logf("Calling initLogger with LogFile=%s", LogFile)
 		initLogger(rootCmd)
 
-		t.Logf("Writing additional test messages to flush buffer")
 		// Write additional log messages to ensure buffer is flushed
 		log.Warn().Msg("Test message 1")
 		log.Warn().Msg("Test message 2")
 		log.Warn().Msg("Test message 3")
 
-		t.Logf("Reading log file content")
 		logContent, err := os.ReadFile(logFile)
 		require.NoError(t, err)
 
 		logStr := string(logContent)
-		t.Logf("Final file content (len=%d):\n%s", len(logContent), logStr)
-		t.Logf("Checking for 'Appending to existing log file' in content")
-		t.Logf("Contains check result: %v", bytes.Contains(logContent, []byte("Appending to existing log file")))
-		
 		assert.Contains(t, logStr, "Appending to existing log file", "Should log warning message to file")
 		assert.Contains(t, logStr, logFile, "Should include the log file path")
 	})
@@ -283,41 +271,32 @@ func TestInitLogger_AppendsToExistingFile(t *testing.T) {
 		tmpDir := t.TempDir()
 		logFile := filepath.Join(tmpDir, "new.log")
 
-		t.Logf("Test setup: tmpDir=%s, logFile=%s", tmpDir, logFile)
-
-		// Verify file does NOT exist
-		_, err := os.Stat(logFile)
-		if err == nil {
-			t.Fatal("File should not exist before test")
-		}
-		t.Logf("Confirmed file does not exist before initLogger")
-
 		origLogger := zerolog.GlobalLevel()
 		zerolog.SetGlobalLevel(zerolog.WarnLevel)
 		defer zerolog.SetGlobalLevel(origLogger)
 
 		origLogFile := LogFile
 		LogFile = logFile
-		defer func() { LogFile = origLogFile }()
+		defer func() {
+			LogFile = origLogFile
+			// Close the log file handle to release the file lock on Windows
+			if logFileHandle != nil {
+				logFileHandle.Close()
+				logFileHandle = nil
+			}
+		}()
 
-		t.Logf("Calling initLogger with LogFile=%s", LogFile)
 		initLogger(rootCmd)
 
-		t.Logf("Writing additional test messages to flush buffer")
 		// Write additional log messages to ensure buffer is flushed
 		log.Warn().Msg("Test message 1")
 		log.Warn().Msg("Test message 2")
 		log.Warn().Msg("Test message 3")
 
-		t.Logf("Reading log file content")
 		logContent, err := os.ReadFile(logFile)
 		require.NoError(t, err)
 
 		logStr := string(logContent)
-		t.Logf("Final file content (len=%d):\n%s", len(logContent), logStr)
-		t.Logf("Checking that 'Appending to existing log file' is NOT in content")
-		t.Logf("Contains check result: %v", bytes.Contains(logContent, []byte("Appending to existing log file")))
-
 		assert.NotContains(t, logStr, "Appending to existing log file", "Should not log warning for new file")
 	})
 }
