@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"io"
-	_ "net/http/pprof"
 	"os"
 
 	"github.com/CompassSecurity/pipeleak/cmd"

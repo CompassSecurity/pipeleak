@@ -167,6 +167,7 @@ func executeCLIWithContext(ctx context.Context, args []string) error {
 		}
 	}
 
+	// #nosec G204 - Test helper executing built binary with controlled args in test environment
 	cmd := exec.CommandContext(ctx, pipeleakBinaryResolved, args...)
 	cmd.Env = os.Environ()
 

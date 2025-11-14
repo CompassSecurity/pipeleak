@@ -8,3 +8,4 @@ src/pipeleak/pipeleak
 src/pipeleak/pipeleak.exe
 src/pipeleak/coverage.out
 .vscode
+results.json

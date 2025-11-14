@@ -1,0 +1,35 @@
+name: gosec
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  gosec:
+    name: security scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable
+      - name: Run Gosec Security Scanner
+        uses: securego/gosec@master
+        with:
+          args: '-no-fail -fmt json -out results.json ./src/pipeleak/...'
+      
+      - name: Check Gosec Results
+        run: |
+          FOUND=$(jq '.Stats.found // 0' results.json)
+          echo "Gosec found $FOUND issue(s)"
+          if [ "$FOUND" -gt 0 ]; then
+            echo "❌ Security issues detected! Please fix them before merging."
+            exit 1
+          else
+            echo "✅ No security issues found."
+          fi
