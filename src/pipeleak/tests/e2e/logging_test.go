@@ -176,6 +176,40 @@ func TestLogging_LogFileAppendMode(t *testing.T) {
 		size1, size2, size2-size1)
 }
 
+// TestLogging_LogFileAppendWarning verifies that a warning is logged when appending to an existing log file
+func TestLogging_LogFileAppendWarning(t *testing.T) {
+	tmpDir := t.TempDir()
+	logFile := filepath.Join(tmpDir, "append_warning.log")
+
+	args := []string{"gl", "enum", "--gitlab", "https://invalid.local", "--token", "test", "--logfile", logFile}
+
+	// First run - creates the log file
+	_, _, _ = runCLI(t, args, nil, 5*time.Second)
+
+	_, err := os.Stat(logFile)
+	if err != nil {
+		t.Skipf("Log file not created on first run: %v", err)
+		return
+	}
+
+	// Second run - should log warning about appending
+	_, _, _ = runCLI(t, args, nil, 5*time.Second)
+
+	// Read the log file content
+	content, err := os.ReadFile(logFile)
+	assert.NoError(t, err, "Should be able to read log file")
+
+	logContent := string(content)
+
+	// Verify the warning message is present
+	assert.Contains(t, logContent, "Appending to existing log file",
+		"Log file should contain warning about appending to existing file")
+	assert.Contains(t, logContent, logFile,
+		"Warning message should include the log file path")
+
+	t.Logf("Log file content sample (first 1000 chars):\n%s", truncate(logContent, 1000))
+}
+
 // Helper function to truncate strings for logging
 func truncate(s string, maxLen int) string {
 	if len(s) <= maxLen {

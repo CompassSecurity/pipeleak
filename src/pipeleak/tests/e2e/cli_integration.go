@@ -4,7 +4,6 @@ package e2e
 // This file provides the actual CLI execution integration
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -112,31 +111,26 @@ func buildBinary(moduleDir, outputPath string) error {
 	return cmd.Run()
 }
 
-// executeCLIWithContext calls the actual CLI command execution via exec.Command with context support
-// This avoids cobra global state issues by running the binary as a separate process
-func executeCLIWithContext(ctx context.Context, args []string) error {
-	// Resolve binary path on first call
-	resolveBinaryPath()
-
-	// Serialize CLI execution
-	cliMutex.Lock()
-	defer cliMutex.Unlock()
-
-	// If no explicit binary provided, build a test binary ONCE per test process to avoid staleness and reduce rebuild overhead
+// ensureBinaryBuilt ensures the pipeleak binary is built and ready for testing
+// This function is called by runCLI and should not be called directly
+func ensureBinaryBuilt() error {
+	// If no explicit binary provided, build a test binary ONCE per test process
 	if os.Getenv("PIPELEAK_BINARY") == "" {
 		// If we already have a built binary from init() and it exists, reuse it
 		if pipeleakBinaryResolved != "" {
 			if _, statErr := os.Stat(pipeleakBinaryResolved); statErr == nil {
 				// already built and present
-			} else {
-				// reset to force rebuild below
-				pipeleakBinaryResolved = ""
+				return nil
 			}
+			// reset to force rebuild below
+			pipeleakBinaryResolved = ""
 		}
+
+		var buildErr error
 		buildOnce.Do(func() {
 			tmpDir, err := os.MkdirTemp("", "pipeleak-e2e-")
 			if err != nil {
-				pipeleakBinaryResolved = ""
+				buildErr = fmt.Errorf("failed to create temp dir: %w", err)
 				return
 			}
 			tmpBin := filepath.Join(tmpDir, "pipeleak")
@@ -148,18 +142,22 @@ func executeCLIWithContext(ctx context.Context, args []string) error {
 			// We assume tests run from the repo module at src/pipeleak/tests/e2e
 			buildDir, err := os.Getwd()
 			if err != nil {
-				pipeleakBinaryResolved = ""
+				buildErr = fmt.Errorf("failed to get working directory: %w", err)
 				return
 			}
 			// tests run in src/pipeleak/tests/e2e; module with main.go is at ../../
 			moduleDir := filepath.Clean(filepath.Join(buildDir, "..", ".."))
 
 			if err := buildBinary(moduleDir, tmpBin); err != nil {
-				pipeleakBinaryResolved = ""
+				buildErr = fmt.Errorf("failed to build binary: %w", err)
 				return
 			}
 			pipeleakBinaryResolved = tmpBin
 		})
+
+		if buildErr != nil {
+			return buildErr
+		}
 
 		// If for some reason build failed (pipeleakBinaryResolved empty), return an error
 		if pipeleakBinaryResolved == "" {
@@ -167,17 +165,7 @@ func executeCLIWithContext(ctx context.Context, args []string) error {
 		}
 	}
 
-	// #nosec G204 - Test helper executing built binary with controlled args in test environment
-	cmd := exec.CommandContext(ctx, pipeleakBinaryResolved, args...)
-	cmd.Env = os.Environ()
-
-	// Inherit stdout/stderr from the test process
-	// This allows runCLI to capture the output via os.Stdout/os.Stderr redirection
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-
-	return cmd.Run()
+	return nil
 }
 
 // useLiveExecution controls whether to use real CLI execution
