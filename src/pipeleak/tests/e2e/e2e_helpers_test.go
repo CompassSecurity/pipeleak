@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"strings"
 	"sync"
 	"testing"
@@ -112,10 +113,10 @@ func startMockServer(t *testing.T, handler http.HandlerFunc) (*httptest.Server, 
 	return server, mockHandler.GetRequests, cleanup
 }
 
-// runCLI executes the Pipeleak CLI in-process with the given arguments
+// runCLI executes the Pipeleak CLI in a separate process with the given arguments
 //
-// This function captures stdout, stderr, and the exit code by temporarily
-// redirecting os.Stdout/os.Stderr and using cobra's Execute() method.
+// This function captures stdout, stderr, and the exit code by using exec.Command
+// with dedicated pipes. This approach is reliable across all platforms (Linux, macOS, Windows).
 //
 // Parameters:
 //   - t: testing.T instance
@@ -138,92 +139,38 @@ func runCLI(t *testing.T, args []string, env []string, timeout time.Duration) (s
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	// Set environment variables
+	if !useLiveExecution {
+		return "", "", fmt.Errorf("e2e tests in framework mode - enable useLiveExecution")
+	}
+
+	// Resolve and prepare the binary
+	resolveBinaryPath()
+	if err := ensureBinaryBuilt(); err != nil {
+		return "", "", fmt.Errorf("failed to build pipeleak binary: %w", err)
+	}
+
+	// Create the command with context
+	// #nosec G204 - Test helper executing built binary with controlled args in test environment
+	cmd := exec.CommandContext(ctx, pipeleakBinaryResolved, args...)
+	
+	// Set up environment variables
 	if len(env) > 0 {
-		oldEnv := os.Environ()
-		defer func() {
-			// Restore original environment
-			os.Clearenv()
-			for _, e := range oldEnv {
-				parts := strings.SplitN(e, "=", 2)
-				if len(parts) == 2 {
-					_ = os.Setenv(parts[0], parts[1])
-				}
-			}
-		}()
-
-		for _, e := range env {
-			parts := strings.SplitN(e, "=", 2)
-			if len(parts) == 2 {
-				_ = os.Setenv(parts[0], parts[1])
-			}
-		}
+		cmd.Env = append(os.Environ(), env...)
+	} else {
+		cmd.Env = os.Environ()
 	}
 
-	// Capture stdout and stderr
-	oldStdout := os.Stdout
-	oldStderr := os.Stderr
-	rOut, wOut, _ := os.Pipe()
-	rErr, wErr, _ := os.Pipe()
-	os.Stdout = wOut
-	os.Stderr = wErr
-
-	// Buffers to capture output
+	// Create pipes for stdout and stderr
+	// This approach works reliably on all platforms including Windows
 	var outBuf, errBuf bytes.Buffer
+	cmd.Stdout = &outBuf
+	cmd.Stderr = &errBuf
 
-	// Start reading from pipes concurrently to prevent blocking
-	var wg sync.WaitGroup
-	wg.Add(2)
-	go func() {
-		defer wg.Done()
-		_, _ = io.Copy(&outBuf, rOut)
-	}()
-	go func() {
-		defer wg.Done()
-		_, _ = io.Copy(&errBuf, rErr)
-	}()
+	// Run the command
+	err := cmd.Run()
 
-	// Channel to capture command result
-	type result struct {
-		err error
-	}
-	resultChan := make(chan result, 1)
-
-	// Run command in goroutine
-	go func() {
-		var err error
-		if useLiveExecution {
-			// Execute the actual CLI command with context support
-			err = executeCLIWithContext(ctx, args)
-		} else {
-			// Framework demonstration mode - skip execution
-			err = fmt.Errorf("e2e tests in framework mode - enable useLiveExecution")
-		}
-		resultChan <- result{err: err}
-	}()
-
-	// Wait for command to complete or timeout
-	var cmdErr error
-	select {
-	case res := <-resultChan:
-		cmdErr = res.err
-	case <-ctx.Done():
-		cmdErr = fmt.Errorf("command timed out after %v", timeout)
-	}
-
-	// Close write pipes and restore original stdout/stderr
-	_ = wOut.Close()
-	_ = wErr.Close()
-	os.Stdout = oldStdout
-	os.Stderr = oldStderr
-
-	// Wait for all output to be read
-	wg.Wait()
-
-	return outBuf.String(), errBuf.String(), cmdErr
-}
-
-// assertLogContains checks if the output contains all expected strings
+	return outBuf.String(), errBuf.String(), err
+}// assertLogContains checks if the output contains all expected strings
 //
 // Parameters:
 //   - t: testing.T instance
