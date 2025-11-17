@@ -227,3 +227,49 @@ func TestCustomWriter_WritesCorrectly(t *testing.T) {
 		assert.Contains(t, string(content), "test", "Log content should be written")
 	})
 }
+
+func TestVersionFlagRegistered(t *testing.T) {
+	// Version flag is automatically added by Cobra when Version is set on the command
+	// Check that the rootCmd has a version set
+	assert.NotEmpty(t, rootCmd.Version, "rootCmd should have a version set")
+}
+
+func TestGetVersion(t *testing.T) {
+	// Save original values
+	originalVersion := Version
+	originalCommit := Commit
+	originalDate := Date
+	defer func() {
+		Version = originalVersion
+		Commit = originalCommit
+		Date = originalDate
+	}()
+
+	t.Run("returns default dev version", func(t *testing.T) {
+		Version = "dev"
+		Commit = "none"
+		Date = "unknown"
+		result := getVersion()
+		assert.Equal(t, "dev", result)
+	})
+
+	t.Run("returns git tag version", func(t *testing.T) {
+		Version = "v1.2.3"
+		Commit = "abc123"
+		Date = "2025-11-17"
+		result := getVersion()
+		assert.Equal(t, "v1.2.3", result)
+	})
+
+	t.Run("returns commit hash when not on tag", func(t *testing.T) {
+		Version = "70926c9"
+		Commit = "70926c9"
+		Date = "2025-11-17"
+		result := getVersion()
+		assert.Equal(t, "70926c9", result)
+	})
+}
+
+func TestRootCmdHasVersion(t *testing.T) {
+	assert.NotEmpty(t, rootCmd.Version, "rootCmd should have a version")
+}

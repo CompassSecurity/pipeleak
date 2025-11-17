@@ -11,3 +11,8 @@ builds:
     goarch:
       - amd64
       - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/CompassSecurity/pipeleak/cmd.Version={{.Version}}
+      - -X github.com/CompassSecurity/pipeleak/cmd.Commit={{.Commit}}
+      - -X github.com/CompassSecurity/pipeleak/cmd.Date={{.Date}}
