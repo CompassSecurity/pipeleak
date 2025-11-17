@@ -21,6 +21,18 @@ func TestGiteaVariables_Success(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{"version": "1.20.0"})
 
+		case "/api/v1/user/repos":
+			// Return list of all user repositories
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
+				{
+					"id":        100,
+					"name":      "test-repo",
+					"full_name": "test-org/test-repo",
+					"owner":     map[string]interface{}{"username": "test-org", "login": "test-org"},
+				},
+			})
+
 		case "/api/v1/user/orgs":
 			// Return list of organizations
 			w.WriteHeader(http.StatusOK)
@@ -39,18 +51,6 @@ func TestGiteaVariables_Success(t *testing.T) {
 				{
 					"name": "ORG_VAR_2",
 					"data": "org_value_2",
-				},
-			})
-
-		case "/api/v1/orgs/test-org/repos":
-			// Return repositories
-			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
-				{
-					"id":        100,
-					"name":      "test-repo",
-					"full_name": "test-org/test-repo",
-					"owner":     map[string]interface{}{"username": "test-org"},
 				},
 			})
 
@@ -110,6 +110,11 @@ func TestGiteaVariables_Pagination(t *testing.T) {
 		case "/api/v1", "/api/v1/version":
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{"version": "1.20.0"})
+
+		case "/api/v1/user/repos":
+			// No user repositories
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]map[string]interface{}{})
 
 		case "/api/v1/user/orgs":
 			// Return list of organizations
@@ -197,6 +202,11 @@ func TestGiteaVariables_EmptyResult(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{"version": "1.20.0"})
 
+		case "/api/v1/user/repos":
+			// No user repositories
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]map[string]interface{}{})
+
 		case "/api/v1/user/orgs":
 			// Return one organization
 			w.WriteHeader(http.StatusOK)
@@ -273,6 +283,13 @@ func TestGiteaVariables_UnauthorizedAccess(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{"version": "1.20.0"})
 
+		case "/api/v1/user/repos":
+			// Return unauthorized
+			w.WriteHeader(http.StatusUnauthorized)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"message": "Unauthorized",
+			})
+
 		case "/api/v1/user/orgs":
 			// Return unauthorized
 			w.WriteHeader(http.StatusUnauthorized)
@@ -310,6 +327,11 @@ func TestGiteaVariables_MultipleOrganizations(t *testing.T) {
 		case "/api/v1", "/api/v1/version":
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{"version": "1.20.0"})
+
+		case "/api/v1/user/repos":
+			// No user repositories
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]map[string]interface{}{})
 
 		case "/api/v1/user/orgs":
 			// Return multiple organizations

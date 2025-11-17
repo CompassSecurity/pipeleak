@@ -28,6 +28,15 @@ func ListAllVariables(cfg Config) error {
 		return fmt.Errorf("failed to create Gitea client: %w", err)
 	}
 
+	// Fetch all repositories user has access to
+	repos, err := fetchAllRepositories(ctx.client)
+	if err != nil {
+		return fmt.Errorf("failed to fetch repositories: %w", err)
+	}
+
+	log.Info().Int("count", len(repos)).Msg("Found repositories")
+
+	// Fetch organization variables
 	orgs, err := fetchOrganizations(ctx.client)
 	if err != nil {
 		return fmt.Errorf("failed to fetch organizations: %w", err)
@@ -36,9 +45,15 @@ func ListAllVariables(cfg Config) error {
 	log.Info().Int("count", len(orgs)).Msg("Found organizations")
 
 	for _, org := range orgs {
-		if err := processOrganization(ctx, org); err != nil {
-			log.Warn().Err(err).Str("org", org.UserName).Msg("Failed to process organization")
-			continue
+		if err := fetchOrgVariables(ctx.client, org.UserName); err != nil {
+			log.Warn().Err(err).Str("org", org.UserName).Msg("Failed to fetch organization variables")
+		}
+	}
+
+	// Fetch repository variables for all repos
+	for _, repo := range repos {
+		if err := fetchRepoVariables(ctx, repo.Owner.UserName, repo.Name); err != nil {
+			log.Warn().Err(err).Str("owner", repo.Owner.UserName).Str("repo", repo.Name).Msg("Failed to fetch repository variables")
 		}
 	}
 
@@ -85,27 +100,31 @@ func fetchOrganizations(client *gitea.Client) ([]*gitea.Organization, error) {
 	return allOrgs, nil
 }
 
-func processOrganization(ctx *clientContext, org *gitea.Organization) error {
-	log.Debug().Str("org", org.UserName).Msg("Processing organization")
+func fetchAllRepositories(client *gitea.Client) ([]*gitea.Repository, error) {
+	var allRepos []*gitea.Repository
+	page := 1
+	pageSize := 50
 
-	if err := fetchOrgVariables(ctx.client, org.UserName); err != nil {
-		log.Warn().Err(err).Str("org", org.UserName).Msg("Failed to fetch organization variables")
-	}
-
-	repos, err := fetchOrgRepositories(ctx.client, org.UserName)
-	if err != nil {
-		return fmt.Errorf("failed to fetch repositories for org %s: %w", org.UserName, err)
-	}
-
-	log.Debug().Str("org", org.UserName).Int("repo_count", len(repos)).Msg("Found repositories")
-
-	for _, repo := range repos {
-		if err := fetchRepoVariables(ctx, org.UserName, repo.Name); err != nil {
-			log.Warn().Err(err).Str("org", org.UserName).Str("repo", repo.Name).Msg("Failed to fetch repository variables")
+	for {
+		repos, resp, err := client.ListMyRepos(gitea.ListReposOptions{
+			ListOptions: gitea.ListOptions{
+				Page:     page,
+				PageSize: pageSize,
+			},
+		})
+		if err != nil {
+			return nil, err
 		}
+
+		allRepos = append(allRepos, repos...)
+
+		if resp == nil || len(repos) < pageSize {
+			break
+		}
+		page++
 	}
 
-	return nil
+	return allRepos, nil
 }
 
 func fetchOrgVariables(client *gitea.Client, orgName string) error {
@@ -139,33 +158,6 @@ func fetchOrgVariables(client *gitea.Client, orgName string) error {
 	}
 
 	return nil
-}
-
-func fetchOrgRepositories(client *gitea.Client, orgName string) ([]*gitea.Repository, error) {
-	var allRepos []*gitea.Repository
-	page := 1
-	pageSize := 50
-
-	for {
-		repos, resp, err := client.ListOrgRepos(orgName, gitea.ListOrgReposOptions{
-			ListOptions: gitea.ListOptions{
-				Page:     page,
-				PageSize: pageSize,
-			},
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		allRepos = append(allRepos, repos...)
-
-		if resp == nil || len(repos) < pageSize {
-			break
-		}
-		page++
-	}
-
-	return allRepos, nil
 }
 
 // fetchRepoVariables fetches all variables for a specific repository using the Gitea API.
