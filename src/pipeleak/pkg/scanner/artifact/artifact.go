@@ -61,7 +61,7 @@ func HandleArchiveArtifactWithDepth(archivefileName string, content []byte, jobW
 		return
 	}
 
-	err = os.WriteFile(tmpArchiveFile.Name(), content, 0666)
+	err = os.WriteFile(tmpArchiveFile.Name(), content, format.FileUserReadWrite)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("Failed writing archive to disk")
 		return
@@ -90,6 +90,7 @@ func HandleArchiveArtifactWithDepth(archivefileName string, content []byte, jobW
 
 	for _, fPath := range files {
 		if !format.IsDirectory(fPath) {
+			// #nosec G304 - Reading extracted artifact files from temp directory, path controlled by xtractr library
 			fileBytes, err := os.ReadFile(fPath)
 			if err != nil {
 				log.Debug().Str("file", fPath).Stack().Str("err", err.Error()).Msg("Cannot read temp artifact archive file content")

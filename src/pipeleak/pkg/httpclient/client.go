@@ -98,6 +98,7 @@ func GetPipeleakHTTPClient(cookieUrl string, cookies []*http.Cookie, defaultHead
 		return false, nil
 	}
 
+	// #nosec G402 - InsecureSkipVerify required for security scanning tool to connect to untrusted targets
 	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 
 	proxyServer, useHttpProxy := os.LookupEnv("HTTP_PROXY")

@@ -7,11 +7,13 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	"gopkg.in/yaml.v3"
 
+	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
@@ -47,7 +49,7 @@ func generateDocs(cmd *cobra.Command, dir string, level int) error {
 
 	if len(cmd.Commands()) > 0 {
 		dir = filepath.Join(dir, cmd.Name())
-		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		if err := os.MkdirAll(dir, format.DirUserGroupRead); err != nil {
 			return err
 		}
 		filename = filepath.Join(dir, "index.md")
@@ -55,6 +57,7 @@ func generateDocs(cmd *cobra.Command, dir string, level int) error {
 		filename = filepath.Join(dir, getFileName(cmd, level))
 	}
 
+	// #nosec G304 - Creating docs markdown file at controlled internal path during docs generation
 	f, err := os.Create(filename)
 	if err != nil {
 		return err
@@ -164,7 +167,7 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 	nav = append([]map[string]interface{}{introEntry, methodologyEntry}, nav...)
 
 	assetsDir := filepath.Join(outputDir, "pipeleak", "assets")
-	if err := os.MkdirAll(assetsDir, os.ModePerm); err != nil {
+	if err := os.MkdirAll(assetsDir, format.DirUserGroupRead); err != nil {
 		return err
 	}
 
@@ -172,11 +175,13 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 	for _, fname := range assetFiles {
 		src := filepath.Join("..", "..", "docs", fname)
 		dst := filepath.Join(assetsDir, fname)
+		// #nosec G304 - Reading doc assets from controlled internal paths during docs generation
 		data, err := os.ReadFile(src)
 		if err != nil {
 			return err
 		}
-		if err := os.WriteFile(dst, data, 0644); err != nil {
+		// #nosec G306 - Documentation assets should be world-readable
+		if err := os.WriteFile(dst, data, format.FilePublicRead); err != nil {
 			return err
 		}
 	}
@@ -283,7 +288,8 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string) error {
 	}
 
 	filename := filepath.Join(outputDir, "mkdocs.yml")
-	return os.WriteFile(filename, yamlData, 0644)
+	// #nosec G306 - mkdocs.yml is a public documentation configuration file
+	return os.WriteFile(filename, yamlData, format.FilePublicRead)
 }
 
 var serve bool
@@ -330,7 +336,7 @@ func copyDir(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(dst, os.ModePerm); err != nil {
+	if err := os.MkdirAll(dst, format.DirUserGroupRead); err != nil {
 		return err
 	}
 	for _, entry := range entries {
@@ -350,11 +356,13 @@ func copyDir(src, dst string) error {
 }
 
 func copyFile(src, dst string) error {
+	// #nosec G304 - Copying docs files between controlled internal paths during docs generation
 	in, err := os.Open(src)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = in.Close() }()
+	// #nosec G304 - Creating docs destination file at controlled internal path during docs generation
 	out, err := os.Create(dst)
 	if err != nil {
 		return err
@@ -382,7 +390,7 @@ func Docs(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	if err := os.MkdirAll(outputDir, os.ModePerm); err != nil {
+	if err := os.MkdirAll(outputDir, format.DirUserGroupRead); err != nil {
 		log.Fatal().Err(err).Msg("Failed to create pipeleak directory")
 	}
 
@@ -414,7 +422,15 @@ func Docs(cmd *cobra.Command, args []string) {
 		siteDir := filepath.Join(outputDir, "site")
 		log.Info().Msgf("Serving docs %s at http://localhost:8000 ... (Ctrl+C to quit)", siteDir)
 		http.Handle("/", http.FileServer(http.Dir(siteDir)))
-		if err := http.ListenAndServe(":8000", nil); err != nil {
+
+		server := &http.Server{
+			Addr:         ":8000",
+			ReadTimeout:  15 * time.Second,
+			WriteTimeout: 15 * time.Second,
+			IdleTimeout:  60 * time.Second,
+		}
+
+		if err := server.ListenAndServe(); err != nil {
 			log.Fatal().Err(err).Msg("Failed to start HTTP server")
 		}
 	}
