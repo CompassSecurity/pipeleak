@@ -22,12 +22,20 @@ import (
 // TerminalRestorer is a function that can be called to restore terminal state
 var TerminalRestorer func()
 
+// Version information - set via ldflags during build
+var (
+	Version = "dev"
+	Commit  = "none"
+	Date    = "unknown"
+)
+
 var (
 	rootCmd = &cobra.Command{
 		Use:     "pipeleak",
 		Short:   "Scan job logs and artifacts for secrets",
 		Long:    "Pipeleak is a tool designed to scan CI/CD job output logs and artifacts for potential secrets.",
 		Example: "pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com",
+		Version: getVersion(),
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			initLogger(cmd)
 			setGlobalLogLevel(cmd)
@@ -45,6 +53,11 @@ func Execute() error {
 	return rootCmd.Execute()
 }
 
+// getVersion returns the version string in the format: version (commit) built on date
+func getVersion() string {
+	return Version
+}
+
 func init() {
 	rootCmd.AddCommand(github.NewGitHubRootCmd())
 	rootCmd.AddCommand(gitlab.NewGitLabRootCmd())
@@ -58,6 +71,10 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&LogDebug, "verbose", "v", false, "Enable debug logging (shortcut for --log-level=debug)")
 	rootCmd.PersistentFlags().StringVar(&LogLevel, "log-level", "", "Set log level globally (debug, info, warn, error). Example: --log-level=warn")
 	rootCmd.PersistentFlags().BoolVar(&LogColor, "color", true, "Enable colored log output (auto-disabled when using --logfile)")
+
+	// Set custom version template to show detailed version info
+	rootCmd.SetVersionTemplate(`{{.Version}}
+`)
 
 	rootCmd.AddGroup(&cobra.Group{ID: "GitHub", Title: "GitHub Commands"})
 	rootCmd.AddGroup(&cobra.Group{ID: "GitLab", Title: "GitLab Commands"})
