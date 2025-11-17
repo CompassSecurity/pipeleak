@@ -113,13 +113,8 @@ func (h FatalHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
 func initLogger(cmd *cobra.Command) {
 	defaultOut := &CustomWriter{Writer: os.Stdout}
 	colorEnabled := LogColor
-	fileExists := false
 
 	if LogFile != "" {
-		if _, err := os.Stat(LogFile); err == nil {
-			fileExists = true
-		}
-
 		// #nosec G304 - User-provided log file path via --log-file flag, user controls their own filesystem
 		runLogFile, err := os.OpenFile(
 			LogFile,
@@ -158,10 +153,6 @@ func initLogger(cmd *cobra.Command) {
 		hitWriter.SetOutput(&output)
 		logging.SetGlobalHitWriter(hitWriter)
 		log.Logger = zerolog.New(hitWriter).With().Timestamp().Logger().Hook(fatalHook)
-	}
-
-	if fileExists && LogFile != "" {
-		log.Warn().Str("logfile", LogFile).Msg("Appending to existing log file")
 	}
 }
 
