@@ -8,9 +8,8 @@ import (
 
 func NewVariablesCommand() *cobra.Command {
 	var (
-		url      string
-		token    string
-		insecure bool
+		url   string
+		token string
 	)
 
 	cmd := &cobra.Command{
@@ -19,9 +18,8 @@ func NewVariablesCommand() *cobra.Command {
 		Long:  `Fetches and logs all Actions variables from organizations and their repositories in Gitea.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			config := variables.Config{
-				URL:      url,
-				Token:    token,
-				Insecure: insecure,
+				URL:   url,
+				Token: token,
 			}
 
 			if err := variables.ListAllVariables(config); err != nil {
@@ -30,7 +28,7 @@ func NewVariablesCommand() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&url, "url", "u", "https://gitea.com", "Gitea server URL (required)")
+	cmd.Flags().StringVarP(&url, "url", "u", "https://gitea.com", "Gitea server URL")
 	cmd.Flags().StringVarP(&token, "token", "t", "", "Gitea access token (required)")
 
 	cmd.MarkFlagRequired("token")
