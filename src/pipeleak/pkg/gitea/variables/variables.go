@@ -4,11 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog/log"
 )
 
@@ -19,9 +17,9 @@ type Config struct {
 
 // clientContext holds both the SDK client and configuration needed for direct API calls
 type clientContext struct {
-	client     *gitea.Client
-	httpClient *retryablehttp.Client
-	url        string
+	client *gitea.Client
+	token  string
+	url    string
 }
 
 func ListAllVariables(cfg Config) error {
@@ -48,18 +46,15 @@ func ListAllVariables(cfg Config) error {
 }
 
 func createClientContext(cfg Config) (*clientContext, error) {
-	authHeaders := map[string]string{"Authorization": "token " + cfg.Token}
-	retryableClient := httpclient.GetPipeleakHTTPClient("", nil, authHeaders)
-
-	client, err := gitea.NewClient(cfg.URL, gitea.SetToken(cfg.Token), gitea.SetHTTPClient(retryableClient.StandardClient()))
+	client, err := gitea.NewClient(cfg.URL, gitea.SetToken(cfg.Token))
 	if err != nil {
 		return nil, err
 	}
 
 	return &clientContext{
-		client:     client,
-		httpClient: retryableClient,
-		url:        cfg.URL,
+		client: client,
+		token:  cfg.Token,
+		url:    cfg.URL,
 	}, nil
 }
 
@@ -205,24 +200,20 @@ func fetchRepoVariables(ctx *clientContext, owner, repo string) error {
 }
 
 // listRepoActionVariables calls the Gitea API directly to list repository action variables.
-// This implements the missing SDK method by making a direct HTTP request.
+// This implements the missing SDK method by making a direct HTTP request using pkg/httpclient.
 func listRepoActionVariables(ctx *clientContext, owner, repo string, page, pageSize int) ([]*gitea.RepoActionVariable, error) {
 	url := fmt.Sprintf("%s/api/v1/repos/%s/%s/actions/variables?page=%d&limit=%d", ctx.url, owner, repo, page, pageSize)
 
-	req, err := retryablehttp.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
+	authHeaders := map[string]string{"Authorization": "token " + ctx.token}
+	httpClient := httpclient.GetPipeleakHTTPClient("", nil, authHeaders)
 
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := ctx.httpClient.Do(req)
+	resp, err := httpClient.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != 200 {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
 	}
