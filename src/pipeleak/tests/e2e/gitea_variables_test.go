@@ -128,14 +128,15 @@ func TestGiteaVariables_Pagination(t *testing.T) {
 
 			var variables []map[string]interface{}
 			// Page 1: 50 variables, Page 2: 25 variables
-			if page == 1 {
+			switch page {
+			case 1:
 				for i := 1; i <= 50; i++ {
 					variables = append(variables, map[string]interface{}{
 						"name": "VAR_" + strconv.Itoa(i),
 						"data": "value_" + strconv.Itoa(i),
 					})
 				}
-			} else if page == 2 {
+			case 2:
 				for i := 51; i <= 75; i++ {
 					variables = append(variables, map[string]interface{}{
 						"name": "VAR_" + strconv.Itoa(i),

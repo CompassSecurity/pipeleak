@@ -17,7 +17,7 @@ func handleVersionEndpoint(w http.ResponseWriter, r *http.Request) bool {
 	if r.URL.Path == "/api/v1/version" {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
 		return true
 	}
 	return false
@@ -118,7 +118,7 @@ func TestListRepoActionVariables_Pagination(t *testing.T) {
 
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(variables)
+				_ = json.NewEncoder(w).Encode(variables)
 			}))
 			defer server.Close()
 
@@ -188,7 +188,7 @@ func TestListRepoActionVariables_ErrorHandling(t *testing.T) {
 				}
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(variables)
+				_ = json.NewEncoder(w).Encode(variables)
 			},
 			expectError: false,
 		},
@@ -196,7 +196,7 @@ func TestListRepoActionVariables_ErrorHandling(t *testing.T) {
 			name: "404 not found",
 			serverResponse: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusNotFound)
-				w.Write([]byte(`{"message": "Not Found"}`))
+				_, _ = w.Write([]byte(`{"message": "Not Found"}`))
 			},
 			expectError: true,
 		},
@@ -204,7 +204,7 @@ func TestListRepoActionVariables_ErrorHandling(t *testing.T) {
 			name: "401 unauthorized",
 			serverResponse: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusUnauthorized)
-				w.Write([]byte(`{"message": "Unauthorized"}`))
+				_, _ = w.Write([]byte(`{"message": "Unauthorized"}`))
 			},
 			expectError: true,
 		},
@@ -212,7 +212,7 @@ func TestListRepoActionVariables_ErrorHandling(t *testing.T) {
 			name: "500 server error",
 			serverResponse: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte(`{"message": "Internal Server Error"}`))
+				_, _ = w.Write([]byte(`{"message": "Internal Server Error"}`))
 			},
 			expectError: true,
 		},
@@ -221,7 +221,7 @@ func TestListRepoActionVariables_ErrorHandling(t *testing.T) {
 			serverResponse: func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(`{invalid json`))
+				_, _ = w.Write([]byte(`{invalid json`))
 			},
 			expectError: true,
 		},
@@ -290,7 +290,7 @@ func TestFetchRepoVariables_Integration(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(variables)
+		_ = json.NewEncoder(w).Encode(variables)
 	}))
 	defer server.Close()
 

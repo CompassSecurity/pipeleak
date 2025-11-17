@@ -31,7 +31,7 @@ func NewVariablesCommand() *cobra.Command {
 	cmd.Flags().StringVarP(&url, "url", "u", "https://gitea.com", "Gitea server URL")
 	cmd.Flags().StringVarP(&token, "token", "t", "", "Gitea access token (required)")
 
-	cmd.MarkFlagRequired("token")
+	_ = cmd.MarkFlagRequired("token")
 
 	return cmd
 }
