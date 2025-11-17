@@ -8,19 +8,19 @@ import (
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog/log"
 )
 
 type Config struct {
-	URL      string
-	Token    string
-	Insecure bool
+	URL   string
+	Token string
 }
 
 // clientContext holds both the SDK client and configuration needed for direct API calls
 type clientContext struct {
 	client     *gitea.Client
-	httpClient *http.Client
+	httpClient *retryablehttp.Client
 	url        string
 }
 
@@ -50,16 +50,15 @@ func ListAllVariables(cfg Config) error {
 func createClientContext(cfg Config) (*clientContext, error) {
 	authHeaders := map[string]string{"Authorization": "token " + cfg.Token}
 	retryableClient := httpclient.GetPipeleakHTTPClient("", nil, authHeaders)
-	standardClient := retryableClient.StandardClient()
 
-	client, err := gitea.NewClient(cfg.URL, gitea.SetToken(cfg.Token), gitea.SetHTTPClient(standardClient))
+	client, err := gitea.NewClient(cfg.URL, gitea.SetToken(cfg.Token), gitea.SetHTTPClient(retryableClient.StandardClient()))
 	if err != nil {
 		return nil, err
 	}
 
 	return &clientContext{
 		client:     client,
-		httpClient: standardClient,
+		httpClient: retryableClient,
 		url:        cfg.URL,
 	}, nil
 }
@@ -135,7 +134,7 @@ func fetchOrgVariables(client *gitea.Client, orgName string) error {
 				Str("variable_name", v.Name).
 				Str("type", "organization").
 				Str("value", v.Data).
-				Msg("Variable found")
+				Msg("Variable")
 		}
 
 		if resp == nil || len(variables) < pageSize {
@@ -193,7 +192,7 @@ func fetchRepoVariables(ctx *clientContext, owner, repo string) error {
 				Str("variable_name", v.Name).
 				Str("type", "repository").
 				Str("value", v.Value).
-				Msg("Variable found")
+				Msg("Variable")
 		}
 
 		if len(variables) < pageSize {
@@ -208,32 +207,26 @@ func fetchRepoVariables(ctx *clientContext, owner, repo string) error {
 // listRepoActionVariables calls the Gitea API directly to list repository action variables.
 // This implements the missing SDK method by making a direct HTTP request.
 func listRepoActionVariables(ctx *clientContext, owner, repo string, page, pageSize int) ([]*gitea.RepoActionVariable, error) {
-	// Construct the API URL - following Gitea API v1 pattern
 	url := fmt.Sprintf("%s/api/v1/repos/%s/%s/actions/variables?page=%d&limit=%d", ctx.url, owner, repo, page, pageSize)
 
-	// Make the request
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := retryablehttp.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// Set Content-Type header (Authorization is already set by httpclient)
 	req.Header.Set("Content-Type", "application/json")
 
-	// Execute the request
 	resp, err := ctx.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer resp.Body.Close()
 
-	// Handle non-200 responses
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
-	// Parse the response
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)

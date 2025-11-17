@@ -12,11 +12,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// handleVersionEndpoint handles the version endpoint for SDK initialization
+func handleVersionEndpoint(w http.ResponseWriter, r *http.Request) bool {
+	if r.URL.Path == "/api/v1/version" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+		return true
+	}
+	return false
+}
+
 func TestConfig(t *testing.T) {
 	cfg := Config{
-		URL:      "https://gitea.example.com",
-		Token:    "test-token",
-		Insecure: false,
+		URL:   "https://gitea.example.com",
+		Token: "test-token",
 	}
 
 	if cfg.URL != "https://gitea.example.com" {
@@ -25,10 +35,6 @@ func TestConfig(t *testing.T) {
 
 	if cfg.Token != "test-token" {
 		t.Errorf("Expected Token to be test-token, got %s", cfg.Token)
-	}
-
-	if cfg.Insecure != false {
-		t.Errorf("Expected Insecure to be false, got %v", cfg.Insecure)
 	}
 }
 
@@ -71,11 +77,7 @@ func TestListRepoActionVariables_Pagination(t *testing.T) {
 
 			// Create mock server that simulates pagination
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				// Handle version endpoint for SDK initialization
-				if r.URL.Path == "/api/v1/version" {
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusOK)
-					json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+				if handleVersionEndpoint(w, r) {
 					return
 				}
 
@@ -122,9 +124,8 @@ func TestListRepoActionVariables_Pagination(t *testing.T) {
 
 			// Create client context
 			cfg := Config{
-				URL:      server.URL,
-				Token:    "test-token",
-				Insecure: false,
+				URL:   server.URL,
+				Token: "test-token",
 			}
 			ctx, err := createClientContext(cfg)
 			assert.NoError(t, err)
@@ -229,11 +230,7 @@ func TestListRepoActionVariables_ErrorHandling(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				// Handle version endpoint for SDK initialization
-				if r.URL.Path == "/api/v1/version" {
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusOK)
-					json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+				if handleVersionEndpoint(w, r) {
 					return
 				}
 				tt.serverResponse(w, r)
@@ -241,9 +238,8 @@ func TestListRepoActionVariables_ErrorHandling(t *testing.T) {
 			defer server.Close()
 
 			cfg := Config{
-				URL:      server.URL,
-				Token:    "test-token",
-				Insecure: false,
+				URL:   server.URL,
+				Token: "test-token",
 			}
 			ctx, err := createClientContext(cfg)
 			assert.NoError(t, err)
@@ -260,13 +256,8 @@ func TestListRepoActionVariables_ErrorHandling(t *testing.T) {
 }
 
 func TestFetchRepoVariables_Integration(t *testing.T) {
-	// Test that fetchRepoVariables correctly handles pagination
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Handle version endpoint for SDK initialization
-		if r.URL.Path == "/api/v1/version" {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]string{"version": "1.20.0"})
+		if handleVersionEndpoint(w, r) {
 			return
 		}
 
@@ -304,9 +295,8 @@ func TestFetchRepoVariables_Integration(t *testing.T) {
 	defer server.Close()
 
 	cfg := Config{
-		URL:      server.URL,
-		Token:    "test-token",
-		Insecure: false,
+		URL:   server.URL,
+		Token: "test-token",
 	}
 	ctx, err := createClientContext(cfg)
 	assert.NoError(t, err)
