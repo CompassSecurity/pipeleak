@@ -273,4 +273,3 @@ func TestGetVersion(t *testing.T) {
 func TestRootCmdHasVersion(t *testing.T) {
 	assert.NotEmpty(t, rootCmd.Version, "rootCmd should have a version")
 }
-
