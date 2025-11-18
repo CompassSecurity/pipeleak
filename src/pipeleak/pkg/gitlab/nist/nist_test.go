@@ -20,12 +20,12 @@ func mockNVDServer(_ *testing.T, totalVulns int, pageSize int) *httptest.Server 
 		// Parse pagination parameters
 		resultsPerPage := pageSize
 		if rpp := query.Get("resultsPerPage"); rpp != "" {
-			fmt.Sscanf(rpp, "%d", &resultsPerPage)
+			_, _ = fmt.Sscanf(rpp, "%d", &resultsPerPage)
 		}
 
 		startIndex := 0
 		if si := query.Get("startIndex"); si != "" {
-			fmt.Sscanf(si, "%d", &startIndex)
+			_, _ = fmt.Sscanf(si, "%d", &startIndex)
 		}
 
 		// Calculate how many results to return for this page
@@ -56,7 +56,7 @@ func mockNVDServer(_ *testing.T, totalVulns int, pageSize int) *httptest.Server 
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response)
 	}))
 }
 
@@ -102,7 +102,7 @@ func TestFetchVulns_WithPagination(t *testing.T) {
 	cveIDs := make(map[string]bool)
 	for _, vuln := range response.Vulnerabilities {
 		var v map[string]interface{}
-		json.Unmarshal(vuln, &v)
+		_ = json.Unmarshal(vuln, &v)
 		cveID := v["cve"].(map[string]interface{})["id"].(string)
 		assert.False(t, cveIDs[cveID], "Duplicate CVE ID: %s", cveID)
 		cveIDs[cveID] = true
@@ -157,7 +157,7 @@ func TestFetchVulns_HTTPError(t *testing.T) {
 	// Create a server that returns an error
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Internal Server Error"))
+		_, _ = w.Write([]byte("Internal Server Error"))
 	}))
 	defer server.Close()
 
@@ -170,7 +170,7 @@ func TestFetchVulns_InvalidJSON(t *testing.T) {
 	// Create a server that returns invalid JSON
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte("invalid json"))
+		_, _ = w.Write([]byte("invalid json"))
 	}))
 	defer server.Close()
 
@@ -197,7 +197,7 @@ func TestFetchVulns_LargePagination(t *testing.T) {
 	// Verify CVEs are in order
 	for i := 0; i < 1000; i++ {
 		var v map[string]interface{}
-		json.Unmarshal(response.Vulnerabilities[i], &v)
+		_ = json.Unmarshal(response.Vulnerabilities[i], &v)
 		expectedCVE := fmt.Sprintf("CVE-2024-%05d", i+1)
 		actualCVE := v["cve"].(map[string]interface{})["id"].(string)
 		assert.Equal(t, expectedCVE, actualCVE)
@@ -261,7 +261,7 @@ func fetchVulnsFromURL(baseURL, version string, enterprise bool) (string, error)
 	if err != nil {
 		return "{}", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != 200 {
 		return "{}", fmt.Errorf("HTTP %d", resp.StatusCode)
@@ -292,10 +292,10 @@ func fetchVulnsFromURL(baseURL, version string, enterprise bool) (string, error)
 
 		var pageData nvdResponse
 		if err := json.NewDecoder(resp.Body).Decode(&pageData); err != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			break
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		allVulns = append(allVulns, pageData.Vulnerabilities...)
 	}
