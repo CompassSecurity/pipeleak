@@ -5,7 +5,14 @@
 
 version: 2
 updates:
-  - package-ecosystem: "gomod" # See documentation for possible values
-    directory: "src/pipeleak" # Location of package manifests
+  # Go module dependencies
+  - package-ecosystem: "gomod"
+    directory: "src/pipeleak"
+    schedule:
+      interval: "daily"
+  
+  # GitHub Actions workflow dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
       interval: "daily"
