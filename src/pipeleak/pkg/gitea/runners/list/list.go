@@ -1,34 +1,16 @@
-package runners
+package list
 
 import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/rs/zerolog/log"
-	"github.com/spf13/cobra"
 )
 
-func NewRunnersListCmd() *cobra.Command {
-	runnersCmd := &cobra.Command{
-		Use:     "list",
-		Short:   "List available runners",
-		Long:    "List all available Gitea Actions runners for repositories and organizations your token has access to.",
-		Example: `pipeleak gitea runners list --token xxxxx --gitea https://gitea.mydomain.com`,
-		Run:     ListRunners,
-	}
-
-	return runnersCmd
-}
-
-func ListRunners(cmd *cobra.Command, args []string) {
-	ListAllAvailableRunners(giteaUrl, giteaApiToken)
-	log.Info().Msg("Done, Bye Bye 🏳️‍🌈🔥")
-}
-
-type runnerInfo struct {
-	labels []string
-	source string
-	name   string
+type RunnerInfo struct {
+	Labels []string
+	Source string
+	Name   string
 }
 
 func ListAllAvailableRunners(giteaUrl string, apiToken string) {
@@ -53,9 +35,9 @@ func ListAllAvailableRunners(giteaUrl string, apiToken string) {
 	log.Info().Msg("Discovered runner information from workflow runs:")
 	for _, runner := range runners {
 		log.Info().
-			Str("source", runner.source).
-			Str("name", runner.name).
-			Str("labels", strings.Join(runner.labels, ",")).
+			Str("source", runner.Source).
+			Str("name", runner.Name).
+			Str("labels", strings.Join(runner.Labels, ",")).
 			Msg("runner info")
 	}
 
@@ -71,8 +53,8 @@ func ListAllAvailableRunners(giteaUrl string, apiToken string) {
 	log.Info().Msg("Tip: Use these labels with 'gitea runners exploit --labels <label1>,<label2>' to target specific runners")
 }
 
-func listRunnersFromRepos(client *gitea.Client, runnerLabels map[string]bool) []runnerInfo {
-	var runners []runnerInfo
+func listRunnersFromRepos(client *gitea.Client, runnerLabels map[string]bool) []RunnerInfo {
+	var runners []RunnerInfo
 
 	page := 1
 	pageSize := 50
@@ -95,7 +77,7 @@ func listRunnersFromRepos(client *gitea.Client, runnerLabels map[string]bool) []
 			runnerInfo := discoverRunnersFromWorkflows(client, repo.Owner.UserName, repo.Name)
 			for _, ri := range runnerInfo {
 				runners = append(runners, ri)
-				for _, label := range ri.labels {
+				for _, label := range ri.Labels {
 					runnerLabels[label] = true
 				}
 			}
@@ -110,8 +92,8 @@ func listRunnersFromRepos(client *gitea.Client, runnerLabels map[string]bool) []
 	return runners
 }
 
-func discoverRunnersFromWorkflows(client *gitea.Client, owner, repo string) []runnerInfo {
-	var runners []runnerInfo
+func discoverRunnersFromWorkflows(client *gitea.Client, owner, repo string) []RunnerInfo {
+	var runners []RunnerInfo
 
 	workflowsPath := ".gitea/workflows"
 
@@ -135,10 +117,10 @@ func discoverRunnersFromWorkflows(client *gitea.Client, owner, repo string) []ru
 	if hasWorkflows {
 		log.Debug().Str("owner", owner).Str("repo", repo).Msg("Repository has Gitea Actions workflows")
 
-		runners = append(runners, runnerInfo{
-			labels: []string{"ubuntu-latest", "self-hosted"},
-			source: owner + "/" + repo,
-			name:   "inferred-from-workflows",
+		runners = append(runners, RunnerInfo{
+			Labels: []string{"ubuntu-latest", "self-hosted"},
+			Source: owner + "/" + repo,
+			Name:   "inferred-from-workflows",
 		})
 	}
 
