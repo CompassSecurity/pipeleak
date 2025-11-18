@@ -34,12 +34,16 @@ func TestNewGiteaRootCmd(t *testing.T) {
 
 	hasEnumCmd := false
 	hasScanCmd := false
+	hasRunnersCmd := false
 	for _, subCmd := range cmd.Commands() {
 		if subCmd.Use == "enum" {
 			hasEnumCmd = true
 		}
 		if subCmd.Use == "scan" {
 			hasScanCmd = true
+		}
+		if subCmd.Use == "runners" {
+			hasRunnersCmd = true
 		}
 	}
 
@@ -48,5 +52,8 @@ func TestNewGiteaRootCmd(t *testing.T) {
 	}
 	if !hasScanCmd {
 		t.Error("Expected 'scan' subcommand to exist")
+	}
+	if !hasRunnersCmd {
+		t.Error("Expected 'runners' subcommand to exist")
 	}
 }
