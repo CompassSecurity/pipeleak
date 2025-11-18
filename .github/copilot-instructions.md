@@ -26,12 +26,12 @@ pipeleak/
 │   │   ├── devops/         # Azure DevOps commands
 │   │   ├── gitea/          # Gitea commands
 │   │   └── docs/           # Documentation command
-│   ├── pkg/                # Core business logic packages
+│   ├── pkg/                # Core business logic packages (non-command)
 │   │   ├── archive/        # Archive handling
 │   │   ├── config/         # Configuration management
-│   │   ├── gitlab/         # GitLab functionality
-│   │   ├── github/         # GitHub functionality
-│   │   └── ...            # Platform-specific packages
+│   │   ├── gitlab/         # GitLab business logic
+│   │   ├── github/         # GitHub business logic
+│   │   └── ...            # Other business logic packages
 │   ├── tests/              # Test files
 │   │   └── e2e/           # End-to-end tests
 │   ├── main.go            # Application entry point
@@ -88,16 +88,19 @@ golangci-lint run --timeout=10m
 
 ### Command Structure
 
+- All Cobra command definitions are located in the `cmd/` directory structure
 - Commands follow the Cobra pattern with `NewXCommand()` functions
 - Each command should have a corresponding test file
 - Commands are organized by platform (gitlab, github, bitbucket, devops, gitea)
 - Use consistent flag naming across commands
+- Command definitions should be in `cmd/<platform>/<command>/` directories, not in `pkg/`
 
 ### Package Organization
 
-- Keep business logic in `pkg/` packages
-- Keep CLI interface code in `cmd/` packages
-- Separate concerns: commands orchestrate, packages implement
+- Cobra command definitions belong in `cmd/` packages
+- Business logic (non-command related) belongs in `pkg/` packages
+- Separate concerns: commands orchestrate (in `cmd/`), packages implement business logic (in `pkg/`)
+- Utility functions used by commands can be in `cmd/<platform>/util/`
 
 ### Testing Conventions
 
@@ -154,16 +157,16 @@ golangci-lint run --timeout=10m
 ### Adding a New Command
 
 1. Create command file in appropriate `cmd/<platform>/` directory
-2. Implement command using Cobra patterns
-3. Add corresponding business logic in `pkg/<platform>/`
+2. Implement Cobra command definition directly in `cmd/` (not in `pkg/`)
+3. Add any non-command business logic to `pkg/<platform>/` if needed
 4. Write tests for both command and business logic
 5. Update documentation if needed
 
 ### Adding a New Platform
 
 1. Create new directory under `cmd/<platform>/`
-2. Create corresponding package under `pkg/<platform>/`
-3. Implement scan and other relevant commands
+2. Implement scan and other relevant Cobra commands in `cmd/<platform>/`
+3. Create corresponding package under `pkg/<platform>/` for business logic (if needed)
 4. Add tests
 5. Update documentation
 
