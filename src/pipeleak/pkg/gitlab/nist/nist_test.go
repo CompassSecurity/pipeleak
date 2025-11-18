@@ -13,7 +13,7 @@ import (
 )
 
 // mockNVDServer creates a test HTTP server that simulates the NVD API
-func mockNVDServer(t *testing.T, totalVulns int, pageSize int) *httptest.Server {
+func mockNVDServer(_ *testing.T, totalVulns int, pageSize int) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		query := r.URL.Query()
 
@@ -155,7 +155,7 @@ func TestFetchVulns_EmptyResponse(t *testing.T) {
 
 func TestFetchVulns_HTTPError(t *testing.T) {
 	// Create a server that returns an error
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal Server Error"))
 	}))
@@ -168,7 +168,7 @@ func TestFetchVulns_HTTPError(t *testing.T) {
 
 func TestFetchVulns_InvalidJSON(t *testing.T) {
 	// Create a server that returns invalid JSON
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte("invalid json"))
 	}))
@@ -256,8 +256,8 @@ func fetchVulnsFromURL(baseURL, version string, enterprise bool) (string, error)
 	client := &http.Client{}
 
 	// Fetch first page
-	firstPageUrl := fmt.Sprintf("%s&resultsPerPage=%d&startIndex=0", testURL, resultsPerPage)
-	resp, err := client.Get(firstPageUrl)
+	firstPageURL := fmt.Sprintf("%s&resultsPerPage=%d&startIndex=0", testURL, resultsPerPage)
+	resp, err := client.Get(firstPageURL)
 	if err != nil {
 		return "{}", err
 	}
@@ -284,8 +284,8 @@ func fetchVulnsFromURL(baseURL, version string, enterprise bool) (string, error)
 	// Fetch remaining pages
 	allVulns := firstPageData.Vulnerabilities
 	for startIndex := resultsPerPage; startIndex < firstPageData.TotalResults; startIndex += resultsPerPage {
-		pageUrl := fmt.Sprintf("%s&resultsPerPage=%d&startIndex=%d", testURL, resultsPerPage, startIndex)
-		resp, err := client.Get(pageUrl)
+		pageURL := fmt.Sprintf("%s&resultsPerPage=%d&startIndex=%d", testURL, resultsPerPage, startIndex)
+		resp, err := client.Get(pageURL)
 		if err != nil {
 			break
 		}

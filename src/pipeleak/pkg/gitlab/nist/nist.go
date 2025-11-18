@@ -1,10 +1,10 @@
+// Package nist provides functionality to fetch vulnerability data from the NIST NVD API.
 package nist
 
 import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"strings"
 
 	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
@@ -24,6 +24,8 @@ type nvdResponse struct {
 	Vulnerabilities []json.RawMessage `json:"vulnerabilities"`
 }
 
+// FetchVulns retrieves all CVE vulnerabilities for a specific GitLab version and edition from the NIST NVD API.
+// It automatically handles pagination if the total results exceed the page size.
 func FetchVulns(version string, enterprise bool) (string, error) {
 	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
 
@@ -40,8 +42,8 @@ func FetchVulns(version string, enterprise bool) (string, error) {
 		":*:*:*",
 	}, "")
 
-	firstPageUrl := fmt.Sprintf("%s&resultsPerPage=%d&startIndex=0", baseCPEUrl, resultsPerPage)
-	firstPageData, err := fetchPage(client, firstPageUrl)
+	firstPageURL := fmt.Sprintf("%s&resultsPerPage=%d&startIndex=0", baseCPEUrl, resultsPerPage)
+	firstPageData, err := fetchPage(client, firstPageURL)
 	if err != nil {
 		return "{}", err
 	}
@@ -60,8 +62,8 @@ func FetchVulns(version string, enterprise bool) (string, error) {
 	allVulns := firstPageData.Vulnerabilities
 
 	for startIndex := resultsPerPage; startIndex < firstPageData.TotalResults; startIndex += resultsPerPage {
-		pageUrl := fmt.Sprintf("%s&resultsPerPage=%d&startIndex=%d", baseCPEUrl, resultsPerPage, startIndex)
-		pageData, err := fetchPage(client, pageUrl)
+		pageURL := fmt.Sprintf("%s&resultsPerPage=%d&startIndex=%d", baseCPEUrl, resultsPerPage, startIndex)
+		pageData, err := fetchPage(client, pageURL)
 		if err != nil {
 			log.Warn().Err(err).Int("startIndex", startIndex).Msg("failed to fetch page, continuing with partial results")
 			break
@@ -84,36 +86,6 @@ func FetchVulns(version string, enterprise bool) (string, error) {
 }
 
 func fetchPage(client *retryablehttp.Client, url string) (*nvdResponse, error) {
-	res, err := client.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = res.Body.Close() }()
-
-	if res.StatusCode != 200 {
-		log.Error().Int("http", res.StatusCode).Str("url", url).Msg("failed fetching vulnerabilities")
-		return nil, fmt.Errorf("HTTP %d", res.StatusCode)
-	}
-
-	resData, err := io.ReadAll(res.Body)
-	if err != nil {
-		log.Error().Int("http", res.StatusCode).Msg("unable to read HTTP response body")
-		return nil, err
-	}
-
-	var nvdResp nvdResponse
-	if err := json.Unmarshal(resData, &nvdResp); err != nil {
-		log.Error().Err(err).Msg("failed to unmarshal NVD response")
-		return nil, err
-	}
-
-	return &nvdResp, nil
-}
-
-// fetchPageWithClient is a helper for testing that accepts a custom HTTP client
-func fetchPageWithClient(client interface {
-	Get(url string) (*http.Response, error)
-}, url string) (*nvdResponse, error) {
 	res, err := client.Get(url)
 	if err != nil {
 		return nil, err
