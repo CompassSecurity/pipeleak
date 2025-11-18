@@ -92,22 +92,22 @@ func CookieSessionValid(gitlabUrl string, cookieVal string) {
 	}
 }
 
-func DetermineVersion(gitlabUrl string, apiToken string) *gitlab.Version {
+func DetermineVersion(gitlabUrl string, apiToken string) *gitlab.Metadata {
 	if len(apiToken) > 0 {
 		git, err := GetGitlabClient(apiToken, gitlabUrl)
 		if err != nil {
-			return &gitlab.Version{Version: "none", Revision: "none"}
+			return &gitlab.Metadata{Version: "none", Revision: "none", Enterprise: false}
 		}
 
-		version, _, err := git.Version.GetVersion()
+		metadata, _, err := git.Metadata.GetMetadata()
 		if err != nil {
-			return &gitlab.Version{Version: "none", Revision: "none"}
+			return &gitlab.Metadata{Version: "none", Revision: "none", Enterprise: false}
 		}
-		return version
+		return metadata
 	} else {
 		u, err := url.Parse(gitlabUrl)
 		if err != nil {
-			return &gitlab.Version{Version: "none", Revision: "none"}
+			return &gitlab.Metadata{Version: "none", Revision: "none", Enterprise: false}
 		}
 		u.Path = path.Join(u.Path, "/help")
 
@@ -116,12 +116,12 @@ func DetermineVersion(gitlabUrl string, apiToken string) *gitlab.Version {
 
 		if err != nil {
 			log.Warn().Msg(gitlabUrl)
-			return &gitlab.Version{Version: "none", Revision: "none"}
+			return &gitlab.Metadata{Version: "none", Revision: "none", Enterprise: false}
 		}
 
 		responseData, err := io.ReadAll(response.Body)
 		if err != nil {
-			return &gitlab.Version{Version: "none", Revision: "none"}
+			return &gitlab.Metadata{Version: "none", Revision: "none", Enterprise: false}
 		}
 
 		extractLineR := regexp.MustCompile(`instance_version":"\d*.\d*.\d*"`)
@@ -130,9 +130,9 @@ func DetermineVersion(gitlabUrl string, apiToken string) *gitlab.Version {
 		versionNumber := versionR.Find(fullLine)
 
 		if len(versionNumber) > 3 {
-			return &gitlab.Version{Version: string(versionNumber), Revision: "none"}
+			return &gitlab.Metadata{Version: string(versionNumber), Revision: "none", Enterprise: false}
 		}
-		return &gitlab.Version{Version: "none", Revision: "none"}
+		return &gitlab.Metadata{Version: "none", Revision: "none", Enterprise: false}
 	}
 }
 

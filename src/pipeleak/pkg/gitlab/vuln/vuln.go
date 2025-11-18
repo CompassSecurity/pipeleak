@@ -42,7 +42,7 @@ func CheckVulns(cmd *cobra.Command, args []string) {
 	log.Info().Str("version", installedVersion.Version).Msg("GitLab")
 
 	log.Info().Str("version", installedVersion.Version).Msg("Fetching CVEs for this version")
-	vulnsJsonStr, err := nist.FetchVulns(installedVersion.Version)
+	vulnsJsonStr, err := nist.FetchVulns(installedVersion.Version, installedVersion.Enterprise)
 	if err != nil {
 		log.Fatal().Msg("Unable fetch vulnerabilities from NIST")
 	}

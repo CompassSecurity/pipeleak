@@ -61,6 +61,7 @@ func Enum(cmd *cobra.Command, args []string) {
 
 	log.Info().Msg("Enumerating User")
 	log.Warn().Str("username", user.Username).Str("name", user.Name).Str("email", user.Email).Bool("admin", user.IsAdmin).Bool("bot", user.Bot).Msg("Current user")
+	log.Debug().Any("full_user", user).Msg("Full User details")
 
 	log.Info().Msg("Enumerating Access Token")
 	client := *resty.New().SetRedirectPolicy(resty.FlexibleRedirectPolicy(5))

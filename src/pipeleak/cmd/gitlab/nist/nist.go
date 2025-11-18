@@ -4,6 +4,6 @@ import (
 	pkgnist "github.com/CompassSecurity/pipeleak/pkg/gitlab/nist"
 )
 
-func FetchVulns(version string) (string, error) {
-	return pkgnist.FetchVulns(version)
+func FetchVulns(version string, enterprise bool) (string, error) {
+	return pkgnist.FetchVulns(version, enterprise)
 }
