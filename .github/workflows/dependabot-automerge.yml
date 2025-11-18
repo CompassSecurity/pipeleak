@@ -1,0 +1,40 @@
+name: Dependabot Auto-Merge
+
+# Trigger this workflow when a pull request is opened, synchronized (updated with new commits),
+# or labeled. This ensures auto-merge is enabled for new PRs and re-evaluated when PRs are updated.
+on:
+  pull_request:
+    types: [opened, synchronize, labeled]
+
+# Use least-privileged permissions principle:
+# - pull-requests: write - Required to enable auto-merge on the PR
+# - contents: write - Required to allow the merge commit and delete the branch after merge
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  dependabot-automerge:
+    name: Enable Auto-Merge for Dependabot PRs
+    runs-on: ubuntu-latest
+    
+    # Only run this job if the PR author is Dependabot
+    # This prevents the workflow from running on PRs from other contributors
+    if: github.actor == 'dependabot[bot]'
+    
+    steps:
+      # Checkout is not needed since we're only using gh CLI to interact with the PR
+      # The gh CLI uses GITHUB_TOKEN which is automatically available in the workflow
+      
+      - name: Enable auto-merge for Dependabot PR
+        run: |
+          # Enable auto-merge on this PR using GitHub CLI
+          # --auto: Enable auto-merge (PR will merge automatically when all requirements are met)
+          # --merge: Use merge commit strategy (as opposed to squash or rebase)
+          # --delete-branch: Automatically delete the head branch after merge
+          gh pr merge --auto --merge --delete-branch "$PR_URL"
+        env:
+          # GitHub CLI requires GITHUB_TOKEN for authentication
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Use the PR URL from the event context
+          PR_URL: ${{ github.event.pull_request.html_url }}
