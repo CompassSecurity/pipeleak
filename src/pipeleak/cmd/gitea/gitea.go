@@ -3,6 +3,7 @@ package gitea
 import (
 	"github.com/CompassSecurity/pipeleak/cmd/gitea/enum"
 	"github.com/CompassSecurity/pipeleak/cmd/gitea/scan"
+	"github.com/CompassSecurity/pipeleak/cmd/gitea/secrets"
 	"github.com/CompassSecurity/pipeleak/cmd/gitea/variables"
 	"github.com/spf13/cobra"
 )
@@ -17,6 +18,7 @@ func NewGiteaRootCmd() *cobra.Command {
 
 	giteaCmd.AddCommand(enum.NewEnumCmd())
 	giteaCmd.AddCommand(scan.NewScanCmd())
+	giteaCmd.AddCommand(secrets.NewSecretsCommand())
 	giteaCmd.AddCommand(variables.NewVariablesCommand())
 
 	return giteaCmd
