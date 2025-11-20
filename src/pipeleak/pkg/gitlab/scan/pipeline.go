@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
+	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
 	"github.com/CompassSecurity/pipeleak/pkg/scanner"
 	"github.com/CompassSecurity/pipeleak/pkg/system"
 	"github.com/nsqio/go-diskqueue"

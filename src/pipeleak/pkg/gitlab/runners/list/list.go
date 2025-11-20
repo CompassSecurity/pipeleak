@@ -1,63 +1,50 @@
 package runners
 
 import (
-	"strings"
-
 	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
 	"github.com/rs/zerolog/log"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
-
-type runnerResult struct {
-	runner  *gitlab.Runner
-	project *gitlab.Project
-	group   *gitlab.Group
-}
 
 func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
 	git, err := util.GetGitlabClient(apiToken, gitlabUrl)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed creating gitlab client")
 	}
-	runnerMap := make(map[int]runnerResult)
-	runnerMap = listProjectRunners(git, runnerMap)
-	runnerMap = listGroupRunners(git, runnerMap)
+
+	projectRunners := listProjectRunners(git)
+	groupRunners := listGroupRunners(git)
+	runnerMap := MergeRunnerMaps(projectRunners, groupRunners)
 
 	log.Info().Msg("Listing avaialable runenrs: Runners are only shown once, even when available by multiple source e,g, group or project")
 
-	runnerTags := make(map[string]bool)
+	var runnerDetails []*gitlab.RunnerDetails
 	for _, entry := range runnerMap {
-		details, _, err := git.Runners.GetRunnerDetails(entry.runner.ID)
+		details, _, err := git.Runners.GetRunnerDetails(entry.Runner.ID)
 
 		if err != nil {
 			log.Error().Stack().Err(err).Msg("failed getting runner details")
 			continue
 		}
 
-		for _, tag := range details.TagList {
-			runnerTags[tag] = true
-		}
+		runnerDetails = append(runnerDetails, details)
+		info := FormatRunnerInfo(entry, details)
 
-		if entry.project != nil {
-			log.Info().Str("project", entry.project.Name).Str("runner", details.Name).Str("description", details.Description).Str("type", details.RunnerType).Bool("paused", details.Paused).Str("tags", strings.Join(details.TagList, ",")).Msg("project runner")
-		}
-
-		if entry.group != nil {
-			log.Info().Str("name", entry.group.Name).Str("runner", details.Name).Str("description", details.Description).Str("type", details.RunnerType).Bool("paused", details.Paused).Str("tags", strings.Join(details.TagList, ",")).Msg("group runner")
+		if info.SourceType == "project" {
+			log.Info().Str("project", info.SourceName).Str("runner", info.Name).Str("description", info.Description).Str("type", info.Type).Bool("paused", info.Paused).Str("tags", FormatTagsString(info.Tags)).Msg("project runner")
+		} else if info.SourceType == "group" {
+			log.Info().Str("name", info.SourceName).Str("runner", info.Name).Str("description", info.Description).Str("type", info.Type).Bool("paused", info.Paused).Str("tags", FormatTagsString(info.Tags)).Msg("group runner")
 		}
 	}
 
-	keys := make([]string, 0, len(runnerTags))
-	for k := range runnerTags {
-		keys = append(keys, k)
-	}
-
-	if len(keys) > 0 {
-		log.Info().Str("tags", strings.Join(keys, ",")).Msg("Unique runner tags")
+	uniqueTags := ExtractUniqueTags(runnerDetails)
+	if len(uniqueTags) > 0 {
+		log.Info().Str("tags", FormatTagsString(uniqueTags)).Msg("Unique runner tags")
 	}
 }
 
-func listProjectRunners(git *gitlab.Client, runnerMap map[int]runnerResult) map[int]runnerResult {
+func listProjectRunners(git *gitlab.Client) map[int]RunnerResult {
+	runnerMap := make(map[int]RunnerResult)
 	projectOpts := &gitlab.ListProjectsOptions{
 		ListOptions: gitlab.ListOptions{
 			PerPage: 100,
@@ -76,7 +63,7 @@ func listProjectRunners(git *gitlab.Client, runnerMap map[int]runnerResult) map[
 		}
 		runners, _, _ := git.Runners.ListProjectRunners(project.ID, runnerOpts)
 		for _, runner := range runners {
-			runnerMap[runner.ID] = runnerResult{runner: runner, project: project, group: nil}
+			runnerMap[runner.ID] = RunnerResult{Runner: runner, Project: project, Group: nil}
 		}
 		return nil
 	})
@@ -85,10 +72,10 @@ func listProjectRunners(git *gitlab.Client, runnerMap map[int]runnerResult) map[
 	}
 
 	return runnerMap
-
 }
 
-func listGroupRunners(git *gitlab.Client, runnerMap map[int]runnerResult) map[int]runnerResult {
+func listGroupRunners(git *gitlab.Client) map[int]RunnerResult {
+	runnerMap := make(map[int]RunnerResult)
 	log.Debug().Msg("Logging available groups with at least developer access")
 
 	listGroupsOpts := &gitlab.ListGroupsOptions{
@@ -133,7 +120,7 @@ func listGroupRunners(git *gitlab.Client, runnerMap map[int]runnerResult) map[in
 				log.Error().Stack().Err(err).Msg("failed listing group runners")
 			}
 			for _, runner := range runners {
-				runnerMap[runner.ID] = runnerResult{runner: runner, project: nil, group: group}
+				runnerMap[runner.ID] = RunnerResult{Runner: runner, Project: nil, Group: group}
 			}
 
 			if resp.NextPage == 0 {

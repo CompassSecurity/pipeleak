@@ -1,4 +1,4 @@
-package processor
+package runners
 
 import (
 	"strings"
