@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
-	"github.com/CompassSecurity/pipeleak/pkg/scanner"
+	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
 	"github.com/CompassSecurity/pipeleak/pkg/system"
 	"github.com/nsqio/go-diskqueue"
 	"github.com/rs/zerolog/log"
@@ -40,7 +40,7 @@ func ScanGitLabPipelines(options *ScanOptions) {
 	globQueue, queueFileName = setupQueue(options)
 	system.RegisterGracefulShutdownHandler(cleanUp)
 
-	scanner.InitRules(options.ConfidenceFilter)
+	runner.InitScanner(options.ConfidenceFilter)
 	if !options.TruffleHogVerification {
 		log.Info().Msg("TruffleHog verification is disabled")
 	}

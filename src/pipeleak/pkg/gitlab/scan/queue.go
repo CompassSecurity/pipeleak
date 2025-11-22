@@ -1,10 +1,8 @@
 package scan
 
 import (
-	"archive/zip"
 	"bytes"
 	"compress/gzip"
-	"context"
 	"encoding/json"
 	"io"
 	"math"
@@ -19,12 +17,12 @@ import (
 
 	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
-	"github.com/CompassSecurity/pipeleak/pkg/logging"
-	"github.com/CompassSecurity/pipeleak/pkg/scanner"
+	artifactproc "github.com/CompassSecurity/pipeleak/pkg/scan/artifact"
+	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
+	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
 	"github.com/h2non/filetype"
 	"github.com/nsqio/go-diskqueue"
 	"github.com/rs/zerolog/log"
-	"github.com/wandb/parallel"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
@@ -139,15 +137,21 @@ func analyzeJobTrace(git *gitlab.Client, item QueueItem, options *ScanOptions) {
 		return
 	}
 
-	findings, err := scanner.DetectHits(trace, options.MaxScanGoRoutines, options.TruffleHogVerification)
+	logResult, err := logline.ProcessLogs(trace, logline.ProcessOptions{
+		MaxGoRoutines:     options.MaxScanGoRoutines,
+		VerifyCredentials: options.TruffleHogVerification,
+		BuildURL:          item.Meta.JobWebUrl,
+		JobName:           item.Meta.JobName,
+	})
 	if err != nil {
 		log.Debug().Err(err).Int("project", item.Meta.ProjectId).Int("job", item.Meta.JobId).Msg("Failed detecting secrets")
 		return
 	}
 
-	for _, finding := range findings {
-		logging.Hit().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", item.Meta.JobWebUrl).Str("jobName", item.Meta.JobName).Msg("HIT")
-	}
+	result.ReportFindings(logResult.Findings, result.ReportOptions{
+		LocationURL: item.Meta.JobWebUrl,
+		JobName:     item.Meta.JobName,
+	})
 }
 
 func analyzeJobArtifact(git *gitlab.Client, item QueueItem, options *ScanOptions) {
@@ -167,41 +171,16 @@ func analyzeJobArtifact(git *gitlab.Client, item QueueItem, options *ScanOptions
 		return
 	}
 
-	reader := bytes.NewReader(data)
-	zipListing, err := zip.NewReader(reader, int64(len(data)))
+	_, err := artifactproc.ProcessZipArtifact(data, artifactproc.ProcessOptions{
+		MaxGoRoutines:     options.MaxScanGoRoutines,
+		VerifyCredentials: options.TruffleHogVerification,
+		BuildURL:          item.Meta.JobWebUrl,
+		ArtifactName:      item.Meta.JobName,
+	})
 	if err != nil {
-		log.Debug().Int("project", item.Meta.ProjectId).Int("job", item.Meta.JobId).Msg("Unable to unzip artifacts for")
+		log.Debug().Err(err).Int("project", item.Meta.ProjectId).Int("job", item.Meta.JobId).Msg("Unable to process artifacts")
 		return
 	}
-
-	ctx := context.Background()
-	group := parallel.Limited(ctx, options.MaxScanGoRoutines)
-	for _, file := range zipListing.File {
-		group.Go(func(ctx context.Context) {
-			fc, err := file.Open()
-			if err != nil {
-				log.Error().Stack().Err(err).Msg("Unable to open raw artifact zip file")
-				return
-			}
-
-			content, err := io.ReadAll(fc)
-			if err != nil {
-				log.Error().Stack().Err(err).Msg("Unable to readAll artifact zip file")
-				return
-			}
-
-			kind, _ := filetype.Match(content)
-			// do not scan https://pkg.go.dev/github.com/h2non/filetype#readme-supported-types
-			if kind == filetype.Unknown {
-				scanner.DetectFileHits(content, item.Meta.JobWebUrl, item.Meta.JobName, file.Name, "", options.TruffleHogVerification)
-			} else if filetype.IsArchive(content) {
-				scanner.HandleArchiveArtifact(file.Name, content, item.Meta.JobWebUrl, item.Meta.JobName, options.TruffleHogVerification)
-			}
-			_ = fc.Close()
-		})
-	}
-
-	group.Wait()
 }
 
 func analyzeDotenvArtifact(git *gitlab.Client, item QueueItem, options *ScanOptions) {
@@ -210,13 +189,21 @@ func analyzeDotenvArtifact(git *gitlab.Client, item QueueItem, options *ScanOpti
 		return
 	}
 
-	findings, err := scanner.DetectHits(dotenvText, options.MaxScanGoRoutines, options.TruffleHogVerification)
+	logResult, err := logline.ProcessLogs(dotenvText, logline.ProcessOptions{
+		MaxGoRoutines:     options.MaxScanGoRoutines,
+		VerifyCredentials: options.TruffleHogVerification,
+		BuildURL:          item.Meta.JobWebUrl,
+	})
 	if err != nil {
 		log.Debug().Err(err).Int("project", item.Meta.ProjectId).Int("job", item.Meta.JobId).Msg("Failed detecting secrets")
 		return
 	}
-	for _, finding := range findings {
-		logging.Hit().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", item.Meta.JobWebUrl).Msg("HIT DOTENV: Check artifacts page which is the only place to download the dotenv file")
+
+	for _, finding := range logResult.Findings {
+		result.ReportFindingWithCustomFields(finding, map[string]string{
+			"url":  item.Meta.JobWebUrl,
+			"note": "Check artifacts page - dotenv files are only downloadable there",
+		})
 	}
 }
 
