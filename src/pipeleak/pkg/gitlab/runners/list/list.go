@@ -1,10 +1,29 @@
 package runners
 
 import (
+	"strings"
+
 	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
 	"github.com/rs/zerolog/log"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
+
+type RunnerResult struct {
+	Runner  *gitlab.Runner
+	Project *gitlab.Project
+	Group   *gitlab.Group
+}
+
+type RunnerInfo struct {
+	ID          int
+	Name        string
+	Description string
+	Type        string
+	Paused      bool
+	Tags        []string
+	SourceType  string
+	SourceName  string
+}
 
 func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
 	git, err := util.GetGitlabClient(apiToken, gitlabUrl)
@@ -30,9 +49,10 @@ func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
 		runnerDetails = append(runnerDetails, details)
 		info := FormatRunnerInfo(entry, details)
 
-		if info.SourceType == "project" {
+		switch info.SourceType {
+		case "project":
 			log.Info().Str("project", info.SourceName).Str("runner", info.Name).Str("description", info.Description).Str("type", info.Type).Bool("paused", info.Paused).Str("tags", FormatTagsString(info.Tags)).Msg("project runner")
-		} else if info.SourceType == "group" {
+		case "group":
 			log.Info().Str("name", info.SourceName).Str("runner", info.Name).Str("description", info.Description).Str("type", info.Type).Bool("paused", info.Paused).Str("tags", FormatTagsString(info.Tags)).Msg("group runner")
 		}
 	}
@@ -131,4 +151,83 @@ func listGroupRunners(git *gitlab.Client) map[int]RunnerResult {
 	}
 
 	return runnerMap
+}
+
+// MergeRunnerMaps merges project and group runner maps with deduplication.
+// Project runners take precedence over group runners.
+func MergeRunnerMaps(projectRunners, groupRunners map[int]RunnerResult) map[int]RunnerResult {
+	merged := make(map[int]RunnerResult)
+
+	for id, runner := range projectRunners {
+		merged[id] = runner
+	}
+
+	for id, runner := range groupRunners {
+		if _, exists := merged[id]; !exists {
+			merged[id] = runner
+		}
+	}
+
+	return merged
+}
+
+// FormatRunnerInfo formats a RunnerResult and RunnerDetails into a RunnerInfo struct.
+func FormatRunnerInfo(result RunnerResult, details *gitlab.RunnerDetails) *RunnerInfo {
+	if details == nil {
+		return nil
+	}
+
+	info := &RunnerInfo{
+		ID:          details.ID,
+		Name:        details.Name,
+		Description: details.Description,
+		Type:        details.RunnerType,
+		Paused:      details.Paused,
+		Tags:        details.TagList,
+	}
+
+	if result.Project != nil {
+		info.SourceType = "project"
+		info.SourceName = result.Project.Name
+	} else if result.Group != nil {
+		info.SourceType = "group"
+		info.SourceName = result.Group.Name
+	}
+
+	return info
+}
+
+// ExtractUniqueTags extracts all unique tags from a list of runner details.
+func ExtractUniqueTags(runners []*gitlab.RunnerDetails) []string {
+	tagSet := make(map[string]bool)
+
+	for _, runner := range runners {
+		for _, tag := range runner.TagList {
+			tagSet[tag] = true
+		}
+	}
+
+	tags := make([]string, 0, len(tagSet))
+	for tag := range tagSet {
+		tags = append(tags, tag)
+	}
+
+	return tags
+}
+
+// FormatTagsString formats a slice of tags as a comma-separated string.
+func FormatTagsString(tags []string) string {
+	return strings.Join(tags, ",")
+}
+
+// CountRunnersBySource counts runners by their source type (project or group).
+func CountRunnersBySource(runnerMap map[int]RunnerResult) (projectCount, groupCount int) {
+	for _, result := range runnerMap {
+		if result.Project != nil {
+			projectCount++
+		} else if result.Group != nil {
+			groupCount++
+		}
+	}
+	return
 }

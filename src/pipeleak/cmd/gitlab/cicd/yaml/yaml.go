@@ -1,7 +1,7 @@
 package yaml
 
 import (
-	pkgcicd "github.com/CompassSecurity/pipeleak/pkg/gitlab/cicd"
+	pkgcicd "github.com/CompassSecurity/pipeleak/pkg/gitlab/cicd/yaml"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
