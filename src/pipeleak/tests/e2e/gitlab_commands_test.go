@@ -190,12 +190,12 @@ func TestGitLabCICDYaml(t *testing.T) {
 	})
 	defer cleanup()
 
-	stdout, stderr, exitErr := runCLI(t, []string{
-		"gl", "cicd", "yaml",
-		"--gitlab", server.URL,
-		"--token", "glpat-test",
-		"--repo", "test/project",
-	}, nil, 10*time.Second)
+	       stdout, stderr, exitErr := runCLI(t, []string{
+		       "gl", "cicd", "yaml",
+		       "--gitlab", server.URL,
+		       "--token", "glpat-test",
+		       "--project", "test/project",
+	       }, nil, 10*time.Second)
 
 	assert.Nil(t, exitErr, "CICD yaml command should succeed")
 

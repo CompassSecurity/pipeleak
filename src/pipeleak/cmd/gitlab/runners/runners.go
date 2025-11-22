@@ -32,8 +32,8 @@ func NewRunnersRootCmd() *cobra.Command {
 	}
 	runnersCmd.MarkFlagsRequiredTogether("gitlab", "token")
 
-	runnersCmd.AddCommand(list.NewRunnersListCmd(gitlabUrl, gitlabApiToken))
-	runnersCmd.AddCommand(exploit.NewRunnersExploitCmd(gitlabUrl, gitlabApiToken))
+	runnersCmd.AddCommand(list.NewRunnersListCmd())
+	runnersCmd.AddCommand(exploit.NewRunnersExploitCmd())
 
 	return runnersCmd
 }

@@ -30,7 +30,7 @@ func NewCiCdCmd() *cobra.Command {
 	}
 	ciCdCmd.MarkFlagsRequiredTogether("gitlab", "token")
 
-	ciCdCmd.AddCommand(yaml.NewYamlCmd(gitlabUrl, gitlabApiToken))
+	ciCdCmd.AddCommand(yaml.NewYamlCmd())
 
 	return ciCdCmd
 }
