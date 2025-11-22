@@ -30,7 +30,7 @@ func NewEnumCmd(gitlabUrl, gitlabApiToken string) *cobra.Command {
 
 	enumCmd.PersistentFlags().BoolVarP(&owned, "owned", "o", false, "Scan user owned projects only")
 	enumCmd.PersistentFlags().BoolVarP(&member, "member", "m", false, "Scan projects the user is member of")
-	enumCmd.Flags().StringVarP(&repository, "repo", "r", "", "Repository to scan for Renovate configuraiton (if not set, all projects will be scanned)")
+	enumCmd.Flags().StringVarP(&repository, "repo", "r", "", "Repository to scan for Renovate configuration (if not set, all projects will be scanned)")
 	enumCmd.Flags().StringVarP(&namespace, "namespace", "n", "", "Namespace to scan")
 	enumCmd.Flags().StringVarP(&projectSearchQuery, "search", "s", "", "Query string for searching projects")
 	enumCmd.Flags().BoolVarP(&fast, "fast", "f", false, "Fast mode - skip renovate config file detection, only check CIDC yml for renovate bot job (default false)")
