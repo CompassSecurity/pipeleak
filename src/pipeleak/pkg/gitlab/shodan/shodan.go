@@ -14,12 +14,7 @@ import (
 	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
 	"github.com/perimeterx/marshmallow"
 	"github.com/rs/zerolog/log"
-	"github.com/spf13/cobra"
 	"github.com/wandb/parallel"
-)
-
-var (
-	shodanJson string
 )
 
 type shodan struct {
@@ -33,25 +28,8 @@ type result struct {
 	Shodan    shodan   `json:"_shodan"`
 }
 
-func NewShodanCmd() *cobra.Command {
-	scanCmd := &cobra.Command{
-		Use:     "shodan",
-		Short:   "Find self-registerable GitLab instances from Shodan search output",
-		Long:    "Use the Shodan command to identify GitLab instances that might allow for anyone to register. This command assumes a JSON file from a Shodan export. Example query: product:\"GitLab Self-Managed\"",
-		Example: "pipeleak gl shodan --json shodan-export.json",
-		Run:     Shodan,
-	}
-
-	scanCmd.Flags().StringVarP(&shodanJson, "json", "j", "", "Shodan search export JSON file path")
-	err := scanCmd.MarkFlagRequired("json")
-	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("Unable to parse shodan json flag")
-	}
-
-	return scanCmd
-}
-
-func Shodan(cmd *cobra.Command, args []string) {
+// RunShodan performs the Shodan scan
+func RunShodan(shodanJson string) {
 
 	// #nosec G304 - User-provided file path via CLI flag, user controls their own filesystem
 	jsonFile, err := os.Open(shodanJson)

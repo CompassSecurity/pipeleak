@@ -3,38 +3,14 @@ package renovate
 import (
 	"regexp"
 
-	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
+	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
 	"github.com/rs/zerolog/log"
-	"github.com/spf13/cobra"
 	gogitlab "gitlab.com/gitlab-org/api/client-go"
 	ci "gitlab.com/mitchenielsen/gitlab-ci-go"
 	"gopkg.in/yaml.v3"
 )
 
-var (
-	renovateBranchesRegex string
-)
-
-func NewPrivescCmd() *cobra.Command {
-	privescCmd := &cobra.Command{
-		Use:     "privesc",
-		Short:   "Inject a malicious CI/CD Job into the protected default branch abusing Renovate Bot's access",
-		Long:    "Inject a job into the CI/CD pipeline of the project's default branch by adding a commit (race condition) to a Renovate Bot branch, which is then auto-merged into the main branch. Assumes the Renovate Bot has owner/maintainer access whereas you only have developer access. See https://blog.compass-security.com/2025/05/renovate-keeping-your-updates-secure/",
-		Example: `pipeleak gl renovate privesc --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com --repo-name mygroup/myproject --renovate-branches-regex 'renovate/.*'`,
-		Run:     Exploit,
-	}
-	privescCmd.Flags().StringVarP(&renovateBranchesRegex, "renovate-branches-regex", "b", "renovate/.*", "The branch name regex expression to match the Renovate Bot branch names (default: 'renovate/.*')")
-	privescCmd.Flags().StringVarP(&repoName, "repo-name", "r", "", "The repository to target")
-
-	err := privescCmd.MarkFlagRequired("repo-name")
-	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("Unable to require repo-name flag")
-	}
-
-	return privescCmd
-}
-
-func Exploit(cmd *cobra.Command, args []string) {
+func RunExploit(gitlabUrl, gitlabApiToken, repoName, renovateBranchesRegex string) {
 	log.Info().Msg("Ensure the Renovate bot does have a greater access level than you, otherwise this will not work, and is able to auto merge into the protected main branch")
 
 	git, err := util.GetGitlabClient(gitlabApiToken, gitlabUrl)

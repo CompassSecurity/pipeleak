@@ -194,7 +194,7 @@ func TestGitLabCICDYaml(t *testing.T) {
 		"gl", "cicd", "yaml",
 		"--gitlab", server.URL,
 		"--token", "glpat-test",
-		"--repo", "test/project",
+		"--project", "test/project",
 	}, nil, 10*time.Second)
 
 	assert.Nil(t, exitErr, "CICD yaml command should succeed")

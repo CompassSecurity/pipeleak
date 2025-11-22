@@ -20,27 +20,36 @@ Pipeleak is a CLI tool designed to scan CI/CD logs and artifacts for secrets acr
 pipeleak/
 ├── src/pipeleak/           # Main Go module
 │   ├── cmd/                # CLI commands (using Cobra)
-│   │   ├── gitlab/         # GitLab-specific commands
-│   │   ├── github/         # GitHub-specific commands
 │   │   ├── bitbucket/      # BitBucket-specific commands
 │   │   ├── devops/         # Azure DevOps commands
+│   │   ├── docs/           # Documentation command
 │   │   ├── gitea/          # Gitea commands
-│   │   └── docs/           # Documentation command
+│   │   ├── github/         # GitHub-specific commands
+│   │   ├── gitlab/         # GitLab-specific commands
 │   ├── pkg/                # Core business logic packages
 │   │   ├── archive/        # Archive handling
+│   │   ├── bitbucket/      # BitBucket business logic
 │   │   ├── config/         # Configuration management
-│   │   ├── gitlab/         # GitLab functionality
-│   │   ├── github/         # GitHub functionality
-│   │   └── ...            # Platform-specific packages
+│   │   ├── devops/         # Azure DevOps business logic
+│   │   ├── docs/           # Documentation generation
+│   │   ├── format/         # Formatting helpers
+│   │   ├── gitea/          # Gitea business logic
+│   │   ├── github/         # GitHub business logic
+│   │   ├── gitlab/         # GitLab business logic
+│   │   ├── httpclient/     # HTTP client helpers
+│   │   ├── logging/        # Logging helpers
+│   │   ├── scan/           # Scan logic
+│   │   ├── scanner/        # Scanner engine
+│   │   ├── system/         # System helpers
 │   ├── tests/              # Test files
-│   │   └── e2e/           # End-to-end tests
-│   ├── main.go            # Application entry point
-│   ├── go.mod             # Go module definition
-│   └── go.sum             # Dependency checksums
+│   │   └── e2e/            # End-to-end tests
+│   ├── main.go             # Application entry point
+│   ├── go.mod              # Go module definition
+│   └── go.sum              # Dependency checksums
 ├── docs/                   # Documentation (MkDocs)
 ├── .github/                # GitHub workflows and configs
-│   └── workflows/         # CI/CD pipelines
-└── goreleaser.yaml        # Release configuration
+│   └── workflows/          # CI/CD pipelines
+└── goreleaser.yaml         # Release configuration
 ```
 
 ## Building and Testing
@@ -85,6 +94,7 @@ golangci-lint run --timeout=10m
 4. **Testing**: Write tests for new functionality; maintain existing test coverage
 5. **Documentation**: Update documentation when adding or modifying features
 6. **Comments**: Only add comments that provide useful context and additional understanding; avoid obvious or redundant comments
+7. **File Moves/Copies**: When moving or copying files, always delete any resulting unused or vestigial files to keep the codebase clean and maintainable.
 
 ### Command Structure
 

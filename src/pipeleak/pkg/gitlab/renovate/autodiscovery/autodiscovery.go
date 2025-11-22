@@ -1,16 +1,10 @@
 package renovate
 
 import (
-	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
+	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
 	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/rs/zerolog/log"
-	"github.com/spf13/cobra"
 	gogitlab "gitlab.com/gitlab-org/api/client-go"
-)
-
-var (
-	repoName string
-	username string
 )
 
 var renovateJson = `
@@ -109,24 +103,7 @@ var exploitScript = `
 echo "This script is executed by Renovate during the renovation process. Exploit it to leak sensitive information or perform unauthorized actions."
 `
 
-func NewAutodiscoveryCmd() *cobra.Command {
-	autodiscoveryCmd := &cobra.Command{
-		Use:   "autodiscovery",
-		Short: "Create a PoC for Renovate Autodiscovery misconfigurations exploitation",
-		Long:  "Create a project with a Renovate Bot configuration that will be picked up by an existing Renovate Bot user. The Renovate Bot will then execute the 'prepare' script defined in package.json which you can customize in exploit.sh.",
-		Example: `
-# Create a project and invite the victim Renovate Bot user to it. Adds a malicious prepare script to package.json which is executed by the Renovate Bot during the renovation process.    
-pipeleak gl renovate autodiscovery --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com --repoName my-exploit-repo --username renovate-bot-user
-    `,
-		Run: Generate,
-	}
-	autodiscoveryCmd.Flags().StringVarP(&repoName, "repo-name", "r", "", "The name for the created repository")
-	autodiscoveryCmd.Flags().StringVarP(&username, "username", "u", "", "The username of the victim Renovate Bot user to invite")
-
-	return autodiscoveryCmd
-}
-
-func Generate(cmd *cobra.Command, args []string) {
+func RunGenerate(gitlabUrl, gitlabApiToken, repoName, username string) {
 	git, err := util.GetGitlabClient(gitlabApiToken, gitlabUrl)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed creating gitlab client")

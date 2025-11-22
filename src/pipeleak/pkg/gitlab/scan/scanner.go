@@ -3,8 +3,8 @@ package scan
 import (
 	"net/url"
 
-	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
 	"github.com/CompassSecurity/pipeleak/pkg/format"
+	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
 	"github.com/CompassSecurity/pipeleak/pkg/scanner"
 	"github.com/rs/zerolog/log"
 )

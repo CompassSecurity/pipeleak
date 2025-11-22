@@ -1,32 +1,14 @@
 package cicd
 
 import (
-	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
 	"github.com/CompassSecurity/pipeleak/pkg/format"
+	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
 	"github.com/rs/zerolog/log"
-	"github.com/spf13/cobra"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
-var (
-	projectName string
-)
-
-func NewYamlCmd() *cobra.Command {
-	yamlCmd := &cobra.Command{
-		Use:     "yaml",
-		Short:   "Fetch full CI/CD yaml of project",
-		Long:    "Fetch and print the fully compiled CI/CD yaml of a given project.",
-		Example: `pipeleak gl cicd yaml --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com --repo mygroup/myrepo`,
-		Run:     Fetch,
-	}
-
-	yamlCmd.Flags().StringVarP(&projectName, "repo", "r", "", "Repository to fetch its fully compiled .gitlab-ci.yml")
-
-	return yamlCmd
-}
-
-func Fetch(cmd *cobra.Command, args []string) {
+// DumpCICDYaml fetches and prints the fully compiled CI/CD yaml of a given project
+func DumpCICDYaml(gitlabUrl, gitlabApiToken, projectName string) {
 	git, err := util.GetGitlabClient(gitlabApiToken, gitlabUrl)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed creating gitlab client")

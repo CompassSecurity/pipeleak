@@ -11,92 +11,62 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
+	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
 	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
 	"github.com/rs/zerolog/log"
-	"github.com/spf13/cobra"
 	"github.com/yosuke-furukawa/json5/encoding/json5"
 
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
-var (
-	owned                       bool
-	member                      bool
-	projectSearchQuery          string
-	fast                        bool
-	dump                        bool
-	selfHostedOptions           []string
-	page                        int
-	repository                  string
-	namespace                   string
-	orderBy                     string
-	extendRenovateConfigService string
-)
-
-func NewEnumCmd() *cobra.Command {
-	enumCmd := &cobra.Command{
-		Use:   "enum [no options!]",
-		Short: "Enumerate Renovate configurations",
-		Run:   Enumerate,
-	}
-
-	enumCmd.PersistentFlags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
-	err := enumCmd.MarkPersistentFlagRequired("gitlab")
-	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("Unable to require gitlab flag")
-	}
-
-	enumCmd.PersistentFlags().StringVarP(&gitlabApiToken, "token", "t", "", "GitLab API Token")
-	err = enumCmd.MarkPersistentFlagRequired("token")
-	if err != nil {
-		log.Error().Stack().Err(err).Msg("Unable to require token flag")
-	}
-	enumCmd.MarkFlagsRequiredTogether("gitlab", "token")
-
-	enumCmd.PersistentFlags().BoolVarP(&owned, "owned", "o", false, "Scan user owned projects only")
-	enumCmd.PersistentFlags().BoolVarP(&member, "member", "m", false, "Scan projects the user is member of")
-	enumCmd.Flags().StringVarP(&repository, "repo", "r", "", "Repository to scan for Renovate configuraiton (if not set, all projects will be scanned)")
-	enumCmd.Flags().StringVarP(&namespace, "namespace", "n", "", "Namespace to scan")
-	enumCmd.Flags().StringVarP(&projectSearchQuery, "search", "s", "", "Query string for searching projects")
-	enumCmd.Flags().BoolVarP(&fast, "fast", "f", false, "Fast mode - skip renovate config file detection, only check CIDC yml for renovate bot job (default false)")
-	enumCmd.Flags().BoolVarP(&dump, "dump", "d", false, "Dump mode - save all config files to renovate-enum-out folder (default false)")
-	enumCmd.Flags().IntVarP(&page, "page", "p", 1, "Page number to start fetching projects from (default 1, fetch all pages)")
-	enumCmd.Flags().StringVar(&orderBy, "order-by", "created_at", "Order projects by: id, name, path, created_at, updated_at, star_count, last_activity_at, or similarity")
-	enumCmd.Flags().StringVar(&extendRenovateConfigService, "extend-renovate-config-service", "", "Base URL of the resolver service e.g.  http://localhost:3000 (docker run -ti -p 3000:3000 jfrcomp/renovate-config-resolver:latest). Renovate configs can be extended by shareable preset, resolving them makes enumeration more accurate.")
-
-	return enumCmd
+// EnumOptions contains all options for the renovate enum command
+type EnumOptions struct {
+	GitlabUrl                   string
+	GitlabApiToken              string
+	Owned                       bool
+	Member                      bool
+	ProjectSearchQuery          string
+	Fast                        bool
+	Dump                        bool
+	SelfHostedOptions           []string
+	Page                        int
+	Repository                  string
+	Namespace                   string
+	OrderBy                     string
+	ExtendRenovateConfigService string
+	MinAccessLevel              int
 }
 
-func Enumerate(cmd *cobra.Command, args []string) {
-	git, err := util.GetGitlabClient(gitlabApiToken, gitlabUrl)
+// RunEnumerate performs the renovate enumeration with the given options
+func RunEnumerate(opts EnumOptions) {
+	git, err := util.GetGitlabClient(opts.GitlabApiToken, opts.GitlabUrl)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed creating gitlab client")
 	}
 
-	if extendRenovateConfigService != "" {
-		err := validateRenovateConfigService(extendRenovateConfigService)
+	if opts.ExtendRenovateConfigService != "" {
+		err := validateRenovateConfigService(opts.ExtendRenovateConfigService)
 		if err != nil {
 			log.Fatal().Stack().Err(err).Msg("Invalid extendRenovateConfigService URL")
 		}
-		log.Info().Str("service", extendRenovateConfigService).Msg("Using renovate config extension service")
+		log.Info().Str("service", opts.ExtendRenovateConfigService).Msg("Using renovate config extension service")
 	}
 
-	validateOrderBy(orderBy)
+	validateOrderBy(opts.OrderBy)
 
-	if repository != "" {
-		scanSingleProject(git, repository)
-	} else if namespace != "" {
-		scanNamespace(git, namespace)
+	if opts.Repository != "" {
+		scanSingleProject(git, opts.Repository, opts)
+	} else if opts.Namespace != "" {
+		scanNamespace(git, opts.Namespace, opts)
 	} else {
-		fetchProjects(git)
+		fetchProjects(git, opts)
 	}
 
 	log.Info().Msg("Done, Bye Bye 🏳️‍🌈🔥")
 }
 
-func scanSingleProject(git *gitlab.Client, projectName string) {
+func scanSingleProject(git *gitlab.Client, projectName string, opts EnumOptions) {
 	log.Info().Str("repository", projectName).Msg("Scanning specific repository for Renovate configuration")
 	project, resp, err := git.Projects.GetProject(projectName, &gitlab.GetProjectOptions{})
 	if err != nil {
@@ -105,10 +75,10 @@ func scanSingleProject(git *gitlab.Client, projectName string) {
 	if resp.StatusCode == 404 {
 		log.Fatal().Msg("Project not found")
 	}
-	identifyRenovateBotJob(git, project)
+	identifyRenovateBotJob(git, project, opts)
 }
 
-func scanNamespace(git *gitlab.Client, namespace string) {
+func scanNamespace(git *gitlab.Client, namespace string, opts EnumOptions) {
 	log.Info().Str("namespace", namespace).Msg("Scanning specific namespace for Renovate configuration")
 	group, _, err := git.Groups.GetGroup(namespace, &gitlab.GetGroupOptions{})
 	if err != nil {
@@ -118,18 +88,18 @@ func scanNamespace(git *gitlab.Client, namespace string) {
 	projectOpts := &gitlab.ListGroupProjectsOptions{
 		ListOptions: gitlab.ListOptions{
 			PerPage: 100,
-			Page:    page,
+			Page:    opts.Page,
 		},
-		OrderBy:          gitlab.Ptr(orderBy),
-		Owned:            gitlab.Ptr(owned),
-		Search:           gitlab.Ptr(projectSearchQuery),
+		OrderBy:          gitlab.Ptr(opts.OrderBy),
+		Owned:            gitlab.Ptr(opts.Owned),
+		Search:           gitlab.Ptr(opts.ProjectSearchQuery),
 		WithShared:       gitlab.Ptr(true),
 		IncludeSubGroups: gitlab.Ptr(true),
 	}
 
 	err = util.IterateGroupProjects(git, group.ID, projectOpts, func(project *gitlab.Project) error {
 		log.Debug().Str("url", project.WebURL).Msg("Check project")
-		identifyRenovateBotJob(git, project)
+		identifyRenovateBotJob(git, project, opts)
 		return nil
 	})
 	if err != nil {
@@ -140,23 +110,23 @@ func scanNamespace(git *gitlab.Client, namespace string) {
 	log.Info().Msg("Fetched all namespace projects")
 }
 
-func fetchProjects(git *gitlab.Client) {
+func fetchProjects(git *gitlab.Client, opts EnumOptions) {
 	log.Info().Msg("Fetching projects")
 
 	projectOpts := &gitlab.ListProjectsOptions{
 		ListOptions: gitlab.ListOptions{
 			PerPage: 100,
-			Page:    page,
+			Page:    opts.Page,
 		},
-		OrderBy:    gitlab.Ptr(orderBy),
-		Owned:      gitlab.Ptr(owned),
-		Membership: gitlab.Ptr(member),
-		Search:     gitlab.Ptr(projectSearchQuery),
+		OrderBy:    gitlab.Ptr(opts.OrderBy),
+		Owned:      gitlab.Ptr(opts.Owned),
+		Membership: gitlab.Ptr(opts.Member),
+		Search:     gitlab.Ptr(opts.ProjectSearchQuery),
 	}
 
 	err := util.IterateProjects(git, projectOpts, func(project *gitlab.Project) error {
 		log.Debug().Str("url", project.WebURL).Msg("Check project")
-		identifyRenovateBotJob(git, project)
+		identifyRenovateBotJob(git, project, opts)
 		return nil
 	})
 	if err != nil {
@@ -167,7 +137,7 @@ func fetchProjects(git *gitlab.Client) {
 	log.Info().Msg("Fetched all projects")
 }
 
-func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
+func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project, opts EnumOptions) {
 	ciCdYml, err := util.FetchCICDYml(git, project.ID)
 	if err != nil {
 		// silently skip
@@ -177,18 +147,18 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 	hasCiCdRenovateConfig := detectCiCdConfig(ciCdYml)
 	var configFile *gitlab.File = nil
 	var configFileContent string
-	if !fast {
+	if !opts.Fast {
 		configFile, configFileContent = detectRenovateConfigFile(git, project)
 
-		if extendRenovateConfigService != "" {
+		if opts.ExtendRenovateConfigService != "" {
 			// Replace any occurrence of "local>" with "gitlab>" this best effort
 			configFileContent = strings.ReplaceAll(configFileContent, "local>", "gitlab>")
-			configFileContent = extendRenovateConfig(configFileContent, project)
+			configFileContent = extendRenovateConfig(configFileContent, project, opts)
 		}
 	}
 
 	if hasCiCdRenovateConfig || configFile != nil {
-		if dump {
+		if opts.Dump {
 			filename := ""
 			if configFile != nil {
 				filename = configFile.FileName
@@ -198,7 +168,7 @@ func identifyRenovateBotJob(git *gitlab.Client, project *gitlab.Project) {
 
 		selfHostedConfigFile := false
 		if configFile != nil {
-			selfHostedConfigFile = isSelfHostedConfig(configFileContent)
+			selfHostedConfigFile = isSelfHostedConfig(configFileContent, opts)
 		}
 
 		autodiscovery := detectAutodiscovery(ciCdYml, configFileContent)
@@ -331,9 +301,9 @@ func detectRenovateConfigFile(git *gitlab.Client, project *gitlab.Project) (*git
 	return nil, ""
 }
 
-func fetchCurrentSelfHostedOptions() []string {
-	if len(selfHostedOptions) > 0 {
-		return selfHostedOptions
+func fetchCurrentSelfHostedOptions(opts EnumOptions) []string {
+	if len(opts.SelfHostedOptions) > 0 {
+		return opts.SelfHostedOptions
 	}
 
 	log.Debug().Msg("Fetching current self-hosted configuration from GitHub")
@@ -355,8 +325,8 @@ func fetchCurrentSelfHostedOptions() []string {
 		return []string{}
 	}
 
-	selfHostedOptions = extractSelfHostedOptions(data)
-	return selfHostedOptions
+	opts.SelfHostedOptions = extractSelfHostedOptions(data)
+	return opts.SelfHostedOptions
 }
 
 func extractSelfHostedOptions(data []byte) []string {
@@ -371,8 +341,8 @@ func extractSelfHostedOptions(data []byte) []string {
 	return options
 }
 
-func isSelfHostedConfig(config string) bool {
-	selfHostedOptions := fetchCurrentSelfHostedOptions()
+func isSelfHostedConfig(config string, opts EnumOptions) bool {
+	selfHostedOptions := fetchCurrentSelfHostedOptions(opts)
 	for _, option := range selfHostedOptions {
 		// Check if the content contains any of the self-hosted options
 		if format.ContainsI(config, option) {
@@ -382,10 +352,10 @@ func isSelfHostedConfig(config string) bool {
 	return false
 }
 
-func extendRenovateConfig(renovateConfig string, project *gitlab.Project) string {
+func extendRenovateConfig(renovateConfig string, project *gitlab.Project, opts EnumOptions) string {
 	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
 
-	u, err := url.Parse(extendRenovateConfigService)
+	u, err := url.Parse(opts.ExtendRenovateConfigService)
 	if err != nil {
 		log.Error().Stack().Err(err).Str("project", project.WebURL).Msg("Failed to parse renovate config service URL")
 		return renovateConfig

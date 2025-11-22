@@ -1,10 +1,41 @@
 package renovate
 
 import (
-	pkgrenovate "github.com/CompassSecurity/pipeleak/pkg/gitlab/renovate"
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/renovate/autodiscovery"
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/renovate/enum"
+	"github.com/CompassSecurity/pipeleak/cmd/gitlab/renovate/privesc"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
+var (
+	gitlabApiToken string
+	gitlabUrl      string
+)
+
 func NewRenovateRootCmd() *cobra.Command {
-	return pkgrenovate.NewRenovateRootCmd()
+	renovateCmd := &cobra.Command{
+		Use:   "renovate",
+		Short: "Renovate related commands",
+		Long:  "Commands to enumerate and exploit GitLab Renovate bot configurations.",
+	}
+
+	renovateCmd.PersistentFlags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
+	err := renovateCmd.MarkPersistentFlagRequired("gitlab")
+	if err != nil {
+		log.Fatal().Stack().Err(err).Msg("Unable to require gitlab flag")
+	}
+
+	renovateCmd.PersistentFlags().StringVarP(&gitlabApiToken, "token", "t", "", "GitLab API Token")
+	err = renovateCmd.MarkPersistentFlagRequired("token")
+	if err != nil {
+		log.Fatal().Stack().Err(err).Msg("Unable to require token flag")
+	}
+	renovateCmd.MarkFlagsRequiredTogether("gitlab", "token")
+
+	renovateCmd.AddCommand(enum.NewEnumCmd(gitlabUrl, gitlabApiToken))
+	renovateCmd.AddCommand(autodiscovery.NewAutodiscoveryCmd(gitlabUrl, gitlabApiToken))
+	renovateCmd.AddCommand(privesc.NewPrivescCmd(gitlabUrl, gitlabApiToken))
+
+	return renovateCmd
 }
