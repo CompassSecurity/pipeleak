@@ -73,13 +73,16 @@ func TestGLCicdYaml_InvalidProject(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	stdout, stderr, _ := runCLI(t, []string{
+	stdout, stderr, exitErr := runCLI(t, []string{
 		"gl", "cicd", "yaml",
 		"--gitlab", server.URL,
 		"--token", "mock-token",
 		"--project", "nonexistent/project",
 	}, nil, 10*time.Second)
 
-	// Command completes but may log errors
-	assert.Contains(t, stdout+stderr, "Done, Bye Bye", "Should complete execution")
+	// Should report a not found error and exit non-zero
+	combined := stdout + stderr
+	assert.NotNil(t, exitErr, "Should fail for invalid project")
+	assert.Contains(t, combined, "Failed fetching project", "Should log fetch failure")
+	assert.Contains(t, combined, "404", "Should include not found indicator")
 }
