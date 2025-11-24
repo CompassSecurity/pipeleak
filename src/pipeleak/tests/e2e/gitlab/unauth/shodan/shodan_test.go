@@ -162,10 +162,10 @@ func TestGLunaShodan_HTTPModule(t *testing.T) {
 
 func TestGLunaShodan_MultipleInstances(t *testing.T) {
 	// Test with multiple entries in JSON file
-	jsonFile := createShodanJSONFile(t, 
-		[]string{"", ""}, 
-		[]string{"192.0.2.3", "192.0.2.4"}, 
-		[]int{443, 8080}, 
+	jsonFile := createShodanJSONFile(t,
+		[]string{"", ""},
+		[]string{"192.0.2.3", "192.0.2.4"},
+		[]int{443, 8080},
 		[]string{"https", "http"})
 
 	stdout, stderr, exitErr := testutil.RunCLI(t, []string{

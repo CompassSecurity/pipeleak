@@ -129,7 +129,7 @@ func RunCLI(t *testing.T, args []string, env []string, timeout time.Duration) (s
 
 	// Run command with context
 	err := executeCLIWithContext(ctx, args)
-	
+
 	// Check for timeout
 	if ctx.Err() == context.DeadlineExceeded {
 		err = fmt.Errorf("command timed out after %v", timeout)
@@ -140,7 +140,7 @@ func RunCLI(t *testing.T, args []string, env []string, timeout time.Duration) (s
 	_ = wErr.Close()
 	os.Stdout = oldStdout
 	os.Stderr = oldStderr
-	
+
 	// Wait for all output to be read
 	wg.Wait()
 
@@ -150,9 +150,9 @@ func RunCLI(t *testing.T, args []string, env []string, timeout time.Duration) (s
 // --- Binary execution integration ---
 
 var (
-	cliMutex                sync.Mutex
-	pipeleakBinaryResolved  string
-	buildOnce               sync.Once
+	cliMutex               sync.Mutex
+	pipeleakBinaryResolved string
+	buildOnce              sync.Once
 )
 
 func buildBinary(moduleDir, outputPath string) error {
@@ -165,7 +165,9 @@ func buildBinary(moduleDir, outputPath string) error {
 // findModuleRoot searches upwards for a directory containing go.mod and main.go (the CLI entry)
 func findModuleRoot() (string, error) {
 	wd, err := os.Getwd()
-	if err != nil { return "", err }
+	if err != nil {
+		return "", err
+	}
 	for dir := wd; dir != "/" && dir != "."; dir = filepath.Dir(dir) {
 		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
 			// Prefer a module that has main.go (our CLI root)
@@ -177,7 +179,9 @@ func findModuleRoot() (string, error) {
 			// so go.mod at src/pipeleak is what we want
 			return dir, nil
 		}
-		if filepath.Dir(dir) == dir { break }
+		if filepath.Dir(dir) == dir {
+			break
+		}
 	}
 	return "", fmt.Errorf("module root not found from %s", wd)
 }
@@ -285,5 +289,38 @@ func WithError(statusCode int, message string) http.HandlerFunc {
 			"error":   message,
 			"message": message,
 		})
+	}
+}
+
+// MockSuccessResponse returns a handler that always returns a success response
+func MockSuccessResponse() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":  "success",
+			"message": "Operation completed successfully",
+		})
+	}
+}
+
+// DumpRequests prints all recorded requests for debugging
+func DumpRequests(t *testing.T, requests []RecordedRequest) {
+	t.Helper()
+	t.Log("Recorded HTTP requests:")
+	for i, req := range requests {
+		t.Logf("Request %d:", i+1)
+		t.Logf("  Method: %s", req.Method)
+		t.Logf("  Path: %s", req.Path)
+		if req.RawQuery != "" {
+			t.Logf("  Query: %s", req.RawQuery)
+		}
+		t.Logf("  Headers:")
+		for k, v := range req.Headers {
+			t.Logf("    %s: %s", k, strings.Join(v, ", "))
+		}
+		if len(req.Body) > 0 {
+			t.Logf("  Body: %s", string(req.Body))
+		}
 	}
 }
