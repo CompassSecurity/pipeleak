@@ -110,6 +110,15 @@ PIPELEAK_BINARY=$(pwd)/pipeleak go test ./tests/e2e/gitlab/scan -tags=e2e -v
 
 **Important:** E2E tests require the `PIPELEAK_BINARY` environment variable to point to the compiled binary (absolute or relative to module root). Tests use this binary to run commands in isolated subprocesses to avoid Cobra state conflicts.
 
+**Using Makefile (recommended):**
+```bash
+cd src/pipeleak
+make test-e2e              # Run all e2e tests
+make test-e2e-gitlab       # Run only GitLab e2e tests
+make test-e2e-github       # Run only GitHub e2e tests
+make test                  # Run both unit and e2e tests
+```
+
 ### Linting
 
 The project uses golangci-lint:
