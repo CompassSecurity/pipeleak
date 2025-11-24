@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CompassSecurity/pipeleak/tests/e2e/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,7 +39,7 @@ func setupMockGitLabCicdAPI(t *testing.T) string {
 
 func TestGLCicdYaml(t *testing.T) {
 	apiURL := setupMockGitLabCicdAPI(t)
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "cicd", "yaml",
 		"--gitlab", apiURL,
 		"--token", "mock-token",
@@ -53,7 +54,7 @@ func TestGLCicdYaml(t *testing.T) {
 
 func TestGLCicdYaml_MissingProject(t *testing.T) {
 	apiURL := setupMockGitLabCicdAPI(t)
-	_, stderr, exitErr := runCLI(t, []string{
+	_, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "cicd", "yaml",
 		"--gitlab", apiURL,
 		"--token", "mock-token",
@@ -72,7 +73,7 @@ func TestGLCicdYaml_InvalidProject(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "cicd", "yaml",
 		"--gitlab", server.URL,
 		"--token", "mock-token",
