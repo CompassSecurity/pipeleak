@@ -102,13 +102,15 @@ func scanRepositoryWithCookie(repo *gitea.Repository) {
 
 				if success {
 					consecutiveCount = 0
-					atomic.StoreInt64(&lastSuccessfulRunID, nextExpectedRunID)
-					atomic.StoreInt32(&consecutiveFailures, 0)
-				} else {
-					consecutiveCount++
-					atomic.StoreInt32(&consecutiveFailures, int32(consecutiveCount))
+				atomic.StoreInt64(&lastSuccessfulRunID, nextExpectedRunID)
+				atomic.StoreInt32(&consecutiveFailures, 0)
+			} else {
+				consecutiveCount++
+				// consecutiveCount is bounded by abort check at 5, safe conversion
+				// #nosec G115 -- consecutiveCount max value is 5, well within int32 range
+				atomic.StoreInt32(&consecutiveFailures, int32(consecutiveCount))
 
-					if consecutiveCount >= 5 {
+				if consecutiveCount >= 5 {
 						log.Debug().
 							Str("repo", repo.FullName).
 							Int("consecutive_failures", consecutiveCount).

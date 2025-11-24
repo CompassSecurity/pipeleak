@@ -202,6 +202,7 @@ func executeCLIWithContext(ctx context.Context, args []string) error {
 				}
 			}
 		}
+		// #nosec G204 -- binPath is the test binary path, intentionally variable for testing
 		cmd := exec.CommandContext(ctx, binPath, args...)
 		cmd.Env = os.Environ()
 		cmd.Stdout = os.Stdout
@@ -245,6 +246,7 @@ func executeCLIWithContext(ctx context.Context, args []string) error {
 		return fmt.Errorf("failed to build pipeleak test binary")
 	}
 
+	// #nosec G204 -- pipeleakBinaryResolved is the test binary path, intentionally variable for testing
 	cmd := exec.CommandContext(ctx, pipeleakBinaryResolved, args...)
 	cmd.Env = os.Environ()
 	cmd.Stdout = os.Stdout

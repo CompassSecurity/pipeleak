@@ -248,7 +248,8 @@ func getJobArtifacts(git *gitlab.Client, projectId int, jobId int, jobWebUrl str
 	}
 
 	extractedZipSize := format.CalculateZipFileSize(data)
-	if extractedZipSize > uint64(options.MaxArtifactSize) {
+	// Safe conversion: MaxArtifactSize is always positive in valid configs
+	if options.MaxArtifactSize < 0 || extractedZipSize > uint64(options.MaxArtifactSize) {
 		log.Debug().Str("url", jobWebUrl).Int64("zipBytes", artifactsReader.Size()).Uint64("bytesExtracted", extractedZipSize).Int64("maxBytes", options.MaxArtifactSize).Msg("Skipped large extracted Zip artifact")
 		return nil
 	}
