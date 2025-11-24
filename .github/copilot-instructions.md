@@ -119,6 +119,22 @@ make test-e2e-github       # Run only GitHub e2e tests
 make test                  # Run both unit and e2e tests
 ```
 
+### Test Coverage
+
+Generate and view test coverage reports:
+
+```bash
+cd src/pipeleak
+
+# Generate coverage report with summary
+make coverage
+
+# Generate HTML coverage report and open in browser
+make coverage-html
+```
+
+Coverage reports are automatically uploaded to Codecov on CI runs for the main branch and pull requests.
+
 ### Linting
 
 The project uses golangci-lint:
