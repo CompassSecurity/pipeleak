@@ -33,9 +33,9 @@ func NewRenovateRootCmd() *cobra.Command {
 	}
 	renovateCmd.MarkFlagsRequiredTogether("gitlab", "token")
 
-	renovateCmd.AddCommand(enum.NewEnumCmd(gitlabUrl, gitlabApiToken))
-	renovateCmd.AddCommand(autodiscovery.NewAutodiscoveryCmd(gitlabUrl, gitlabApiToken))
-	renovateCmd.AddCommand(privesc.NewPrivescCmd(gitlabUrl, gitlabApiToken))
+	renovateCmd.AddCommand(enum.NewEnumCmd())
+	renovateCmd.AddCommand(autodiscovery.NewAutodiscoveryCmd())
+	renovateCmd.AddCommand(privesc.NewPrivescCmd())
 
 	return renovateCmd
 }

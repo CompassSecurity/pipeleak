@@ -10,7 +10,7 @@ var (
 	autodiscoveryUsername string
 )
 
-func NewAutodiscoveryCmd(gitlabUrl, gitlabApiToken string) *cobra.Command {
+func NewAutodiscoveryCmd() *cobra.Command {
 	autodiscoveryCmd := &cobra.Command{
 		Use:   "autodiscovery",
 		Short: "Create a PoC for Renovate Autodiscovery misconfigurations exploitation",
@@ -20,6 +20,10 @@ func NewAutodiscoveryCmd(gitlabUrl, gitlabApiToken string) *cobra.Command {
 pipeleak gl renovate autodiscovery --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com --repo-name my-exploit-repo --username renovate-bot-user
     `,
 		Run: func(cmd *cobra.Command, args []string) {
+			// Get gitlabUrl and gitlabApiToken from parent persistent flags
+			parent := cmd.Parent()
+			gitlabUrl, _ := parent.Flags().GetString("gitlab")
+			gitlabApiToken, _ := parent.Flags().GetString("token")
 			pkgrenovate.RunGenerate(gitlabUrl, gitlabApiToken, autodiscoveryRepoName, autodiscoveryUsername)
 		},
 	}
