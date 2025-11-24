@@ -7,5 +7,6 @@ site
 src/pipeleak/pipeleak
 src/pipeleak/pipeleak.exe
 src/pipeleak/coverage.out
+src/pipeleak/coverage.html
 .vscode
 results.json

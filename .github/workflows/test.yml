@@ -24,10 +24,10 @@ jobs:
           go-version: stable
           cache: true
       
-      - name: Run unit tests (Linux)
+      - name: Run unit tests with coverage (Linux)
         if: runner.os == 'Linux'
         working-directory: ./src/pipeleak
-        run: go test $(go list ./... | grep -v /tests/e2e) -v -race
+        run: go test $(go list ./... | grep -v /tests/e2e) -v -race -coverprofile=coverage.out -covermode=atomic
       
       - name: Run unit tests (Windows)
         if: runner.os == 'Windows'
@@ -36,6 +36,16 @@ jobs:
           $packages = go list ./... | Where-Object { $_ -notmatch '/tests/e2e' }
           go test $packages -v -race
         shell: pwsh
+      
+      - name: Upload coverage to Codecov
+        if: runner.os == 'Linux'
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./src/pipeleak/coverage.out
+          flags: unittests
+          name: codecov-pipeleak
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
   
   e2e-tests:
     name: E2E Tests
