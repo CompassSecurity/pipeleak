@@ -18,7 +18,6 @@ func NewPrivescCmd() *cobra.Command {
 		Long:    "Inject a job into the CI/CD pipeline of the project's default branch by adding a commit (race condition) to a Renovate Bot branch, which is then auto-merged into the main branch. Assumes the Renovate Bot has owner/maintainer access whereas you only have developer access. See https://blog.compass-security.com/2025/05/renovate-keeping-your-updates-secure/",
 		Example: `pipeleak gl renovate privesc --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com --repo-name mygroup/myproject --renovate-branches-regex 'renovate/.*'`,
 		Run: func(cmd *cobra.Command, args []string) {
-			// Get gitlabUrl and gitlabApiToken from parent persistent flags
 			parent := cmd.Parent()
 			gitlabUrl, _ := parent.Flags().GetString("gitlab")
 			gitlabApiToken, _ := parent.Flags().GetString("token")

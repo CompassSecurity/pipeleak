@@ -19,11 +19,13 @@ var (
 	extendRenovateConfigService string
 )
 
-func NewEnumCmd(gitlabUrl, gitlabApiToken string) *cobra.Command {
+func NewEnumCmd() *cobra.Command {
 	enumCmd := &cobra.Command{
 		Use:   "enum [no options!]",
 		Short: "Enumerate Renovate configurations",
 		Run: func(cmd *cobra.Command, args []string) {
+			gitlabUrl, _ := cmd.Flags().GetString("gitlab")
+			gitlabApiToken, _ := cmd.Flags().GetString("token")
 			Enumerate(gitlabUrl, gitlabApiToken)
 		},
 	}
