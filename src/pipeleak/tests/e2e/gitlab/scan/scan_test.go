@@ -7,13 +7,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CompassSecurity/pipeleak/tests/e2e/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGitLabScan_HappyPath(t *testing.T) {
 
 	// Mock GitLab API responses
-	server, getRequests, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+	server, getRequests, cleanup := testutil.StartMockServerWithRecording(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		switch r.URL.Path {
@@ -63,7 +64,7 @@ func TestGitLabScan_HappyPath(t *testing.T) {
 	defer cleanup()
 
 	// Run scan command
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "scan",
 		"--gitlab", server.URL,
 		"--token", "glpat-test-token-123",
@@ -79,7 +80,7 @@ func TestGitLabScan_HappyPath(t *testing.T) {
 	// Verify authentication header
 	for _, req := range requests {
 		if req.Path == "/api/v4/projects" {
-			assertRequestHeader(t, req, "Private-Token", "glpat-test-token-123")
+			testutil.AssertRequestHeader(t, req, "Private-Token", "glpat-test-token-123")
 		}
 	}
 
@@ -92,7 +93,7 @@ func TestGitLabScan_HappyPath(t *testing.T) {
 
 func TestGitLabScan_WithArtifacts(t *testing.T) {
 
-	server, getRequests, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+	server, getRequests, cleanup := testutil.StartMockServerWithRecording(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		switch r.URL.Path {
@@ -126,7 +127,7 @@ func TestGitLabScan_WithArtifacts(t *testing.T) {
 	})
 	defer cleanup()
 
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "scan",
 		"--gitlab", server.URL,
 		"--token", "glpat-test",
@@ -156,7 +157,7 @@ func TestGitLabScan_WithArtifacts(t *testing.T) {
 
 func TestGitLabScan_FlagVariations(t *testing.T) {
 	// Create mock server for all sub-tests
-	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+	server, _, cleanup := testutil.StartMockServerWithRecording(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
@@ -234,7 +235,7 @@ func TestGitLabScan_FlagVariations(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Note: Not using t.Parallel() here since we share the server
 
-			stdout, stderr, exitErr := runCLI(t, tt.args, nil, 10*time.Second)
+			stdout, stderr, exitErr := testutil.RunCLI(t, tt.args, nil, 10*time.Second)
 
 			if tt.shouldError {
 				assert.NotNil(t, exitErr, "Command should fail")

@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CompassSecurity/pipeleak/tests/e2e/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -108,7 +109,7 @@ func TestGLunaShodan(t *testing.T) {
 	// we verify the command accepts the JSON file and begins processing
 	jsonFile := createShodanJSONFile(t, []string{""}, []string{"192.0.2.1"}, []int{443}, []string{"https"})
 
-	_, _, exitErr := runCLI(t, []string{
+	_, _, exitErr := testutil.RunCLI(t, []string{
 		"gluna", "shodan",
 		"--json", jsonFile,
 	}, nil, 3*time.Second)
@@ -121,7 +122,7 @@ func TestGLunaShodan(t *testing.T) {
 }
 
 func TestGLunaShodan_MissingJSON(t *testing.T) {
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gluna", "shodan",
 	}, nil, 3*time.Second)
 
@@ -134,7 +135,7 @@ func TestGLunaShodan_MissingJSON(t *testing.T) {
 }
 
 func TestGLunaShodan_InvalidJSONFile(t *testing.T) {
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gluna", "shodan",
 		"--json", "/nonexistent/file.json",
 	}, nil, 3*time.Second)
@@ -149,7 +150,7 @@ func TestGLunaShodan_HTTPModule(t *testing.T) {
 	// Test with HTTP module
 	jsonFile := createShodanJSONFile(t, []string{""}, []string{"192.0.2.2"}, []int{8080}, []string{"http"})
 
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gluna", "shodan",
 		"--json", jsonFile,
 	}, nil, 3*time.Second)
@@ -167,7 +168,7 @@ func TestGLunaShodan_MultipleInstances(t *testing.T) {
 		[]int{443, 8080}, 
 		[]string{"https", "http"})
 
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gluna", "shodan",
 		"--json", jsonFile,
 	}, nil, 3*time.Second)
@@ -181,7 +182,7 @@ func TestGLunaShodan_WithHostname(t *testing.T) {
 	// Test with hostname instead of IP
 	jsonFile := createShodanJSONFile(t, []string{"example.invalid"}, []string{"192.0.2.5"}, []int{443}, []string{"https"})
 
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gluna", "shodan",
 		"--json", jsonFile,
 	}, nil, 3*time.Second)

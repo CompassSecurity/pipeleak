@@ -71,6 +71,11 @@ func StartMockServer(t *testing.T, handler http.HandlerFunc) (*httptest.Server, 
 	return server, get, cleanup
 }
 
+// StartMockServerWithRecording is an alias for StartMockServer for compatibility
+func StartMockServerWithRecording(t *testing.T, handler http.HandlerFunc) (*httptest.Server, func() []RecordedRequest, func()) {
+	return StartMockServer(t, handler)
+}
+
 // AssertLogContains checks if the output contains all expected strings
 func AssertLogContains(t *testing.T, output string, expected []string) {
 	t.Helper()
@@ -122,22 +127,21 @@ func RunCLI(t *testing.T, args []string, env []string, timeout time.Duration) (s
 	go func() { defer wg.Done(); _, _ = io.Copy(&outBuf, rOut) }()
 	go func() { defer wg.Done(); _, _ = io.Copy(&errBuf, rErr) }()
 
-	resCh := make(chan error, 1)
-	go func() {
-		resCh <- executeCLIWithContext(ctx, args)
-	}()
-
-	var err error
-	select {
-	case err = <-resCh:
-	case <-ctx.Done():
+	// Run command with context
+	err := executeCLIWithContext(ctx, args)
+	
+	// Check for timeout
+	if ctx.Err() == context.DeadlineExceeded {
 		err = fmt.Errorf("command timed out after %v", timeout)
 	}
 
+	// Close pipes and restore stdout/stderr
 	_ = wOut.Close()
 	_ = wErr.Close()
 	os.Stdout = oldStdout
 	os.Stderr = oldStderr
+	
+	// Wait for all output to be read
 	wg.Wait()
 
 	return outBuf.String(), errBuf.String(), err
@@ -147,44 +151,9 @@ func RunCLI(t *testing.T, args []string, env []string, timeout time.Duration) (s
 
 var (
 	cliMutex                sync.Mutex
-	pipeleakBinary          string
 	pipeleakBinaryResolved  string
-	resolveOnce, buildOnce  sync.Once
+	buildOnce               sync.Once
 )
-
-func init() {
-	pipeleakBinary = os.Getenv("PIPELEAK_BINARY")
-	if pipeleakBinary == "" {
-		pipeleakBinary = "../../pipeleak"
-	}
-	if os.Getenv("PIPELEAK_BINARY") == "" {
-		if moduleDir, err := findModuleRoot(); err == nil {
-			if tmpDir, err := os.MkdirTemp("", "pipeleak-e2e-"); err == nil {
-				tmpBin := filepath.Join(tmpDir, "pipeleak")
-				if runtime.GOOS == "windows" { tmpBin += ".exe" }
-				if err := buildBinary(moduleDir, tmpBin); err == nil { pipeleakBinaryResolved = tmpBin }
-			}
-		}
-	}
-}
-
-func resolveBinaryPath() {
-	resolveOnce.Do(func() {
-		pipeleakBinaryResolved = pipeleakBinary
-		if filepath.IsAbs(pipeleakBinary) { return }
-		candidates := []string{ pipeleakBinary, filepath.Join("..","..","pipeleak") }
-		if runtime.GOOS == "windows" {
-			candidates = append(candidates, pipeleakBinary+".exe", filepath.Join("..","..","pipeleak.exe"))
-		}
-		if os.Getenv("PIPELEAK_BINARY") != "" {
-			wd,_ := os.Getwd(); candidates = append(candidates, filepath.Join(wd, pipeleakBinary))
-		}
-		for _, c := range candidates {
-			if _, err := os.Stat(c); err == nil { if abs, err := filepath.Abs(c); err == nil { pipeleakBinaryResolved = abs; return } }
-		}
-		if abs, err := filepath.Abs(pipeleakBinary); err == nil { pipeleakBinaryResolved = abs }
-	})
-}
 
 func buildBinary(moduleDir, outputPath string) error {
 	cmd := exec.Command("go", "build", "-o", outputPath, ".")
@@ -215,23 +184,68 @@ func findModuleRoot() (string, error) {
 
 // executeCLIWithContext calls the actual CLI as a separate process so cobra globals don't conflict
 func executeCLIWithContext(ctx context.Context, args []string) error {
-	resolveBinaryPath()
-	cliMutex.Lock(); defer cliMutex.Unlock()
+	cliMutex.Lock()
+	defer cliMutex.Unlock()
 
-	if os.Getenv("PIPELEAK_BINARY") == "" {
-		if pipeleakBinaryResolved != "" { if _, err := os.Stat(pipeleakBinaryResolved); err != nil { pipeleakBinaryResolved = "" } }
-		buildOnce.Do(func() {
-			tmpDir, err := os.MkdirTemp("", "pipeleak-e2e-"); if err != nil { pipeleakBinaryResolved = ""; return }
-			tmpBin := filepath.Join(tmpDir, "pipeleak"); if runtime.GOOS == "windows" { tmpBin += ".exe" }
-			moduleDir, err := findModuleRoot(); if err != nil { pipeleakBinaryResolved = ""; return }
-			if err := buildBinary(moduleDir, tmpBin); err != nil { pipeleakBinaryResolved = ""; return }
-			pipeleakBinaryResolved = tmpBin
-		})
-		if pipeleakBinaryResolved == "" { return fmt.Errorf("failed to build pipeleak test binary") }
+	// Use PIPELEAK_BINARY if set (resolve to absolute path if relative)
+	if binPath := os.Getenv("PIPELEAK_BINARY"); binPath != "" {
+		if !filepath.IsAbs(binPath) {
+			// If relative, try to resolve from module root
+			if moduleDir, err := findModuleRoot(); err == nil {
+				absPath := filepath.Join(moduleDir, binPath)
+				if _, err := os.Stat(absPath); err == nil {
+					binPath = absPath
+				}
+			}
+		}
+		cmd := exec.CommandContext(ctx, binPath, args...)
+		cmd.Env = os.Environ()
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Stdin = os.Stdin
+		return cmd.Run()
 	}
+
+	// Otherwise, build binary once
+	if pipeleakBinaryResolved != "" {
+		if _, err := os.Stat(pipeleakBinaryResolved); err != nil {
+			pipeleakBinaryResolved = ""
+		}
+	}
+
+	buildOnce.Do(func() {
+		tmpDir, err := os.MkdirTemp("", "pipeleak-e2e-")
+		if err != nil {
+			pipeleakBinaryResolved = ""
+			return
+		}
+		tmpBin := filepath.Join(tmpDir, "pipeleak")
+		if runtime.GOOS == "windows" {
+			tmpBin += ".exe"
+		}
+
+		moduleDir, err := findModuleRoot()
+		if err != nil {
+			pipeleakBinaryResolved = ""
+			return
+		}
+
+		if err := buildBinary(moduleDir, tmpBin); err != nil {
+			pipeleakBinaryResolved = ""
+			return
+		}
+		pipeleakBinaryResolved = tmpBin
+	})
+
+	if pipeleakBinaryResolved == "" {
+		return fmt.Errorf("failed to build pipeleak test binary")
+	}
+
 	cmd := exec.CommandContext(ctx, pipeleakBinaryResolved, args...)
 	cmd.Env = os.Environ()
-	cmd.Stdout = os.Stdout; cmd.Stderr = os.Stderr; cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
 	return cmd.Run()
 }
 
@@ -240,4 +254,36 @@ func JSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
+}
+
+// AssertRequestHeader verifies a request has the expected header value
+func AssertRequestHeader(t *testing.T, req RecordedRequest, header, expected string) {
+	t.Helper()
+	actual := req.Headers.Get(header)
+	if actual != expected {
+		t.Errorf("Expected header %s=%q, got %q", header, expected, actual)
+	}
+}
+
+// AssertRequestMethodAndPath verifies a request has the expected method and path
+func AssertRequestMethodAndPath(t *testing.T, req RecordedRequest, method, path string) {
+	t.Helper()
+	if req.Method != method {
+		t.Errorf("Expected method %s, got %s for path %s", method, req.Method, req.Path)
+	}
+	if req.Path != path {
+		t.Errorf("Expected path %s, got %s", path, req.Path)
+	}
+}
+
+// WithError returns a handler that always returns an error status
+func WithError(statusCode int, message string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(statusCode)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error":   message,
+			"message": message,
+		})
+	}
 }

@@ -8,10 +8,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CompassSecurity/pipeleak/tests/e2e/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
-func setupMockGitLabSecureFilesAPI(t *testing.T) string {
+func setupMockGitLabScheduleAPI(t *testing.T) string {
 	mux := http.NewServeMux()
 
 	// Projects list endpoint
@@ -22,21 +23,20 @@ func setupMockGitLabSecureFilesAPI(t *testing.T) string {
 		]`))
 	})
 
-	// Secure files endpoint
-	mux.HandleFunc("/api/v4/projects/123/secure_files", func(w http.ResponseWriter, r *http.Request) {
+	// Pipeline schedules endpoint
+	mux.HandleFunc("/api/v4/projects/123/pipeline_schedules", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`[
 			{
 				"id":1,
-				"name":"certificate.pem",
-				"checksum":"abc123def456",
-				"created_at":"2023-01-01T00:00:00Z"
-			},
-			{
-				"id":2,
-				"name":"keyfile.key",
-				"checksum":"789xyz012",
-				"created_at":"2023-01-02T00:00:00Z"
+				"description":"Nightly build",
+				"ref":"main",
+				"cron":"0 2 * * *",
+				"active":true,
+				"variables":[
+					{"key":"ENV","value":"production"},
+					{"key":"DEBUG","value":"false"}
+				]
 			}
 		]`))
 	})
@@ -46,22 +46,22 @@ func setupMockGitLabSecureFilesAPI(t *testing.T) string {
 	return server.URL
 }
 
-func TestGLSecureFiles(t *testing.T) {
-	apiURL := setupMockGitLabSecureFilesAPI(t)
-	stdout, stderr, exitErr := runCLI(t, []string{
-		"gl", "secureFiles",
+func TestGLSchedule(t *testing.T) {
+	apiURL := setupMockGitLabScheduleAPI(t)
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
+		"gl", "schedule",
 		"--gitlab", apiURL,
 		"--token", "mock-token",
 	}, nil, 10*time.Second)
 
-	assert.Nil(t, exitErr, "Secure files command should succeed")
-	assert.Contains(t, stdout, "Fetched all secure files", "Should complete fetching secure files")
+	assert.Nil(t, exitErr, "Schedule command should succeed")
+	assert.Contains(t, stdout, "Fetched all schedules", "Should complete fetching schedules")
 	assert.NotContains(t, stderr, "fatal")
 }
 
-func TestGLSecureFiles_MissingToken(t *testing.T) {
-	_, stderr, exitErr := runCLI(t, []string{
-		"gl", "secureFiles",
+func TestGLSchedule_MissingToken(t *testing.T) {
+	_, stderr, exitErr := testutil.RunCLI(t, []string{
+		"gl", "schedule",
 		"--gitlab", "https://gitlab.com",
 	}, nil, 5*time.Second)
 
@@ -69,17 +69,7 @@ func TestGLSecureFiles_MissingToken(t *testing.T) {
 	assert.Contains(t, stderr, "required flag(s)", "Should mention missing required flag")
 }
 
-func TestGLSecureFiles_MissingGitlab(t *testing.T) {
-	_, stderr, exitErr := runCLI(t, []string{
-		"gl", "secureFiles",
-		"--token", "mock-token",
-	}, nil, 5*time.Second)
-
-	assert.NotNil(t, exitErr, "Should fail without gitlab URL")
-	assert.Contains(t, stderr, "required flag(s)", "Should mention missing required flag")
-}
-
-func TestGLSecureFiles_Unauthorized(t *testing.T) {
+func TestGLSchedule_Unauthorized(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v4/projects", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -88,8 +78,8 @@ func TestGLSecureFiles_Unauthorized(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	stdout, stderr, _ := runCLI(t, []string{
-		"gl", "secureFiles",
+	stdout, stderr, _ := testutil.RunCLI(t, []string{
+		"gl", "schedule",
 		"--gitlab", server.URL,
 		"--token", "invalid-token",
 	}, nil, 10*time.Second)

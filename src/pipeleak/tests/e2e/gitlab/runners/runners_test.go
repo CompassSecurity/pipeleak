@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CompassSecurity/pipeleak/tests/e2e/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -75,7 +76,7 @@ func setupMockGitLabRunnersAPI(t *testing.T) string {
 
 func TestGLRunnersList(t *testing.T) {
 	apiURL := setupMockGitLabRunnersAPI(t)
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "runners", "list",
 		"--gitlab", apiURL,
 		"--token", "mock-token",
@@ -87,7 +88,7 @@ func TestGLRunnersList(t *testing.T) {
 }
 
 func TestGLRunnersList_MissingToken(t *testing.T) {
-	_, stderr, exitErr := runCLI(t, []string{
+	_, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "runners", "list",
 		"--gitlab", "https://gitlab.com",
 	}, nil, 5*time.Second)
@@ -98,7 +99,7 @@ func TestGLRunnersList_MissingToken(t *testing.T) {
 
 func TestGLRunnersExploit_DryRun(t *testing.T) {
 	apiURL := setupMockGitLabRunnersAPI(t)
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "runners", "exploit",
 		"--gitlab", apiURL,
 		"--token", "mock-token",
@@ -114,7 +115,7 @@ func TestGLRunnersExploit_DryRun(t *testing.T) {
 
 func TestGLRunnersExploit_WithRepoCreation(t *testing.T) {
 	apiURL := setupMockGitLabRunnersAPI(t)
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "runners", "exploit",
 		"--gitlab", apiURL,
 		"--token", "mock-token",
@@ -138,7 +139,7 @@ func TestGLRunnersExploit_Unauthorized(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	stdout, _, _ := runCLI(t, []string{
+	stdout, _, _ := testutil.RunCLI(t, []string{
 		"gl", "runners", "exploit",
 		"--gitlab", server.URL,
 		"--token", "invalid-token",

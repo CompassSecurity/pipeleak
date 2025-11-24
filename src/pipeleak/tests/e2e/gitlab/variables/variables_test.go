@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CompassSecurity/pipeleak/tests/e2e/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -54,7 +55,7 @@ func setupMockGitLabVariablesAPI(t *testing.T) string {
 
 func TestGLVariables(t *testing.T) {
 	apiURL := setupMockGitLabVariablesAPI(t)
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "variables",
 		"--gitlab", apiURL,
 		"--token", "mock-token",
@@ -67,7 +68,7 @@ func TestGLVariables(t *testing.T) {
 }
 
 func TestGLVariables_MissingToken(t *testing.T) {
-	_, stderr, exitErr := runCLI(t, []string{
+	_, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "variables",
 		"--gitlab", "https://gitlab.com",
 	}, nil, 5*time.Second)
@@ -85,7 +86,7 @@ func TestGLVariables_Unauthorized(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	stdout, stderr, _ := runCLI(t, []string{
+	stdout, stderr, _ := testutil.RunCLI(t, []string{
 		"gl", "variables",
 		"--gitlab", server.URL,
 		"--token", "invalid-token",

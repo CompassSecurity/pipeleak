@@ -9,13 +9,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CompassSecurity/pipeleak/tests/e2e/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
 // TestGitLabScan_ConfidenceFilter tests the --confidence flag
 func TestGitLabScan_ConfidenceFilter(t *testing.T) {
 
-	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+	server, _, cleanup := testutil.StartMockServerWithRecording(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		switch r.URL.Path {
@@ -53,7 +54,7 @@ Job complete`
 	})
 	defer cleanup()
 
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "scan",
 		"--gitlab", server.URL,
 		"--token", "glpat-test-token",
@@ -71,7 +72,7 @@ Job complete`
 // TestGitLabScan_CookieAuthentication tests the --cookie flag for dotenv artifacts
 func TestGitLabScan_CookieAuthentication(t *testing.T) {
 
-	server, getRequests, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+	server, getRequests, cleanup := testutil.StartMockServerWithRecording(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		// Check if cookie is present
@@ -110,7 +111,7 @@ func TestGitLabScan_CookieAuthentication(t *testing.T) {
 	})
 	defer cleanup()
 
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "scan",
 		"--gitlab", server.URL,
 		"--token", "glpat-test-token",
@@ -148,7 +149,7 @@ OAUTH_CLIENT_SECRET=oauth_secret_ABCDEFGHIJKLMNOPQRSTUVWXYZ123456
 `))
 	_ = smallZipWriter.Close()
 
-	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+	server, _, cleanup := testutil.StartMockServerWithRecording(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		switch r.URL.Path {
@@ -240,7 +241,7 @@ OAUTH_CLIENT_SECRET=oauth_secret_ABCDEFGHIJKLMNOPQRSTUVWXYZ123456
 	})
 	defer cleanup()
 
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "scan",
 		"--gitlab", server.URL,
 		"--token", "glpat-test-token",
@@ -270,7 +271,7 @@ func TestGitLabScan_QueueFolder(t *testing.T) {
 
 	customQueueDir := t.TempDir()
 
-	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+	server, _, cleanup := testutil.StartMockServerWithRecording(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		switch r.URL.Path {
@@ -303,7 +304,7 @@ func TestGitLabScan_QueueFolder(t *testing.T) {
 	})
 	defer cleanup()
 
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "scan",
 		"--gitlab", server.URL,
 		"--token", "glpat-test-token",
@@ -322,7 +323,7 @@ func TestGitLabScan_QueueFolder(t *testing.T) {
 // TestGitLabScan_TruffleHogVerificationDisabled tests --truffleHogVerification=false
 func TestGitLabScan_TruffleHogVerificationDisabled(t *testing.T) {
 
-	server, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+	server, _, cleanup := testutil.StartMockServerWithRecording(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		switch r.URL.Path {
@@ -359,7 +360,7 @@ Job complete`
 	})
 	defer cleanup()
 
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "scan",
 		"--gitlab", server.URL,
 		"--token", "glpat-test-token",

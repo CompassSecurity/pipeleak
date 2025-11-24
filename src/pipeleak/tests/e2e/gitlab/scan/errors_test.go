@@ -8,16 +8,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CompassSecurity/pipeleak/tests/e2e/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGitLabScan_InvalidToken(t *testing.T) {
 
 	// Mock server that returns 401 Unauthorized
-	server, _, cleanup := startMockServer(t, withError(http.StatusUnauthorized, "invalid token"))
+	server, _, cleanup := testutil.StartMockServerWithRecording(t, testutil.WithError(http.StatusUnauthorized, "invalid token"))
 	defer cleanup()
 
-	stdout, stderr, _ := runCLI(t, []string{
+	stdout, stderr, _ := testutil.RunCLI(t, []string{
 		"gl", "scan",
 		"--gitlab", server.URL,
 		"--token", "invalid-token",
@@ -57,7 +58,7 @@ func TestGitLabScan_MissingRequiredFlags(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Do not use t.Parallel() - stdout/stderr redirection conflicts
 
-			stdout, stderr, exitErr := runCLI(t, tt.args, nil, 5*time.Second)
+			stdout, stderr, exitErr := testutil.RunCLI(t, tt.args, nil, 5*time.Second)
 
 			// Command should fail due to missing required flags
 			assert.NotNil(t, exitErr, "Command should fail with missing required flags")
@@ -77,7 +78,7 @@ func TestGitLabScan_MissingRequiredFlags(t *testing.T) {
 
 func TestGitLabScan_InvalidURL(t *testing.T) {
 
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "scan",
 		"--gitlab", "not-a-valid-url",
 		"--token", "test-token",
@@ -130,10 +131,10 @@ func TestGitLab_APIErrorHandling(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Do not use t.Parallel() - stdout/stderr redirection conflicts
 
-			server, _, cleanup := startMockServer(t, withError(tt.statusCode, tt.errorMsg))
+			server, _, cleanup := testutil.StartMockServerWithRecording(t, testutil.WithError(tt.statusCode, tt.errorMsg))
 			defer cleanup()
 
-			stdout, stderr, exitErr := runCLI(t, []string{
+			stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 				"gl", "scan",
 				"--gitlab", server.URL,
 				"--token", "test-token",
@@ -164,7 +165,7 @@ func TestGitLabScan_Timeout(t *testing.T) {
 	defer server.Close()
 
 	// Use a short timeout to ensure we hit it
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "scan",
 		"--gitlab", server.URL,
 		"--token", "test-token",
@@ -192,7 +193,7 @@ func TestGitLab_ProxySupport(t *testing.T) {
 	defer proxyServer.Close()
 
 	// Create mock GitLab server
-	gitlabServer, _, cleanup := startMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+	gitlabServer, _, cleanup := testutil.StartMockServerWithRecording(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode([]map[string]interface{}{})
@@ -200,7 +201,7 @@ func TestGitLab_ProxySupport(t *testing.T) {
 	defer cleanup()
 
 	// Run with HTTP_PROXY environment variable
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "scan",
 		"--gitlab", gitlabServer.URL,
 		"--token", "test-token",

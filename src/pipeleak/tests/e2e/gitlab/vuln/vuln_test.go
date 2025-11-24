@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CompassSecurity/pipeleak/tests/e2e/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,7 +33,7 @@ func setupMockGitLabVulnAPI(t *testing.T) string {
 
 func TestGLVuln(t *testing.T) {
 	apiURL := setupMockGitLabVulnAPI(t)
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "vuln",
 		"--gitlab", apiURL,
 		"--token", "mock-token",
@@ -44,7 +45,7 @@ func TestGLVuln(t *testing.T) {
 }
 
 func TestGLVuln_MissingToken(t *testing.T) {
-	_, stderr, exitErr := runCLI(t, []string{
+	_, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "vuln",
 		"--gitlab", "https://gitlab.com",
 	}, nil, 5*time.Second)
@@ -54,7 +55,7 @@ func TestGLVuln_MissingToken(t *testing.T) {
 }
 
 func TestGLVuln_MissingGitlab(t *testing.T) {
-	_, stderr, exitErr := runCLI(t, []string{
+	_, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "vuln",
 		"--token", "mock-token",
 	}, nil, 5*time.Second)
@@ -72,7 +73,7 @@ func TestGLVuln_Unauthorized(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	stdout, _, _ := runCLI(t, []string{
+	stdout, _, _ := testutil.RunCLI(t, []string{
 		"gl", "vuln",
 		"--gitlab", server.URL,
 		"--token", "invalid-token",

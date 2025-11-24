@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CompassSecurity/pipeleak/tests/e2e/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -111,7 +112,7 @@ func setupMockGitLabRenovateAPI(t *testing.T) string {
 
 func TestGLRenovateEnum(t *testing.T) {
 	apiURL := setupMockGitLabRenovateAPI(t)
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "renovate", "enum",
 		"--gitlab", apiURL,
 		"--token", "mock-token",
@@ -123,7 +124,7 @@ func TestGLRenovateEnum(t *testing.T) {
 
 func TestGLRenovateAutodiscovery(t *testing.T) {
 	apiURL := setupMockGitLabRenovateAPI(t)
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "renovate", "autodiscovery",
 		"--gitlab", apiURL,
 		"--token", "mock-token",
@@ -139,7 +140,7 @@ func TestGLRenovateAutodiscovery(t *testing.T) {
 
 func TestGLRenovatePrivesc(t *testing.T) {
 	apiURL := setupMockGitLabRenovateAPI(t)
-	stdout, stderr, exitErr := runCLI(t, []string{
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gl", "renovate", "privesc",
 		"--gitlab", apiURL,
 		"--token", "mock-token",
