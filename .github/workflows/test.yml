@@ -64,13 +64,14 @@ jobs:
       - name: Run e2e tests (Linux)
         if: runner.os == 'Linux'
         working-directory: ./src/pipeleak
-        run: go test ./tests/e2e/... -v -timeout 10m
-        env:
-          PIPELEAK_BINARY: ./pipeleak
+        run: |
+          export PIPELEAK_BINARY="$(pwd)/pipeleak"
+          go test ./tests/e2e/... -tags=e2e -v -timeout 10m
       
       - name: Run e2e tests (Windows)
         if: runner.os == 'Windows'
         working-directory: ./src/pipeleak
-        run: go test ./tests/e2e/... -v -timeout 10m
-        env:
-          PIPELEAK_BINARY: ./pipeleak.exe
+        run: |
+          $env:PIPELEAK_BINARY = "$(Get-Location)\pipeleak.exe"
+          go test ./tests/e2e/... -tags=e2e -v -timeout 10m
+        shell: pwsh

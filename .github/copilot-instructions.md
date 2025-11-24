@@ -70,11 +70,45 @@ go test $(go list ./... | grep -v /tests/e2e) -v -race
 ```
 
 **End-to-end tests:**
+
+E2E tests are organized by platform in a structured folder hierarchy:
+```
+tests/e2e/
+├── gitlab/          # GitLab-specific tests
+│   ├── cicd/yaml/   # CICD YAML command tests
+│   ├── scan/        # Scan command tests
+│   ├── variables/   # Variables command tests
+│   ├── schedule/    # Schedule command tests
+│   ├── runners/     # Runners list/exploit tests
+│   ├── secureFiles/ # Secure files tests
+│   ├── vuln/        # Vulnerability check tests
+│   ├── renovate/    # Renovate tests
+│   └── unauth/      # Unauthenticated commands (shodan)
+├── github/          # GitHub Actions tests
+├── bitbucket/       # BitBucket tests
+├── devops/          # Azure DevOps tests
+├── gitea/           # Gitea tests
+└── internal/        # Shared test utilities
+    └── testutil/    # Common helpers (RunCLI, mock servers, etc.)
+```
+
+To run e2e tests, first build the binary and set `PIPELEAK_BINARY`:
 ```bash
 cd src/pipeleak
 go build -o pipeleak .
-PIPELEAK_BINARY=./pipeleak go test ./tests/e2e/... -v -timeout 10m
+PIPELEAK_BINARY=$(pwd)/pipeleak go test ./tests/e2e/... -tags=e2e -v -timeout 10m
 ```
+
+Run tests for a specific platform:
+```bash
+# GitLab tests only
+PIPELEAK_BINARY=$(pwd)/pipeleak go test ./tests/e2e/gitlab/... -tags=e2e -v
+
+# Specific command tests
+PIPELEAK_BINARY=$(pwd)/pipeleak go test ./tests/e2e/gitlab/scan -tags=e2e -v
+```
+
+**Important:** E2E tests require the `PIPELEAK_BINARY` environment variable to point to the compiled binary (absolute or relative to module root). Tests use this binary to run commands in isolated subprocesses to avoid Cobra state conflicts.
 
 ### Linting
 
