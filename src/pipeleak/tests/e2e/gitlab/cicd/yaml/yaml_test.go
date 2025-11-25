@@ -86,3 +86,39 @@ func TestGLCicdYaml_InvalidProject(t *testing.T) {
 	assert.Contains(t, combined, "Failed fetching project", "Should log fetch failure")
 	assert.Contains(t, combined, "404", "Should include not found indicator")
 }
+
+func TestGLCicdYaml_NoCiCdYaml(t *testing.T) {
+	mux := http.NewServeMux()
+
+	// Project exists
+	mux.HandleFunc("/api/v4/projects/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"id":123,"name":"test-project","web_url":"https://gitlab.com/test-project"}`))
+	})
+
+	// CI lint endpoint returns empty merged_yaml when no .gitlab-ci.yml exists
+	mux.HandleFunc("/api/v4/projects/123/ci/lint", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{
+			"valid": true,
+			"merged_yaml": "",
+			"warnings": [],
+			"errors": []
+		}`))
+	})
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
+		"gl", "cicd", "yaml",
+		"--gitlab", server.URL,
+		"--token", "mock-token",
+		"--project", "test-project",
+	}, nil, 10*time.Second)
+
+	// Should report an error indicating no CI/CD yaml file exists
+	combined := stdout + stderr
+	assert.NotNil(t, exitErr, "Should fail when project has no CI/CD configuration")
+	assert.Contains(t, combined, "does not have a .gitlab-ci.yml file", "Should indicate missing CI/CD yaml file")
+}

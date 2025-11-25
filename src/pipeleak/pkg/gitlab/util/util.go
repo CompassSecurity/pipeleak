@@ -211,6 +211,10 @@ func FetchCICDYml(git *gitlab.Client, pid int64) (string, error) {
 		return "", errors.New(strings.Join(res.Errors, ", "))
 	}
 
+	if res.MergedYaml == "" {
+		return "", errors.New("project does not have a .gitlab-ci.yml file")
+	}
+
 	log.Trace().Bool("valid", res.Valid).Str("warnings", strings.Join(res.Warnings, ", ")).Msg(".gitlab-ci.yaml")
 
 	return res.MergedYaml, nil
