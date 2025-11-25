@@ -15,7 +15,7 @@
         "golang.go",
         "ms-python.python",
         "esbenp.prettier-vscode",
-        "eamodio.gitlens",
+        "ms-vscode.makefile-tools",
         "streetsidesoftware.code-spell-checker"
       ],
       "settings": {
@@ -28,6 +28,11 @@
           "editor.defaultFormatter": "golang.go"
         }
       }
+    }
+  },
+  "portsAttributes": {
+    "*": {
+      "onAutoForward": "ignore"
     }
   },
   "postCreateCommand": "bash .devcontainer/post-create.sh",
