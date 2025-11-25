@@ -68,6 +68,28 @@ func TestDetectHitsWithTimeout(t *testing.T) {
 	}
 }
 
+func TestDetectHits_ExplicitTimeout(t *testing.T) {
+	// Test that a very short timeout causes an error and the error contains the configured timeout value
+	text := []byte("CI_REGISTRY_PASSWORD=supersecret123")
+	
+	// Use 1 nanosecond timeout to guarantee timeout occurs
+	shortTimeout := 1 * time.Nanosecond
+
+	_, err := DetectHits(text, 1, false, shortTimeout)
+
+	// With 1ns timeout, we expect this to always timeout
+	if err == nil {
+		t.Fatal("Expected timeout error with 1ns timeout, but got nil")
+	}
+
+	// Verify the error message contains the configured timeout value
+	expectedTimeoutStr := shortTimeout.String() // "1ns"
+	expectedError := "hit detection timed out (" + expectedTimeoutStr + ")"
+	if err.Error() != expectedError {
+		t.Errorf("Error message should contain configured timeout. Got: %q, expected: %q", err.Error(), expectedError)
+	}
+}
+
 func TestDeduplicateFindings(t *testing.T) {
 	finding := types.Finding{
 		Pattern: types.PatternElement{
