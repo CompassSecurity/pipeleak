@@ -96,14 +96,14 @@ func TestGLCicdYaml_NoCiCdYaml(t *testing.T) {
 		w.Write([]byte(`{"id":123,"name":"test-project","web_url":"https://gitlab.com/test-project"}`))
 	})
 
-	// CI lint endpoint returns empty merged_yaml when no .gitlab-ci.yml exists
+	// CI lint endpoint returns error when no .gitlab-ci.yml exists
 	mux.HandleFunc("/api/v4/projects/123/ci/lint", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{
-			"valid": true,
+			"valid": false,
 			"merged_yaml": "",
 			"warnings": [],
-			"errors": []
+			"errors": ["Please provide content of .gitlab-ci.yml"]
 		}`))
 	})
 
@@ -120,5 +120,5 @@ func TestGLCicdYaml_NoCiCdYaml(t *testing.T) {
 	// Should report an error indicating no CI/CD yaml file exists
 	combined := stdout + stderr
 	assert.NotNil(t, exitErr, "Should fail when project has no CI/CD configuration")
-	assert.Contains(t, combined, "does not have a .gitlab-ci.yml file", "Should indicate missing CI/CD yaml file")
+	assert.Contains(t, combined, "most certainly not have a .gitlab-ci.yml file", "Should indicate missing CI/CD yaml file")
 }
