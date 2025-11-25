@@ -27,7 +27,12 @@ jobs:
       - name: Run unit tests (Linux)
         if: runner.os == 'Linux'
         working-directory: ./src/pipeleak
-        run: go test $(go list ./... | grep -v /tests/e2e) -v -race
+        run: make test-unit
+      
+      - name: Generate coverage report (Linux)
+        if: runner.os == 'Linux'
+        working-directory: ./src/pipeleak
+        run: go test $(go list ./... | grep -v /tests/e2e) -coverprofile=coverage.out -covermode=atomic
       
       - name: Run unit tests (Windows)
         if: runner.os == 'Windows'
@@ -36,6 +41,13 @@ jobs:
           $packages = go list ./... | Where-Object { $_ -notmatch '/tests/e2e' }
           go test $packages -v -race
         shell: pwsh
+      
+      - name: Upload coverage artifact (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-linux
+          path: ./src/pipeleak/coverage.out
   
   e2e-tests:
     name: E2E Tests
@@ -51,11 +63,6 @@ jobs:
           go-version: stable
           cache: true
       
-      - name: Build pipeleak binary for e2e tests (Linux)
-        if: runner.os == 'Linux'
-        working-directory: ./src/pipeleak
-        run: go build -o pipeleak .
-      
       - name: Build pipeleak binary for e2e tests (Windows)
         if: runner.os == 'Windows'
         working-directory: ./src/pipeleak
@@ -64,13 +71,12 @@ jobs:
       - name: Run e2e tests (Linux)
         if: runner.os == 'Linux'
         working-directory: ./src/pipeleak
-        run: go test ./tests/e2e/... -v -timeout 10m
-        env:
-          PIPELEAK_BINARY: ./pipeleak
+        run: make test-e2e
       
       - name: Run e2e tests (Windows)
         if: runner.os == 'Windows'
         working-directory: ./src/pipeleak
-        run: go test ./tests/e2e/... -v -timeout 10m
-        env:
-          PIPELEAK_BINARY: ./pipeleak.exe
+        run: |
+          $env:PIPELEAK_BINARY = "$(Get-Location)\pipeleak.exe"
+          go test ./tests/e2e/... -tags=e2e -v -timeout 10m
+        shell: pwsh

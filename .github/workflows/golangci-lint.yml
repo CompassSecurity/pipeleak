@@ -17,9 +17,9 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: stable
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v9
-        with:
-          version: latest
-          working-directory: ./src/pipeleak
-          args: --timeout=10m
+          cache: true
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+      - name: Run golangci-lint
+        working-directory: ./src/pipeleak
+        run: make lint

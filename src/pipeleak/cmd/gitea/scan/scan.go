@@ -1,6 +1,7 @@
 package scan
 
 import (
+	"github.com/CompassSecurity/pipeleak/cmd/internal/flags"
 	"github.com/CompassSecurity/pipeleak/pkg/config"
 	giteascan "github.com/CompassSecurity/pipeleak/pkg/gitea/scan"
 	"github.com/rs/zerolog/log"
@@ -9,8 +10,6 @@ import (
 
 type GiteaScanOptions struct {
 	config.CommonScanOptions
-	Token        string
-	GiteaURL     string
 	Organization string
 	Repository   string
 	Cookie       string
@@ -66,38 +65,28 @@ pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com 
 		Run: Scan,
 	}
 
-	scanCmd.Flags().StringVarP(&scanOptions.Token, "token", "t", "", "Gitea personal access token")
-	err := scanCmd.MarkFlagRequired("token")
-	if err != nil {
-		log.Fatal().Msg("Unable to require token flag")
-	}
-
-	scanCmd.Flags().StringVarP(&scanOptions.GiteaURL, "gitea", "g", "https://gitea.com", "Base Gitea URL (e.g. https://gitea.example.com)")
-
-	scanCmd.Flags().BoolVarP(&scanOptions.Artifacts, "artifacts", "a", false, "Download and scan workflow artifacts")
-	scanCmd.PersistentFlags().StringVarP(&maxArtifactSize, "max-artifact-size", "", "500Mb", "Max file size of an artifact to be included in scanning. Larger files are skipped. Format: https://pkg.go.dev/github.com/docker/go-units#FromHumanSize")
-	scanCmd.Flags().BoolVarP(&scanOptions.Owned, "owned", "o", false, "Scan only repositories owned by the user")
+	flags.AddCommonScanFlags(scanCmd, &scanOptions.CommonScanOptions, &maxArtifactSize)
 	scanCmd.Flags().StringVarP(&scanOptions.Organization, "organization", "", "", "Scan all repositories of a specific organization")
 	scanCmd.Flags().StringVarP(&scanOptions.Repository, "repository", "r", "", "Scan a specific repository (format: owner/repo)")
 	scanCmd.Flags().StringVarP(&scanOptions.Cookie, "cookie", "c", "", "Gitea session cookie (i_like_gitea). Needed when scanning where you are NOT the owner of the repository")
 	scanCmd.Flags().IntVarP(&scanOptions.RunsLimit, "runs-limit", "", 0, "Limit the number of workflow runs to scan per repository (0 = unlimited)")
 	scanCmd.Flags().Int64VarP(&scanOptions.StartRunID, "start-run-id", "", 0, "Start scanning from a specific run ID (only valid with --repository flag, 0 = start from latest)")
-	scanCmd.Flags().StringSliceVarP(&scanOptions.ConfidenceFilter, "confidence", "", []string{}, "Filter for confidence level, separate by comma if multiple. See documentation for more info.")
-	scanCmd.PersistentFlags().IntVarP(&scanOptions.MaxScanGoRoutines, "threads", "", 4, "Nr of threads used to scan")
-	scanCmd.PersistentFlags().BoolVarP(&scanOptions.TruffleHogVerification, "truffle-hog-verification", "", true, "Enable TruffleHog credential verification to actively test found credentials and only report verified ones (enabled by default, disable with --truffle-hog-verification=false)")
 
 	return scanCmd
 }
 
 func Scan(cmd *cobra.Command, args []string) {
+	giteaToken, _ := cmd.Flags().GetString("token")
+	giteaURL, _ := cmd.Flags().GetString("gitea")
+
 	if scanOptions.StartRunID > 0 && scanOptions.Repository == "" {
 		log.Fatal().Msg("--start-run-id can only be used with --repository flag")
 	}
 
-	if err := config.ValidateURL(scanOptions.GiteaURL, "Gitea URL"); err != nil {
+	if err := config.ValidateURL(giteaURL, "Gitea URL"); err != nil {
 		log.Fatal().Err(err).Msg("Invalid Gitea URL")
 	}
-	if err := config.ValidateToken(scanOptions.Token, "Gitea Access Token"); err != nil {
+	if err := config.ValidateToken(giteaToken, "Gitea Access Token"); err != nil {
 		log.Fatal().Err(err).Msg("Invalid Gitea Access Token")
 	}
 	if err := config.ValidateThreadCount(scanOptions.MaxScanGoRoutines); err != nil {
@@ -105,8 +94,8 @@ func Scan(cmd *cobra.Command, args []string) {
 	}
 
 	scanOpts, err := giteascan.InitializeOptions(
-		scanOptions.Token,
-		scanOptions.GiteaURL,
+		giteaToken,
+		giteaURL,
 		scanOptions.Repository,
 		scanOptions.Organization,
 		scanOptions.Cookie,

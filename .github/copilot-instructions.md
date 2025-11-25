@@ -20,27 +20,36 @@ Pipeleak is a CLI tool designed to scan CI/CD logs and artifacts for secrets acr
 pipeleak/
 ├── src/pipeleak/           # Main Go module
 │   ├── cmd/                # CLI commands (using Cobra)
-│   │   ├── gitlab/         # GitLab-specific commands
-│   │   ├── github/         # GitHub-specific commands
 │   │   ├── bitbucket/      # BitBucket-specific commands
 │   │   ├── devops/         # Azure DevOps commands
+│   │   ├── docs/           # Documentation command
 │   │   ├── gitea/          # Gitea commands
-│   │   └── docs/           # Documentation command
+│   │   ├── github/         # GitHub-specific commands
+│   │   ├── gitlab/         # GitLab-specific commands
 │   ├── pkg/                # Core business logic packages
 │   │   ├── archive/        # Archive handling
+│   │   ├── bitbucket/      # BitBucket business logic
 │   │   ├── config/         # Configuration management
-│   │   ├── gitlab/         # GitLab functionality
-│   │   ├── github/         # GitHub functionality
-│   │   └── ...            # Platform-specific packages
+│   │   ├── devops/         # Azure DevOps business logic
+│   │   ├── docs/           # Documentation generation
+│   │   ├── format/         # Formatting helpers
+│   │   ├── gitea/          # Gitea business logic
+│   │   ├── github/         # GitHub business logic
+│   │   ├── gitlab/         # GitLab business logic
+│   │   ├── httpclient/     # HTTP client helpers
+│   │   ├── logging/        # Logging helpers
+│   │   ├── scan/           # Scan logic
+│   │   ├── scanner/        # Scanner engine
+│   │   ├── system/         # System helpers
 │   ├── tests/              # Test files
-│   │   └── e2e/           # End-to-end tests
-│   ├── main.go            # Application entry point
-│   ├── go.mod             # Go module definition
-│   └── go.sum             # Dependency checksums
+│   │   └── e2e/            # End-to-end tests
+│   ├── main.go             # Application entry point
+│   ├── go.mod              # Go module definition
+│   └── go.sum              # Dependency checksums
 ├── docs/                   # Documentation (MkDocs)
 ├── .github/                # GitHub workflows and configs
-│   └── workflows/         # CI/CD pipelines
-└── goreleaser.yaml        # Release configuration
+│   └── workflows/          # CI/CD pipelines
+└── goreleaser.yaml         # Release configuration
 ```
 
 ## Building and Testing
@@ -49,30 +58,114 @@ pipeleak/
 
 ```bash
 cd src/pipeleak
+make build
+# Or directly:
 go build -o pipeleak .
 ```
 
 ### Running Tests
 
+**Using Makefile (recommended):**
+```bash
+cd src/pipeleak
+make test           # Run all tests (unit + e2e)
+make test-unit      # Run unit tests only
+make test-e2e       # Run all e2e tests
+```
+
 **Unit tests (excluding e2e):**
 ```bash
 cd src/pipeleak
+make test-unit
+# Or directly:
 go test $(go list ./... | grep -v /tests/e2e) -v -race
 ```
 
 **End-to-end tests:**
+
+E2E tests are organized by platform in a structured folder hierarchy:
+```
+tests/e2e/
+├── gitlab/          # GitLab-specific tests
+│   ├── cicd/yaml/   # CICD YAML command tests
+│   ├── scan/        # Scan command tests
+│   ├── variables/   # Variables command tests
+│   ├── schedule/    # Schedule command tests
+│   ├── runners/     # Runners list/exploit tests
+│   ├── secureFiles/ # Secure files tests
+│   ├── vuln/        # Vulnerability check tests
+│   ├── renovate/    # Renovate tests
+│   └── unauth/      # Unauthenticated commands (shodan)
+├── github/          # GitHub Actions tests
+├── bitbucket/       # BitBucket tests
+├── devops/          # Azure DevOps tests
+├── gitea/           # Gitea tests
+└── internal/        # Shared test utilities
+    └── testutil/    # Common helpers (RunCLI, mock servers, etc.)
+```
+
+**Using Makefile (recommended):**
+```bash
+cd src/pipeleak
+make test-e2e              # Run all e2e tests
+make test-e2e-gitlab       # Run only GitLab e2e tests
+make test-e2e-github       # Run only GitHub e2e tests
+make test-e2e-bitbucket    # Run only BitBucket e2e tests
+make test-e2e-devops       # Run only Azure DevOps e2e tests
+make test-e2e-gitea        # Run only Gitea e2e tests
+```
+
+**Manual execution:**
+To run e2e tests manually, first build the binary and set `PIPELEAK_BINARY`:
 ```bash
 cd src/pipeleak
 go build -o pipeleak .
-PIPELEAK_BINARY=./pipeleak go test ./tests/e2e/... -v -timeout 10m
+PIPELEAK_BINARY=$(pwd)/pipeleak go test ./tests/e2e/... -tags=e2e -v -timeout 10m
 ```
+
+Run tests for a specific platform:
+```bash
+# GitLab tests only
+PIPELEAK_BINARY=$(pwd)/pipeleak go test ./tests/e2e/gitlab/... -tags=e2e -v
+
+# Specific command tests
+PIPELEAK_BINARY=$(pwd)/pipeleak go test ./tests/e2e/gitlab/scan -tags=e2e -v
+```
+
+**Important:** E2E tests require the `PIPELEAK_BINARY` environment variable to point to the compiled binary (absolute or relative to module root). Tests use this binary to run commands in isolated subprocesses to avoid Cobra state conflicts.
+
+### Test Coverage
+
+Generate and view test coverage reports:
+
+```bash
+cd src/pipeleak
+
+# Generate coverage report with summary
+make coverage
+
+# Generate HTML coverage report and open in browser
+make coverage-html
+```
+
+Coverage reports are stored as workflow artifacts on CI runs (Linux job). Retrieve `coverage.out` from the run's artifacts section for local inspection or HTML generation.
 
 ### Linting
 
 The project uses golangci-lint:
 ```bash
 cd src/pipeleak
+make lint
+# Or directly:
 golangci-lint run --timeout=10m
+```
+
+### Documentation
+
+Generate and serve CLI documentation locally:
+```bash
+cd src/pipeleak
+make serve-docs  # Installs dependencies if needed, generates and serves docs
 ```
 
 ## Code Style and Conventions
@@ -85,6 +178,7 @@ golangci-lint run --timeout=10m
 4. **Testing**: Write tests for new functionality; maintain existing test coverage
 5. **Documentation**: Update documentation when adding or modifying features
 6. **Comments**: Only add comments that provide useful context and additional understanding; avoid obvious or redundant comments
+7. **File Moves/Copies**: When moving or copying files, always delete any resulting unused or vestigial files to keep the codebase clean and maintainable.
 
 ### Command Structure
 

@@ -1,6 +1,7 @@
 package scan
 
 import (
+	"github.com/CompassSecurity/pipeleak/cmd/internal/flags"
 	"github.com/CompassSecurity/pipeleak/pkg/config"
 	pkgscan "github.com/CompassSecurity/pipeleak/pkg/devops/scan"
 	"github.com/rs/zerolog/log"
@@ -48,6 +49,8 @@ pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization
 		`,
 		Run: Scan,
 	}
+	flags.AddCommonScanFlags(scanCmd, &options.CommonScanOptions, &maxArtifactSize)
+
 	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "Azure DevOps Personal Access Token - https://dev.azure.com/{yourUsername}/_usersSettings/tokens")
 	err := scanCmd.MarkFlagRequired("token")
 	if err != nil {
@@ -60,13 +63,8 @@ pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization
 	}
 	scanCmd.MarkFlagsRequiredTogether("token", "username")
 
-	scanCmd.Flags().StringSliceVarP(&options.ConfidenceFilter, "confidence", "", []string{}, "Filter for confidence level, separate by comma if multiple. See readme for more info.")
-	scanCmd.PersistentFlags().IntVarP(&options.MaxScanGoRoutines, "threads", "", 4, "Nr of threads used to scan")
-	scanCmd.PersistentFlags().BoolVarP(&options.TruffleHogVerification, "truffle-hog-verification", "", true, "Enable the TruffleHog credential verification, will actively test the found credentials and only report those. Disable with --truffle-hog-verification=false")
-	scanCmd.PersistentFlags().IntVarP(&options.MaxBuilds, "max-builds", "", -1, "Max. number of builds to scan per project")
-	scanCmd.PersistentFlags().BoolVarP(&options.Artifacts, "artifacts", "a", false, "Scan workflow artifacts")
-	scanCmd.PersistentFlags().StringVarP(&maxArtifactSize, "max-artifact-size", "", "500Mb", "Max file size of an artifact to be included in scanning. Larger files are skipped. Format: https://pkg.go.dev/github.com/docker/go-units#FromHumanSize")
-	scanCmd.Flags().StringVarP(&options.Organization, "organization", "o", "", "Organization name to scan")
+	scanCmd.Flags().IntVarP(&options.MaxBuilds, "max-builds", "", -1, "Max. number of builds to scan per project")
+	scanCmd.Flags().StringVarP(&options.Organization, "organization", "", "", "Organization name to scan")
 	scanCmd.Flags().StringVarP(&options.Project, "project", "p", "", "Project name to scan - can be combined with organization")
 	scanCmd.Flags().StringVarP(&options.DevOpsURL, "devops", "d", "https://dev.azure.com", "Azure DevOps base URL")
 

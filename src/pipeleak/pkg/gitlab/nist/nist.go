@@ -7,7 +7,6 @@ import (
 	"io"
 	"strings"
 
-	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog/log"
 )
@@ -26,16 +25,16 @@ type nvdResponse struct {
 
 // FetchVulns retrieves all CVE vulnerabilities for a specific GitLab version and edition from the NIST NVD API.
 // It automatically handles pagination if the total results exceed the page size.
-func FetchVulns(version string, enterprise bool) (string, error) {
-	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
-
+// Accepts a retryablehttp client and base URL to allow dependency injection for testing.
+func FetchVulns(client *retryablehttp.Client, baseURL, version string, enterprise bool) (string, error) {
 	edition := "community"
 	if enterprise {
 		edition = "enterprise"
 	}
 
 	baseCPEUrl := strings.Join([]string{
-		"https://services.nvd.nist.gov/rest/json/cves/2.0?cpeName=cpe:2.3:a:gitlab:gitlab:",
+		baseURL,
+		"?cpeName=cpe:2.3:a:gitlab:gitlab:",
 		version,
 		":*:*:*:",
 		edition,

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -65,7 +66,10 @@ func TestFetchVulns_NoPagination(t *testing.T) {
 	server := mockNVDServer(t, 10, 100)
 	defer server.Close()
 
-	result, err := fetchVulnsFromURL(server.URL, "16.0.0", false)
+	// Create a properly configured retryable client
+	client := retryablehttp.NewClient()
+	client.HTTPClient = server.Client()
+	result, err := FetchVulns(client, server.URL, "16.0.0", false)
 	require.NoError(t, err)
 
 	// Parse the result
@@ -84,7 +88,9 @@ func TestFetchVulns_WithPagination(t *testing.T) {
 	server := mockNVDServer(t, 250, 100)
 	defer server.Close()
 
-	result, err := fetchVulnsFromURL(server.URL, "16.0.0", false)
+	client := retryablehttp.NewClient()
+	client.HTTPClient = server.Client()
+	result, err := FetchVulns(client, server.URL, "16.0.0", false)
 	require.NoError(t, err)
 
 	// Parse the result
@@ -114,7 +120,9 @@ func TestFetchVulns_EnterpriseEdition(t *testing.T) {
 	server := mockNVDServer(t, 5, 100)
 	defer server.Close()
 
-	result, err := fetchVulnsFromURL(server.URL, "17.0.0", true)
+	client := retryablehttp.NewClient()
+	client.HTTPClient = server.Client()
+	result, err := FetchVulns(client, server.URL, "17.0.0", true)
 	require.NoError(t, err)
 
 	// Verify the URL contains enterprise edition
@@ -129,7 +137,9 @@ func TestFetchVulns_CommunityEdition(t *testing.T) {
 	server := mockNVDServer(t, 3, 100)
 	defer server.Close()
 
-	result, err := fetchVulnsFromURL(server.URL, "17.0.0", false)
+	client := retryablehttp.NewClient()
+	client.HTTPClient = server.Client()
+	result, err := FetchVulns(client, server.URL, "17.0.0", false)
 	require.NoError(t, err)
 
 	// Verify the URL contains community edition
@@ -143,7 +153,9 @@ func TestFetchVulns_EmptyResponse(t *testing.T) {
 	server := mockNVDServer(t, 0, 100)
 	defer server.Close()
 
-	result, err := fetchVulnsFromURL(server.URL, "99.99.99", false)
+	client := retryablehttp.NewClient()
+	client.HTTPClient = server.Client()
+	result, err := FetchVulns(client, server.URL, "99.99.99", false)
 	require.NoError(t, err)
 
 	var response nvdResponse
@@ -161,7 +173,10 @@ func TestFetchVulns_HTTPError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	result, err := fetchVulnsFromURL(server.URL, "16.0.0", false)
+	client := retryablehttp.NewClient()
+	client.HTTPClient = server.Client()
+	client.RetryMax = 0 // Disable retries for faster test
+	result, err := FetchVulns(client, server.URL, "16.0.0", false)
 	assert.Error(t, err)
 	assert.Equal(t, "{}", result)
 }
@@ -174,7 +189,9 @@ func TestFetchVulns_InvalidJSON(t *testing.T) {
 	}))
 	defer server.Close()
 
-	result, err := fetchVulnsFromURL(server.URL, "16.0.0", false)
+	client := retryablehttp.NewClient()
+	client.HTTPClient = server.Client()
+	result, err := FetchVulns(client, server.URL, "16.0.0", false)
 	assert.Error(t, err)
 	assert.Equal(t, "{}", result)
 }
@@ -184,7 +201,9 @@ func TestFetchVulns_LargePagination(t *testing.T) {
 	server := mockNVDServer(t, 1000, 100)
 	defer server.Close()
 
-	result, err := fetchVulnsFromURL(server.URL, "15.0.0", false)
+	client := retryablehttp.NewClient()
+	client.HTTPClient = server.Client()
+	result, err := FetchVulns(client, server.URL, "15.0.0", false)
 	require.NoError(t, err)
 
 	var response nvdResponse
@@ -209,7 +228,9 @@ func TestFetchVulns_ExactPageBoundary(t *testing.T) {
 	server := mockNVDServer(t, 100, 100)
 	defer server.Close()
 
-	result, err := fetchVulnsFromURL(server.URL, "16.0.0", false)
+	client := retryablehttp.NewClient()
+	client.HTTPClient = server.Client()
+	result, err := FetchVulns(client, server.URL, "16.0.0", false)
 	require.NoError(t, err)
 
 	var response nvdResponse
@@ -225,7 +246,9 @@ func TestFetchVulns_MultiplePagesExactBoundary(t *testing.T) {
 	server := mockNVDServer(t, 200, 100)
 	defer server.Close()
 
-	result, err := fetchVulnsFromURL(server.URL, "16.0.0", false)
+	client := retryablehttp.NewClient()
+	client.HTTPClient = server.Client()
+	result, err := FetchVulns(client, server.URL, "16.0.0", false)
 	require.NoError(t, err)
 
 	var response nvdResponse
@@ -234,84 +257,6 @@ func TestFetchVulns_MultiplePagesExactBoundary(t *testing.T) {
 
 	assert.Equal(t, 200, response.TotalResults)
 	assert.Equal(t, 200, len(response.Vulnerabilities))
-}
-
-// Helper function to test with a custom URL
-func fetchVulnsFromURL(baseURL, version string, enterprise bool) (string, error) {
-	// This is a test helper that modifies the URL construction
-	// In a real implementation, you might want to make the base URL configurable
-	edition := "community"
-	if enterprise {
-		edition = "enterprise"
-	}
-
-	// Build CPE URL but replace the real NVD URL with our test server URL
-	cpeString := fmt.Sprintf("cpe:2.3:a:gitlab:gitlab:%s:*:*:*:%s:*:*:*", version, edition)
-
-	// Replace the NVD URL construction in FetchVulns to use our test server
-	// For testing, we'll reconstruct the call with our test URL
-	testURL := fmt.Sprintf("%s?cpeName=%s", baseURL, cpeString)
-
-	// Create a temporary implementation that uses the test URL
-	client := &http.Client{}
-
-	// Fetch first page
-	firstPageURL := fmt.Sprintf("%s&resultsPerPage=%d&startIndex=0", testURL, resultsPerPage)
-	resp, err := client.Get(firstPageURL)
-	if err != nil {
-		return "{}", err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	if resp.StatusCode != 200 {
-		return "{}", fmt.Errorf("HTTP %d", resp.StatusCode)
-	}
-
-	var firstPageData nvdResponse
-	if err := json.NewDecoder(resp.Body).Decode(&firstPageData); err != nil {
-		return "{}", err
-	}
-
-	// If all results fit in first page, return as-is
-	if firstPageData.TotalResults <= resultsPerPage {
-		jsonData, err := json.Marshal(firstPageData)
-		if err != nil {
-			return "{}", err
-		}
-		return string(jsonData), nil
-	}
-
-	// Fetch remaining pages
-	allVulns := firstPageData.Vulnerabilities
-	for startIndex := resultsPerPage; startIndex < firstPageData.TotalResults; startIndex += resultsPerPage {
-		pageURL := fmt.Sprintf("%s&resultsPerPage=%d&startIndex=%d", testURL, resultsPerPage, startIndex)
-		resp, err := client.Get(pageURL)
-		if err != nil {
-			break
-		}
-
-		var pageData nvdResponse
-		if err := json.NewDecoder(resp.Body).Decode(&pageData); err != nil {
-			_ = resp.Body.Close()
-			break
-		}
-		_ = resp.Body.Close()
-
-		allVulns = append(allVulns, pageData.Vulnerabilities...)
-	}
-
-	// Build final response
-	finalResponse := firstPageData
-	finalResponse.Vulnerabilities = allVulns
-	finalResponse.ResultsPerPage = len(allVulns)
-	finalResponse.StartIndex = 0
-
-	jsonData, err := json.Marshal(finalResponse)
-	if err != nil {
-		return "{}", err
-	}
-
-	return string(jsonData), nil
 }
 
 // TestEditionMapping verifies the edition string mapping

@@ -7,47 +7,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/cmd/gitlab/util"
+	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
 	"github.com/rs/zerolog/log"
-	"github.com/spf13/cobra"
-	gitlab "gitlab.com/gitlab-org/api/client-go"
 
 	"resty.dev/v3"
 )
 
-var (
-	gitlabApiToken string
-	gitlabUrl      string
-	minAccessLevel int
-)
-
-func NewEnumCmd() *cobra.Command {
-	enumCmd := &cobra.Command{
-		Use:     "enum",
-		Short:   "Enumerate access rights of a GitLab access token",
-		Long:    "Enumerate access rights of a GitLab access token by listing projects, groups and users the token has access to.",
-		Example: `pipeleak gl enum --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com --level 20`,
-		Run:     Enum,
-	}
-	enumCmd.Flags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")
-	err := enumCmd.MarkFlagRequired("gitlab")
-	if err != nil {
-		log.Fatal().Stack().Err(err).Msg("Unable to require gitlab flag")
-	}
-
-	enumCmd.Flags().StringVarP(&gitlabApiToken, "token", "t", "", "GitLab API Token")
-	err = enumCmd.MarkFlagRequired("token")
-	if err != nil {
-		log.Fatal().Msg("Unable to require token flag")
-	}
-	enumCmd.MarkFlagsRequiredTogether("gitlab", "token")
-
-	enumCmd.PersistentFlags().IntVarP(&minAccessLevel, "level", "", int(gitlab.GuestPermissions), "Minimum repo access level. See https://docs.gitlab.com/api/access_requests/#valid-access-levels for integer values")
-
-	return enumCmd
-}
-
-func Enum(cmd *cobra.Command, args []string) {
+// RunEnum performs the enumeration of GitLab access rights
+func RunEnum(gitlabUrl, gitlabApiToken string, minAccessLevel int) {
 	git, err := util.GetGitlabClient(gitlabApiToken, gitlabUrl)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed creating gitlab client")
