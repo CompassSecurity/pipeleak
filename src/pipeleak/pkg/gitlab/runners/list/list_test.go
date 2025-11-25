@@ -181,9 +181,9 @@ func TestFormatRunnerInfo(t *testing.T) {
 				return
 			}
 
-		require.NotNil(t, info)
-		assert.Equal(t, int(tt.details.ID), info.ID)
-		assert.Equal(t, tt.details.Name, info.Name)
+			require.NotNil(t, info)
+			assert.Equal(t, int(tt.details.ID), info.ID)
+			assert.Equal(t, tt.details.Name, info.Name)
 			assert.Equal(t, tt.details.Description, info.Description)
 			assert.Equal(t, tt.details.RunnerType, info.Type)
 			assert.Equal(t, tt.details.Paused, info.Paused)

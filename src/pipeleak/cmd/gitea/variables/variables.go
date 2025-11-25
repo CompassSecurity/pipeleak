@@ -26,6 +26,5 @@ func NewVariablesCommand() *cobra.Command {
 		},
 	}
 
-
 	return cmd
 }
