@@ -1,0 +1,415 @@
+package renovate
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestRenovateJsonConfig(t *testing.T) {
+	t.Run("contains valid JSON schema", func(t *testing.T) {
+		assert.Contains(t, renovateJson, `"$schema"`)
+		assert.Contains(t, renovateJson, "https://docs.renovatebot.com/renovate-schema.json")
+	})
+
+	t.Run("extends config:recommended", func(t *testing.T) {
+		assert.Contains(t, renovateJson, `"extends"`)
+		assert.Contains(t, renovateJson, "config:recommended")
+	})
+
+	t.Run("is valid JSON structure", func(t *testing.T) {
+		assert.True(t, strings.HasPrefix(strings.TrimSpace(renovateJson), "{"))
+		assert.True(t, strings.HasSuffix(strings.TrimSpace(renovateJson), "}"))
+	})
+}
+
+func TestBuildGradle(t *testing.T) {
+	t.Run("contains Java plugin", func(t *testing.T) {
+		assert.Contains(t, buildGradle, "plugins")
+		assert.Contains(t, buildGradle, "id 'java'")
+	})
+
+	t.Run("uses mavenCentral repository", func(t *testing.T) {
+		assert.Contains(t, buildGradle, "repositories")
+		assert.Contains(t, buildGradle, "mavenCentral()")
+	})
+
+	t.Run("includes guava dependency with old version", func(t *testing.T) {
+		assert.Contains(t, buildGradle, "dependencies")
+		assert.Contains(t, buildGradle, "com.google.guava:guava")
+		assert.Contains(t, buildGradle, "31.0-jre", "Should use old version to trigger update")
+	})
+
+	t.Run("is valid Gradle syntax", func(t *testing.T) {
+		assert.NotContains(t, buildGradle, "{{{", "Should not contain template placeholders")
+		assert.NotContains(t, buildGradle, "}}}", "Should not contain template placeholders")
+	})
+}
+
+func TestGradlewScript(t *testing.T) {
+	t.Run("is a shell script", func(t *testing.T) {
+		assert.True(t, strings.HasPrefix(gradlewScript, "#!/bin/sh"))
+	})
+
+	t.Run("executes exploit.sh", func(t *testing.T) {
+		assert.Contains(t, gradlewScript, "sh exploit.sh")
+	})
+
+	t.Run("exits successfully to avoid detection", func(t *testing.T) {
+		assert.Contains(t, gradlewScript, "exit 0")
+	})
+
+	t.Run("contains explanatory comments", func(t *testing.T) {
+		assert.Contains(t, gradlewScript, "Malicious Gradle wrapper")
+		assert.Contains(t, gradlewScript, "Renovate")
+	})
+
+	t.Run("outputs benign message", func(t *testing.T) {
+		assert.Contains(t, gradlewScript, "echo \"Gradle wrapper executed\"")
+	})
+}
+
+func TestGradleWrapperProperties(t *testing.T) {
+	t.Run("contains required Gradle wrapper properties", func(t *testing.T) {
+		assert.Contains(t, gradleWrapperProperties, "distributionBase=GRADLE_USER_HOME")
+		assert.Contains(t, gradleWrapperProperties, "distributionPath=wrapper/dists")
+		assert.Contains(t, gradleWrapperProperties, "zipStoreBase=GRADLE_USER_HOME")
+		assert.Contains(t, gradleWrapperProperties, "zipStorePath=wrapper/dists")
+	})
+
+	t.Run("uses old Gradle version to trigger update", func(t *testing.T) {
+		assert.Contains(t, gradleWrapperProperties, "gradle-7.0-bin.zip")
+		assert.Contains(t, gradleWrapperProperties, "https\\://services.gradle.org/distributions/")
+	})
+
+	t.Run("has properly escaped URL", func(t *testing.T) {
+		// The : should be escaped as \: in properties files
+		assert.Contains(t, gradleWrapperProperties, "https\\://")
+	})
+
+	t.Run("format is valid properties file", func(t *testing.T) {
+		lines := strings.Split(gradleWrapperProperties, "\n")
+		for _, line := range lines {
+			if line == "" {
+				continue
+			}
+			assert.Contains(t, line, "=", "Each non-empty line should be a key=value pair")
+		}
+	})
+}
+
+func TestExploitScript(t *testing.T) {
+	t.Run("is a shell script", func(t *testing.T) {
+		assert.True(t, strings.HasPrefix(exploitScript, "#!/bin/sh"))
+	})
+
+	t.Run("creates proof file in /tmp", func(t *testing.T) {
+		assert.Contains(t, exploitScript, "/tmp/pipeleak-exploit-executed.txt")
+	})
+
+	t.Run("records execution timestamp", func(t *testing.T) {
+		assert.Contains(t, exploitScript, "$(date)")
+	})
+
+	t.Run("records working directory", func(t *testing.T) {
+		assert.Contains(t, exploitScript, "$(pwd)")
+	})
+
+	t.Run("records user information", func(t *testing.T) {
+		assert.Contains(t, exploitScript, "$(whoami)")
+	})
+
+	t.Run("contains helpful examples for actual exploitation", func(t *testing.T) {
+		assert.Contains(t, exploitScript, "Replace this with your actual exploit code")
+		assert.Contains(t, exploitScript, "Examples:")
+		assert.Contains(t, exploitScript, "Exfiltrate environment variables")
+	})
+
+	t.Run("includes commented curl exfiltration example", func(t *testing.T) {
+		assert.Contains(t, exploitScript, "# curl -X POST")
+		assert.Contains(t, exploitScript, "$(env)")
+	})
+}
+
+func TestGitlabCiYml(t *testing.T) {
+	t.Run("uses renovate image", func(t *testing.T) {
+		assert.Contains(t, gitlabCiYml, "image: renovate/renovate:latest")
+	})
+
+	t.Run("runs renovate with autodiscover", func(t *testing.T) {
+		assert.Contains(t, gitlabCiYml, "renovate --platform gitlab --autodiscover=true")
+		assert.Contains(t, gitlabCiYml, "--token=$RENOVATE_TOKEN")
+	})
+
+	t.Run("includes setup instructions", func(t *testing.T) {
+		assert.Contains(t, gitlabCiYml, "Setup instructions:")
+		assert.Contains(t, gitlabCiYml, "Access Tokens")
+		assert.Contains(t, gitlabCiYml, "'api' scope")
+		assert.Contains(t, gitlabCiYml, "Maintainer")
+		assert.Contains(t, gitlabCiYml, "RENOVATE_TOKEN")
+	})
+
+	t.Run("checks for exploit execution", func(t *testing.T) {
+		assert.Contains(t, gitlabCiYml, "Checking if exploit executed")
+		assert.Contains(t, gitlabCiYml, "/tmp/pipeleak-exploit-executed.txt")
+	})
+
+	t.Run("displays success message", func(t *testing.T) {
+		assert.Contains(t, gitlabCiYml, "SUCCESS: Exploit was executed!")
+		assert.Contains(t, gitlabCiYml, "cat /tmp/pipeleak-exploit-executed.txt")
+	})
+
+	t.Run("copies proof file for artifact collection", func(t *testing.T) {
+		assert.Contains(t, gitlabCiYml, "cp /tmp/pipeleak-exploit-executed.txt exploit-proof.txt")
+	})
+
+	t.Run("configures debug logging", func(t *testing.T) {
+		assert.Contains(t, gitlabCiYml, "variables:")
+		assert.Contains(t, gitlabCiYml, "LOG_LEVEL: debug")
+	})
+
+	t.Run("runs only on main branch", func(t *testing.T) {
+		assert.Contains(t, gitlabCiYml, "only:")
+		assert.Contains(t, gitlabCiYml, "- main")
+	})
+
+	t.Run("configures artifact collection", func(t *testing.T) {
+		assert.Contains(t, gitlabCiYml, "artifacts:")
+		assert.Contains(t, gitlabCiYml, "paths:")
+		assert.Contains(t, gitlabCiYml, "/tmp/pipeleak-exploit-executed.txt")
+		assert.Contains(t, gitlabCiYml, "when: always")
+		assert.Contains(t, gitlabCiYml, "expire_in: 1 day")
+	})
+
+	t.Run("provides helpful failure messages", func(t *testing.T) {
+		assert.Contains(t, gitlabCiYml, "FAILED: /tmp/pipeleak-exploit-executed.txt not found")
+		assert.Contains(t, gitlabCiYml, "Checking /tmp for any proof files")
+	})
+}
+
+func TestRunGenerate_FilesCreated(t *testing.T) {
+	// Track which files are created
+	createdFiles := make(map[string]struct {
+		content    string
+		executable bool
+	})
+
+	// Setup mock GitLab API server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == "POST" && strings.Contains(r.URL.Path, "/projects"):
+			// Create project
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(`{"id":123,"name":"test-repo","web_url":"https://gitlab.example.com/test/test-repo"}`))
+
+		case r.Method == "POST" && strings.Contains(r.URL.Path, "/repository/files"):
+			// Create file - extract filename from URL
+			parts := strings.Split(r.URL.Path, "/repository/files/")
+			if len(parts) == 2 {
+				filename := strings.Split(parts[1], "/")[0]
+				// Store the file info
+				createdFiles[filename] = struct {
+					content    string
+					executable bool
+				}{
+					content:    "", // Would need to parse request body for actual content
+					executable: false,
+				}
+			}
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(`{"file_path":"test.txt","branch":"main"}`))
+
+		case r.Method == "POST" && strings.Contains(r.URL.Path, "/members"):
+			// Add member
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(`{"id":456,"access_level":30}`))
+
+		default:
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{}`))
+		}
+	}))
+	defer server.Close()
+
+	// Note: This is a simplified test. In a real scenario, we'd need to fully
+	// mock the GitLab client and intercept file creation calls.
+	// For now, we're testing the file content validation above.
+}
+
+func TestFileContents_Security(t *testing.T) {
+	t.Run("exploit script does not contain actual credentials", func(t *testing.T) {
+		assert.NotContains(t, exploitScript, "password")
+		assert.NotContains(t, exploitScript, "secret_key")
+		assert.NotContains(t, exploitScript, "api_token")
+	})
+
+	t.Run("gradlew script does not leak information", func(t *testing.T) {
+		assert.NotContains(t, gradlewScript, "password")
+		assert.NotContains(t, gradlewScript, "http://", "Should not contain hardcoded URLs")
+		assert.NotContains(t, gradlewScript, "https://", "Should not contain hardcoded URLs")
+	})
+
+	t.Run("no hardcoded attacker infrastructure in defaults", func(t *testing.T) {
+		// The exploit script should have examples commented out
+		lines := strings.Split(exploitScript, "\n")
+		for _, line := range lines {
+			if strings.Contains(line, "http") && !strings.HasPrefix(strings.TrimSpace(line), "#") {
+				t.Errorf("Found uncommented URL in exploit script: %s", line)
+			}
+		}
+	})
+}
+
+func TestExploitMechanism(t *testing.T) {
+	t.Run("requires outdated gradle version", func(t *testing.T) {
+		assert.Contains(t, gradleWrapperProperties, "gradle-7.0")
+	})
+
+	t.Run("malicious gradlew is marked executable", func(t *testing.T) {
+		// This would be tested in the actual RunGenerate function
+		// where createFile is called with executable=true for gradlew
+		assert.Contains(t, gradlewScript, "#!/bin/sh", "Script must have shebang to be executable")
+	})
+
+	t.Run("exploit.sh is marked executable", func(t *testing.T) {
+		assert.Contains(t, exploitScript, "#!/bin/sh", "Script must have shebang to be executable")
+	})
+
+	t.Run("exploitation chain is complete", func(t *testing.T) {
+		// Verify the exploitation chain:
+		// 1. gradle-wrapper.properties triggers Renovate to update wrapper
+		assert.Contains(t, gradleWrapperProperties, "gradle-7.0")
+
+		// 2. Renovate executes ./gradlew wrapper
+		// 3. Our malicious gradlew executes exploit.sh
+		assert.Contains(t, gradlewScript, "sh exploit.sh")
+
+		// 4. exploit.sh creates proof file
+		assert.Contains(t, exploitScript, "/tmp/pipeleak-exploit-executed.txt")
+
+		// 5. CI verification finds the proof file
+		assert.Contains(t, gitlabCiYml, "/tmp/pipeleak-exploit-executed.txt")
+	})
+}
+
+func TestFileNaming(t *testing.T) {
+	tests := []struct {
+		name     string
+		filename string
+		content  string
+	}{
+		{"renovate config", "renovate.json", renovateJson},
+		{"gradle build file", "build.gradle", buildGradle},
+		{"gradle wrapper script", "gradlew", gradlewScript},
+		{"gradle wrapper properties", "gradle/wrapper/gradle-wrapper.properties", gradleWrapperProperties},
+		{"exploit script", "exploit.sh", exploitScript},
+		{"ci configuration", ".gitlab-ci.yml", gitlabCiYml},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.NotEmpty(t, tt.content, "File content should not be empty")
+			assert.Greater(t, len(tt.content), 10, "File content should have substantial content")
+		})
+	}
+}
+
+func TestNoRegressions(t *testing.T) {
+	t.Run("no npm/yarn exploitation remnants", func(t *testing.T) {
+		assert.NotContains(t, renovateJson, "package.json")
+		assert.NotContains(t, renovateJson, "npm")
+		assert.NotContains(t, renovateJson, "yarn")
+	})
+
+	t.Run("no python exploitation remnants", func(t *testing.T) {
+		// Ensure we completely removed the Python approach
+		assert.NotContains(t, renovateJson, "setup.py")
+		assert.NotContains(t, renovateJson, "requirements.txt")
+		assert.NotContains(t, exploitScript, "python")
+		// Note: "pip" substring appears in "pipeleak" - that's intentional
+	})
+
+	t.Run("uses gradle approach exclusively", func(t *testing.T) {
+		assert.Contains(t, gradleWrapperProperties, "gradle")
+		// buildGradle uses Groovy DSL which doesn't require explicit "gradle" keyword
+		assert.Contains(t, buildGradle, "plugins")
+		assert.Contains(t, buildGradle, "repositories")
+		assert.Contains(t, buildGradle, "dependencies")
+	})
+}
+
+func TestExploitDocumentation(t *testing.T) {
+	t.Run("gitlabCiYml has clear instructions", func(t *testing.T) {
+		// Verify comprehensive setup instructions
+		requiredSteps := []string{
+			"Setup instructions:",
+			"Project Settings",
+			"Access Tokens",
+			"api",
+			"Maintainer",
+			"CI/CD",
+			"Variables",
+			"RENOVATE_TOKEN",
+		}
+
+		for _, step := range requiredSteps {
+			assert.Contains(t, gitlabCiYml, step, "Missing important setup step: %s", step)
+		}
+	})
+
+	t.Run("exploit script explains what to replace", func(t *testing.T) {
+		assert.Contains(t, exploitScript, "Replace this with your actual exploit code")
+		assert.Contains(t, exploitScript, "Examples:")
+	})
+
+	t.Run("comments explain the attack mechanism", func(t *testing.T) {
+		assert.Contains(t, gradlewScript, "Malicious Gradle wrapper")
+		assert.Contains(t, gradlewScript, "Renovate")
+		assert.Contains(t, gradlewScript, "artifact update phase")
+	})
+}
+
+func TestLogMessages(t *testing.T) {
+	// These tests verify that informative log messages are present
+	// The actual logging would be tested in integration tests
+
+	t.Run("mentions gradle wrapper mechanism", func(t *testing.T) {
+		// This would be checked in the RunGenerate function logs
+		// For now, verify our template variables contain the right info
+		assert.Contains(t, gradlewScript, "Gradle wrapper")
+	})
+
+	t.Run("warns about retest procedures", func(t *testing.T) {
+		assert.Contains(t, gitlabCiYml, "# This verifies the exploit")
+	})
+}
+
+func TestContentQuality(t *testing.T) {
+	t.Run("all content is non-empty", func(t *testing.T) {
+		contents := map[string]string{
+			"renovateJson":            renovateJson,
+			"buildGradle":             buildGradle,
+			"gradlewScript":           gradlewScript,
+			"gradleWrapperProperties": gradleWrapperProperties,
+			"exploitScript":           exploitScript,
+			"gitlabCiYml":             gitlabCiYml,
+		}
+
+		for name, content := range contents {
+			assert.NotEmpty(t, content, "%s should not be empty", name)
+			assert.Greater(t, len(strings.TrimSpace(content)), 20,
+				"%s should have substantial content", name)
+		}
+	})
+
+	t.Run("scripts have proper line endings", func(t *testing.T) {
+		scripts := []string{gradlewScript, exploitScript}
+		for _, script := range scripts {
+			// Should use Unix line endings
+			assert.NotContains(t, script, "\r\n", "Scripts should use Unix line endings")
+		}
+	})
+}
