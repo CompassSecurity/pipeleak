@@ -4,6 +4,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/CompassSecurity/pipeleak/pkg/logging"
@@ -16,8 +17,8 @@ import (
 
 var skippableDirectoryNames = []string{"node_modules", ".yarn", ".yarn-cache", ".npm", "venv", "vendor", ".go/pkg/mod/"}
 
-func DetectFileHits(content []byte, jobWebUrl string, jobName string, fileName string, archiveName string, enableTruffleHogVerification bool) {
-	findings, err := engine.DetectHits(content, 1, enableTruffleHogVerification)
+func DetectFileHits(content []byte, jobWebUrl string, jobName string, fileName string, archiveName string, enableTruffleHogVerification bool, hitTimeout time.Duration) {
+	findings, err := engine.DetectHits(content, 1, enableTruffleHogVerification, hitTimeout)
 	if err != nil {
 		log.Debug().Err(err).Str("job", jobWebUrl).Msg("Failed detecting secrets")
 		return
@@ -32,11 +33,11 @@ func DetectFileHits(content []byte, jobWebUrl string, jobName string, fileName s
 	}
 }
 
-func HandleArchiveArtifact(archivefileName string, content []byte, jobWebUrl string, jobName string, enableTruffleHogVerification bool) {
-	HandleArchiveArtifactWithDepth(archivefileName, content, jobWebUrl, jobName, enableTruffleHogVerification, 1)
+func HandleArchiveArtifact(archivefileName string, content []byte, jobWebUrl string, jobName string, enableTruffleHogVerification bool, hitTimeout time.Duration) {
+	HandleArchiveArtifactWithDepth(archivefileName, content, jobWebUrl, jobName, enableTruffleHogVerification, hitTimeout, 1)
 }
 
-func HandleArchiveArtifactWithDepth(archivefileName string, content []byte, jobWebUrl string, jobName string, enableTruffleHogVerification bool, depth int) {
+func HandleArchiveArtifactWithDepth(archivefileName string, content []byte, jobWebUrl string, jobName string, enableTruffleHogVerification bool, hitTimeout time.Duration, depth int) {
 	if depth > 10 {
 		log.Debug().Str("file", archivefileName).Int("recursionDepth", depth).Msg("Max archive recursion depth reached, skipping further extraction")
 		return
@@ -101,13 +102,13 @@ func HandleArchiveArtifactWithDepth(archivefileName string, content []byte, jobW
 
 			if filetype.IsArchive(fileBytes) {
 				log.Trace().Str("fileName", currentFileName).Str("parentArchive", archivefileName).Int("depth", depth).Msg("Detected nested archive, recursing")
-				HandleArchiveArtifactWithDepth(currentFileName, fileBytes, jobWebUrl, jobName, enableTruffleHogVerification, depth+1)
+				HandleArchiveArtifactWithDepth(currentFileName, fileBytes, jobWebUrl, jobName, enableTruffleHogVerification, hitTimeout, depth+1)
 				continue
 			}
 
 			kind, _ := filetype.Match(fileBytes)
 			if kind == filetype.Unknown {
-				DetectFileHits(fileBytes, jobWebUrl, jobName, currentFileName, archivefileName, enableTruffleHogVerification)
+				DetectFileHits(fileBytes, jobWebUrl, jobName, currentFileName, archivefileName, enableTruffleHogVerification, hitTimeout)
 			}
 		}
 	}

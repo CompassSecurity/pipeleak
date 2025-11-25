@@ -2,6 +2,7 @@ package engine
 
 import (
 	"testing"
+	"time"
 
 	"github.com/CompassSecurity/pipeleak/pkg/scanner/rules"
 	"github.com/CompassSecurity/pipeleak/pkg/scanner/types"
@@ -41,7 +42,7 @@ func TestDetectHits(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			findings, err := DetectHits(tt.text, 1, false)
+			findings, err := DetectHits(tt.text, 1, false, 60*time.Second)
 			if err != nil {
 				t.Fatalf("DetectHits() error = %v", err)
 			}

@@ -40,6 +40,7 @@ type ScanOptions struct {
 	GitHubURL              string
 	Repo                   string
 	MaxArtifactSize        int64
+	HitTimeout             time.Duration
 	Context                context.Context
 	Client                 *github.Client
 	HttpClient             *retryablehttp.Client
@@ -403,6 +404,7 @@ func (s *scanner) downloadWorkflowRunLog(repo *github.Repository, workflowRun *g
 		MaxGoRoutines:     s.options.MaxScanGoRoutines,
 		VerifyCredentials: s.options.TruffleHogVerification,
 		BuildURL:          *workflowRun.HTMLURL,
+		HitTimeout:        s.options.HitTimeout,
 	})
 	if err != nil {
 		log.Debug().Err(err).Str("workflowRun", *workflowRun.HTMLURL).Msg("Failed detecting secrets")
@@ -549,6 +551,7 @@ func (s *scanner) analyzeArtifact(workflowRun *github.WorkflowRun, artifact *git
 			VerifyCredentials: s.options.TruffleHogVerification,
 			BuildURL:          *workflowRun.HTMLURL,
 			ArtifactName:      *workflowRun.Name,
+			HitTimeout:        s.options.HitTimeout,
 		})
 		if err != nil {
 			log.Err(err).Str("url", url.String()).Msg("Failed processing artifact zip")
@@ -560,7 +563,7 @@ func (s *scanner) analyzeArtifact(workflowRun *github.WorkflowRun, artifact *git
 // InitializeOptions prepares scan options from CLI parameters.
 func InitializeOptions(accessToken, gitHubURL, repo, organization, user, searchQuery, maxArtifactSizeStr string,
 	owned, public, artifacts, truffleHogVerification bool,
-	maxWorkflows, maxScanGoRoutines int, confidenceFilter []string) (ScanOptions, error) {
+	maxWorkflows, maxScanGoRoutines int, confidenceFilter []string, hitTimeout time.Duration) (ScanOptions, error) {
 
 	byteSize, err := format.ParseHumanSize(maxArtifactSizeStr)
 	if err != nil {
@@ -586,6 +589,7 @@ func InitializeOptions(accessToken, gitHubURL, repo, organization, user, searchQ
 		GitHubURL:              gitHubURL,
 		Repo:                   repo,
 		MaxArtifactSize:        byteSize,
+		HitTimeout:             hitTimeout,
 		Context:                ctx,
 		Client:                 client,
 		HttpClient:             httpClient,

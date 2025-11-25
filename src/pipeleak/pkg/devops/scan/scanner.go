@@ -3,6 +3,7 @@ package scan
 import (
 	"context"
 	"strconv"
+	"time"
 
 	"github.com/CompassSecurity/pipeleak/pkg/format"
 	artifactproc "github.com/CompassSecurity/pipeleak/pkg/scan/artifact"
@@ -26,6 +27,7 @@ type ScanOptions struct {
 	Artifacts              bool
 	DevOpsURL              string
 	MaxArtifactSize        int64
+	HitTimeout             time.Duration
 	Context                context.Context
 	Client                 AzureDevOpsApiClient
 }
@@ -173,6 +175,7 @@ func (s *devOpsScanner) scanLogLines(logs []byte, buildWebUrl string) {
 	logResult, err := logline.ProcessLogs(logs, logline.ProcessOptions{
 		MaxGoRoutines:     s.options.MaxScanGoRoutines,
 		VerifyCredentials: s.options.TruffleHogVerification,
+		HitTimeout:        s.options.HitTimeout,
 	})
 	if err != nil {
 		log.Debug().Err(err).Str("build", buildWebUrl).Msg("Failed detecting secrets of a single log line")
@@ -227,6 +230,7 @@ func (s *devOpsScanner) analyzeArtifact(art Artifact, buildWebUrl string) {
 		VerifyCredentials: s.options.TruffleHogVerification,
 		BuildURL:          buildWebUrl,
 		ArtifactName:      art.Name,
+		HitTimeout:        s.options.HitTimeout,
 	})
 	if err != nil {
 		log.Err(err).Msg("Failed processing artifact")
@@ -237,7 +241,7 @@ func (s *devOpsScanner) analyzeArtifact(art Artifact, buildWebUrl string) {
 // InitializeOptions prepares scan options from CLI parameters.
 func InitializeOptions(username, accessToken, devOpsURL, organization, project, maxArtifactSizeStr string,
 	artifacts, truffleHogVerification bool,
-	maxBuilds, maxScanGoRoutines int, confidenceFilter []string) (ScanOptions, error) {
+	maxBuilds, maxScanGoRoutines int, confidenceFilter []string, hitTimeout time.Duration) (ScanOptions, error) {
 
 	byteSize, err := format.ParseHumanSize(maxArtifactSizeStr)
 	if err != nil {
@@ -259,6 +263,7 @@ func InitializeOptions(username, accessToken, devOpsURL, organization, project, 
 		Artifacts:              artifacts,
 		DevOpsURL:              devOpsURL,
 		MaxArtifactSize:        byteSize,
+		HitTimeout:             hitTimeout,
 		Context:                ctx,
 		Client:                 client,
 	}, nil

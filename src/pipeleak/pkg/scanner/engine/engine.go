@@ -21,13 +21,13 @@ import (
 var findingsDeduplicationList []string
 var deduplicationMutex sync.Mutex
 
-func DetectHits(text []byte, maxThreads int, enableTruffleHogVerification bool) ([]types.Finding, error) {
+func DetectHits(text []byte, maxThreads int, enableTruffleHogVerification bool, timeout time.Duration) ([]types.Finding, error) {
 	result := make(chan types.DetectionResult, 1)
 	go func() {
 		result <- DetectHitsWithTimeout(text, maxThreads, enableTruffleHogVerification)
 	}()
 	select {
-	case <-time.After(60 * time.Second):
+	case <-time.After(timeout):
 		return nil, errors.New("hit detection timed out")
 	case result := <-result:
 		return result.Findings, result.Error

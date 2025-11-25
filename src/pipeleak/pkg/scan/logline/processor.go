@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"io"
+	"time"
 
 	"github.com/CompassSecurity/pipeleak/pkg/scanner"
 	"github.com/rs/zerolog/log"
@@ -14,6 +15,7 @@ type ProcessOptions struct {
 	VerifyCredentials bool
 	BuildURL          string
 	JobName           string
+	HitTimeout        time.Duration
 }
 
 type LogProcessingResult struct {
@@ -27,7 +29,7 @@ func ProcessLogs(logs []byte, opts ProcessOptions) (*LogProcessingResult, error)
 		BytesRead: len(logs),
 	}
 
-	findings, err := scanner.DetectHits(logs, opts.MaxGoRoutines, opts.VerifyCredentials)
+	findings, err := scanner.DetectHits(logs, opts.MaxGoRoutines, opts.VerifyCredentials, opts.HitTimeout)
 	if err != nil {
 		result.Error = err
 		return result, err

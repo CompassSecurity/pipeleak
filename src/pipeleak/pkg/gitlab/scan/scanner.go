@@ -2,6 +2,7 @@ package scan
 
 import (
 	"net/url"
+	"time"
 
 	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
@@ -44,7 +45,7 @@ func (s *gitlabScanner) GetQueueStatus() int {
 // InitializeOptions prepares scan options from CLI parameters.
 func InitializeOptions(gitlabUrl, gitlabApiToken, gitlabCookie, projectSearchQuery, repository, namespace, queueFolder, maxArtifactSizeStr string,
 	artifacts, owned, member, truffleHogVerification bool,
-	jobLimit, maxScanGoRoutines int, confidenceFilter []string) (*ScanOptions, error) {
+	jobLimit, maxScanGoRoutines int, confidenceFilter []string, hitTimeout time.Duration) (*ScanOptions, error) {
 
 	_, err := url.ParseRequestURI(gitlabUrl)
 	if err != nil {
@@ -72,5 +73,6 @@ func InitializeOptions(gitlabUrl, gitlabApiToken, gitlabCookie, projectSearchQue
 		MaxScanGoRoutines:      maxScanGoRoutines,
 		QueueFolder:            queueFolder,
 		TruffleHogVerification: truffleHogVerification,
+		HitTimeout:             hitTimeout,
 	}, nil
 }

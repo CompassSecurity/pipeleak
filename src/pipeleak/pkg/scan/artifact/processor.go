@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"time"
 
 	"github.com/CompassSecurity/pipeleak/pkg/scanner"
 	"github.com/h2non/filetype"
@@ -18,6 +19,7 @@ type ProcessOptions struct {
 	BuildURL          string
 	ArtifactName      string
 	WorkflowRunName   string
+	HitTimeout        time.Duration
 }
 
 type FileProcessingResult struct {
@@ -88,9 +90,9 @@ func processZipFile(file *zip.File, opts ProcessOptions) FileProcessingResult {
 	result.IsArchive = filetype.IsArchive(content)
 
 	if result.IsUnknown {
-		scanner.DetectFileHits(content, opts.BuildURL, opts.ArtifactName, file.Name, "", opts.VerifyCredentials)
+		scanner.DetectFileHits(content, opts.BuildURL, opts.ArtifactName, file.Name, "", opts.VerifyCredentials, opts.HitTimeout)
 	} else if result.IsArchive {
-		scanner.HandleArchiveArtifact(file.Name, content, opts.BuildURL, opts.ArtifactName, opts.VerifyCredentials)
+		scanner.HandleArchiveArtifact(file.Name, content, opts.BuildURL, opts.ArtifactName, opts.VerifyCredentials, opts.HitTimeout)
 	}
 
 	return result
@@ -121,9 +123,9 @@ func ProcessSingleFile(content []byte, filename string, opts ProcessOptions) (*F
 	result.IsUnknown = isUnknown
 
 	if isUnknown {
-		scanner.DetectFileHits(content, opts.BuildURL, opts.ArtifactName, filename, "", opts.VerifyCredentials)
+		scanner.DetectFileHits(content, opts.BuildURL, opts.ArtifactName, filename, "", opts.VerifyCredentials, opts.HitTimeout)
 	} else if isArchive {
-		scanner.HandleArchiveArtifact(filename, content, opts.BuildURL, opts.ArtifactName, opts.VerifyCredentials)
+		scanner.HandleArchiveArtifact(filename, content, opts.BuildURL, opts.ArtifactName, opts.VerifyCredentials, opts.HitTimeout)
 	}
 
 	return result, nil
