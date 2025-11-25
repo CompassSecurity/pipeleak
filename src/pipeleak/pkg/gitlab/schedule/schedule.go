@@ -59,14 +59,14 @@ func ListPipelineSchedules(git *gitlab.Client, project *gitlab.Project) {
 		}
 
 		if err != nil {
-			log.Error().Stack().Err(err).Int("project", project.ID).Msg("Failed fetching project scheduled pipelines")
+			log.Error().Stack().Err(err).Int64("project", project.ID).Msg("Failed fetching project scheduled pipelines")
 			break
 		}
 
 		for _, schedule := range schedules {
 			scheduleWithVars, _, err := git.PipelineSchedules.GetPipelineSchedule(project.ID, schedule.ID)
-			if err != nil {
-				log.Error().Stack().Err(err).Int("project", project.ID).Msg("Failed fetching schedule variables")
+				if err != nil {
+				log.Error().Stack().Err(err).Int64("project", project.ID).Msg("Failed fetching schedule variables")
 				continue
 			}
 			for _, variable := range scheduleWithVars.Variables {

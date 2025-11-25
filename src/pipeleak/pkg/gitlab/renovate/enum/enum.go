@@ -88,7 +88,7 @@ func scanNamespace(git *gitlab.Client, namespace string, opts EnumOptions) {
 	projectOpts := &gitlab.ListGroupProjectsOptions{
 		ListOptions: gitlab.ListOptions{
 			PerPage: 100,
-			Page:    opts.Page,
+			Page:    int64(opts.Page),
 		},
 		OrderBy:          gitlab.Ptr(opts.OrderBy),
 		Owned:            gitlab.Ptr(opts.Owned),
@@ -116,7 +116,7 @@ func fetchProjects(git *gitlab.Client, opts EnumOptions) {
 	projectOpts := &gitlab.ListProjectsOptions{
 		ListOptions: gitlab.ListOptions{
 			PerPage: 100,
-			Page:    opts.Page,
+			Page:    int64(opts.Page),
 		},
 		OrderBy:    gitlab.Ptr(opts.OrderBy),
 		Owned:      gitlab.Ptr(opts.Owned),

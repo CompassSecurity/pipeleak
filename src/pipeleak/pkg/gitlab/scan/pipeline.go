@@ -220,8 +220,8 @@ jobOut:
 			}
 
 			meta := QueueMeta{
-				JobId:                    job.ID,
-				ProjectId:                project.ID,
+				JobId:                    int(job.ID),
+				ProjectId:                int(project.ID),
 				JobWebUrl:                getJobUrl(git, project, job),
 				JobName:                  job.Name,
 				ProjectPathWithNamespace: project.PathWithNamespace,
@@ -251,7 +251,7 @@ jobOut:
 }
 
 func getJobUrl(git *gitlab.Client, project *gitlab.Project, job *gitlab.Job) string {
-	return git.BaseURL().Host + "/" + project.PathWithNamespace + "/-/jobs/" + strconv.Itoa(job.ID)
+	return git.BaseURL().Host + "/" + project.PathWithNamespace + "/-/jobs/" + strconv.FormatInt(job.ID, 10)
 }
 
 func GetQueueStatus() int {

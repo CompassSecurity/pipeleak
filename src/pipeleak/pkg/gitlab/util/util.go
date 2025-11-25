@@ -197,11 +197,11 @@ func RegisterNewAccount(targetUrl string, username string, password string, emai
 	}
 }
 
-func FetchCICDYml(git *gitlab.Client, pid int) (string, error) {
+func FetchCICDYml(git *gitlab.Client, pid int64) (string, error) {
 	lintOpts := &gitlab.ProjectLintOptions{
 		IncludeJobs: gitlab.Ptr(true),
 	}
-	res, _, err := git.Validate.ProjectLint(pid, lintOpts)
+	res, _, err := git.Validate.ProjectLint(int(pid), lintOpts)
 
 	if err != nil {
 		return "", err

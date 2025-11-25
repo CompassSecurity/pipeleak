@@ -63,8 +63,8 @@ func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
 	}
 }
 
-func listProjectRunners(git *gitlab.Client) map[int]RunnerResult {
-	runnerMap := make(map[int]RunnerResult)
+func listProjectRunners(git *gitlab.Client) map[int64]RunnerResult {
+	runnerMap := make(map[int64]RunnerResult)
 	projectOpts := &gitlab.ListProjectsOptions{
 		ListOptions: gitlab.ListOptions{
 			PerPage: 100,
@@ -74,7 +74,7 @@ func listProjectRunners(git *gitlab.Client) map[int]RunnerResult {
 	}
 
 	err := util.IterateProjects(git, projectOpts, func(project *gitlab.Project) error {
-		log.Debug().Str("name", project.Name).Int("id", project.ID).Msg("List runners for")
+		log.Debug().Str("name", project.Name).Int64("id", project.ID).Msg("List runners for")
 		runnerOpts := &gitlab.ListProjectRunnersOptions{
 			ListOptions: gitlab.ListOptions{
 				PerPage: 100,
@@ -94,8 +94,8 @@ func listProjectRunners(git *gitlab.Client) map[int]RunnerResult {
 	return runnerMap
 }
 
-func listGroupRunners(git *gitlab.Client) map[int]RunnerResult {
-	runnerMap := make(map[int]RunnerResult)
+func listGroupRunners(git *gitlab.Client) map[int64]RunnerResult {
+	runnerMap := make(map[int64]RunnerResult)
 	log.Debug().Msg("Logging available groups with at least developer access")
 
 	listGroupsOpts := &gitlab.ListGroupsOptions{
@@ -155,8 +155,8 @@ func listGroupRunners(git *gitlab.Client) map[int]RunnerResult {
 
 // MergeRunnerMaps merges project and group runner maps with deduplication.
 // Project runners take precedence over group runners.
-func MergeRunnerMaps(projectRunners, groupRunners map[int]RunnerResult) map[int]RunnerResult {
-	merged := make(map[int]RunnerResult)
+func MergeRunnerMaps(projectRunners, groupRunners map[int64]RunnerResult) map[int64]RunnerResult {
+	merged := make(map[int64]RunnerResult)
 
 	for id, runner := range projectRunners {
 		merged[id] = runner
@@ -178,7 +178,7 @@ func FormatRunnerInfo(result RunnerResult, details *gitlab.RunnerDetails) *Runne
 	}
 
 	info := &RunnerInfo{
-		ID:          details.ID,
+		ID:          int(details.ID),
 		Name:        details.Name,
 		Description: details.Description,
 		Type:        details.RunnerType,
@@ -221,7 +221,7 @@ func FormatTagsString(tags []string) string {
 }
 
 // CountRunnersBySource counts runners by their source type (project or group).
-func CountRunnersBySource(runnerMap map[int]RunnerResult) (projectCount, groupCount int) {
+func CountRunnersBySource(runnerMap map[int64]RunnerResult) (projectCount, groupCount int) {
 	for _, result := range runnerMap {
 		if result.Project != nil {
 			projectCount++

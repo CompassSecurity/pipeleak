@@ -11,7 +11,7 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-func GetSecureFiles(projectId int, base string, token string) ([]int64, error) {
+func GetSecureFiles(projectId int64, base string, token string) ([]int64, error) {
 	u, err := url.Parse(base)
 	if err != nil {
 		return []int64{}, err
@@ -20,7 +20,7 @@ func GetSecureFiles(projectId int, base string, token string) ([]int64, error) {
 	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
 	// https://docs.gitlab.com/ee/api/secure_files.html#download-secure-file
 	// pagination does not exist here
-	u.Path = "/api/v4/projects/" + strconv.Itoa(projectId) + "/secure_files"
+	u.Path = "/api/v4/projects/" + strconv.FormatInt(projectId, 10) + "/secure_files"
 	s := u.String()
 	req, err := retryablehttp.NewRequest("GET", s, nil)
 	if err != nil {
@@ -52,7 +52,7 @@ func GetSecureFiles(projectId int, base string, token string) ([]int64, error) {
 	return []int64{}, errors.New("unable to fetch secure files")
 }
 
-func DownloadSecureFile(projectId int, fileId int64, base string, token string) ([]byte, string, error) {
+func DownloadSecureFile(projectId int64, fileId int64, base string, token string) ([]byte, string, error) {
 	u, err := url.Parse(base)
 	if err != nil {
 		return []byte{}, "", err
@@ -60,7 +60,7 @@ func DownloadSecureFile(projectId int, fileId int64, base string, token string) 
 
 	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
 	// https://docs.gitlab.com/ee/api/secure_files.html#download-secure-file
-	u.Path = "/api/v4/projects/" + strconv.Itoa(projectId) + "/secure_files/" + strconv.Itoa(int(fileId)) + "/download"
+	u.Path = "/api/v4/projects/" + strconv.FormatInt(projectId, 10) + "/secure_files/" + strconv.FormatInt(fileId, 10) + "/download"
 	s := u.String()
 	req, err := retryablehttp.NewRequest("GET", s, nil)
 	if err != nil {

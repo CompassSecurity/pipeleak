@@ -11,18 +11,18 @@ import (
 func TestMergeRunnerMaps(t *testing.T) {
 	tests := []struct {
 		name           string
-		projectRunners map[int]RunnerResult
-		groupRunners   map[int]RunnerResult
+		projectRunners map[int64]RunnerResult
+		groupRunners   map[int64]RunnerResult
 		expectedCount  int
 		description    string
 	}{
 		{
 			name: "no overlap",
-			projectRunners: map[int]RunnerResult{
+			projectRunners: map[int64]RunnerResult{
 				1: {Runner: &gitlab.Runner{ID: 1}, Project: &gitlab.Project{Name: "project1"}},
 				2: {Runner: &gitlab.Runner{ID: 2}, Project: &gitlab.Project{Name: "project2"}},
 			},
-			groupRunners: map[int]RunnerResult{
+			groupRunners: map[int64]RunnerResult{
 				3: {Runner: &gitlab.Runner{ID: 3}, Group: &gitlab.Group{Name: "group1"}},
 				4: {Runner: &gitlab.Runner{ID: 4}, Group: &gitlab.Group{Name: "group2"}},
 			},
@@ -31,10 +31,10 @@ func TestMergeRunnerMaps(t *testing.T) {
 		},
 		{
 			name: "complete overlap - project takes precedence",
-			projectRunners: map[int]RunnerResult{
+			projectRunners: map[int64]RunnerResult{
 				1: {Runner: &gitlab.Runner{ID: 1}, Project: &gitlab.Project{Name: "project1"}},
 			},
-			groupRunners: map[int]RunnerResult{
+			groupRunners: map[int64]RunnerResult{
 				1: {Runner: &gitlab.Runner{ID: 1}, Group: &gitlab.Group{Name: "group1"}},
 			},
 			expectedCount: 1,
@@ -42,11 +42,11 @@ func TestMergeRunnerMaps(t *testing.T) {
 		},
 		{
 			name: "partial overlap",
-			projectRunners: map[int]RunnerResult{
+			projectRunners: map[int64]RunnerResult{
 				1: {Runner: &gitlab.Runner{ID: 1}, Project: &gitlab.Project{Name: "project1"}},
 				2: {Runner: &gitlab.Runner{ID: 2}, Project: &gitlab.Project{Name: "project2"}},
 			},
-			groupRunners: map[int]RunnerResult{
+			groupRunners: map[int64]RunnerResult{
 				2: {Runner: &gitlab.Runner{ID: 2}, Group: &gitlab.Group{Name: "group1"}},
 				3: {Runner: &gitlab.Runner{ID: 3}, Group: &gitlab.Group{Name: "group2"}},
 			},
@@ -55,8 +55,8 @@ func TestMergeRunnerMaps(t *testing.T) {
 		},
 		{
 			name:           "empty project runners",
-			projectRunners: map[int]RunnerResult{},
-			groupRunners: map[int]RunnerResult{
+			projectRunners: map[int64]RunnerResult{},
+			groupRunners: map[int64]RunnerResult{
 				1: {Runner: &gitlab.Runner{ID: 1}, Group: &gitlab.Group{Name: "group1"}},
 			},
 			expectedCount: 1,
@@ -64,17 +64,17 @@ func TestMergeRunnerMaps(t *testing.T) {
 		},
 		{
 			name: "empty group runners",
-			projectRunners: map[int]RunnerResult{
+			projectRunners: map[int64]RunnerResult{
 				1: {Runner: &gitlab.Runner{ID: 1}, Project: &gitlab.Project{Name: "project1"}},
 			},
-			groupRunners:  map[int]RunnerResult{},
+			groupRunners:  map[int64]RunnerResult{},
 			expectedCount: 1,
 			description:   "Should handle empty group runners",
 		},
 		{
 			name:           "both empty",
-			projectRunners: map[int]RunnerResult{},
-			groupRunners:   map[int]RunnerResult{},
+			projectRunners: map[int64]RunnerResult{},
+			groupRunners:   map[int64]RunnerResult{},
 			expectedCount:  0,
 			description:    "Should handle both empty",
 		},
@@ -181,9 +181,9 @@ func TestFormatRunnerInfo(t *testing.T) {
 				return
 			}
 
-			require.NotNil(t, info)
-			assert.Equal(t, tt.details.ID, info.ID)
-			assert.Equal(t, tt.details.Name, info.Name)
+		require.NotNil(t, info)
+		assert.Equal(t, int(tt.details.ID), info.ID)
+		assert.Equal(t, tt.details.Name, info.Name)
 			assert.Equal(t, tt.details.Description, info.Description)
 			assert.Equal(t, tt.details.RunnerType, info.Type)
 			assert.Equal(t, tt.details.Paused, info.Paused)
@@ -299,14 +299,14 @@ func TestFormatTagsString(t *testing.T) {
 func TestCountRunnersBySource(t *testing.T) {
 	tests := []struct {
 		name          string
-		runnerMap     map[int]RunnerResult
+		runnerMap     map[int64]RunnerResult
 		expectedProj  int
 		expectedGroup int
 		description   string
 	}{
 		{
 			name: "mixed sources",
-			runnerMap: map[int]RunnerResult{
+			runnerMap: map[int64]RunnerResult{
 				1: {Runner: &gitlab.Runner{ID: 1}, Project: &gitlab.Project{Name: "p1"}},
 				2: {Runner: &gitlab.Runner{ID: 2}, Project: &gitlab.Project{Name: "p2"}},
 				3: {Runner: &gitlab.Runner{ID: 3}, Group: &gitlab.Group{Name: "g1"}},
@@ -317,7 +317,7 @@ func TestCountRunnersBySource(t *testing.T) {
 		},
 		{
 			name: "only project runners",
-			runnerMap: map[int]RunnerResult{
+			runnerMap: map[int64]RunnerResult{
 				1: {Runner: &gitlab.Runner{ID: 1}, Project: &gitlab.Project{Name: "p1"}},
 				2: {Runner: &gitlab.Runner{ID: 2}, Project: &gitlab.Project{Name: "p2"}},
 			},
@@ -327,7 +327,7 @@ func TestCountRunnersBySource(t *testing.T) {
 		},
 		{
 			name: "only group runners",
-			runnerMap: map[int]RunnerResult{
+			runnerMap: map[int64]RunnerResult{
 				1: {Runner: &gitlab.Runner{ID: 1}, Group: &gitlab.Group{Name: "g1"}},
 				2: {Runner: &gitlab.Runner{ID: 2}, Group: &gitlab.Group{Name: "g2"}},
 			},
@@ -337,7 +337,7 @@ func TestCountRunnersBySource(t *testing.T) {
 		},
 		{
 			name:          "empty map",
-			runnerMap:     map[int]RunnerResult{},
+			runnerMap:     map[int64]RunnerResult{},
 			expectedProj:  0,
 			expectedGroup: 0,
 			description:   "Should handle empty map",
