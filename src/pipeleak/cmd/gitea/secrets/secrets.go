@@ -26,6 +26,5 @@ func NewSecretsCommand() *cobra.Command {
 		},
 	}
 
-
 	return cmd
 }

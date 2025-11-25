@@ -1,8 +1,8 @@
 package renovate
 
 import (
-	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
 	"github.com/CompassSecurity/pipeleak/pkg/format"
+	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
 	"github.com/rs/zerolog/log"
 	gogitlab "gitlab.com/gitlab-org/api/client-go"
 )

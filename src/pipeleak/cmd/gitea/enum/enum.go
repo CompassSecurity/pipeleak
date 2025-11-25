@@ -15,7 +15,6 @@ func NewEnumCmd() *cobra.Command {
 		Run:     Enum,
 	}
 
-
 	return enumCmd
 }
 
