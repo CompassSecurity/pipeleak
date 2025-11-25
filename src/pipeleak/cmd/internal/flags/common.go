@@ -11,7 +11,7 @@ func AddCommonScanFlags(cmd *cobra.Command, opts *config.CommonScanOptions, maxA
 	cmd.Flags().IntVarP(&opts.MaxScanGoRoutines, "threads", "", 4, "Number of concurrent threads for scanning")
 	cmd.Flags().BoolVarP(&opts.TruffleHogVerification, "truffle-hog-verification", "", true,
 		"Enable TruffleHog credential verification to actively test found credentials and only report verified ones (enabled by default, disable with --truffle-hog-verification=false)")
-	cmd.Flags().BoolVarP(&opts.Artifacts, "artifacts", "a", false, "Scan workflow artifacts")
+	cmd.Flags().BoolVarP(&opts.Artifacts, "artifacts", "a", false, "Scan artifacts")
 	cmd.Flags().StringVarP(maxArtifactSize, "max-artifact-size", "", "500Mb",
 		"Maximum artifact size to scan. Larger files are skipped. Format: https://pkg.go.dev/github.com/docker/go-units#FromHumanSize")
 	cmd.Flags().StringSliceVarP(&opts.ConfidenceFilter, "confidence", "", []string{},
