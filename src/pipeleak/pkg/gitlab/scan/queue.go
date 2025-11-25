@@ -17,6 +17,7 @@ import (
 
 	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	artifactproc "github.com/CompassSecurity/pipeleak/pkg/scan/artifact"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
@@ -204,7 +205,7 @@ func analyzeDotenvArtifact(git *gitlab.Client, item QueueItem, options *ScanOpti
 
 	for _, finding := range logResult.Findings {
 		result.ReportFindingWithCustomFields(finding, map[string]string{
-			"type": string(result.SecretTypeDotenv),
+			"type": string(logging.SecretTypeDotenv),
 			"url":  item.Meta.JobWebUrl,
 			"note": "Check artifacts page - dotenv files are only downloadable there",
 		})

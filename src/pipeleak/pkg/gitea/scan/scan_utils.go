@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	artifactproc "github.com/CompassSecurity/pipeleak/pkg/scan/artifact"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
@@ -40,7 +41,7 @@ func scanLogs(logBytes []byte, repo *gitea.Repository, run ActionWorkflowRun, jo
 
 func logFinding(finding scanner.Finding, repoFullName string, runID, jobID int64, jobName, url string) {
 	customFields := map[string]string{
-		"type":   string(result.SecretTypeLog),
+		"type":   string(logging.SecretTypeLog),
 		"repo":   repoFullName,
 		"run_id": fmt.Sprintf("%d", runID),
 		"url":    url,

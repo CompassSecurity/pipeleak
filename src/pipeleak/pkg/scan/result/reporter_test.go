@@ -35,7 +35,7 @@ func TestReportFinding(t *testing.T) {
 				LocationURL: "https://example.com/build/123",
 				JobName:     "test-job",
 				BuildName:   "build-456",
-				Type:        SecretTypeLog,
+				Type:        logging.SecretTypeLog,
 			},
 			expectInLog: []string{
 				"high",
@@ -111,7 +111,7 @@ func TestReportFinding(t *testing.T) {
 			},
 			opts: ReportOptions{
 				LocationURL: "https://example.com/artifacts/123",
-				Type:        SecretTypeArchive,
+				Type:        logging.SecretTypeArchive,
 			},
 			expectInLog: []string{
 				"high",
@@ -135,7 +135,7 @@ func TestReportFinding(t *testing.T) {
 			},
 			opts: ReportOptions{
 				LocationURL: "https://example.com/job/456",
-				Type:        SecretTypeDotenv,
+				Type:        logging.SecretTypeDotenv,
 			},
 			expectInLog: []string{
 				"high",
@@ -231,7 +231,7 @@ func TestReportFindingWithCustomFields(t *testing.T) {
 	}
 
 	customFields := map[string]string{
-		"type":       string(SecretTypeLog),
+		"type":       string(logging.SecretTypeLog),
 		"workspace":  "my-workspace",
 		"repository": "my-repo",
 		"pipeline":   "pipeline-123",
