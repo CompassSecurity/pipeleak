@@ -35,7 +35,7 @@ func ListAllAvailableRunners(gitlabUrl string, apiToken string) {
 	groupRunners := listGroupRunners(git)
 	runnerMap := MergeRunnerMaps(projectRunners, groupRunners)
 
-	log.Info().Msg("Listing available runners: Runners are only shown once, even when available by multiple source e,g, group or project")
+	log.Info().Msg("Listing available runners: runners are only shown once, even when available from multiple sources (e.g., group or project)")
 
 	var runnerDetails []*gitlab.RunnerDetails
 	for _, entry := range runnerMap {
