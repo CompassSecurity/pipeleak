@@ -40,6 +40,7 @@ func scanLogs(logBytes []byte, repo *gitea.Repository, run ActionWorkflowRun, jo
 
 func logFinding(finding scanner.Finding, repoFullName string, runID, jobID int64, jobName, url string) {
 	customFields := map[string]string{
+		"type":   string(result.SecretTypeLog),
 		"repo":   repoFullName,
 		"run_id": fmt.Sprintf("%d", runID),
 		"url":    url,

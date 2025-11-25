@@ -204,6 +204,7 @@ func analyzeDotenvArtifact(git *gitlab.Client, item QueueItem, options *ScanOpti
 
 	for _, finding := range logResult.Findings {
 		result.ReportFindingWithCustomFields(finding, map[string]string{
+			"type": string(result.SecretTypeDotenv),
 			"url":  item.Meta.JobWebUrl,
 			"note": "Check artifacts page - dotenv files are only downloadable there",
 		})

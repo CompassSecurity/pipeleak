@@ -5,10 +5,27 @@ import (
 	"github.com/CompassSecurity/pipeleak/pkg/scanner"
 )
 
+// SecretType defines the source type of a detected secret.
+type SecretType string
+
+const (
+	// SecretTypeLog indicates a secret found in CI/CD logs.
+	SecretTypeLog SecretType = "LOG"
+	// SecretTypeArchive indicates a secret found in an archive/artifact.
+	SecretTypeArchive SecretType = "ARCHIVE"
+	// SecretTypeArchiveInArchive indicates a secret found in a nested archive.
+	SecretTypeArchiveInArchive SecretType = "ARCHIVE-IN-ARCHIVE"
+	// SecretTypeDotenv indicates a secret found in a dotenv file.
+	SecretTypeDotenv SecretType = "DOTENV"
+	// SecretTypeFile indicates a secret found in a standalone file.
+	SecretTypeFile SecretType = "FILE"
+)
+
 type ReportOptions struct {
 	LocationURL string
 	JobName     string
 	BuildName   string
+	Type        SecretType
 }
 
 func ReportFindings(findings []scanner.Finding, opts ReportOptions) {
@@ -18,7 +35,13 @@ func ReportFindings(findings []scanner.Finding, opts ReportOptions) {
 }
 
 func ReportFinding(finding scanner.Finding, opts ReportOptions) {
+	secretType := opts.Type
+	if secretType == "" {
+		secretType = SecretTypeLog
+	}
+
 	event := logging.Hit().
+		Str("type", string(secretType)).
 		Str("confidence", finding.Pattern.Pattern.Confidence).
 		Str("ruleName", finding.Pattern.Pattern.Name).
 		Str("value", finding.Text)
@@ -34,11 +57,19 @@ func ReportFinding(finding scanner.Finding, opts ReportOptions) {
 		event = event.Str("build", opts.BuildName)
 	}
 
-	event.Msg("HIT")
+	event.Msg("SECRET")
 }
 
 func ReportFindingWithCustomFields(finding scanner.Finding, customFields map[string]string) {
+	// Extract type from custom fields if present, default to LOG
+	secretType := SecretTypeLog
+	if t, ok := customFields["type"]; ok {
+		secretType = SecretType(t)
+		delete(customFields, "type")
+	}
+
 	event := logging.Hit().
+		Str("type", string(secretType)).
 		Str("confidence", finding.Pattern.Pattern.Confidence).
 		Str("ruleName", finding.Pattern.Pattern.Name).
 		Str("value", finding.Text)
@@ -47,5 +78,5 @@ func ReportFindingWithCustomFields(finding scanner.Finding, customFields map[str
 		event = event.Str(key, value)
 	}
 
-	event.Msg("HIT")
+	event.Msg("SECRET")
 }
