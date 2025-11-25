@@ -74,7 +74,7 @@ func TestGiteaSecrets_Success(t *testing.T) {
 
 	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gitea", "secrets",
-		"--url", server.URL,
+		"--gitea", server.URL,
 		"--token", "test-token",
 	}, nil, 10*time.Second)
 
@@ -155,7 +155,7 @@ func TestGiteaSecrets_OrgPagination(t *testing.T) {
 
 	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gitea", "secrets",
-		"--url", server.URL,
+		"--gitea", server.URL,
 		"--token", "test-token",
 	}, nil, 15*time.Second)
 
@@ -244,7 +244,7 @@ func TestGiteaSecrets_RepoPagination(t *testing.T) {
 
 	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gitea", "secrets",
-		"--url", server.URL,
+		"--gitea", server.URL,
 		"--token", "test-token",
 	}, nil, 15*time.Second)
 
@@ -335,7 +335,7 @@ func TestGiteaSecrets_MultipleReposPagination(t *testing.T) {
 
 	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gitea", "secrets",
-		"--url", server.URL,
+		"--gitea", server.URL,
 		"--token", "test-token",
 	}, nil, 30*time.Second)
 
@@ -422,7 +422,7 @@ func TestGiteaSecrets_MultipleOrgsPagination(t *testing.T) {
 
 	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gitea", "secrets",
-		"--url", server.URL,
+		"--gitea", server.URL,
 		"--token", "test-token",
 	}, nil, 30*time.Second)
 
@@ -483,7 +483,7 @@ func TestGiteaSecrets_EmptyResult(t *testing.T) {
 
 	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gitea", "secrets",
-		"--url", server.URL,
+		"--gitea", server.URL,
 		"--token", "test-token",
 	}, nil, 10*time.Second)
 
@@ -500,7 +500,7 @@ func TestGiteaSecrets_MissingToken(t *testing.T) {
 
 	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gitea", "secrets",
-		"--url", "https://gitea.example.com",
+		"--gitea", "https://gitea.example.com",
 	}, nil, 5*time.Second)
 
 	assert.NotNil(t, exitErr, "Should fail without --token flag")
@@ -515,7 +515,7 @@ func TestGiteaSecrets_InvalidURL(t *testing.T) {
 
 	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gitea", "secrets",
-		"--url", "not-a-valid-url",
+		"--gitea", "not-a-valid-url",
 		"--token", "test-token",
 	}, nil, 5*time.Second)
 
@@ -560,7 +560,7 @@ func TestGiteaSecrets_UnauthorizedAccess(t *testing.T) {
 
 	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gitea", "secrets",
-		"--url", server.URL,
+		"--gitea", server.URL,
 		"--token", "invalid-token",
 	}, nil, 10*time.Second)
 
@@ -621,7 +621,7 @@ func TestGiteaSecrets_MultipleOrganizations(t *testing.T) {
 
 	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gitea", "secrets",
-		"--url", server.URL,
+		"--gitea", server.URL,
 		"--token", "test-token",
 	}, nil, 10*time.Second)
 
@@ -706,7 +706,7 @@ func TestGiteaSecrets_MultipleRepositories(t *testing.T) {
 
 	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gitea", "secrets",
-		"--url", server.URL,
+		"--gitea", server.URL,
 		"--token", "test-token",
 	}, nil, 10*time.Second)
 
@@ -796,7 +796,7 @@ func TestGiteaSecrets_PartialFailure(t *testing.T) {
 
 	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
 		"gitea", "secrets",
-		"--url", server.URL,
+		"--gitea", server.URL,
 		"--token", "test-token",
 	}, nil, 10*time.Second)
 

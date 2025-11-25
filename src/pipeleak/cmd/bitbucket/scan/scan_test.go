@@ -27,7 +27,6 @@ func TestNewScanCmd(t *testing.T) {
 	}
 
 	flags := cmd.Flags()
-	persistentFlags := cmd.PersistentFlags()
 
 	if flags.Lookup("token") == nil {
 		t.Error("Expected 'token' flag to exist")
@@ -41,35 +40,35 @@ func TestNewScanCmd(t *testing.T) {
 	if flags.Lookup("bitbucket") == nil {
 		t.Error("Expected 'bitbucket' flag to exist")
 	}
-	if persistentFlags.Lookup("artifacts") == nil {
-		t.Error("Expected 'artifacts' persistent flag to exist")
+	if flags.Lookup("artifacts") == nil {
+		t.Error("Expected 'artifacts' flag to exist")
 	}
 	if flags.Lookup("workspace") == nil {
 		t.Error("Expected 'workspace' flag to exist")
 	}
-	if persistentFlags.Lookup("owned") == nil {
-		t.Error("Expected 'owned' persistent flag to exist")
+	if flags.Lookup("owned") == nil {
+		t.Error("Expected 'owned' flag to exist")
 	}
-	if persistentFlags.Lookup("public") == nil {
-		t.Error("Expected 'public' persistent flag to exist")
+	if flags.Lookup("public") == nil {
+		t.Error("Expected 'public' flag to exist")
 	}
-	if persistentFlags.Lookup("after") == nil {
-		t.Error("Expected 'after' persistent flag to exist")
+	if flags.Lookup("after") == nil {
+		t.Error("Expected 'after' flag to exist")
 	}
 	if flags.Lookup("confidence") == nil {
 		t.Error("Expected 'confidence' flag to exist")
 	}
-	if persistentFlags.Lookup("threads") == nil {
-		t.Error("Expected 'threads' persistent flag to exist")
+	if flags.Lookup("threads") == nil {
+		t.Error("Expected 'threads' flag to exist")
 	}
-	if persistentFlags.Lookup("truffle-hog-verification") == nil {
-		t.Error("Expected 'truffle-hog-verification' persistent flag to exist")
+	if flags.Lookup("truffle-hog-verification") == nil {
+		t.Error("Expected 'truffle-hog-verification' flag to exist")
 	}
-	if persistentFlags.Lookup("max-pipelines") == nil {
-		t.Error("Expected 'max-pipelines' persistent flag to exist")
+	if flags.Lookup("max-pipelines") == nil {
+		t.Error("Expected 'max-pipelines' flag to exist")
 	}
-	if persistentFlags.Lookup("max-artifact-size") == nil {
-		t.Error("Expected 'max-artifact-size' persistent flag to exist")
+	if flags.Lookup("max-artifact-size") == nil {
+		t.Error("Expected 'max-artifact-size' flag to exist")
 	}
 }
 

@@ -7,16 +7,15 @@ import (
 )
 
 func NewVariablesCommand() *cobra.Command {
-	var (
-		url   string
-		token string
-	)
-
 	cmd := &cobra.Command{
 		Use:   "variables",
 		Short: "List all Gitea Actions variables from groups and repositories",
 		Long:  `Fetches and logs all Actions variables from organizations and their repositories in Gitea.`,
 		Run: func(cmd *cobra.Command, args []string) {
+			// Get token and gitea from parent persistent flags
+			token, _ := cmd.Flags().GetString("token")
+			url, _ := cmd.Flags().GetString("gitea")
+
 			config := variables.Config{
 				URL:   url,
 				Token: token,
@@ -27,11 +26,7 @@ func NewVariablesCommand() *cobra.Command {
 			}
 		},
 	}
-
-	cmd.Flags().StringVarP(&url, "url", "u", "https://gitea.com", "Gitea server URL")
-	cmd.Flags().StringVarP(&token, "token", "t", "", "Gitea access token (required)")
-
-	_ = cmd.MarkFlagRequired("token")
+	// --token and --gitea flags are inherited from parent command
 
 	return cmd
 }

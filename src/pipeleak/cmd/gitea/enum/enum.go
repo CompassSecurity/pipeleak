@@ -6,11 +6,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	giteaApiToken string
-	giteaUrl      string
-)
-
 func NewEnumCmd() *cobra.Command {
 	enumCmd := &cobra.Command{
 		Use:     "enum",
@@ -19,13 +14,16 @@ func NewEnumCmd() *cobra.Command {
 		Example: `pipeleak gitea enum --token [tokenval] --gitea https://gitea.mycompany.com`,
 		Run:     Enum,
 	}
-	enumCmd.Flags().StringVarP(&giteaUrl, "gitea", "g", "https://gitea.com", "Gitea instance URL")
-	enumCmd.Flags().StringVarP(&giteaApiToken, "token", "t", "", "Gitea API Token")
+	// --token and --gitea flags are inherited from parent command
 
 	return enumCmd
 }
 
 func Enum(cmd *cobra.Command, args []string) {
+	// Get token and gitea from parent persistent flags
+	giteaApiToken, _ := cmd.Flags().GetString("token")
+	giteaUrl, _ := cmd.Flags().GetString("gitea")
+
 	if err := pkgenum.RunEnum(giteaUrl, giteaApiToken); err != nil {
 		log.Fatal().Stack().Err(err).Msg("Enumeration failed")
 	}

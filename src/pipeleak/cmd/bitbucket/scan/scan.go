@@ -1,6 +1,7 @@
 package scan
 
 import (
+	"github.com/CompassSecurity/pipeleak/cmd/internal/flags"
 	pkgscan "github.com/CompassSecurity/pipeleak/pkg/bitbucket/scan"
 	"github.com/CompassSecurity/pipeleak/pkg/config"
 	"github.com/rs/zerolog/log"
@@ -46,23 +47,20 @@ pipeleak bb scan --token ATATTxxxxxx --email auser@example.com --public --maxPip
 		`,
 		Run: Scan,
 	}
+	// Add common scan flags
+	flags.AddCommonScanFlags(scanCmd, &options.CommonScanOptions, &maxArtifactSize)
+
+	// BitBucket-specific flags
 	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "Bitbucket API token - https://id.atlassian.com/manage-profile/security/api-tokens")
 	scanCmd.Flags().StringVarP(&options.Email, "email", "e", "", "Bitbucket Email")
 	scanCmd.Flags().StringVarP(&options.BitBucketCookie, "cookie", "c", "", "Bitbucket Cookie [value of cloud.session.token on https://bitbucket.org]")
 	scanCmd.Flags().StringVarP(&options.BitBucketURL, "bitbucket", "b", "https://api.bitbucket.org/2.0", "BitBucket API base URL")
-	scanCmd.PersistentFlags().BoolVarP(&options.Artifacts, "artifacts", "a", false, "Scan workflow artifacts")
-	scanCmd.PersistentFlags().StringVarP(&maxArtifactSize, "max-artifact-size", "", "500Mb", "Max file size of an artifact to be included in scanning. Larger files are skipped. Format: https://pkg.go.dev/github.com/docker/go-units#FromHumanSize")
 	scanCmd.MarkFlagsRequiredTogether("cookie", "artifacts")
 
-	scanCmd.Flags().StringSliceVarP(&options.ConfidenceFilter, "confidence", "", []string{}, "Filter for confidence level, separate by comma if multiple. See readme for more info.")
-	scanCmd.PersistentFlags().IntVarP(&options.MaxScanGoRoutines, "threads", "", 4, "Nr of threads used to scan")
-	scanCmd.PersistentFlags().BoolVarP(&options.TruffleHogVerification, "truffle-hog-verification", "", true, "Enable the TruffleHog credential verification, will actively test the found credentials and only report those. Disable with --truffle-hog-verification=false")
-	scanCmd.PersistentFlags().IntVarP(&options.MaxPipelines, "max-pipelines", "", -1, "Max. number of pipelines to scan per repository")
-
+	scanCmd.Flags().IntVarP(&options.MaxPipelines, "max-pipelines", "", -1, "Max. number of pipelines to scan per repository")
 	scanCmd.Flags().StringVarP(&options.Workspace, "workspace", "w", "", "Workspace name to scan")
-	scanCmd.PersistentFlags().BoolVarP(&options.Owned, "owned", "o", false, "Scan user onwed projects only")
-	scanCmd.PersistentFlags().BoolVarP(&options.Public, "public", "p", false, "Scan all public repositories")
-	scanCmd.PersistentFlags().StringVarP(&options.After, "after", "", "", "Filter public repos by a given date in ISO 8601 format: 2025-04-02T15:00:00+02:00 ")
+	scanCmd.Flags().BoolVarP(&options.Public, "public", "p", false, "Scan all public repositories")
+	scanCmd.Flags().StringVarP(&options.After, "after", "", "", "Filter public repos by a given date in ISO 8601 format: 2025-04-02T15:00:00+02:00 ")
 
 	return scanCmd
 }
