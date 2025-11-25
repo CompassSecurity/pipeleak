@@ -28,7 +28,7 @@ func DetectHits(text []byte, maxThreads int, enableTruffleHogVerification bool, 
 	}()
 	select {
 	case <-time.After(timeout):
-		return nil, errors.New("hit detection timed out")
+		return nil, errors.New("hit detection timed out (" + timeout.String() + ")")
 	case result := <-result:
 		return result.Findings, result.Error
 	}
