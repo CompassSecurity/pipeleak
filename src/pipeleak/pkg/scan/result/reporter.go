@@ -5,20 +5,20 @@ import (
 	"github.com/CompassSecurity/pipeleak/pkg/scanner"
 )
 
-// SecretType defines the source type of a detected secret.
-type SecretType string
+// SecretType re-exports logging.SecretType for backward compatibility.
+type SecretType = logging.SecretType
 
 const (
 	// SecretTypeLog indicates a secret found in CI/CD logs.
-	SecretTypeLog SecretType = "LOG"
+	SecretTypeLog = logging.SecretTypeLog
 	// SecretTypeArchive indicates a secret found in an archive/artifact.
-	SecretTypeArchive SecretType = "ARCHIVE"
+	SecretTypeArchive = logging.SecretTypeArchive
 	// SecretTypeArchiveInArchive indicates a secret found in a nested archive.
-	SecretTypeArchiveInArchive SecretType = "ARCHIVE-IN-ARCHIVE"
+	SecretTypeArchiveInArchive = logging.SecretTypeArchiveInArchive
 	// SecretTypeDotenv indicates a secret found in a dotenv file.
-	SecretTypeDotenv SecretType = "DOTENV"
+	SecretTypeDotenv = logging.SecretTypeDotenv
 	// SecretTypeFile indicates a secret found in a standalone file.
-	SecretTypeFile SecretType = "FILE"
+	SecretTypeFile = logging.SecretTypeFile
 )
 
 type ReportOptions struct {

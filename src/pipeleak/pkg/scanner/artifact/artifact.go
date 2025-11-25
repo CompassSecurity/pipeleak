@@ -15,18 +15,6 @@ import (
 	"golift.io/xtractr"
 )
 
-// SecretType defines the source type of a detected secret in artifacts.
-type SecretType string
-
-const (
-	// SecretTypeArchive indicates a secret found in an archive/artifact.
-	SecretTypeArchive SecretType = "ARCHIVE"
-	// SecretTypeArchiveInArchive indicates a secret found in a nested archive.
-	SecretTypeArchiveInArchive SecretType = "ARCHIVE-IN-ARCHIVE"
-	// SecretTypeFile indicates a secret found in a standalone file.
-	SecretTypeFile SecretType = "FILE"
-)
-
 var skippableDirectoryNames = []string{"node_modules", ".yarn", ".yarn-cache", ".npm", "venv", "vendor", ".go/pkg/mod/"}
 
 func DetectFileHits(content []byte, jobWebUrl string, jobName string, fileName string, archiveName string, enableTruffleHogVerification bool, hitTimeout time.Duration) {
@@ -122,9 +110,9 @@ func HandleArchiveArtifactWithDepth(archivefileName string, content []byte, jobW
 }
 
 func ReportFinding(finding types.Finding, url string, jobName string, fileName string, archiveName string) {
-	secretType := SecretTypeArchive
+	secretType := logging.SecretTypeArchive
 	if len(archiveName) > 0 {
-		secretType = SecretTypeArchiveInArchive
+		secretType = logging.SecretTypeArchiveInArchive
 	}
 
 	event := logging.Hit().
