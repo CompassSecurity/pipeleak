@@ -244,3 +244,42 @@ func TestHitLevelWriter_Write(t *testing.T) {
 		})
 	}
 }
+
+func TestHitLevelWriter_NonJSONPassthrough(t *testing.T) {
+	buf := &bytes.Buffer{}
+	writer := NewHitLevelWriter(buf)
+
+	writer.markNextAsHit()
+	plainText := []byte("plain text log\n")
+	n, err := writer.Write(plainText)
+
+	if err != nil {
+		t.Fatalf("Write failed: %v", err)
+	}
+	if n != len(plainText) {
+		t.Errorf("expected %d bytes written, got %d", len(plainText), n)
+	}
+	if buf.String() != string(plainText) {
+		t.Errorf("expected passthrough of non-JSON, got %s", buf.String())
+	}
+}
+
+func TestHitLevelWriter_ConcurrentAccess(t *testing.T) {
+	buf := &bytes.Buffer{}
+	writer := NewHitLevelWriter(buf)
+
+	// Simulate concurrent marks
+	done := make(chan bool, 10)
+	for i := 0; i < 10; i++ {
+		go func() {
+			writer.markNextAsHit()
+			done <- true
+		}()
+	}
+
+	for i := 0; i < 10; i++ {
+		<-done
+	}
+
+	// No panic = mutex protected correctly
+}

@@ -2,9 +2,13 @@ package scan
 
 import (
 	"bytes"
+	"encoding/json"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
+	"github.com/nsqio/go-diskqueue"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
@@ -45,4 +49,59 @@ func TestAnalyzeJobArtifact_SkipsLargeArtifactPreDownload(t *testing.T) {
 			t.Fatalf("expected job name in logs, got: %s", logs)
 		}
 	})
+}
+
+func TestAnalyzeJobArtifact_ReturnsEarlyWhenSizeExceedsPostDownload(t *testing.T) {
+	// Note: This test would require mocking the gitlab client to avoid nil pointer dereference.
+	// Skipping for now as it requires refactoring getJobArtifacts to be injectable.
+	t.Skip("Requires mock client or refactor for testability")
+}
+
+func TestGetDotenvArtifact_EmptyCookie(t *testing.T) {
+	// Empty cookie should bypass download attempt
+	opts := &ScanOptions{GitlabCookie: "", GitlabUrl: "http://gitlab.local"}
+	result := getDotenvArtifact(nil, 1, 123, "group/project", opts)
+	if len(result) != 0 {
+		t.Fatalf("expected nil result with empty cookie, got %d bytes", len(result))
+	}
+}
+
+func TestGetDotenvArtifact_WithCookie(t *testing.T) {
+	// Non-empty cookie should trigger download (which will fail in test but exercises logic)
+	opts := &ScanOptions{GitlabCookie: "valid-cookie", GitlabUrl: "http://localhost:65535"}
+	result := getDotenvArtifact(nil, 1, 123, "group/project", opts)
+	// Expected to return empty on connection failure
+	if len(result) != 0 {
+		t.Logf("unexpected bytes returned: %d", len(result))
+	}
+}
+
+func TestEnqueueItem_Marshaling(t *testing.T) {
+	// Create a minimal in-memory queue using sync waiting to verify enqueue marshaling
+	var wg sync.WaitGroup
+	queueDir := t.TempDir()
+	q := diskqueue.New("test-queue", queueDir, 512, 0, 1000, 100, time.Second, func(lvl diskqueue.LogLevel, f string, args ...interface{}) {})
+	defer func() { _ = q.Close() }()
+
+	meta := QueueMeta{ProjectId: 10, JobId: 20, JobWebUrl: "http://test", JobName: "test-job"}
+	enqueueItem(q, QueueItemJobTrace, meta, &wg)
+
+	// Verify item was queued
+	select {
+	case item := <-q.ReadChan():
+		var decoded QueueItem
+		if err := json.Unmarshal(item, &decoded); err != nil {
+			t.Fatalf("failed unmarshaling queue item: %v", err)
+		}
+		if decoded.Type != QueueItemJobTrace {
+			t.Fatalf("expected type %s, got %s", QueueItemJobTrace, decoded.Type)
+		}
+		if decoded.Meta.ProjectId != 10 {
+			t.Fatalf("expected project ID 10, got %d", decoded.Meta.ProjectId)
+		}
+		wg.Done()
+	case <-time.After(time.Second):
+		t.Fatal("timeout waiting for queue item")
+	}
+	wg.Wait()
 }

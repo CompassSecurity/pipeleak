@@ -153,3 +153,138 @@ func TestValidOrderByValues(t *testing.T) {
 		})
 	}
 }
+
+func TestDetectCiCdConfig(t *testing.T) {
+	tests := []struct {
+		name     string
+		cicdConf string
+		expected bool
+	}{
+		{"renovate/renovate image", "image: renovate/renovate:latest", true},
+		{"renovatebot/renovate image", "image: renovatebot/renovate", true},
+		{"renovate-bot runner", "image: renovate-bot/renovate-runner", true},
+		{"RENOVATE_ env var", "RENOVATE_TOKEN: secret", true},
+		{"npx renovate", "script: npx renovate", true},
+		{"no renovate", "image: node:14", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := detectCiCdConfig(tt.cicdConf)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestDetectAutodiscovery(t *testing.T) {
+	tests := []struct {
+		name              string
+		cicdConf          string
+		configFileContent string
+		expected          bool
+	}{
+		{"autodiscover in config", "", `{"autodiscover": true}`, true},
+		{"--autodiscover flag", "--autodiscover", "", true},
+		{"RENOVATE_AUTODISCOVER env", "RENOVATE_AUTODISCOVER: true", "", true},
+		{"autodiscover disabled", "--autodiscover=false", "", false},
+		{"autodiscover false env", "RENOVATE_AUTODISCOVER: false", "", false},
+		{"no autodiscover", "image: renovate", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := detectAutodiscovery(tt.cicdConf, tt.configFileContent)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestDetectAutodiscoveryFilters(t *testing.T) {
+	tests := []struct {
+		name        string
+		cicd        string
+		config      string
+		expectFound bool
+		expectType  string
+		expectValue string
+	}{
+		{
+			name:        "autodiscoverFilter in config YAML",
+			cicd:        "",
+			config:      `autodiscoverFilter: "group/project"`,
+			expectFound: true,
+			expectType:  "autodiscoverFilter",
+			expectValue: `group/project`,
+		},
+		{
+			name:        "RENOVATE_AUTODISCOVER_FILTER env",
+			cicd:        "RENOVATE_AUTODISCOVER_FILTER=mygroup/*",
+			config:      "",
+			expectFound: true,
+			expectType:  "autodiscoverFilter",
+			expectValue: "mygroup/*",
+		},
+		{
+			name:        "autodiscoverNamespaces flag",
+			cicd:        "--autodiscover-namespaces team-a",
+			config:      "",
+			expectFound: true,
+			expectType:  "autodiscoverNamespaces",
+			expectValue: "team-a",
+		},
+		{
+			name:        "autodiscoverProjects in config",
+			cicd:        "",
+			config:      `autodiscoverProjects: ["proj1", "proj2"]`,
+			expectFound: true,
+			expectType:  "autodiscoverProjects",
+			expectValue: `["proj1", "proj2"]`,
+		},
+		{
+			name:        "autodiscoverTopics env",
+			cicd:        "RENOVATE_AUTODISCOVER_TOPICS: security",
+			config:      "",
+			expectFound: true,
+			expectType:  "autodiscoverTopics",
+			expectValue: "security",
+		},
+		{
+			name:        "no filters",
+			cicd:        "image: renovate",
+			config:      "{}",
+			expectFound: false,
+			expectType:  "",
+			expectValue: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			found, filterType, filterValue := detectAutodiscoveryFilters(tt.cicd, tt.config)
+			assert.Equal(t, tt.expectFound, found)
+			assert.Equal(t, tt.expectType, filterType)
+			assert.Equal(t, tt.expectValue, filterValue)
+		})
+	}
+}
+
+func TestIsSelfHostedConfig(t *testing.T) {
+	opts := EnumOptions{SelfHostedOptions: []string{"self-hosted", "custom-platform"}}
+
+	tests := []struct {
+		name           string
+		configContent  string
+		expectedResult bool
+	}{
+		{"contains self-hosted", `{"platform": "self-hosted"}`, true},
+		{"contains custom-platform", `endpoint: custom-platform`, true},
+		{"no self-hosted", `{"platform": "github"}`, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isSelfHostedConfig(tt.configContent, opts)
+			assert.Equal(t, tt.expectedResult, result)
+		})
+	}
+}
