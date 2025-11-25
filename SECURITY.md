@@ -16,13 +16,6 @@ This ensures that:
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-## Response Timeline
-
-We aim to:
-- Acknowledge receipt within 48 hours
-- Provide an initial assessment within 7 days
-- Release a fix for confirmed vulnerabilities as soon as possible
-
 ## Scope
 
 This security policy applies to the latest released version of Pipeleak.
