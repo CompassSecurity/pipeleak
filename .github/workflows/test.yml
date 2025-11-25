@@ -24,10 +24,15 @@ jobs:
           go-version: stable
           cache: true
       
-      - name: Run unit tests with coverage (Linux)
+      - name: Run unit tests (Linux)
         if: runner.os == 'Linux'
         working-directory: ./src/pipeleak
-        run: go test $(go list ./... | grep -v /tests/e2e) -v -race -coverprofile=coverage.out -covermode=atomic
+        run: make test-unit
+      
+      - name: Generate coverage report (Linux)
+        if: runner.os == 'Linux'
+        working-directory: ./src/pipeleak
+        run: go test $(go list ./... | grep -v /tests/e2e) -coverprofile=coverage.out -covermode=atomic
       
       - name: Run unit tests (Windows)
         if: runner.os == 'Windows'
@@ -37,15 +42,12 @@ jobs:
           go test $packages -v -race
         shell: pwsh
       
-      - name: Upload coverage to Codecov
+      - name: Upload coverage artifact (Linux)
         if: runner.os == 'Linux'
-        uses: codecov/codecov-action@v4
+        uses: actions/upload-artifact@v4
         with:
-          file: ./src/pipeleak/coverage.out
-          flags: unittests
-          name: codecov-pipeleak
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          name: coverage-linux
+          path: ./src/pipeleak/coverage.out
   
   e2e-tests:
     name: E2E Tests
@@ -61,11 +63,6 @@ jobs:
           go-version: stable
           cache: true
       
-      - name: Build pipeleak binary for e2e tests (Linux)
-        if: runner.os == 'Linux'
-        working-directory: ./src/pipeleak
-        run: go build -o pipeleak .
-      
       - name: Build pipeleak binary for e2e tests (Windows)
         if: runner.os == 'Windows'
         working-directory: ./src/pipeleak
@@ -74,9 +71,7 @@ jobs:
       - name: Run e2e tests (Linux)
         if: runner.os == 'Linux'
         working-directory: ./src/pipeleak
-        run: |
-          export PIPELEAK_BINARY="$(pwd)/pipeleak"
-          go test ./tests/e2e/... -tags=e2e -v -timeout 10m
+        run: make test-e2e
       
       - name: Run e2e tests (Windows)
         if: runner.os == 'Windows'

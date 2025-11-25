@@ -1,4 +1,4 @@
-.PHONY: help build test test-unit test-e2e lint clean coverage coverage-html
+.PHONY: help build test test-unit test-e2e lint clean coverage coverage-html serve-docs
 
 # Default target
 help:
@@ -12,6 +12,7 @@ help:
 	@echo "  make coverage     - Generate test coverage report"
 	@echo "  make coverage-html - Generate and open HTML coverage report"
 	@echo "  make lint         - Run golangci-lint"
+	@echo "  make serve-docs   - Generate and serve CLI documentation"
 	@echo "  make clean        - Remove built artifacts"
 
 # Build the pipeleak binary
@@ -81,6 +82,15 @@ coverage-html: coverage
 lint:
 	@echo "Running golangci-lint..."
 	golangci-lint run --timeout=10m
+
+# Generate and serve CLI documentation
+serve-docs: build
+	@echo "Generating and serving CLI documentation..."
+	@if ! command -v mkdocs > /dev/null 2>&1; then \
+		echo "MkDocs not found. Installing MkDocs and dependencies..."; \
+		pip install mkdocs mkdocs-material mkdocs-minify-plugin; \
+	fi
+	./pipeleak docs -s
 
 # Clean up built artifacts
 clean:

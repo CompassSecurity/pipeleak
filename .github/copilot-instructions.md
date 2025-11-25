@@ -58,15 +58,27 @@ pipeleak/
 
 ```bash
 cd src/pipeleak
-go build -o pipeleak .
+make build
+# Or directly:
+# go build -o pipeleak .
 ```
 
 ### Running Tests
 
+**Using Makefile (recommended):**
+```bash
+cd src/pipeleak
+make test           # Run all tests (unit + e2e)
+make test-unit      # Run unit tests only
+make test-e2e       # Run all e2e tests
+```
+
 **Unit tests (excluding e2e):**
 ```bash
 cd src/pipeleak
-go test $(go list ./... | grep -v /tests/e2e) -v -race
+make test-unit
+# Or directly:
+# go test $(go list ./... | grep -v /tests/e2e) -v -race
 ```
 
 **End-to-end tests:**
@@ -92,7 +104,19 @@ tests/e2e/
     └── testutil/    # Common helpers (RunCLI, mock servers, etc.)
 ```
 
-To run e2e tests, first build the binary and set `PIPELEAK_BINARY`:
+**Using Makefile (recommended):**
+```bash
+cd src/pipeleak
+make test-e2e              # Run all e2e tests
+make test-e2e-gitlab       # Run only GitLab e2e tests
+make test-e2e-github       # Run only GitHub e2e tests
+make test-e2e-bitbucket    # Run only BitBucket e2e tests
+make test-e2e-devops       # Run only Azure DevOps e2e tests
+make test-e2e-gitea        # Run only Gitea e2e tests
+```
+
+**Manual execution:**
+To run e2e tests manually, first build the binary and set `PIPELEAK_BINARY`:
 ```bash
 cd src/pipeleak
 go build -o pipeleak .
@@ -110,15 +134,6 @@ PIPELEAK_BINARY=$(pwd)/pipeleak go test ./tests/e2e/gitlab/scan -tags=e2e -v
 
 **Important:** E2E tests require the `PIPELEAK_BINARY` environment variable to point to the compiled binary (absolute or relative to module root). Tests use this binary to run commands in isolated subprocesses to avoid Cobra state conflicts.
 
-**Using Makefile (recommended):**
-```bash
-cd src/pipeleak
-make test-e2e              # Run all e2e tests
-make test-e2e-gitlab       # Run only GitLab e2e tests
-make test-e2e-github       # Run only GitHub e2e tests
-make test                  # Run both unit and e2e tests
-```
-
 ### Test Coverage
 
 Generate and view test coverage reports:
@@ -133,14 +148,24 @@ make coverage
 make coverage-html
 ```
 
-Coverage reports are automatically uploaded to Codecov on CI runs for the main branch and pull requests.
+Coverage reports are stored as workflow artifacts on CI runs (Linux job). Retrieve `coverage.out` from the run's artifacts section for local inspection or HTML generation.
 
 ### Linting
 
 The project uses golangci-lint:
 ```bash
 cd src/pipeleak
-golangci-lint run --timeout=10m
+make lint
+# Or directly:
+# golangci-lint run --timeout=10m
+```
+
+### Documentation
+
+Generate and serve CLI documentation locally:
+```bash
+cd src/pipeleak
+make serve-docs  # Installs dependencies if needed, generates and serves docs
 ```
 
 ## Code Style and Conventions
