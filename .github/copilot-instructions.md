@@ -60,7 +60,7 @@ pipeleak/
 cd src/pipeleak
 make build
 # Or directly:
-# go build -o pipeleak .
+go build -o pipeleak .
 ```
 
 ### Running Tests
@@ -78,7 +78,7 @@ make test-e2e       # Run all e2e tests
 cd src/pipeleak
 make test-unit
 # Or directly:
-# go test $(go list ./... | grep -v /tests/e2e) -v -race
+go test $(go list ./... | grep -v /tests/e2e) -v -race
 ```
 
 **End-to-end tests:**
@@ -157,7 +157,7 @@ The project uses golangci-lint:
 cd src/pipeleak
 make lint
 # Or directly:
-# golangci-lint run --timeout=10m
+golangci-lint run --timeout=10m
 ```
 
 ### Documentation
