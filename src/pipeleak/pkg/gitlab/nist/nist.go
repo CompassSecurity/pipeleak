@@ -28,14 +28,20 @@ type nvdResponse struct {
 // It automatically handles pagination if the total results exceed the page size.
 func FetchVulns(version string, enterprise bool) (string, error) {
 	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
+	baseURL := "https://services.nvd.nist.gov/rest/json/cves/2.0"
+	return fetchVulnsWithClient(client, baseURL, version, enterprise)
+}
 
+// fetchVulnsWithClient allows dependency injection for testing
+func fetchVulnsWithClient(client *retryablehttp.Client, baseURL, version string, enterprise bool) (string, error) {
 	edition := "community"
 	if enterprise {
 		edition = "enterprise"
 	}
 
 	baseCPEUrl := strings.Join([]string{
-		"https://services.nvd.nist.gov/rest/json/cves/2.0?cpeName=cpe:2.3:a:gitlab:gitlab:",
+		baseURL,
+		"?cpeName=cpe:2.3:a:gitlab:gitlab:",
 		version,
 		":*:*:*:",
 		edition,
