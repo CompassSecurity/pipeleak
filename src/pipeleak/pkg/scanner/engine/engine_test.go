@@ -71,7 +71,7 @@ func TestDetectHitsWithTimeout(t *testing.T) {
 func TestDetectHits_ExplicitTimeout(t *testing.T) {
 	// Test that a very short timeout causes an error and the error contains the configured timeout value
 	text := []byte("CI_REGISTRY_PASSWORD=supersecret123")
-	
+
 	// Use 1 nanosecond timeout to guarantee timeout occurs
 	shortTimeout := 1 * time.Nanosecond
 
