@@ -94,3 +94,177 @@ func TestDownloadRules(t *testing.T) {
 		}
 	})
 }
+
+func TestInitRules(t *testing.T) {
+	tmpDir := t.TempDir()
+	origWd, _ := os.Getwd()
+	defer func() {
+		_ = os.Chdir(origWd)
+		secretsPatterns = types.SecretsPatterns{}
+		truffelhogRules = nil
+	}()
+
+	_ = os.Chdir(tmpDir)
+
+	// Create a minimal valid rules file
+	rulesYAML := `patterns:
+  - pattern:
+      name: Test Pattern
+      regex: "test"
+      confidence: high
+  - pattern:
+      name: Medium Pattern
+      regex: "medium"
+      confidence: medium
+  - pattern:
+      name: Low Pattern
+      regex: "low"
+      confidence: low
+`
+	_ = os.WriteFile(ruleFileName, []byte(rulesYAML), 0644)
+
+	t.Run("no filter", func(t *testing.T) {
+		secretsPatterns = types.SecretsPatterns{}
+		truffelhogRules = nil
+
+		InitRules([]string{})
+
+		if len(secretsPatterns.Patterns) == 0 {
+			t.Error("Expected patterns to be loaded")
+		}
+
+		if len(truffelhogRules) == 0 {
+			t.Error("Expected TruffleHog rules to be loaded")
+		}
+
+		// Should include custom GitLab rule
+		found := false
+		for _, p := range secretsPatterns.Patterns {
+			if p.Pattern.Name == "Gitlab - Predefined Environment Variable" {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Error("Expected custom GitLab rule to be appended")
+		}
+	})
+
+	t.Run("with confidence filter high", func(t *testing.T) {
+		secretsPatterns = types.SecretsPatterns{}
+		truffelhogRules = nil
+
+		InitRules([]string{"high"})
+
+		// Should only have high confidence patterns
+		for _, p := range secretsPatterns.Patterns {
+			if p.Pattern.Confidence != "high" {
+				t.Errorf("Expected only high confidence patterns, got %q", p.Pattern.Confidence)
+			}
+		}
+	})
+
+	t.Run("with multiple confidence filters", func(t *testing.T) {
+		secretsPatterns = types.SecretsPatterns{}
+		truffelhogRules = nil
+
+		InitRules([]string{"high", "medium"})
+
+		// Should have high and medium confidence patterns
+		for _, p := range secretsPatterns.Patterns {
+			if p.Pattern.Confidence != "high" && p.Pattern.Confidence != "medium" {
+				t.Errorf("Expected only high/medium confidence patterns, got %q", p.Pattern.Confidence)
+			}
+		}
+	})
+
+	t.Run("filter removes all rules", func(t *testing.T) {
+		secretsPatterns = types.SecretsPatterns{}
+		truffelhogRules = nil
+
+		InitRules([]string{"nonexistent"})
+
+		// Should have zero patterns after filtering
+		if len(secretsPatterns.Patterns) != 0 {
+			t.Errorf("Expected 0 patterns after filtering, got %d", len(secretsPatterns.Patterns))
+		}
+	})
+
+	t.Run("already initialized", func(t *testing.T) {
+		// First initialize patterns
+		secretsPatterns = types.SecretsPatterns{}
+		truffelhogRules = nil
+		InitRules([]string{})
+		initialCount := len(secretsPatterns.Patterns)
+
+		if initialCount == 0 {
+			t.Error("Expected patterns to be initialized")
+		}
+
+		// Call InitRules again - should not reload since patterns exist
+		InitRules([]string{})
+
+		// Should not have changed
+		if len(secretsPatterns.Patterns) != initialCount {
+			t.Errorf("Expected patterns count %d to remain unchanged, got %d", initialCount, len(secretsPatterns.Patterns))
+		}
+	})
+}
+
+func TestGetSecretsPatterns_AfterInit(t *testing.T) {
+	tmpDir := t.TempDir()
+	origWd, _ := os.Getwd()
+	defer func() {
+		_ = os.Chdir(origWd)
+		secretsPatterns = types.SecretsPatterns{}
+	}()
+
+	_ = os.Chdir(tmpDir)
+
+	rulesYAML := `patterns:
+  - pattern:
+      name: Test Pattern
+      regex: "test"
+      confidence: high
+`
+	_ = os.WriteFile(ruleFileName, []byte(rulesYAML), 0644)
+
+	secretsPatterns = types.SecretsPatterns{}
+	InitRules([]string{})
+
+	patterns := GetSecretsPatterns()
+
+	if len(patterns.Patterns) == 0 {
+		t.Error("Expected non-empty patterns")
+	}
+}
+
+func TestGetTruffleHogRules_AfterInit(t *testing.T) {
+	tmpDir := t.TempDir()
+	origWd, _ := os.Getwd()
+	defer func() {
+		_ = os.Chdir(origWd)
+		secretsPatterns = types.SecretsPatterns{}
+		truffelhogRules = nil
+	}()
+
+	_ = os.Chdir(tmpDir)
+
+	rulesYAML := `patterns:
+  - pattern:
+      name: Test Pattern
+      regex: "test"
+      confidence: high
+`
+	_ = os.WriteFile(ruleFileName, []byte(rulesYAML), 0644)
+
+	secretsPatterns = types.SecretsPatterns{}
+	truffelhogRules = nil
+	InitRules([]string{})
+
+	rules := GetTruffleHogRules()
+
+	if len(rules) == 0 {
+		t.Error("Expected non-empty TruffleHog rules")
+	}
+}
