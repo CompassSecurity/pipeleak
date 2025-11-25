@@ -12,7 +12,6 @@ func NewSecretsCommand() *cobra.Command {
 		Short: "List all Gitea Actions secrets from groups and repositories",
 		Long:  `Fetches and logs all Actions secrets from organizations and their repositories in Gitea.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			// Get token and gitea from parent persistent flags
 			token, _ := cmd.Flags().GetString("token")
 			url, _ := cmd.Flags().GetString("gitea")
 
@@ -26,7 +25,7 @@ func NewSecretsCommand() *cobra.Command {
 			}
 		},
 	}
-	// --token and --gitea flags are inherited from parent command
+
 
 	return cmd
 }

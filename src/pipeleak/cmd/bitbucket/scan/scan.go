@@ -47,10 +47,8 @@ pipeleak bb scan --token ATATTxxxxxx --email auser@example.com --public --maxPip
 		`,
 		Run: Scan,
 	}
-	// Add common scan flags
 	flags.AddCommonScanFlags(scanCmd, &options.CommonScanOptions, &maxArtifactSize)
 
-	// BitBucket-specific flags
 	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "Bitbucket API token - https://id.atlassian.com/manage-profile/security/api-tokens")
 	scanCmd.Flags().StringVarP(&options.Email, "email", "e", "", "Bitbucket Email")
 	scanCmd.Flags().StringVarP(&options.BitBucketCookie, "cookie", "c", "", "Bitbucket Cookie [value of cloud.session.token on https://bitbucket.org]")

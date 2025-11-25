@@ -53,10 +53,8 @@ pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --repo owner/repo
 		`,
 		Run: Scan,
 	}
-	// Add common scan flags
 	flags.AddCommonScanFlags(scanCmd, &options.CommonScanOptions, &maxArtifactSize)
 
-	// GitHub-specific flags
 	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "GitHub Personal Access Token - https://github.com/settings/tokens")
 	err := scanCmd.MarkFlagRequired("token")
 	if err != nil {

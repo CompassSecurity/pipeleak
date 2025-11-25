@@ -65,10 +65,7 @@ pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com 
 		Run: Scan,
 	}
 
-	// Add common scan flags
 	flags.AddCommonScanFlags(scanCmd, &scanOptions.CommonScanOptions, &maxArtifactSize)
-
-	// Gitea-specific flags (--token and --gitea are inherited from parent command)
 	scanCmd.Flags().StringVarP(&scanOptions.Organization, "organization", "", "", "Scan all repositories of a specific organization")
 	scanCmd.Flags().StringVarP(&scanOptions.Repository, "repository", "r", "", "Scan a specific repository (format: owner/repo)")
 	scanCmd.Flags().StringVarP(&scanOptions.Cookie, "cookie", "c", "", "Gitea session cookie (i_like_gitea). Needed when scanning where you are NOT the owner of the repository")
@@ -79,7 +76,6 @@ pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com 
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	// Get token and gitea from parent persistent flags
 	giteaToken, _ := cmd.Flags().GetString("token")
 	giteaURL, _ := cmd.Flags().GetString("gitea")
 

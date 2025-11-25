@@ -14,13 +14,12 @@ func NewEnumCmd() *cobra.Command {
 		Example: `pipeleak gitea enum --token [tokenval] --gitea https://gitea.mycompany.com`,
 		Run:     Enum,
 	}
-	// --token and --gitea flags are inherited from parent command
+
 
 	return enumCmd
 }
 
 func Enum(cmd *cobra.Command, args []string) {
-	// Get token and gitea from parent persistent flags
 	giteaApiToken, _ := cmd.Flags().GetString("token")
 	giteaUrl, _ := cmd.Flags().GetString("gitea")
 

@@ -5,7 +5,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewDocsCmd creates a new docs command
 func NewDocsCmd(root *cobra.Command) *cobra.Command {
 	var serve bool
 	var githubPages bool

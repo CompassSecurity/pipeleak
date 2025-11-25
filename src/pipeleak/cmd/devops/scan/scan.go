@@ -49,10 +49,8 @@ pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization
 		`,
 		Run: Scan,
 	}
-	// Add common scan flags
 	flags.AddCommonScanFlags(scanCmd, &options.CommonScanOptions, &maxArtifactSize)
 
-	// Azure DevOps-specific flags
 	scanCmd.Flags().StringVarP(&options.AccessToken, "token", "t", "", "Azure DevOps Personal Access Token - https://dev.azure.com/{yourUsername}/_usersSettings/tokens")
 	err := scanCmd.MarkFlagRequired("token")
 	if err != nil {

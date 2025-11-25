@@ -64,10 +64,7 @@ pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com -
 		Run: Scan,
 	}
 
-	// Add common scan flags
 	flags.AddCommonScanFlags(scanCmd, &options.CommonScanOptions, &maxArtifactSize)
-
-	// GitLab-specific flags (--gitlab and --token are inherited from parent command)
 	scanCmd.Flags().StringVarP(&options.GitlabCookie, "cookie", "c", "", "GitLab Cookie _gitlab_session (must be extracted from your browser, use remember me)")
 	scanCmd.Flags().StringVarP(&options.ProjectSearchQuery, "search", "s", "", "Query string for searching projects")
 	scanCmd.Flags().BoolVarP(&options.Member, "member", "m", false, "Scan projects the user is member of")
@@ -80,7 +77,6 @@ pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com -
 }
 
 func Scan(cmd *cobra.Command, args []string) {
-	// Get gitlab and token from parent persistent flags
 	gitlabUrl, _ := cmd.Flags().GetString("gitlab")
 	gitlabApiToken, _ := cmd.Flags().GetString("token")
 
