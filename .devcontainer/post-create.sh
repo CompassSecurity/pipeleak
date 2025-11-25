@@ -20,6 +20,27 @@ go mod download
 echo "Building pipeleak binary..."
 go build -o pipeleak .
 
+# Setup bash aliases
+echo "Setting up bash aliases..."
+cat >> ~/.bashrc << 'EOF'
+
+# Custom aliases
+alias ll='ls -alh'
+alias la='ls -A'
+alias l='ls -CF'
+
+# Git shortcuts
+alias gs='git status'
+alias ga='git add'
+alias gc='git commit'
+alias gp='git push'
+alias gl='git pull'
+alias gd='git diff'
+alias gco='git checkout'
+alias gb='git branch'
+alias glog='git log --oneline --graph --decorate'
+EOF
+
 echo ""
 echo "=== Setup Complete ==="
 echo ""
