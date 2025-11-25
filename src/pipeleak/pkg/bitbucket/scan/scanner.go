@@ -30,6 +30,7 @@ type ScanOptions struct {
 	Artifacts              bool
 	BitBucketURL           string
 	MaxArtifactSize        int64
+	HitTimeout             time.Duration
 	Context                context.Context
 	Client                 BitBucketApiClient
 	HasProvidedCookie      bool
@@ -215,7 +216,7 @@ func (s *bbScanner) listArtifacts(workspaceSlug string, repoSlug string, buildId
 			artifactBytes := s.options.Client.GetPipelineArtifact(workspaceSlug, repoSlug, buildId, art.UUID)
 
 			if filetype.IsArchive(artifactBytes) {
-				pkgscanner.HandleArchiveArtifact(art.Name, artifactBytes, s.buildWebArtifactUrl(workspaceSlug, repoSlug, buildId, art.StepUUID), "Build "+strconv.Itoa(buildId), s.options.TruffleHogVerification)
+				pkgscanner.HandleArchiveArtifact(art.Name, artifactBytes, s.buildWebArtifactUrl(workspaceSlug, repoSlug, buildId, art.StepUUID), "Build "+strconv.Itoa(buildId), s.options.TruffleHogVerification, s.options.HitTimeout)
 			}
 		}
 
@@ -298,6 +299,7 @@ func (s *bbScanner) getSteplog(workspaceSlug string, repoSlug string, pipelineUu
 	logResult, err := logline.ProcessLogs(logBytes, logline.ProcessOptions{
 		MaxGoRoutines:     s.options.MaxScanGoRoutines,
 		VerifyCredentials: s.options.TruffleHogVerification,
+		HitTimeout:        s.options.HitTimeout,
 	})
 	if err != nil {
 		log.Debug().Err(err).Str("stepUUid", stepUUID).Msg("Failed detecting secrets")
@@ -318,16 +320,16 @@ func (s *bbScanner) getDownloadArtifact(downloadUrl string, webUrl string, filen
 	}
 
 	if filetype.IsArchive(fileBytes) {
-		pkgscanner.HandleArchiveArtifact(filename, fileBytes, webUrl, "Download Artifact", s.options.TruffleHogVerification)
+		pkgscanner.HandleArchiveArtifact(filename, fileBytes, webUrl, "Download Artifact", s.options.TruffleHogVerification, s.options.HitTimeout)
 	} else {
-		pkgscanner.DetectFileHits(fileBytes, webUrl, "Download Artifact", filename, "", s.options.TruffleHogVerification)
+		pkgscanner.DetectFileHits(fileBytes, webUrl, "Download Artifact", filename, "", s.options.TruffleHogVerification, s.options.HitTimeout)
 	}
 }
 
 // InitializeOptions prepares scan options from CLI parameters.
 func InitializeOptions(email, accessToken, bitBucketCookie, bitBucketURL, workspace, after, maxArtifactSizeStr string,
 	owned, public, artifacts, truffleHogVerification bool,
-	maxPipelines, maxScanGoRoutines int, confidenceFilter []string) (ScanOptions, error) {
+	maxPipelines, maxScanGoRoutines int, confidenceFilter []string, hitTimeout time.Duration) (ScanOptions, error) {
 
 	byteSize, err := format.ParseHumanSize(maxArtifactSizeStr)
 	if err != nil {
@@ -351,6 +353,7 @@ func InitializeOptions(email, accessToken, bitBucketCookie, bitBucketURL, worksp
 		Artifacts:              artifacts,
 		BitBucketURL:           bitBucketURL,
 		MaxArtifactSize:        byteSize,
+		HitTimeout:             hitTimeout,
 		Context:                ctx,
 		Client:                 client,
 		HasProvidedCookie:      bitBucketCookie != "",

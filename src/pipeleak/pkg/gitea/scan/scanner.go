@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/CompassSecurity/pipeleak/pkg/format"
@@ -249,7 +250,7 @@ func (s *giteaScanner) scanRepository(repo *gitea.Repository) {
 // InitializeOptions prepares scan options from CLI parameters.
 func InitializeOptions(token, giteaURL, repository, organization, cookie, maxArtifactSizeStr string,
 	owned, artifacts, truffleHogVerification bool,
-	runsLimit int, startRunID int64, maxScanGoRoutines int, confidenceFilter []string) (ScanOptions, error) {
+	runsLimit int, startRunID int64, maxScanGoRoutines int, confidenceFilter []string, hitTimeout time.Duration) (ScanOptions, error) {
 
 	_, err := url.ParseRequestURI(giteaURL)
 	if err != nil {
@@ -310,6 +311,7 @@ func InitializeOptions(token, giteaURL, repository, organization, cookie, maxArt
 		RunsLimit:              runsLimit,
 		StartRunID:             startRunID,
 		MaxArtifactSize:        byteSize,
+		HitTimeout:             hitTimeout,
 		Context:                ctx,
 		Client:                 client,
 		HttpClient:             httpClient,

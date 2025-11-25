@@ -142,6 +142,7 @@ func analyzeJobTrace(git *gitlab.Client, item QueueItem, options *ScanOptions) {
 		VerifyCredentials: options.TruffleHogVerification,
 		BuildURL:          item.Meta.JobWebUrl,
 		JobName:           item.Meta.JobName,
+		HitTimeout:        options.HitTimeout,
 	})
 	if err != nil {
 		log.Debug().Err(err).Int("project", item.Meta.ProjectId).Int("job", item.Meta.JobId).Msg("Failed detecting secrets")
@@ -176,6 +177,7 @@ func analyzeJobArtifact(git *gitlab.Client, item QueueItem, options *ScanOptions
 		VerifyCredentials: options.TruffleHogVerification,
 		BuildURL:          item.Meta.JobWebUrl,
 		ArtifactName:      item.Meta.JobName,
+		HitTimeout:        options.HitTimeout,
 	})
 	if err != nil {
 		log.Debug().Err(err).Int("project", item.Meta.ProjectId).Int("job", item.Meta.JobId).Msg("Unable to process artifacts")
@@ -193,6 +195,7 @@ func analyzeDotenvArtifact(git *gitlab.Client, item QueueItem, options *ScanOpti
 		MaxGoRoutines:     options.MaxScanGoRoutines,
 		VerifyCredentials: options.TruffleHogVerification,
 		BuildURL:          item.Meta.JobWebUrl,
+		HitTimeout:        options.HitTimeout,
 	})
 	if err != nil {
 		log.Debug().Err(err).Int("project", item.Meta.ProjectId).Int("job", item.Meta.JobId).Msg("Failed detecting secrets")

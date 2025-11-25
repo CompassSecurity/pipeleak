@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
 	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
@@ -34,6 +35,7 @@ type ScanOptions struct {
 	MaxScanGoRoutines      int
 	QueueFolder            string
 	TruffleHogVerification bool
+	HitTimeout             time.Duration
 }
 
 func ScanGitLabPipelines(options *ScanOptions) {

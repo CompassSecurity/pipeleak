@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/CompassSecurity/pipeleak/pkg/scanner/rules"
 	"github.com/CompassSecurity/pipeleak/pkg/scanner/types"
@@ -14,6 +15,8 @@ import (
 func init() {
 	rules.InitRules([]string{})
 }
+
+const testTimeout = 60 * time.Second
 
 func TestDetectFileHits(t *testing.T) {
 	tests := []struct {
@@ -36,7 +39,7 @@ func TestDetectFileHits(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			DetectFileHits(tt.content, "http://example.com/job/1", "test-job", "test.txt", "", false)
+			DetectFileHits(tt.content, "http://example.com/job/1", "test-job", "test.txt", "", false, testTimeout)
 		})
 	}
 }
@@ -74,11 +77,11 @@ func TestHandleArchiveArtifact(t *testing.T) {
 	_ = w.Close()
 
 	t.Run("valid zip archive", func(t *testing.T) {
-		HandleArchiveArtifact("test.zip", buf.Bytes(), "http://example.com/job/1", "test-job", false)
+		HandleArchiveArtifact("test.zip", buf.Bytes(), "http://example.com/job/1", "test-job", false, testTimeout)
 	})
 
 	t.Run("invalid archive data", func(t *testing.T) {
-		HandleArchiveArtifact("invalid.zip", []byte("not a zip file"), "http://example.com/job/1", "test-job", false)
+		HandleArchiveArtifact("invalid.zip", []byte("not a zip file"), "http://example.com/job/1", "test-job", false, testTimeout)
 	})
 }
 
@@ -95,19 +98,19 @@ func TestHandleArchiveArtifactWithDepth(t *testing.T) {
 	_ = w.Close()
 
 	t.Run("normal depth", func(t *testing.T) {
-		HandleArchiveArtifactWithDepth("test.zip", buf.Bytes(), "http://example.com/job/1", "test-job", false, 1)
+		HandleArchiveArtifactWithDepth("test.zip", buf.Bytes(), "http://example.com/job/1", "test-job", false, testTimeout, 1)
 	})
 
 	t.Run("max depth exceeded", func(t *testing.T) {
-		HandleArchiveArtifactWithDepth("test.zip", buf.Bytes(), "http://example.com/job/1", "test-job", false, 11)
+		HandleArchiveArtifactWithDepth("test.zip", buf.Bytes(), "http://example.com/job/1", "test-job", false, testTimeout, 11)
 	})
 
 	t.Run("skipped directory - node_modules", func(t *testing.T) {
-		HandleArchiveArtifactWithDepth("node_modules/test.zip", buf.Bytes(), "http://example.com/job/1", "test-job", false, 1)
+		HandleArchiveArtifactWithDepth("node_modules/test.zip", buf.Bytes(), "http://example.com/job/1", "test-job", false, testTimeout, 1)
 	})
 
 	t.Run("skipped directory - vendor", func(t *testing.T) {
-		HandleArchiveArtifactWithDepth("vendor/test.zip", buf.Bytes(), "http://example.com/job/1", "test-job", false, 1)
+		HandleArchiveArtifactWithDepth("vendor/test.zip", buf.Bytes(), "http://example.com/job/1", "test-job", false, testTimeout, 1)
 	})
 }
 
@@ -125,7 +128,7 @@ func TestHandleArchiveArtifact_NestedZip(t *testing.T) {
 	_ = outerW.Close()
 
 	t.Run("nested zip archive", func(t *testing.T) {
-		HandleArchiveArtifact("outer.zip", outerBuf.Bytes(), "http://example.com/job/1", "test-job", false)
+		HandleArchiveArtifact("outer.zip", outerBuf.Bytes(), "http://example.com/job/1", "test-job", false, testTimeout)
 	})
 }
 
@@ -143,7 +146,7 @@ func TestDetectFileHits_RealFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	DetectFileHits(content, "http://example.com/job/1", "test-job", "secret.txt", "", false)
+	DetectFileHits(content, "http://example.com/job/1", "test-job", "secret.txt", "", false, testTimeout)
 }
 
 // TestHandleArchiveArtifactWithDepth_NestedArchiveFileNameFix verifies that nested archives
@@ -178,7 +181,7 @@ func TestHandleArchiveArtifactWithDepth_NestedArchiveFileNameFix(t *testing.T) {
 	t.Run("nested archive uses correct filename", func(t *testing.T) {
 		// This should not cause an endless loop or incorrect filename reuse
 		// The fix ensures HandleArchiveArtifactWithDepth receives "nested.zip" not "parent.zip"
-		HandleArchiveArtifactWithDepth("parent.zip", outerBuf.Bytes(), "http://example.com/job/1", "test-job", false, 1)
+		HandleArchiveArtifactWithDepth("parent.zip", outerBuf.Bytes(), "http://example.com/job/1", "test-job", false, testTimeout, 1)
 		// If we reach here without hanging or panicking, the fix is working
 	})
 }
@@ -207,12 +210,12 @@ func TestHandleArchiveArtifactWithDepth_DeeplyNestedArchives(t *testing.T) {
 
 	t.Run("deeply nested archives with correct filenames", func(t *testing.T) {
 		// Each level should use its actual filename, not the parent's
-		HandleArchiveArtifactWithDepth("level3.zip", level3Buf.Bytes(), "http://example.com/job/1", "test-job", false, 1)
+		HandleArchiveArtifactWithDepth("level3.zip", level3Buf.Bytes(), "http://example.com/job/1", "test-job", false, testTimeout, 1)
 	})
 
 	t.Run("deeply nested archives respect max depth", func(t *testing.T) {
 		// Starting at depth 9 means level1.zip (depth 11) should be skipped
-		HandleArchiveArtifactWithDepth("level3.zip", level3Buf.Bytes(), "http://example.com/job/1", "test-job", false, 9)
+		HandleArchiveArtifactWithDepth("level3.zip", level3Buf.Bytes(), "http://example.com/job/1", "test-job", false, testTimeout, 9)
 	})
 }
 
@@ -246,6 +249,6 @@ func TestHandleArchiveArtifactWithDepth_MixedContent(t *testing.T) {
 
 	t.Run("mixed content with nested archive", func(t *testing.T) {
 		// Should process both regular files and recursively handle nested archive
-		HandleArchiveArtifactWithDepth("mixed.zip", mainBuf.Bytes(), "http://example.com/job/1", "test-job", false, 1)
+		HandleArchiveArtifactWithDepth("mixed.zip", mainBuf.Bytes(), "http://example.com/job/1", "test-job", false, testTimeout, 1)
 	})
 }

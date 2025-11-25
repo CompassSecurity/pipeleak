@@ -1,6 +1,8 @@
 package flags
 
 import (
+	"time"
+
 	"github.com/CompassSecurity/pipeleak/pkg/config"
 	"github.com/spf13/cobra"
 )
@@ -17,4 +19,6 @@ func AddCommonScanFlags(cmd *cobra.Command, opts *config.CommonScanOptions, maxA
 	cmd.Flags().StringSliceVarP(&opts.ConfidenceFilter, "confidence", "", []string{},
 		"Filter for confidence level, separate by comma if multiple. See readme for more info.")
 	cmd.Flags().BoolVarP(&opts.Owned, "owned", "o", false, "Scan only user owned repositories")
+	cmd.Flags().DurationVarP(&opts.HitTimeout, "hit-timeout", "", 60*time.Second,
+		"Maximum time to wait for hit detection per scan item (e.g., 30s, 2m, 1h)")
 }

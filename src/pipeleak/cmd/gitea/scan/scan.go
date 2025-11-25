@@ -107,6 +107,7 @@ func Scan(cmd *cobra.Command, args []string) {
 		scanOptions.StartRunID,
 		scanOptions.MaxScanGoRoutines,
 		scanOptions.ConfidenceFilter,
+		scanOptions.HitTimeout,
 	)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed initializing scan options")

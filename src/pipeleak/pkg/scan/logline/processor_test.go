@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"testing"
+	"time"
 
 	"github.com/CompassSecurity/pipeleak/pkg/scanner"
 	"github.com/stretchr/testify/assert"
@@ -13,6 +14,8 @@ import (
 func init() {
 	scanner.InitRules([]string{})
 }
+
+const testTimeout = 60 * time.Second
 
 func TestProcessLogs(t *testing.T) {
 	tests := []struct {
@@ -27,6 +30,7 @@ func TestProcessLogs(t *testing.T) {
 			opts: ProcessOptions{
 				MaxGoRoutines:     4,
 				VerifyCredentials: false,
+				HitTimeout:        testTimeout,
 			},
 			expectError: false,
 		},
@@ -37,6 +41,7 @@ func TestProcessLogs(t *testing.T) {
 				MaxGoRoutines:     4,
 				VerifyCredentials: false,
 				BuildURL:          "https://example.com/build/123",
+				HitTimeout:        testTimeout,
 			},
 			expectError: false,
 		},
@@ -46,6 +51,7 @@ func TestProcessLogs(t *testing.T) {
 			opts: ProcessOptions{
 				MaxGoRoutines:     4,
 				VerifyCredentials: false,
+				HitTimeout:        testTimeout,
 			},
 			expectError: false,
 		},
@@ -55,6 +61,7 @@ func TestProcessLogs(t *testing.T) {
 			opts: ProcessOptions{
 				MaxGoRoutines:     4,
 				VerifyCredentials: false,
+				HitTimeout:        testTimeout,
 			},
 			expectError: false,
 		},
@@ -169,6 +176,7 @@ func TestProcessLogsFromZip(t *testing.T) {
 				MaxGoRoutines:     4,
 				VerifyCredentials: false,
 				BuildURL:          "https://example.com/build/456",
+				HitTimeout:        testTimeout,
 			},
 			expectError: false,
 		},
@@ -182,6 +190,7 @@ func TestProcessLogsFromZip(t *testing.T) {
 			},
 			opts: ProcessOptions{
 				MaxGoRoutines: 4,
+				HitTimeout:    testTimeout,
 			},
 			expectError: false,
 		},
@@ -190,7 +199,7 @@ func TestProcessLogsFromZip(t *testing.T) {
 			createZip: func() []byte {
 				return []byte("invalid")
 			},
-			opts:        ProcessOptions{MaxGoRoutines: 4},
+			opts:        ProcessOptions{MaxGoRoutines: 4, HitTimeout: testTimeout},
 			expectError: true,
 		},
 	}
@@ -222,6 +231,7 @@ func TestProcessLogs_WithThreads(t *testing.T) {
 			opts := ProcessOptions{
 				MaxGoRoutines:     threads,
 				VerifyCredentials: false,
+				HitTimeout:        testTimeout,
 			}
 
 			result, err := ProcessLogs(logs, opts)

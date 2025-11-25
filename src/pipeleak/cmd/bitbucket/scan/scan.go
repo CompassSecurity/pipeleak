@@ -95,6 +95,7 @@ func Scan(cmd *cobra.Command, args []string) {
 		options.MaxPipelines,
 		options.MaxScanGoRoutines,
 		options.ConfidenceFilter,
+		options.HitTimeout,
 	)
 	if err != nil {
 		log.Fatal().Err(err).Str("size", maxArtifactSize).Msg("Failed parsing max-artifact-size flag")

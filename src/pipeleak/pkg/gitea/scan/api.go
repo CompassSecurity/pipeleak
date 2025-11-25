@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/hashicorp/go-retryablehttp"
@@ -28,6 +29,7 @@ type GiteaScanOptions struct {
 	RunsLimit              int
 	StartRunID             int64
 	MaxArtifactSize        int64
+	HitTimeout             time.Duration
 	Context                context.Context
 	Client                 *gitea.Client
 	HttpClient             *retryablehttp.Client

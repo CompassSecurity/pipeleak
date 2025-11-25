@@ -2,6 +2,8 @@
 // This package centralizes common configuration patterns across all platform scanners.
 package config
 
+import "time"
+
 // CommonScanOptions contains configuration fields that are shared across all platform scanners.
 // This helps reduce duplication and ensures consistency in option handling.
 type CommonScanOptions struct {
@@ -17,6 +19,8 @@ type CommonScanOptions struct {
 	MaxArtifactSize int64
 	// Owned filters to only owned repositories
 	Owned bool
+	// HitTimeout is the maximum time to wait for hit detection per scan item
+	HitTimeout time.Duration
 }
 
 // DefaultCommonScanOptions returns sensible default values for common scan options.
@@ -28,5 +32,6 @@ func DefaultCommonScanOptions() CommonScanOptions {
 		Artifacts:              false,
 		MaxArtifactSize:        500 * 1024 * 1024, // 500MB
 		Owned:                  false,
+		HitTimeout:             60 * time.Second,
 	}
 }
