@@ -207,12 +207,17 @@ func FetchCICDYml(git *gitlab.Client, pid int64) (string, error) {
 		return "", err
 	}
 
-	if len(res.Errors) > 0 {
-		return "", errors.New(strings.Join(res.Errors, ", "))
+	for _, msg := range res.Errors {
+		log.Debug().Str("type", msg).Msg("Validation error of gitlab-ci.yml in project")
+
+		// API does not does not distinguish between missing file and actual errors in the YAML
+		if strings.Contains(msg, "Please provide content of") {
+			return "", errors.New("project does most certainly not have a .gitlab-ci.yml file")
+		}
 	}
 
-	if res.MergedYaml == "" {
-		return "", errors.New("project does not have a .gitlab-ci.yml file")
+	if len(res.Errors) > 0 {
+		return "", errors.New(strings.Join(res.Errors, ", "))
 	}
 
 	log.Trace().Bool("valid", res.Valid).Str("warnings", strings.Join(res.Warnings, ", ")).Msg(".gitlab-ci.yaml")
