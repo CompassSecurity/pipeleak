@@ -208,7 +208,7 @@ func analyzeDotenvArtifact(git *gitlab.Client, item QueueItem, options *ScanOpti
 }
 
 func getJobTrace(git *gitlab.Client, projectId int, jobId int) []byte {
-	reader, _, err := git.Jobs.GetTraceFile(projectId, jobId)
+	reader, _, err := git.Jobs.GetTraceFile(projectId, int64(jobId))
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("Failed fetching job trace")
 		return nil
@@ -223,7 +223,7 @@ func getJobTrace(git *gitlab.Client, projectId int, jobId int) []byte {
 }
 
 func getJobArtifacts(git *gitlab.Client, projectId int, jobId int, jobWebUrl string, options *ScanOptions) []byte {
-	artifactsReader, resp, err := git.Jobs.GetJobArtifacts(projectId, jobId)
+	artifactsReader, resp, err := git.Jobs.GetJobArtifacts(projectId, int64(jobId))
 
 	if resp != nil {
 		if resp.StatusCode == 404 {

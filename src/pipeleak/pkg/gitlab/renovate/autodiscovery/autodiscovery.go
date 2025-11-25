@@ -124,10 +124,10 @@ func RunGenerate(gitlabUrl, gitlabApiToken, repoName, username string) {
 	}
 	log.Info().Str("name", project.Name).Str("url", project.WebURL).Msg("Created project")
 
-	createFile("renovate.json", renovateJson, git, project.ID, false)
-	createFile("package.json", packageJson, git, project.ID, false)
-	createFile("package-lock.json", packageLockJson, git, project.ID, false)
-	createFile("exploit.sh", exploitScript, git, project.ID, true)
+	createFile("renovate.json", renovateJson, git, int(project.ID), false)
+	createFile("package.json", packageJson, git, int(project.ID), false)
+	createFile("package-lock.json", packageLockJson, git, int(project.ID), false)
+	createFile("exploit.sh", exploitScript, git, int(project.ID), true)
 
 	if username == "" {
 		log.Info().Msg("No username provided, you must invite the victim Renovate Bot user manually to the created project")
