@@ -69,7 +69,7 @@ func TestFetchVulns_NoPagination(t *testing.T) {
 	// Create a properly configured retryable client
 	client := retryablehttp.NewClient()
 	client.HTTPClient = server.Client()
-	result, err := fetchVulnsWithClient(client, server.URL, "16.0.0", false)
+	result, err := FetchVulns(client, server.URL, "16.0.0", false)
 	require.NoError(t, err)
 
 	// Parse the result
@@ -90,7 +90,7 @@ func TestFetchVulns_WithPagination(t *testing.T) {
 
 	client := retryablehttp.NewClient()
 	client.HTTPClient = server.Client()
-	result, err := fetchVulnsWithClient(client, server.URL, "16.0.0", false)
+	result, err := FetchVulns(client, server.URL, "16.0.0", false)
 	require.NoError(t, err)
 
 	// Parse the result
@@ -122,7 +122,7 @@ func TestFetchVulns_EnterpriseEdition(t *testing.T) {
 
 	client := retryablehttp.NewClient()
 	client.HTTPClient = server.Client()
-	result, err := fetchVulnsWithClient(client, server.URL, "17.0.0", true)
+	result, err := FetchVulns(client, server.URL, "17.0.0", true)
 	require.NoError(t, err)
 
 	// Verify the URL contains enterprise edition
@@ -139,7 +139,7 @@ func TestFetchVulns_CommunityEdition(t *testing.T) {
 
 	client := retryablehttp.NewClient()
 	client.HTTPClient = server.Client()
-	result, err := fetchVulnsWithClient(client, server.URL, "17.0.0", false)
+	result, err := FetchVulns(client, server.URL, "17.0.0", false)
 	require.NoError(t, err)
 
 	// Verify the URL contains community edition
@@ -155,7 +155,7 @@ func TestFetchVulns_EmptyResponse(t *testing.T) {
 
 	client := retryablehttp.NewClient()
 	client.HTTPClient = server.Client()
-	result, err := fetchVulnsWithClient(client, server.URL, "99.99.99", false)
+	result, err := FetchVulns(client, server.URL, "99.99.99", false)
 	require.NoError(t, err)
 
 	var response nvdResponse
@@ -176,7 +176,7 @@ func TestFetchVulns_HTTPError(t *testing.T) {
 	client := retryablehttp.NewClient()
 	client.HTTPClient = server.Client()
 	client.RetryMax = 0 // Disable retries for faster test
-	result, err := fetchVulnsWithClient(client, server.URL, "16.0.0", false)
+	result, err := FetchVulns(client, server.URL, "16.0.0", false)
 	assert.Error(t, err)
 	assert.Equal(t, "{}", result)
 }
@@ -191,7 +191,7 @@ func TestFetchVulns_InvalidJSON(t *testing.T) {
 
 	client := retryablehttp.NewClient()
 	client.HTTPClient = server.Client()
-	result, err := fetchVulnsWithClient(client, server.URL, "16.0.0", false)
+	result, err := FetchVulns(client, server.URL, "16.0.0", false)
 	assert.Error(t, err)
 	assert.Equal(t, "{}", result)
 }
@@ -203,7 +203,7 @@ func TestFetchVulns_LargePagination(t *testing.T) {
 
 	client := retryablehttp.NewClient()
 	client.HTTPClient = server.Client()
-	result, err := fetchVulnsWithClient(client, server.URL, "15.0.0", false)
+	result, err := FetchVulns(client, server.URL, "15.0.0", false)
 	require.NoError(t, err)
 
 	var response nvdResponse
@@ -230,7 +230,7 @@ func TestFetchVulns_ExactPageBoundary(t *testing.T) {
 
 	client := retryablehttp.NewClient()
 	client.HTTPClient = server.Client()
-	result, err := fetchVulnsWithClient(client, server.URL, "16.0.0", false)
+	result, err := FetchVulns(client, server.URL, "16.0.0", false)
 	require.NoError(t, err)
 
 	var response nvdResponse
@@ -248,7 +248,7 @@ func TestFetchVulns_MultiplePagesExactBoundary(t *testing.T) {
 
 	client := retryablehttp.NewClient()
 	client.HTTPClient = server.Client()
-	result, err := fetchVulnsWithClient(client, server.URL, "16.0.0", false)
+	result, err := FetchVulns(client, server.URL, "16.0.0", false)
 	require.NoError(t, err)
 
 	var response nvdResponse
