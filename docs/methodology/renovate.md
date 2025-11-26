@@ -15,7 +15,6 @@ This guide explains how to use Pipeleak to discover and exploit common misconfig
 There are two key points to understand:
 
 1. **Code Execution by Renovated Repositories**
-
    > Every project renovated by the same bot must be considered equally trusted and exposed to the same attack level. If one project is compromised, all others processed by that bot can be affected. Code execution by the renovated repository in the bot context is assumed in Renovate's threat model.
 
 2. **GitLab Invite Auto-Acceptance**
