@@ -15,7 +15,7 @@ func NewAutodiscoveryCmd() *cobra.Command {
 	autodiscoveryCmd := &cobra.Command{
 		Use:   "autodiscovery",
 		Short: "Create a PoC for Renovate Autodiscovery misconfigurations exploitation",
-		Long:  "Create a project with a Renovate Bot configuration that will be picked up by an existing Renovate Bot user. The Renovate Bot will then execute a malicious Gradle wrapper script during Gradle wrapper updates, which you can customize in exploit.sh. This bypasses Renovate's script blocking that prevents npm lifecycle scripts from running.",
+		Long:  "Create a project with a Renovate Bot configuration that will be picked up by an existing Renovate Bot user. The Renovate Bot will execute the malicious Gradle wrapper script during dependency updates, which you can customize in exploit.sh.",
 		Example: `
 # Create a project and invite the victim Renovate Bot user to it. Uses Gradle wrapper to execute arbitrary code during dependency updates.
 pipeleak gl renovate autodiscovery --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com --repo-name my-exploit-repo --username renovate-bot-user
