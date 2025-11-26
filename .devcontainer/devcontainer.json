@@ -1,16 +1,10 @@
 {
   "name": "Pipeleak Development",
-  "image": "mcr.microsoft.com/devcontainers/go:1.24",
+  "image": "mcr.microsoft.com/devcontainers/go:1-bookworm",
   "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
     "ghcr.io/devcontainers/features/python:1": {
       "version": "3.12"
-    },
-    "ghcr.io/devcontainers/features/node:1": {
-      "version": "lts"
-    },
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {
-      "version": "latest",
-      "moby": true
     }
   },
   "customizations": {
@@ -20,7 +14,8 @@
         "ms-python.python",
         "esbenp.prettier-vscode",
         "ms-vscode.makefile-tools",
-        "streetsidesoftware.code-spell-checker"
+        "streetsidesoftware.code-spell-checker",
+        "github.vscode-github-actions"
       ],
       "settings": {
         "go.toolsManagement.autoUpdate": true,
@@ -30,15 +25,16 @@
         "editor.formatOnSave": true,
         "[go]": {
           "editor.defaultFormatter": "golang.go"
-        }
+        },
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "bash",
+            "args": ["-l"]
+          }
+        },
+        "terminal.integrated.defaultProfile.linux": "bash"
       }
     }
   },
-  "portsAttributes": {
-    "*": {
-      "onAutoForward": "ignore"
-    }
-  },
-  "postCreateCommand": "bash .devcontainer/post-create.sh",
-  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}"
+  "postCreateCommand": "bash .devcontainer/post-create.sh"
 }
