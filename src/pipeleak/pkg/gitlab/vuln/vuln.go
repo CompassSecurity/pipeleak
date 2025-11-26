@@ -1,6 +1,8 @@
 package vuln
 
 import (
+	"os"
+
 	"github.com/CompassSecurity/pipeleak/pkg/gitlab/nist"
 	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
 	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
@@ -16,6 +18,12 @@ func RunCheckVulns(gitlabUrl, gitlabApiToken string) {
 	log.Info().Str("version", installedVersion.Version).Msg("Fetching CVEs for this version")
 	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
 	baseURL := "https://services.nvd.nist.gov/rest/json/cves/2.0"
+
+	// Allow overriding NIST base URL via environment variable (primarily for testing)
+	if envURL := os.Getenv("PIPELEAK_NIST_BASE_URL"); envURL != "" {
+		baseURL = envURL
+	}
+
 	vulnsJsonStr, err := nist.FetchVulns(client, baseURL, installedVersion.Version, installedVersion.Enterprise)
 	if err != nil {
 		log.Fatal().Msg("Unable fetch vulnerabilities from NIST")

