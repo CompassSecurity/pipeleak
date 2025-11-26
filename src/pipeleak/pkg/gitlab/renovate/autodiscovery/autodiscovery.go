@@ -87,9 +87,6 @@ renovate-debugging:
         echo "SUCCESS: Exploit was executed!"
         echo "=== Exploit proof file contents ==="
         cat /tmp/pipeleak-exploit-executed.txt
-        echo ""
-        echo "=== Copying to workspace for artifact collection ==="
-        cp /tmp/pipeleak-exploit-executed.txt exploit-proof.txt
       else
         echo "FAILED: /tmp/pipeleak-exploit-executed.txt not found"
         echo "Checking /tmp for any proof files..."
