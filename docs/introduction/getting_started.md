@@ -1,5 +1,5 @@
 ---
-title: Getting Started with Pipelak
+title: Getting Started with Pipeleak
 description: Learn how to install and use Pipeleak to scan your CI/CD pipelines for secrets.
 keywords:
   - pipeline secrets scanner
@@ -34,21 +34,12 @@ Once secrets are discovered, further exploitation often requires additional tool
    - For Linux: `pipeleak-<version>-linux-<arch>.tar.gz`
    - For macOS: `pipeleak-<version>-darwin-<arch>.tar.gz`
 
-3. Extract the archive:
+3. Extract the archive, make it executable and run it:
 
    ```bash
    tar -xzf pipeleak-<version>-<os>-<arch>.tar.gz
-   ```
-
-4. Make the binary executable:
-
-   ```bash
    chmod +x pipeleak
-   ```
-
-5. Verify installation:
-   ```bash
-   ./pipeleak --help
+   ./pipeleak --version
    ```
 
 ### Windows
@@ -63,7 +54,7 @@ Once secrets are discovered, further exploitation often requires additional tool
 
 4. Open PowerShell or Command Prompt and verify installation:
    ```powershell
-   .\pipeleak.exe --help
+   .\pipeleak.exe --version
    ```
 
 ## Usage Examples
