@@ -28,7 +28,7 @@ func RunEnum(gitlabUrl, gitlabApiToken string, minAccessLevel int) {
 
 	log.Info().Msg("Enumerating User")
 	log.Warn().Str("username", user.Username).Str("name", user.Name).Str("email", user.Email).Bool("admin", user.IsAdmin).Bool("bot", user.Bot).Msg("Current user")
-	log.Debug().Any("full_user", user).Msg("Full User details")
+	log.Debug().Interface("full_user", user).Msg("Full User details")
 
 	log.Info().Msg("Enumerating Access Token")
 	client := *resty.New().SetRedirectPolicy(resty.FlexibleRedirectPolicy(5))
@@ -128,6 +128,7 @@ func enumCurrentToken(client resty.Client, baseUrl string, pat string) {
 		Bool("active", currentToken.Active).
 		Str("lastUsedIps", strings.Join(currentToken.LastUsedIps, ",")).
 		Msg("Current Token")
+	log.Debug().Interface("full_token", currentToken).Msg("Full Token details")
 }
 
 // https://docs.gitlab.com/api/personal_access_tokens/#list-all-token-associations
@@ -157,10 +158,12 @@ func listTokenAssociations(client resty.Client, baseUrl string, pat string, acce
 
 	for _, group := range resp.Groups {
 		log.Warn().Str("group", group.WebURL).Int("accessLevel", group.AccessLevels).Str("name", group.Name).Str("visibility", string(group.Visibility)).Msg("Group")
+		log.Debug().Interface("full_group", group).Msg("Full Group details")
 	}
 
 	for _, project := range resp.Projects {
 		log.Warn().Str("project", project.WebURL).Str("name", project.NameWithNamespace).Int("groupAccessLevel", project.AccessLevels.GroupAccessLevel).Int("projectAccessLevel", project.AccessLevels.ProjectAccessLevel).Msg("Project")
+		log.Debug().Interface("full_project", project).Msg("Full Project details")
 	}
 
 	nextPage, err := strconv.Atoi(res.Header().Get("x-next-page"))

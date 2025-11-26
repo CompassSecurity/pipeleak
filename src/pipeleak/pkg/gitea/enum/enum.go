@@ -68,6 +68,8 @@ func RunEnum(giteaURL, apiToken string) error {
 				Str("description", org.Description).
 				Str("visibility", org.Visibility)
 
+			log.Debug().Interface("org", org).Msg("Full organization data structure")
+
 			if orgPerms != nil {
 				logEvent = logEvent.
 					Bool("isOwner", orgPerms.IsOwner).
@@ -78,6 +80,7 @@ func RunEnum(giteaURL, apiToken string) error {
 			}
 
 			logEvent.Msg("Organization")
+			log.Debug().Any("full_org_permissions", orgPerms).Msg("Full Organization permissions details")
 
 			repoPage := 1
 			for {
@@ -103,6 +106,7 @@ func RunEnum(giteaURL, apiToken string) error {
 						Bool("private", repo.Private).
 						Bool("archived", repo.Archived).
 						Str("url", repo.HTMLURL)
+					log.Debug().Interface("repo", repo).Msg("Full organization repository data structure")
 
 					if repo.Permissions != nil {
 						logRepo = logRepo.
@@ -112,6 +116,7 @@ func RunEnum(giteaURL, apiToken string) error {
 					}
 
 					logRepo.Msg("Organization Repository")
+					log.Debug().Any("full_repo_permissions", repo.Permissions).Msg("Full Repository permissions details")
 				}
 
 				if repoResp == nil || repoResp.NextPage == 0 {
@@ -154,6 +159,7 @@ func RunEnum(giteaURL, apiToken string) error {
 				Bool("private", repo.Private).
 				Bool("archived", repo.Archived).
 				Str("url", repo.HTMLURL)
+			log.Debug().Interface("repo", repo).Msg("Full user repository data structure")
 
 			if repo.Permissions != nil {
 				logRepo = logRepo.
@@ -163,6 +169,7 @@ func RunEnum(giteaURL, apiToken string) error {
 			}
 
 			logRepo.Msg("User Repository")
+			log.Debug().Any("full_repo_permissions", repo.Permissions).Msg("Full Repository permissions details")
 		}
 
 		if resp == nil || resp.NextPage == 0 {
