@@ -75,6 +75,7 @@ var gitlabCiYml = `
 # 2. Create a new project access token with 'api' scope and 'Maintainer' role (required for autodiscover)
 # 3. Go to Project Settings > CI/CD > Variables
 # 4. Add a new variable: Key = RENOVATE_TOKEN, Value = <your-token>
+# 5. Run the pipeline and check the job output for exploit execution proof
 
 renovate-debugging:
   image: renovate/renovate:latest

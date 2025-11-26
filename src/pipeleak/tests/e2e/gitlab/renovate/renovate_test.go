@@ -130,10 +130,11 @@ func TestGLRenovateAutodiscovery(t *testing.T) {
 		"--token", "mock-token",
 		"--repo-name", "test-repo",
 		"--username", "test-user",
+		"-v",
 	}, nil, 10*time.Second)
 	assert.Nil(t, exitErr, "Autodiscovery command should succeed")
 	assert.Contains(t, stdout, "Created project")
-	assert.Contains(t, stdout, "Created file")
+	assert.Contains(t, stdout, "Created file", "Should log file creation in verbose mode")
 	assert.Contains(t, stdout, "Inviting user")
 	assert.Contains(t, stdout, "Gradle wrapper", "Should mention Gradle wrapper mechanism")
 	assert.Contains(t, stdout, "gradlew", "Should mention gradlew script")
