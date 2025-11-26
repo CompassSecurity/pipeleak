@@ -9,9 +9,7 @@
       "version": "lts"
     },
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
-      "version": "latest",
-      "moby": true,
-      "installDockerBuildx": true
+      "moby": false
     }
   },
   "customizations": {
@@ -36,6 +34,7 @@
       }
     }
   },
+
   "portsAttributes": {
     "*": {
       "onAutoForward": "ignore"

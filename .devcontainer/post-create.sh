@@ -16,6 +16,15 @@ if command -v docker &> /dev/null; then
     done
     if docker info &> /dev/null; then
         echo "Docker daemon is running"
+         # Detect host Docker API version and export it, so the docker client uses the correct version afterward
+        HOST_API_VERSION=$(docker version --format '{{.Server.APIVersion}}')
+        export DOCKER_API_VERSION=$HOST_API_VERSION
+        echo "Set DOCKER_API_VERSION=$HOST_API_VERSION to match host"
+        # Make it persistent across shell sessions
+        if ! grep -q "DOCKER_API_VERSION" ~/.bashrc; then
+            echo "export DOCKER_API_VERSION=$HOST_API_VERSION" >> ~/.bashrc
+            echo "Added DOCKER_API_VERSION to ~/.bashrc for future sessions"
+        fi
     else
         echo "Warning: Docker daemon is not responding"
     fi
