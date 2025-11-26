@@ -137,7 +137,7 @@ func RunGenerate(gitlabUrl, gitlabApiToken, repoName, username string, addRenova
 		log.Info().Msg("Created .gitlab-ci.yml for local Renovate testing")
 		log.Warn().Msg("IMPORTANT: Add a CI/CD variable named RENOVATE_TOKEN with a project access token that has 'api' scope and at least maintainer permissions")
 		log.Info().Msg("Then run the pipeline again, check the job output for 'SUCCESS: Exploit was executed!'")
-		log.Info().Msg("If you want to retest, you need to DELETE the merge request and remove the branch that were created. Do not merge the update!")
+		log.Info().Msg("If you want to retest, you need to DELETE the merge request and remove the branch that was created. Do not merge the update!")
 	}
 
 	if username == "" {
