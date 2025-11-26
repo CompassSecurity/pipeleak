@@ -1,6 +1,12 @@
 {
   "name": "Pipeleak Development",
   "image": "mcr.microsoft.com/devcontainers/go:1-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12"
+    }
+  },
   "customizations": {
     "vscode": {
       "extensions": [
@@ -19,7 +25,14 @@
         "editor.formatOnSave": true,
         "[go]": {
           "editor.defaultFormatter": "golang.go"
-        }
+        },
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "bash",
+            "args": ["-l"]
+          }
+        },
+        "terminal.integrated.defaultProfile.linux": "bash"
       }
     }
   },
