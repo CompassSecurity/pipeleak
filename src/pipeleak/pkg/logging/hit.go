@@ -10,6 +10,20 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// SecretType defines the source type of a detected secret.
+type SecretType string
+
+const (
+	// SecretTypeLog indicates a secret found in CI/CD logs.
+	SecretTypeLog SecretType = "log"
+	// SecretTypeArchive indicates a secret found in an archive/artifact.
+	SecretTypeArchive SecretType = "archive"
+	// NestedArchive indicates a secret found in a nested archive.
+	SecretTypeNestedArchive SecretType = "nested-archive"
+	// SecretTypeDotenv indicates a secret found in a dotenv file.
+	SecretTypeDotenv SecretType = "dotenv"
+)
+
 // HitLevel defines a custom log level for security finding hits.
 // Implemented as WarnLevel but transformed to "hit" in output.
 const HitLevel zerolog.Level = zerolog.WarnLevel

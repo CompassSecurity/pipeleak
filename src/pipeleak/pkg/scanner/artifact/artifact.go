@@ -24,12 +24,7 @@ func DetectFileHits(content []byte, jobWebUrl string, jobName string, fileName s
 		return
 	}
 	for _, finding := range findings {
-		baseLog := logging.Hit().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", jobWebUrl).Str("jobName", jobName).Str("file", fileName)
-		if len(archiveName) > 0 {
-			baseLog.Str("archive", archiveName).Msg("HIT Artifact (in archive)")
-		} else {
-			baseLog.Msg("HIT Artifact")
-		}
+		ReportFinding(finding, jobWebUrl, jobName, fileName, archiveName)
 	}
 }
 
@@ -115,10 +110,23 @@ func HandleArchiveArtifactWithDepth(archivefileName string, content []byte, jobW
 }
 
 func ReportFinding(finding types.Finding, url string, jobName string, fileName string, archiveName string) {
-	baseLog := logging.Hit().Str("confidence", finding.Pattern.Pattern.Confidence).Str("ruleName", finding.Pattern.Pattern.Name).Str("value", finding.Text).Str("url", url).Str("jobName", jobName).Str("file", fileName)
+	secretType := logging.SecretTypeArchive
 	if len(archiveName) > 0 {
-		baseLog.Str("archive", archiveName).Msg("HIT Artifact (in archive)")
-	} else {
-		baseLog.Msg("HIT Artifact")
+		secretType = logging.SecretTypeNestedArchive
 	}
+
+	event := logging.Hit().
+		Str("type", string(secretType)).
+		Str("confidence", finding.Pattern.Pattern.Confidence).
+		Str("ruleName", finding.Pattern.Pattern.Name).
+		Str("value", finding.Text).
+		Str("url", url).
+		Str("jobName", jobName).
+		Str("file", fileName)
+
+	if len(archiveName) > 0 {
+		event = event.Str("archive", archiveName)
+	}
+
+	event.Msg("SECRET")
 }

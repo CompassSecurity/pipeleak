@@ -35,6 +35,7 @@ func TestReportFinding(t *testing.T) {
 				LocationURL: "https://example.com/build/123",
 				JobName:     "test-job",
 				BuildName:   "build-456",
+				Type:        logging.SecretTypeLog,
 			},
 			expectInLog: []string{
 				"high",
@@ -43,7 +44,8 @@ func TestReportFinding(t *testing.T) {
 				"https://example.com/build/123",
 				"test-job",
 				"build-456",
-				"HIT",
+				"SECRET",
+				"log",
 			},
 		},
 		{
@@ -66,7 +68,8 @@ func TestReportFinding(t *testing.T) {
 				"Generic Secret",
 				"secret_value_123",
 				"https://example.com/workflow/789",
-				"HIT",
+				"SECRET",
+				"log", // default type
 			},
 			notExpectInLog: []string{
 				"job",
@@ -90,7 +93,56 @@ func TestReportFinding(t *testing.T) {
 				"low",
 				"Test Pattern",
 				"test_secret",
-				"HIT",
+				"SECRET",
+				"log", // default type
+			},
+		},
+		{
+			name: "finding with archive type",
+			finding: scanner.Finding{
+				Pattern: scanner.PatternElement{
+					Pattern: scanner.PatternPattern{
+						Name:       "API Key",
+						Regex:      "api_key_.*",
+						Confidence: "high",
+					},
+				},
+				Text: "api_key_12345",
+			},
+			opts: ReportOptions{
+				LocationURL: "https://example.com/artifacts/123",
+				Type:        logging.SecretTypeArchive,
+			},
+			expectInLog: []string{
+				"high",
+				"API Key",
+				"api_key_12345",
+				"SECRET",
+				"archive",
+			},
+		},
+		{
+			name: "finding with dotenv type",
+			finding: scanner.Finding{
+				Pattern: scanner.PatternElement{
+					Pattern: scanner.PatternPattern{
+						Name:       "Database Password",
+						Regex:      "DB_PASSWORD=.*",
+						Confidence: "high",
+					},
+				},
+				Text: "DB_PASSWORD=secret123",
+			},
+			opts: ReportOptions{
+				LocationURL: "https://example.com/job/456",
+				Type:        logging.SecretTypeDotenv,
+			},
+			expectInLog: []string{
+				"high",
+				"Database Password",
+				"DB_PASSWORD=secret123",
+				"SECRET",
+				"dotenv",
 			},
 		},
 	}
@@ -179,6 +231,7 @@ func TestReportFindingWithCustomFields(t *testing.T) {
 	}
 
 	customFields := map[string]string{
+		"type":       string(logging.SecretTypeLog),
 		"workspace":  "my-workspace",
 		"repository": "my-repo",
 		"pipeline":   "pipeline-123",
@@ -194,7 +247,8 @@ func TestReportFindingWithCustomFields(t *testing.T) {
 	assert.Contains(t, output, "my-workspace")
 	assert.Contains(t, output, "my-repo")
 	assert.Contains(t, output, "pipeline-123")
-	assert.Contains(t, output, "HIT")
+	assert.Contains(t, output, "SECRET")
+	assert.Contains(t, output, "log")
 }
 
 func TestReportFindings_EmptyList(t *testing.T) {

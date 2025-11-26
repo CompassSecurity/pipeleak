@@ -155,7 +155,7 @@ SENDGRID_API_KEY=SG.1234567890abcdefghijklmnopqrstuvwxyz
 
 	// Verify that small artifact was scanned successfully
 	assert.Contains(t, output, "small.zip", "Should process small artifact")
-	assert.Contains(t, output, "HIT", "Should detect secrets in small artifact")
+	assert.Contains(t, output, "SECRET", "Should detect secrets in small artifact")
 	assert.Contains(t, output, "credentials.txt", "Should scan credentials file in small artifact")
 }
 func TestBitBucketScan_Artifacts_WithDotEnv(t *testing.T) {
@@ -289,7 +289,7 @@ GITHUB_TOKEN=ghp_AbCdEfGhIjKlMnOpQrStUvWxYz1234567890
 
 	// Verify .env file was scanned
 	assert.Contains(t, output, ".env", "Should detect .env file in artifact")
-	assert.Contains(t, output, "HIT Artifact", "Should detect secrets in .env file")
+	assert.Contains(t, output, "SECRET", "Should detect secrets in .env file")
 
 	// Verify various secret types were detected
 	assert.Contains(t, output, "Password in URL", "Should detect password in database URL")
@@ -433,7 +433,7 @@ ADMIN_PASSWORD=SuperSecretAdminPass123!
 	output := stdout + stderr
 
 	// Verify nested archive was processed
-	assert.Contains(t, output, "HIT Artifact", "Should detect secrets in nested archive")
+	assert.Contains(t, output, "SECRET", "Should detect secrets in nested archive")
 	// The scanner should find secrets in the inner archive
 	assert.Contains(t, output, "secret.txt", "Should scan files in nested archive")
 
@@ -590,7 +590,7 @@ ENCRYPTION_KEY=abc123def456ghi789jkl012mno345pqr
 	output := stdout + stderr
 
 	// Verify multiple files were scanned
-	assert.Contains(t, output, "HIT Artifact", "Should detect secrets across multiple files")
+	assert.Contains(t, output, "SECRET", "Should detect secrets across multiple files")
 
 	// Check for secrets from different files that were actually scanned
 	assert.Contains(t, output, "api_keys.json", "Should scan API keys file")
@@ -764,7 +764,7 @@ func TestBitBucketScan_DownloadArtifacts(t *testing.T) {
 	output := stdout + stderr
 
 	// Verify download artifact was processed
-	assert.Contains(t, output, "HIT Artifact", "Should detect secrets in download artifact")
+	assert.Contains(t, output, "SECRET", "Should detect secrets in download artifact")
 	assert.Contains(t, output, "release-config.json", "Should scan downloaded artifact file")
 
 	t.Logf("STDOUT:\n%s", stdout)
