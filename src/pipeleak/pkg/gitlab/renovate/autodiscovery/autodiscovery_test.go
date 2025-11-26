@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -192,16 +193,15 @@ func TestGitlabCiYml(t *testing.T) {
 	})
 }
 
-func TestRunGenerate_FilesCreated(t *testing.T) {
-	// Track which files are created with their content and executable flag
-	type fileInfo struct {
-		content    string
-		executable bool
-	}
-	createdFiles := make(map[string]fileInfo)
+// fileInfo tracks file creation details
+type fileInfo struct {
+	content    string
+	executable bool
+}
 
-	// Setup mock GitLab API server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// createMockGitLabServer creates a mock GitLab API server that captures file creation requests
+func createMockGitLabServer(createdFiles map[string]fileInfo) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == "POST" && strings.HasSuffix(r.URL.Path, "/projects"):
 			// Create project
@@ -214,7 +214,10 @@ func TestRunGenerate_FilesCreated(t *testing.T) {
 			if len(parts) == 2 {
 				// Decode URL-encoded filename
 				encodedFilename := parts[1]
-				decodedFilename := strings.ReplaceAll(encodedFilename, "%2F", "/")
+				decodedFilename, err := url.PathUnescape(encodedFilename)
+				if err != nil {
+					decodedFilename = encodedFilename
+				}
 
 				// Parse request body to get content and executable flag
 				var reqBody struct {
@@ -241,6 +244,20 @@ func TestRunGenerate_FilesCreated(t *testing.T) {
 			_, _ = w.Write([]byte(`{}`))
 		}
 	}))
+}
+
+// decodeJSON is a helper to decode JSON from request body
+func decodeJSON(body io.Reader, v interface{}) error {
+	data, err := io.ReadAll(body)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, v)
+}
+
+func TestRunGenerate_FilesCreated(t *testing.T) {
+	createdFiles := make(map[string]fileInfo)
+	server := createMockGitLabServer(createdFiles)
 	defer server.Close()
 
 	// Call RunGenerate with mock server (without CI/CD and without username to avoid invite)
@@ -289,45 +306,8 @@ func TestRunGenerate_FilesCreated(t *testing.T) {
 }
 
 func TestRunGenerate_WithCICD(t *testing.T) {
-	// Track which files are created
-	type fileInfo struct {
-		content    string
-		executable bool
-	}
 	createdFiles := make(map[string]fileInfo)
-
-	// Setup mock GitLab API server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == "POST" && strings.HasSuffix(r.URL.Path, "/projects"):
-			w.WriteHeader(http.StatusCreated)
-			_, _ = w.Write([]byte(`{"id":123,"name":"test-repo","web_url":"https://gitlab.example.com/test/test-repo"}`))
-
-		case r.Method == "POST" && strings.Contains(r.URL.Path, "/repository/files/"):
-			parts := strings.Split(r.URL.Path, "/repository/files/")
-			if len(parts) == 2 {
-				encodedFilename := parts[1]
-				decodedFilename := strings.ReplaceAll(encodedFilename, "%2F", "/")
-
-				var reqBody struct {
-					Content         string `json:"content"`
-					ExecuteFilemode bool   `json:"execute_filemode"`
-				}
-				if err := decodeJSON(r.Body, &reqBody); err == nil {
-					createdFiles[decodedFilename] = fileInfo{
-						content:    reqBody.Content,
-						executable: reqBody.ExecuteFilemode,
-					}
-				}
-			}
-			w.WriteHeader(http.StatusCreated)
-			_, _ = w.Write([]byte(`{"file_path":"test.txt","branch":"main"}`))
-
-		default:
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{}`))
-		}
-	}))
+	server := createMockGitLabServer(createdFiles)
 	defer server.Close()
 
 	// Call RunGenerate with CI/CD option enabled
@@ -345,15 +325,6 @@ func TestRunGenerate_WithCICD(t *testing.T) {
 
 	// Verify correct number of files created (with CI/CD)
 	assert.Equal(t, 6, len(createdFiles), "Should create exactly 6 files with CI/CD option")
-}
-
-// decodeJSON is a helper to decode JSON from request body
-func decodeJSON(body interface{ Read([]byte) (int, error) }, v interface{}) error {
-	data, err := io.ReadAll(body.(io.Reader))
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(data, v)
 }
 
 func TestFileContents_Security(t *testing.T) {
