@@ -262,7 +262,7 @@ OAUTH_CLIENT_SECRET=oauth_secret_ABCDEFGHIJKLMNOPQRSTUVWXYZ123456
 
 	// Verify that small artifact was scanned successfully
 	assert.Contains(t, output, "small-artifact-job", "Should process small artifact job")
-	assert.Contains(t, output, "HIT", "Should detect secrets in small artifact")
+	assert.Contains(t, output, "SECRET", "Should detect secrets in small artifact")
 	assert.Contains(t, output, "deployment.env", "Should scan env file in small artifact")
 }
 

@@ -506,7 +506,7 @@ func TestBitBucketScan_ConfidenceFilter_Multiple(t *testing.T) {
 
 	output := stdout + stderr
 	// Verify high confidence secrets were found
-	assert.Contains(t, output, "HIT", "Should find high confidence secrets")
+	assert.Contains(t, output, "SECRET", "Should find high confidence secrets")
 
 	t.Logf("Output:\n%s", output)
 }

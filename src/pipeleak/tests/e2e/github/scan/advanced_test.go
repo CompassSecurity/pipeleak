@@ -294,7 +294,7 @@ export POSSIBLE_KEY=maybe_a_secret_12345`
 
 	output := stdout + stderr
 	// Should detect at least high/medium confidence secrets
-	assert.Contains(t, output, "HIT", "Should detect secrets")
+	assert.Contains(t, output, "SECRET", "Should detect secrets")
 	t.Logf("Output:\n%s", output)
 }
 

@@ -206,7 +206,7 @@ func TestGitHubScan_WithLogs(t *testing.T) {
 	assert.True(t, len(requests) >= 3, "Should make multiple API requests")
 
 	output := stdout + stderr
-	assert.Contains(t, output, "HIT", "Should detect secrets in logs")
+	assert.Contains(t, output, "SECRET", "Should detect secrets in logs")
 	assert.Contains(t, output, "Password in URL", "Should detect database password")
 	t.Logf("Output:\n%s", output)
 }

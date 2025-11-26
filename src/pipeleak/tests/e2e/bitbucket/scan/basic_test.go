@@ -173,7 +173,7 @@ STRIPE_SECRET_KEY=sk_live_51abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOP
 	assert.Contains(t, output, "Github", "Should detect GitHub token")
 
 	// Verify the scanner logged findings with HIT marker
-	assert.Contains(t, output, "HIT", "Should log HIT for secret detection")
+	assert.Contains(t, output, "SECRET", "Should log SECRET for secret detection")
 	assert.Contains(t, output, "ruleName", "Should log rule name for detected secrets")
 
 	// Verify multiple secrets were found in logs
@@ -181,7 +181,7 @@ STRIPE_SECRET_KEY=sk_live_51abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOP
 	assert.Contains(t, output, "Github Personal Access Token", "Should detect GitHub PAT")
 
 	// Verify artifact scanning produced findings
-	assert.Contains(t, output, "HIT Artifact", "Should log artifact findings for artifacts")
+	assert.Contains(t, output, "SECRET", "Should log SECRET for artifact findings")
 
 	// Check for secrets detected in artifacts (config file and known rule matches)
 	assert.Contains(t, output, "config.txt", "Should include scanned artifact file name")

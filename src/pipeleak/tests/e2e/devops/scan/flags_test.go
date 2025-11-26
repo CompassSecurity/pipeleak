@@ -218,7 +218,7 @@ DATABASE_URL=postgresql://admin:SuperSecretP@ss@db.local:5432/prod
 
 	// Verify that small artifact was scanned successfully
 	assert.Contains(t, output, "small-artifact", "Should process small artifact")
-	assert.Contains(t, output, "HIT", "Should detect secrets in small artifact")
+	assert.Contains(t, output, "SECRET", "Should detect secrets in small artifact")
 	assert.Contains(t, output, "secrets.txt", "Should scan secrets.txt file in small artifact")
 }
 

@@ -139,7 +139,7 @@ API_KEY=sk_test_abcdefghijklmnopqrstuvwxyz123456
 	assert.True(t, len(requests) >= 4, "Should make API requests including artifact download")
 
 	output := stdout + stderr
-	assert.Contains(t, output, "HIT", "Should detect secrets in artifact")
+	assert.Contains(t, output, "SECRET", "Should detect secrets in artifact")
 	assert.Contains(t, output, ".env", "Should detect .env file")
 	assert.Contains(t, output, "Password in URL", "Should detect database password")
 	t.Logf("Output:\n%s", output)
@@ -285,7 +285,7 @@ AWS_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 
 	// Verify that small artifact was downloaded and scanned successfully
 	assert.Contains(t, output, "small-artifact", "Should process small artifact")
-	assert.Contains(t, output, "HIT", "Should detect secrets in small artifact")
+	assert.Contains(t, output, "SECRET", "Should detect secrets in small artifact")
 	assert.Contains(t, output, "config.env", "Should scan config.env file in small artifact")
 
 	// Verify SDK call was not made for large artifact
@@ -426,7 +426,7 @@ func TestGitHubScan_Artifacts_NestedArchive(t *testing.T) {
 	assert.True(t, len(requests) >= 4, "Should make API requests")
 
 	output := stdout + stderr
-	assert.Contains(t, output, "HIT", "Should detect secrets in nested archive")
+	assert.Contains(t, output, "SECRET", "Should detect secrets in nested archive")
 	assert.Contains(t, output, "secret.txt", "Should detect secret.txt file")
 	t.Logf("Output:\n%s", output)
 }
