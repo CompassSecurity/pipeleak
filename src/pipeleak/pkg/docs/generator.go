@@ -123,6 +123,10 @@ func buildNav(cmd *cobra.Command, level int, parentPath string) *NavEntry {
 			if !c.IsAvailableCommand() || c.IsAdditionalHelpTopicCommand() {
 				continue
 			}
+			// Skip autocompletion and docs commands from nav menu
+			if c.Name() == "completion" || c.Name() == "docs" {
+				continue
+			}
 			entry.Children = append(entry.Children, buildNav(c, level+1, folder))
 		}
 	} else {
@@ -233,7 +237,6 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string, githubPages bool)
 			"features": []string{
 				"content.code.copy",
 				"content.tabs.link",
-				"navigation.instant",
 				"navigation.tracking",
 				"navigation.sections",
 				"navigation.expand",
