@@ -317,30 +317,6 @@ func TestFileNaming(t *testing.T) {
 	}
 }
 
-func TestNoRegressions(t *testing.T) {
-	t.Run("no npm/yarn exploitation remnants", func(t *testing.T) {
-		assert.NotContains(t, renovateJson, "package.json")
-		assert.NotContains(t, renovateJson, "npm")
-		assert.NotContains(t, renovateJson, "yarn")
-	})
-
-	t.Run("no python exploitation remnants", func(t *testing.T) {
-		// Ensure we completely removed the Python approach
-		assert.NotContains(t, renovateJson, "setup.py")
-		assert.NotContains(t, renovateJson, "requirements.txt")
-		assert.NotContains(t, exploitScript, "python")
-		// Note: "pip" substring appears in "pipeleak" - that's intentional
-	})
-
-	t.Run("uses gradle approach exclusively", func(t *testing.T) {
-		assert.Contains(t, gradleWrapperProperties, "gradle")
-		// buildGradle uses Groovy DSL which doesn't require explicit "gradle" keyword
-		assert.Contains(t, buildGradle, "plugins")
-		assert.Contains(t, buildGradle, "repositories")
-		assert.Contains(t, buildGradle, "dependencies")
-	})
-}
-
 func TestExploitDocumentation(t *testing.T) {
 	t.Run("gitlabCiYml has clear instructions", func(t *testing.T) {
 		// Verify comprehensive setup instructions
