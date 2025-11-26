@@ -95,7 +95,7 @@ On your attacker server, start a [GoShs](https://github.com/patrickhener/goshs) 
 
 ```bash
 ./goshs --ssl --self-signed --upload-only -no-clipboard --no-delete --port 8000
-infoO   [2025-09-30 09:31:29] You are running the newest version (v1.1.1) of goshs
+INFO   [2025-09-30 09:31:29] You are running the newest version (v1.1.1) of goshs
 ```
 
 Next, identify the bot user and invite it to your repository. By looking at the Renovate bot configuration, you can identify the renovated repos and check the username of the bot user in the merge requests created by that bot.
