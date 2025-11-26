@@ -9,7 +9,9 @@
       "version": "lts"
     },
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
-      "moby": false
+      "moby": false,
+      "dockerDashComposeVersion": "v2",
+      "version": "24.0"
     }
   },
   "customizations": {
