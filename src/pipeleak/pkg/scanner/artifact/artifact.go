@@ -112,7 +112,7 @@ func HandleArchiveArtifactWithDepth(archivefileName string, content []byte, jobW
 func ReportFinding(finding types.Finding, url string, jobName string, fileName string, archiveName string) {
 	secretType := logging.SecretTypeArchive
 	if len(archiveName) > 0 {
-		secretType = logging.SecretTypeArchiveInArchive
+		secretType = logging.SecretTypeNestedArchive
 	}
 
 	event := logging.Hit().

@@ -15,15 +15,13 @@ type SecretType string
 
 const (
 	// SecretTypeLog indicates a secret found in CI/CD logs.
-	SecretTypeLog SecretType = "LOG"
+	SecretTypeLog SecretType = "log"
 	// SecretTypeArchive indicates a secret found in an archive/artifact.
-	SecretTypeArchive SecretType = "ARCHIVE"
-	// SecretTypeArchiveInArchive indicates a secret found in a nested archive.
-	SecretTypeArchiveInArchive SecretType = "ARCHIVE-IN-ARCHIVE"
+	SecretTypeArchive SecretType = "archive"
+	// NestedArchive indicates a secret found in a nested archive.
+	SecretTypeNestedArchive SecretType = "nested-archive"
 	// SecretTypeDotenv indicates a secret found in a dotenv file.
-	SecretTypeDotenv SecretType = "DOTENV"
-	// SecretTypeFile indicates a secret found in a standalone file.
-	SecretTypeFile SecretType = "FILE"
+	SecretTypeDotenv SecretType = "dotenv"
 )
 
 // HitLevel defines a custom log level for security finding hits.

@@ -45,7 +45,7 @@ func TestReportFinding(t *testing.T) {
 				"test-job",
 				"build-456",
 				"SECRET",
-				"LOG",
+				"log",
 			},
 		},
 		{
@@ -69,7 +69,7 @@ func TestReportFinding(t *testing.T) {
 				"secret_value_123",
 				"https://example.com/workflow/789",
 				"SECRET",
-				"LOG", // default type
+				"log", // default type
 			},
 			notExpectInLog: []string{
 				"job",
@@ -94,7 +94,7 @@ func TestReportFinding(t *testing.T) {
 				"Test Pattern",
 				"test_secret",
 				"SECRET",
-				"LOG", // default type
+				"log", // default type
 			},
 		},
 		{
@@ -118,7 +118,7 @@ func TestReportFinding(t *testing.T) {
 				"API Key",
 				"api_key_12345",
 				"SECRET",
-				"ARCHIVE",
+				"archive",
 			},
 		},
 		{
@@ -142,7 +142,7 @@ func TestReportFinding(t *testing.T) {
 				"Database Password",
 				"DB_PASSWORD=secret123",
 				"SECRET",
-				"DOTENV",
+				"dotenv",
 			},
 		},
 	}
@@ -248,7 +248,7 @@ func TestReportFindingWithCustomFields(t *testing.T) {
 	assert.Contains(t, output, "my-repo")
 	assert.Contains(t, output, "pipeline-123")
 	assert.Contains(t, output, "SECRET")
-	assert.Contains(t, output, "LOG")
+	assert.Contains(t, output, "log")
 }
 
 func TestReportFindings_EmptyList(t *testing.T) {
