@@ -88,7 +88,7 @@ pipeleak gl scan --token glpat-[redacted] --gitlab https://gitlab.example.com -a
 
 ### Result Confidence
 
-The following confidence levels detected secrets are used by default:
+The following confidence levels for detected secrets are used by default:
 
 - `low`
 - `medium`
