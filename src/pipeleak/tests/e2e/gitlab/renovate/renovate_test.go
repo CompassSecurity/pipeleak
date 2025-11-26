@@ -130,11 +130,48 @@ func TestGLRenovateAutodiscovery(t *testing.T) {
 		"--token", "mock-token",
 		"--repo-name", "test-repo",
 		"--username", "test-user",
+		"-v",
 	}, nil, 10*time.Second)
 	assert.Nil(t, exitErr, "Autodiscovery command should succeed")
 	assert.Contains(t, stdout, "Created project")
-	assert.Contains(t, stdout, "Created file")
+	assert.Contains(t, stdout, "Created file", "Should log file creation in verbose mode")
 	assert.Contains(t, stdout, "Inviting user")
+	assert.Contains(t, stdout, "Gradle wrapper", "Should mention Gradle wrapper mechanism")
+	assert.Contains(t, stdout, "gradlew", "Should mention gradlew script")
+	assert.NotContains(t, stderr, "fatal")
+}
+
+func TestGLRenovateAutodiscoveryWithCICD(t *testing.T) {
+	apiURL := setupMockGitLabRenovateAPI(t)
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
+		"gl", "renovate", "autodiscovery",
+		"--gitlab", apiURL,
+		"--token", "mock-token",
+		"--repo-name", "test-repo-cicd",
+		"--username", "test-user",
+		"--add-renovate-cicd-for-debugging",
+	}, nil, 10*time.Second)
+	assert.Nil(t, exitErr, "Autodiscovery with CICD flag should succeed")
+	assert.Contains(t, stdout, "Created project")
+	assert.Contains(t, stdout, "Created .gitlab-ci.yml")
+	assert.Contains(t, stdout, "RENOVATE_TOKEN", "Should mention token setup")
+	assert.Contains(t, stdout, "api", "Should mention api scope requirement")
+	assert.Contains(t, stdout, "maintainer", "Should mention maintainer role requirement")
+	assert.NotContains(t, stderr, "fatal")
+}
+
+func TestGLRenovateAutodiscoveryWithoutUsername(t *testing.T) {
+	apiURL := setupMockGitLabRenovateAPI(t)
+	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
+		"gl", "renovate", "autodiscovery",
+		"--gitlab", apiURL,
+		"--token", "mock-token",
+		"--repo-name", "test-repo-no-user",
+	}, nil, 10*time.Second)
+	assert.Nil(t, exitErr, "Autodiscovery without username should succeed")
+	assert.Contains(t, stdout, "Created project")
+	assert.Contains(t, stdout, "No username provided")
+	assert.Contains(t, stdout, "invite the victim Renovate Bot user manually")
 	assert.NotContains(t, stderr, "fatal")
 }
 
