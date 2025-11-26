@@ -1,6 +1,8 @@
 package renovate
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -191,52 +193,167 @@ func TestGitlabCiYml(t *testing.T) {
 }
 
 func TestRunGenerate_FilesCreated(t *testing.T) {
-	// Track which files are created
-	createdFiles := make(map[string]struct {
+	// Track which files are created with their content and executable flag
+	type fileInfo struct {
 		content    string
 		executable bool
-	})
+	}
+	createdFiles := make(map[string]fileInfo)
 
 	// Setup mock GitLab API server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
-		case r.Method == "POST" && strings.Contains(r.URL.Path, "/projects"):
+		case r.Method == "POST" && strings.HasSuffix(r.URL.Path, "/projects"):
 			// Create project
 			w.WriteHeader(http.StatusCreated)
-			w.Write([]byte(`{"id":123,"name":"test-repo","web_url":"https://gitlab.example.com/test/test-repo"}`))
+			_, _ = w.Write([]byte(`{"id":123,"name":"test-repo","web_url":"https://gitlab.example.com/test/test-repo"}`))
 
-		case r.Method == "POST" && strings.Contains(r.URL.Path, "/repository/files"):
-			// Create file - extract filename from URL
+		case r.Method == "POST" && strings.Contains(r.URL.Path, "/repository/files/"):
+			// Create file - extract filename from URL (URL encoded)
 			parts := strings.Split(r.URL.Path, "/repository/files/")
 			if len(parts) == 2 {
-				filename := strings.Split(parts[1], "/")[0]
-				// Store the file info
-				createdFiles[filename] = struct {
-					content    string
-					executable bool
-				}{
-					content:    "", // Would need to parse request body for actual content
-					executable: false,
+				// Decode URL-encoded filename
+				encodedFilename := parts[1]
+				decodedFilename := strings.ReplaceAll(encodedFilename, "%2F", "/")
+
+				// Parse request body to get content and executable flag
+				var reqBody struct {
+					Content         string `json:"content"`
+					ExecuteFilemode bool   `json:"execute_filemode"`
+				}
+				if err := decodeJSON(r.Body, &reqBody); err == nil {
+					createdFiles[decodedFilename] = fileInfo{
+						content:    reqBody.Content,
+						executable: reqBody.ExecuteFilemode,
+					}
 				}
 			}
 			w.WriteHeader(http.StatusCreated)
-			w.Write([]byte(`{"file_path":"test.txt","branch":"main"}`))
+			_, _ = w.Write([]byte(`{"file_path":"test.txt","branch":"main"}`))
 
 		case r.Method == "POST" && strings.Contains(r.URL.Path, "/members"):
 			// Add member
 			w.WriteHeader(http.StatusCreated)
-			w.Write([]byte(`{"id":456,"access_level":30}`))
+			_, _ = w.Write([]byte(`{"id":456,"access_level":30}`))
 
 		default:
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{}`))
+			_, _ = w.Write([]byte(`{}`))
 		}
 	}))
 	defer server.Close()
 
-	// Note: This is a simplified test. In a real scenario, we'd need to fully
-	// mock the GitLab client and intercept file creation calls.
-	// For now, we're testing the file content validation above.
+	// Call RunGenerate with mock server (without CI/CD and without username to avoid invite)
+	RunGenerate(server.URL, "test-token", "test-repo", "", false)
+
+	// Verify all expected files were created
+	expectedFiles := map[string]struct {
+		contentCheck func(string) bool
+		executable   bool
+	}{
+		"renovate.json": {
+			contentCheck: func(c string) bool { return strings.Contains(c, `"$schema"`) },
+			executable:   false,
+		},
+		"build.gradle": {
+			contentCheck: func(c string) bool { return strings.Contains(c, "plugins") },
+			executable:   false,
+		},
+		"gradlew": {
+			contentCheck: func(c string) bool { return strings.Contains(c, "#!/bin/sh") },
+			executable:   true,
+		},
+		"gradle/wrapper/gradle-wrapper.properties": {
+			contentCheck: func(c string) bool { return strings.Contains(c, "distributionUrl") },
+			executable:   false,
+		},
+		"exploit.sh": {
+			contentCheck: func(c string) bool { return strings.Contains(c, "#!/bin/sh") },
+			executable:   true,
+		},
+	}
+
+	for filename, expected := range expectedFiles {
+		t.Run("creates "+filename, func(t *testing.T) {
+			file, exists := createdFiles[filename]
+			assert.True(t, exists, "File %s should be created", filename)
+			if exists {
+				assert.True(t, expected.contentCheck(file.content), "File %s should have expected content", filename)
+				assert.Equal(t, expected.executable, file.executable, "File %s executable flag should be %v", filename, expected.executable)
+			}
+		})
+	}
+
+	// Verify correct number of files created (without CI/CD)
+	assert.Equal(t, 5, len(createdFiles), "Should create exactly 5 files without CI/CD option")
+}
+
+func TestRunGenerate_WithCICD(t *testing.T) {
+	// Track which files are created
+	type fileInfo struct {
+		content    string
+		executable bool
+	}
+	createdFiles := make(map[string]fileInfo)
+
+	// Setup mock GitLab API server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == "POST" && strings.HasSuffix(r.URL.Path, "/projects"):
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id":123,"name":"test-repo","web_url":"https://gitlab.example.com/test/test-repo"}`))
+
+		case r.Method == "POST" && strings.Contains(r.URL.Path, "/repository/files/"):
+			parts := strings.Split(r.URL.Path, "/repository/files/")
+			if len(parts) == 2 {
+				encodedFilename := parts[1]
+				decodedFilename := strings.ReplaceAll(encodedFilename, "%2F", "/")
+
+				var reqBody struct {
+					Content         string `json:"content"`
+					ExecuteFilemode bool   `json:"execute_filemode"`
+				}
+				if err := decodeJSON(r.Body, &reqBody); err == nil {
+					createdFiles[decodedFilename] = fileInfo{
+						content:    reqBody.Content,
+						executable: reqBody.ExecuteFilemode,
+					}
+				}
+			}
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"file_path":"test.txt","branch":"main"}`))
+
+		default:
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{}`))
+		}
+	}))
+	defer server.Close()
+
+	// Call RunGenerate with CI/CD option enabled
+	RunGenerate(server.URL, "test-token", "test-repo", "", true)
+
+	// Verify .gitlab-ci.yml was created
+	t.Run("creates .gitlab-ci.yml", func(t *testing.T) {
+		file, exists := createdFiles[".gitlab-ci.yml"]
+		assert.True(t, exists, ".gitlab-ci.yml should be created when addRenovateCICD is true")
+		if exists {
+			assert.Contains(t, file.content, "renovate", "CI file should contain renovate configuration")
+			assert.False(t, file.executable, ".gitlab-ci.yml should not be executable")
+		}
+	})
+
+	// Verify correct number of files created (with CI/CD)
+	assert.Equal(t, 6, len(createdFiles), "Should create exactly 6 files with CI/CD option")
+}
+
+// decodeJSON is a helper to decode JSON from request body
+func decodeJSON(body interface{ Read([]byte) (int, error) }, v interface{}) error {
+	data, err := io.ReadAll(body.(io.Reader))
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, v)
 }
 
 func TestFileContents_Security(t *testing.T) {
