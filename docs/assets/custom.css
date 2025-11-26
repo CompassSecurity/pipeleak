@@ -4,3 +4,90 @@
   --md-primary-fg-color--light: #B9CF7E;
   --md-primary-fg-color--dark:  #2A4A25;
 }
+
+/* ─────────────── Navigation Hierarchy & Active States ─────────────── */
+
+/* Base navigation styling - unified font sizes */
+.md-nav__link {
+  font-size: 0.8rem;
+}
+
+/* Level 1: Top-level items (e.g., "Introduction", "Methodology") */
+.md-nav--primary > .md-nav__list > .md-nav__item > .md-nav__link {
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding-left: 0.6rem;
+}
+
+/* Level 1: Section headers (expandable items) */
+.md-nav--primary > .md-nav__list > .md-nav__item--nested > .md-nav__link {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding-left: 0.6rem;
+  color: var(--md-default-fg-color);
+}
+
+/* Level 2: Items under sections (e.g., "Secret Scanning" under "Methodology") */
+.md-nav__item--nested > .md-nav > .md-nav__list > .md-nav__item > .md-nav__link {
+  font-size: 0.8rem;
+  font-weight: 400;
+  padding-left: 1.5rem;
+  color: var(--md-default-fg-color--light);
+}
+
+/* Level 2: Nested sections */
+.md-nav__item--nested > .md-nav > .md-nav__list > .md-nav__item--nested > .md-nav__link {
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding-left: 1.5rem;
+}
+
+/* Level 3: Items under nested sections (e.g., "Yaml" under "GitLab > Cicd") */
+.md-nav__item--nested > .md-nav > .md-nav__list > .md-nav__item--nested > .md-nav > .md-nav__list > .md-nav__item > .md-nav__link {
+  font-size: 0.8rem;
+  font-weight: 400;
+  padding-left: 2.5rem;
+}
+
+/* Active/current page highlighting */
+.md-nav__item--active > .md-nav__link,
+.md-nav__item--current > .md-nav__link,
+.md-nav__link--current {
+  color: var(--md-primary-fg-color) !important;
+  font-weight: 600 !important;
+  border-left: 3px solid var(--md-primary-fg-color) !important;
+  background-color: rgba(64, 107, 54, 0.08) !important;
+  padding-left: calc(1.25rem - 3px) !important;
+}
+
+/* Active links at second level */
+.md-nav__item--nested > .md-nav > .md-nav__list > .md-nav__item--active > .md-nav__link,
+.md-nav__item--nested > .md-nav > .md-nav__list > .md-nav__item--current > .md-nav__link {
+  padding-left: calc(1.5rem - 3px) !important;
+}
+
+/* Active links at third level */
+.md-nav__item--nested > .md-nav > .md-nav__list > .md-nav__item--nested > .md-nav > .md-nav__list > .md-nav__item--active > .md-nav__link,
+.md-nav__item--nested > .md-nav > .md-nav__list > .md-nav__item--nested > .md-nav > .md-nav__list > .md-nav__item--current > .md-nav__link {
+  padding-left: calc(2.5rem - 3px) !important;
+}
+
+/* Hover states for better interactivity */
+.md-nav__link:hover {
+  background-color: rgba(64, 107, 54, 0.05);
+  color: var(--md-primary-fg-color);
+}
+
+/* Dark mode adjustments */
+[data-md-color-scheme="slate"] .md-nav__item--active > .md-nav__link,
+[data-md-color-scheme="slate"] .md-nav__item--current > .md-nav__link,
+[data-md-color-scheme="slate"] .md-nav__link--current {
+  background-color: rgba(185, 207, 126, 0.12) !important;
+  color: var(--md-primary-fg-color--light) !important;
+  border-left-color: var(--md-primary-fg-color--light) !important;
+}
+
+[data-md-color-scheme="slate"] .md-nav__link:hover {
+  background-color: rgba(185, 207, 126, 0.08);
+  color: var(--md-primary-fg-color--light);
+}

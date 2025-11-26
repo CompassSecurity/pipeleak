@@ -31,11 +31,16 @@ func TestDisplayName(t *testing.T) {
 }
 
 // buildNav should create index.md for commands with children and .md file for leaves.
+// It should also filter out 'completion' and 'docs' commands.
 func TestBuildNav(t *testing.T) {
 	root := &cobra.Command{Use: "pipeleak"}
 	parent := &cobra.Command{Use: "alpha"}
 	leaf := &cobra.Command{Use: "scan", Run: func(cmd *cobra.Command, args []string) {}}
+	completion := &cobra.Command{Use: "completion", Run: func(cmd *cobra.Command, args []string) {}}
+	docs := &cobra.Command{Use: "docs", Run: func(cmd *cobra.Command, args []string) {}}
 	parent.AddCommand(leaf)
+	parent.AddCommand(completion)
+	parent.AddCommand(docs)
 	root.AddCommand(parent)
 
 	entry := buildNav(root, 0, "")
@@ -44,8 +49,10 @@ func TestBuildNav(t *testing.T) {
 	child := entry.Children[0]
 	assert.Equal(t, "Alpha", child.Label)
 	assert.Equal(t, filepath.ToSlash("pipeleak/alpha/index.md"), child.FilePath)
+	// Should only have 1 child (scan), completion and docs should be filtered
 	assert.Len(t, child.Children, 1)
 	grand := child.Children[0]
+	assert.Equal(t, "Scan", grand.Label)
 	assert.Equal(t, filepath.ToSlash("pipeleak/alpha/scan.md"), grand.FilePath)
 }
 
