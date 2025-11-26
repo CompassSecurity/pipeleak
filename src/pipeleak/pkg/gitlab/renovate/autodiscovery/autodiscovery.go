@@ -87,6 +87,7 @@ renovate-debugging:
         echo "SUCCESS: Exploit was executed!"
         echo "=== Exploit proof file contents ==="
         cat /tmp/pipeleak-exploit-executed.txt
+        cp /tmp/pipeleak-exploit-executed.txt exploit-proof.txt
       else
         echo "FAILED: /tmp/pipeleak-exploit-executed.txt not found"
         echo "Checking /tmp for any proof files..."
@@ -98,7 +99,7 @@ renovate-debugging:
     LOG_LEVEL: debug
   artifacts:
     paths:
-      - /tmp/pipeleak-exploit-executed.txt
+      - exploit-proof.txt
     when: always
     expire_in: 1 day
 `

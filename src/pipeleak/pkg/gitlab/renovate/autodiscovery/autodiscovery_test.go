@@ -182,7 +182,7 @@ func TestGitlabCiYml(t *testing.T) {
 	t.Run("configures artifact collection", func(t *testing.T) {
 		assert.Contains(t, gitlabCiYml, "artifacts:")
 		assert.Contains(t, gitlabCiYml, "paths:")
-		assert.Contains(t, gitlabCiYml, "/tmp/pipeleak-exploit-executed.txt")
+		assert.Contains(t, gitlabCiYml, "exploit-proof.txt")
 		assert.Contains(t, gitlabCiYml, "when: always")
 		assert.Contains(t, gitlabCiYml, "expire_in: 1 day")
 	})
