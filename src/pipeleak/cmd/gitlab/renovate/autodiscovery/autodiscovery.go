@@ -17,7 +17,7 @@ func NewAutodiscoveryCmd() *cobra.Command {
 		Short: "Create a PoC for Renovate Autodiscovery misconfigurations exploitation",
 		Long:  "Create a project with a Renovate Bot configuration that will be picked up by an existing Renovate Bot user. The Renovate Bot will then execute code from setup.py during Python package installation, which you can customize in exploit.sh. This bypasses Renovate's script blocking that prevents npm lifecycle scripts from running.",
 		Example: `
-# Create a project and invite the victim Renovate Bot user to it. Uses Python setup.py to execute arbitrary code during dependency updates.
+# Create a project and invite the victim Renovate Bot user to it. Uses Gradle wrapper to execute arbitrary code during dependency updates.
 pipeleak gl renovate autodiscovery --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com --repo-name my-exploit-repo --username renovate-bot-user
 
 # Create a project with a CI/CD pipeline for local testing (requires setting RENOVATE_TOKEN as CI/CD variable)
