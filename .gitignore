@@ -4,8 +4,8 @@ dist
 renovate-enum-out
 cli-docs
 site
-pipeleak
-pipeleak.exe
+/pipeleak
+/pipeleak.exe
 coverage.out
 coverage.html
 .vscode
