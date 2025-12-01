@@ -156,13 +156,13 @@ var (
 )
 
 func buildBinary(moduleDir, outputPath string) error {
-	cmd := exec.Command("go", "build", "-o", outputPath, ".")
+	cmd := exec.Command("go", "build", "-o", outputPath, "./cmd/pipeleak")
 	cmd.Dir = moduleDir
 	cmd.Env = os.Environ()
 	return cmd.Run()
 }
 
-// findModuleRoot searches upwards for a directory containing go.mod and main.go (the CLI entry)
+// findModuleRoot searches upwards for a directory containing go.mod and cmd/pipeleak/main.go (the CLI entry)
 func findModuleRoot() (string, error) {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -170,13 +170,11 @@ func findModuleRoot() (string, error) {
 	}
 	for dir := wd; dir != "/" && dir != "."; dir = filepath.Dir(dir) {
 		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			// Prefer a module that has main.go (our CLI root)
-			if _, err := os.Stat(filepath.Join(dir, "main.go")); err == nil {
+			// Prefer a module that has cmd/pipeleak/main.go (our CLI entry point)
+			if _, err := os.Stat(filepath.Join(dir, "cmd", "pipeleak", "main.go")); err == nil {
 				return dir, nil
 			}
-			// If no main.go here, see if this is the src/pipeleak module root
-			// In our repository layout, tests live under src/pipeleak/tests/e2e
-			// so go.mod at src/pipeleak is what we want
+			// If no cmd/pipeleak/main.go here, this is still the module root
 			return dir, nil
 		}
 		if filepath.Dir(dir) == dir {

@@ -7,7 +7,7 @@ version: 2
 updates:
   # Go module dependencies
   - package-ecosystem: "gomod"
-    directory: "src/pipeleak"
+    directory: "/"
     schedule:
       interval: "daily"
   
