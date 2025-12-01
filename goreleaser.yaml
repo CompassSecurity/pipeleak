@@ -1,8 +1,7 @@
 version: 2
 project_name: pipeleak
 builds:
-  -
-    id: "pipeleak"
+  - id: "pipeleak"
     main: ./cmd/pipeleak
     binary: pipeleak
     goos:
@@ -16,3 +15,73 @@ builds:
       - -X github.com/CompassSecurity/pipeleak/internal/cmd.Version={{.Version}}
       - -X github.com/CompassSecurity/pipeleak/internal/cmd.Commit={{.Commit}}
       - -X github.com/CompassSecurity/pipeleak/internal/cmd.Date={{.Date}}
+  - id: "pipeleak-gitlab"
+    main: ./cmd/pipeleak-gitlab
+    binary: pipeleak-gitlab
+    goos:
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.Version={{.Version}}
+      - -X main.Commit={{.Commit}}
+      - -X main.Date={{.Date}}
+  - id: "pipeleak-github"
+    main: ./cmd/pipeleak-github
+    binary: pipeleak-github
+    goos:
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.Version={{.Version}}
+      - -X main.Commit={{.Commit}}
+      - -X main.Date={{.Date}}
+  - id: "pipeleak-bitbucket"
+    main: ./cmd/pipeleak-bitbucket
+    binary: pipeleak-bitbucket
+    goos:
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.Version={{.Version}}
+      - -X main.Commit={{.Commit}}
+      - -X main.Date={{.Date}}
+  - id: "pipeleak-devops"
+    main: ./cmd/pipeleak-devops
+    binary: pipeleak-devops
+    goos:
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.Version={{.Version}}
+      - -X main.Commit={{.Commit}}
+      - -X main.Date={{.Date}}
+  - id: "pipeleak-gitea"
+    main: ./cmd/pipeleak-gitea
+    binary: pipeleak-gitea
+    goos:
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.Version={{.Version}}
+      - -X main.Commit={{.Commit}}
+      - -X main.Date={{.Date}}

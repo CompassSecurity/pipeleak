@@ -1,24 +1,59 @@
-.PHONY: help build test test-unit test-e2e lint clean coverage coverage-html serve-docs
+.PHONY: help build build-all build-gitlab build-github build-bitbucket build-devops build-gitea test test-unit test-e2e lint clean coverage coverage-html serve-docs
 
 # Default target
 help:
 	@echo "Pipeleak Makefile"
 	@echo ""
 	@echo "Available targets:"
-	@echo "  make build        - Build the pipeleak binary"
-	@echo "  make test         - Run all tests (unit + e2e)"
-	@echo "  make test-unit    - Run unit tests only"
-	@echo "  make test-e2e     - Run e2e tests (builds binary first)"
-	@echo "  make coverage     - Generate test coverage report"
-	@echo "  make coverage-html - Generate and open HTML coverage report"
-	@echo "  make lint         - Run golangci-lint"
-	@echo "  make serve-docs   - Generate and serve CLI documentation"
-	@echo "  make clean        - Remove built artifacts"
+	@echo "  make build            - Build the main pipeleak binary"
+	@echo "  make build-all        - Build all binaries (main + platform-specific)"
+	@echo "  make build-gitlab     - Build GitLab-specific binary"
+	@echo "  make build-github     - Build GitHub-specific binary"
+	@echo "  make build-bitbucket  - Build BitBucket-specific binary"
+	@echo "  make build-devops     - Build Azure DevOps-specific binary"
+	@echo "  make build-gitea      - Build Gitea-specific binary"
+	@echo "  make test             - Run all tests (unit + e2e)"
+	@echo "  make test-unit        - Run unit tests only"
+	@echo "  make test-e2e         - Run e2e tests (builds binary first)"
+	@echo "  make coverage         - Generate test coverage report"
+	@echo "  make coverage-html    - Generate and open HTML coverage report"
+	@echo "  make lint             - Run golangci-lint"
+	@echo "  make serve-docs       - Generate and serve CLI documentation"
+	@echo "  make clean            - Remove built artifacts"
 
-# Build the pipeleak binary
+# Build the main pipeleak binary
 build:
 	@echo "Building pipeleak..."
 	go build -o pipeleak ./cmd/pipeleak
+
+# Build GitLab-specific binary
+build-gitlab:
+	@echo "Building pipeleak-gitlab..."
+	go build -o pipeleak-gitlab ./cmd/pipeleak-gitlab
+
+# Build GitHub-specific binary
+build-github:
+	@echo "Building pipeleak-github..."
+	go build -o pipeleak-github ./cmd/pipeleak-github
+
+# Build BitBucket-specific binary
+build-bitbucket:
+	@echo "Building pipeleak-bitbucket..."
+	go build -o pipeleak-bitbucket ./cmd/pipeleak-bitbucket
+
+# Build Azure DevOps-specific binary
+build-devops:
+	@echo "Building pipeleak-devops..."
+	go build -o pipeleak-devops ./cmd/pipeleak-devops
+
+# Build Gitea-specific binary
+build-gitea:
+	@echo "Building pipeleak-gitea..."
+	go build -o pipeleak-gitea ./cmd/pipeleak-gitea
+
+# Build all binaries
+build-all: build build-gitlab build-github build-bitbucket build-devops build-gitea
+	@echo "All binaries built successfully"
 
 # Run all tests
 test: test-unit test-e2e
@@ -96,4 +131,9 @@ serve-docs: build
 clean:
 	@echo "Cleaning up..."
 	rm -f pipeleak pipeleak.exe coverage.out coverage.html
+	rm -f pipeleak-gitlab pipeleak-gitlab.exe
+	rm -f pipeleak-github pipeleak-github.exe
+	rm -f pipeleak-bitbucket pipeleak-bitbucket.exe
+	rm -f pipeleak-devops pipeleak-devops.exe
+	rm -f pipeleak-gitea pipeleak-gitea.exe
 	go clean -cache -testcache
