@@ -22,4 +22,9 @@ Once secrets are discovered, further exploitation often requires additional tool
 
 To begin using Pipeleak, download the latest binary from the [Releases](https://github.com/CompassSecurity/pipeleak/releases) page.
 
+Alternatively, install using Go:
+```bash
+go install github.com/CompassSecurity/pipeleak/cmd/pipeleak@latest
+```
+
 Detailed command documentation can be found in the [documentation](https://compasssecurity.github.io/pipeleak/introduction/getting_started/).

@@ -21,7 +21,7 @@ jobs:
       - name: Run Gosec Security Scanner
         uses: securego/gosec@master
         with:
-          args: '-no-fail -fmt json -out results.json ./src/pipeleak/...'
+          args: '-no-fail -fmt json -out results.json ./...'
       
       - name: Check Gosec Results
         run: |

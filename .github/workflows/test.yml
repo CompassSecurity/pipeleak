@@ -26,17 +26,14 @@ jobs:
       
       - name: Run unit tests (Linux)
         if: runner.os == 'Linux'
-        working-directory: ./src/pipeleak
         run: make test-unit
       
       - name: Generate coverage report (Linux)
         if: runner.os == 'Linux'
-        working-directory: ./src/pipeleak
         run: go test $(go list ./... | grep -v /tests/e2e) -coverprofile=coverage.out -covermode=atomic
       
       - name: Run unit tests (Windows)
         if: runner.os == 'Windows'
-        working-directory: ./src/pipeleak
         run: |
           $packages = go list ./... | Where-Object { $_ -notmatch '/tests/e2e' }
           go test $packages -v -race
@@ -47,7 +44,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: coverage-linux
-          path: ./src/pipeleak/coverage.out
+          path: ./coverage.out
   
   e2e-tests:
     name: E2E Tests
@@ -65,17 +62,14 @@ jobs:
       
       - name: Build pipeleak binary for e2e tests (Windows)
         if: runner.os == 'Windows'
-        working-directory: ./src/pipeleak
-        run: go build -o pipeleak.exe .
+        run: go build -o pipeleak.exe ./cmd/pipeleak
       
       - name: Run e2e tests (Linux)
         if: runner.os == 'Linux'
-        working-directory: ./src/pipeleak
         run: make test-e2e
       
       - name: Run e2e tests (Windows)
         if: runner.os == 'Windows'
-        working-directory: ./src/pipeleak
         run: |
           $env:PIPELEAK_BINARY = "$(Get-Location)\pipeleak.exe"
           go test ./tests/e2e/... -tags=e2e -v -timeout 10m
