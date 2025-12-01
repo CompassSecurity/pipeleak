@@ -17,11 +17,7 @@ The codespace will automatically:
 - Download all Go dependencies
 - Build the pipeleak binary
 
-Once the codespace is ready, navigate to the source directory:
-
-```bash
-cd src/pipeleak
-```
+Once the codespace is ready, you can start working immediately since the Go module is at the repository root.
 
 ## Local Development Setup
 
@@ -38,7 +34,7 @@ If you prefer local development:
 1. Clone the repository:
    ```bash
    git clone https://github.com/CompassSecurity/pipeleak.git
-   cd pipeleak/src/pipeleak
+   cd pipeleak
    ```
 
 2. Install golangci-lint:
@@ -61,7 +57,6 @@ If you prefer local development:
 ### Building
 
 ```bash
-cd src/pipeleak
 make build
 ```
 
@@ -112,18 +107,19 @@ make serve-docs
 
 ```
 pipeleak/
-├── src/pipeleak/           # Main Go module
-│   ├── cmd/                # CLI commands (Cobra)
-│   │   ├── bitbucket/      # BitBucket commands
-│   │   ├── devops/         # Azure DevOps commands
-│   │   ├── gitea/          # Gitea commands
-│   │   ├── github/         # GitHub commands
-│   │   ├── gitlab/         # GitLab commands
-│   ├── pkg/                # Core business logic
-│   ├── tests/e2e/          # End-to-end tests
-│   ├── main.go             # Entry point
-│   └── Makefile            # Build commands
+├── cmd/pipeleak/           # CLI entry point (main.go)
+├── internal/cmd/           # CLI commands (Cobra) - internal package
+│   ├── bitbucket/          # BitBucket commands
+│   ├── devops/             # Azure DevOps commands
+│   ├── flags/              # Common CLI flags
+│   ├── gitea/              # Gitea commands
+│   ├── github/             # GitHub commands
+│   ├── gitlab/             # GitLab commands
+├── pkg/                    # Core business logic
+├── tests/e2e/              # End-to-end tests
 ├── docs/                   # Documentation (MkDocs)
+├── go.mod                  # Go module definition
+├── Makefile                # Build commands
 └── .devcontainer/          # GitHub Codespaces config
 ```
 
@@ -134,7 +130,7 @@ pipeleak/
 - Follow standard Go conventions and idioms
 - Use `zerolog` for structured logging
 - Write tests for new functionality
-- Keep CLI commands in `cmd/` and business logic in `pkg/`
+- Keep CLI commands in `internal/cmd/` and business logic in `pkg/`
 
 ### Commit Messages
 
