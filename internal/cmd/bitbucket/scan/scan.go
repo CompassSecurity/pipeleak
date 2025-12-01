@@ -1,7 +1,7 @@
 package scan
 
 import (
-	"github.com/CompassSecurity/pipeleak/internal/cmd/internal/flags"
+	"github.com/CompassSecurity/pipeleak/internal/cmd/flags"
 	pkgscan "github.com/CompassSecurity/pipeleak/pkg/bitbucket/scan"
 	"github.com/CompassSecurity/pipeleak/pkg/config"
 	"github.com/rs/zerolog/log"
