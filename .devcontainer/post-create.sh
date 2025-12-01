@@ -38,7 +38,6 @@ pip install --user mkdocs mkdocs-material mkdocs-minify-plugin
 
 # Download Go dependencies
 echo "Downloading Go dependencies..."
-cd src/pipeleak
 go mod download
 
 # Setup bash aliases

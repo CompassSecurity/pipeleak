@@ -25,6 +25,14 @@ Once secrets are discovered, further exploitation often requires additional tool
 
 ## Installation
 
+### Install with Go
+
+The recommended way to install Pipeleak is using Go:
+
+```bash
+go install github.com/CompassSecurity/pipeleak/cmd/pipeleak@latest
+```
+
 ### Linux / macOS
 
 1. Visit the [Pipeleak GitHub Releases](https://github.com/CompassSecurity/pipeleak/releases) page.

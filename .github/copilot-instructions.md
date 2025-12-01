@@ -18,37 +18,39 @@ Pipeleak is a CLI tool designed to scan CI/CD logs and artifacts for secrets acr
 
 ```
 pipeleak/
-├── src/pipeleak/           # Main Go module
-│   ├── cmd/                # CLI commands (using Cobra)
-│   │   ├── bitbucket/      # BitBucket-specific commands
-│   │   ├── devops/         # Azure DevOps commands
-│   │   ├── docs/           # Documentation command
-│   │   ├── gitea/          # Gitea commands
-│   │   ├── github/         # GitHub-specific commands
-│   │   ├── gitlab/         # GitLab-specific commands
-│   ├── pkg/                # Core business logic packages
-│   │   ├── archive/        # Archive handling
-│   │   ├── bitbucket/      # BitBucket business logic
-│   │   ├── config/         # Configuration management
-│   │   ├── devops/         # Azure DevOps business logic
-│   │   ├── docs/           # Documentation generation
-│   │   ├── format/         # Formatting helpers
-│   │   ├── gitea/          # Gitea business logic
-│   │   ├── github/         # GitHub business logic
-│   │   ├── gitlab/         # GitLab business logic
-│   │   ├── httpclient/     # HTTP client helpers
-│   │   ├── logging/        # Logging helpers
-│   │   ├── scan/           # Scan logic
-│   │   ├── scanner/        # Scanner engine
-│   │   ├── system/         # System helpers
-│   ├── tests/              # Test files
-│   │   └── e2e/            # End-to-end tests
-│   ├── main.go             # Application entry point
-│   ├── go.mod              # Go module definition
-│   └── go.sum              # Dependency checksums
+├── cmd/pipeleak/           # CLI entry point (main.go)
+├── internal/cmd/           # CLI commands (using Cobra) - internal package
+│   ├── bitbucket/          # BitBucket-specific commands
+│   ├── devops/             # Azure DevOps commands
+│   ├── docs/               # Documentation command
+│   ├── flags/              # Common CLI flags
+│   ├── gitea/              # Gitea commands
+│   ├── github/             # GitHub-specific commands
+│   ├── gitlab/             # GitLab-specific commands
+│   ├── root.go             # Root command definition
+│   └── root_test.go        # Root command tests
+├── pkg/                    # Core business logic packages
+│   ├── archive/            # Archive handling
+│   ├── bitbucket/          # BitBucket business logic
+│   ├── config/             # Configuration management
+│   ├── devops/             # Azure DevOps business logic
+│   ├── docs/               # Documentation generation
+│   ├── format/             # Formatting helpers
+│   ├── gitea/              # Gitea business logic
+│   ├── github/             # GitHub business logic
+│   ├── gitlab/             # GitLab business logic
+│   ├── httpclient/         # HTTP client helpers
+│   ├── logging/            # Logging helpers
+│   ├── scan/               # Scan logic
+│   ├── scanner/            # Scanner engine
+│   └── system/             # System helpers
+├── tests/e2e/              # End-to-end tests
 ├── docs/                   # Documentation (MkDocs)
 ├── .github/                # GitHub workflows and configs
 │   └── workflows/          # CI/CD pipelines
+├── go.mod                  # Go module definition (at root)
+├── go.sum                  # Dependency checksums
+├── Makefile                # Build and test commands
 └── goreleaser.yaml         # Release configuration
 ```
 
@@ -57,17 +59,15 @@ pipeleak/
 ### Building the Project
 
 ```bash
-cd src/pipeleak
 make build
 # Or directly:
-go build -o pipeleak .
+go build -o pipeleak ./cmd/pipeleak
 ```
 
 ### Running Tests
 
 **Using Makefile (recommended):**
 ```bash
-cd src/pipeleak
 make test           # Run all tests (unit + e2e)
 make test-unit      # Run unit tests only
 make test-e2e       # Run all e2e tests
@@ -75,7 +75,6 @@ make test-e2e       # Run all e2e tests
 
 **Unit tests (excluding e2e):**
 ```bash
-cd src/pipeleak
 make test-unit
 # Or directly:
 go test $(go list ./... | grep -v /tests/e2e) -v -race
@@ -106,7 +105,6 @@ tests/e2e/
 
 **Using Makefile (recommended):**
 ```bash
-cd src/pipeleak
 make test-e2e              # Run all e2e tests
 make test-e2e-gitlab       # Run only GitLab e2e tests
 make test-e2e-github       # Run only GitHub e2e tests
@@ -118,8 +116,7 @@ make test-e2e-gitea        # Run only Gitea e2e tests
 **Manual execution:**
 To run e2e tests manually, first build the binary and set `PIPELEAK_BINARY`:
 ```bash
-cd src/pipeleak
-go build -o pipeleak .
+go build -o pipeleak ./cmd/pipeleak
 PIPELEAK_BINARY=$(pwd)/pipeleak go test ./tests/e2e/... -tags=e2e -v -timeout 10m
 ```
 
@@ -139,8 +136,6 @@ PIPELEAK_BINARY=$(pwd)/pipeleak go test ./tests/e2e/gitlab/scan -tags=e2e -v
 Generate and view test coverage reports:
 
 ```bash
-cd src/pipeleak
-
 # Generate coverage report with summary
 make coverage
 
@@ -154,7 +149,6 @@ Coverage reports are stored as workflow artifacts on CI runs (Linux job). Retrie
 
 The project uses golangci-lint:
 ```bash
-cd src/pipeleak
 make lint
 # Or directly:
 golangci-lint run --timeout=10m
@@ -164,7 +158,6 @@ golangci-lint run --timeout=10m
 
 Generate and serve CLI documentation locally:
 ```bash
-cd src/pipeleak
 make serve-docs  # Installs dependencies if needed, generates and serves docs
 ```
 
@@ -190,7 +183,7 @@ make serve-docs  # Installs dependencies if needed, generates and serves docs
 ### Package Organization
 
 - Keep business logic in `pkg/` packages
-- Keep CLI interface code in `cmd/` packages
+- Keep CLI interface code in `internal/cmd/` packages
 - Separate concerns: commands orchestrate, packages implement
 
 ### Testing Conventions
@@ -220,7 +213,6 @@ make serve-docs  # Installs dependencies if needed, generates and serves docs
 
 1. Use `go get` to add dependencies:
    ```bash
-   cd src/pipeleak
    go get github.com/example/package@version
    ```
 
@@ -247,7 +239,7 @@ make serve-docs  # Installs dependencies if needed, generates and serves docs
 
 ### Adding a New Command
 
-1. Create command file in appropriate `cmd/<platform>/` directory
+1. Create command file in appropriate `internal/cmd/<platform>/` directory
 2. Implement command using Cobra patterns
 3. Add corresponding business logic in `pkg/<platform>/`
 4. Write tests for both command and business logic
@@ -255,7 +247,7 @@ make serve-docs  # Installs dependencies if needed, generates and serves docs
 
 ### Adding a New Platform
 
-1. Create new directory under `cmd/<platform>/`
+1. Create new directory under `internal/cmd/<platform>/`
 2. Create corresponding package under `pkg/<platform>/`
 3. Implement scan and other relevant commands
 4. Add tests
@@ -279,13 +271,15 @@ The project uses GitHub Actions for CI/CD:
 
 ## Important Notes
 
-1. **Working Directory**: The Go module is in `src/pipeleak/`, not the repository root
-2. **Binary Names**: 
+1. **Working Directory**: The Go module is at the repository root with `go.mod`
+2. **CLI Entry Point**: The main entry point is at `cmd/pipeleak/main.go`
+3. **CLI Commands**: Commands are in `internal/cmd/` (internal package)
+4. **Binary Names**: 
    - Linux/macOS: `pipeleak`
    - Windows: `pipeleak.exe`
-3. **Test Exclusions**: E2E tests are excluded from regular test runs
-4. **Terminal State**: The application manages terminal state for interactive features
-5. **Cross-Platform**: Code should work on Linux, macOS, and Windows
+5. **Test Exclusions**: E2E tests are excluded from regular test runs
+6. **Terminal State**: The application manages terminal state for interactive features
+7. **Cross-Platform**: Code should work on Linux, macOS, and Windows
 
 ## Additional Resources
 

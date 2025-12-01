@@ -3,7 +3,7 @@ project_name: pipeleak
 builds:
   -
     id: "pipeleak"
-    dir: ./src/pipeleak/
+    main: ./cmd/pipeleak
     binary: pipeleak
     goos:
       - linux
@@ -13,6 +13,6 @@ builds:
       - arm64
     ldflags:
       - -s -w
-      - -X github.com/CompassSecurity/pipeleak/cmd.Version={{.Version}}
-      - -X github.com/CompassSecurity/pipeleak/cmd.Commit={{.Commit}}
-      - -X github.com/CompassSecurity/pipeleak/cmd.Date={{.Date}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd.Version={{.Version}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd.Commit={{.Commit}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd.Date={{.Date}}
