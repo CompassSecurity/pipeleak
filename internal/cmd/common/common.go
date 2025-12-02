@@ -2,10 +2,14 @@
 package common
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"os"
+	"runtime"
+	"time"
 
+	"github.com/CompassSecurity/pipeleak/pkg/format"
 	"github.com/CompassSecurity/pipeleak/pkg/logging"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -32,6 +36,38 @@ var (
 
 // TerminalRestorer is a function that can be called to restore terminal state
 var TerminalRestorer func()
+
+// CustomWriter wraps an os.File with proper cross-platform newline handling
+type CustomWriter struct {
+	Writer *os.File
+}
+
+func (cw *CustomWriter) Write(p []byte) (n int, err error) {
+	originalLen := len(p)
+
+	if bytes.HasSuffix(p, []byte("\n")) {
+		p = bytes.TrimSuffix(p, []byte("\n"))
+	}
+
+	// necessary as to: https://github.com/rs/zerolog/blob/master/log.go#L474
+	newlineChars := []byte("\n")
+	if runtime.GOOS == "windows" {
+		newlineChars = []byte("\n\r")
+	}
+
+	modified := append(p, newlineChars...)
+
+	written, err := cw.Writer.Write(modified)
+	if err != nil {
+		return 0, err
+	}
+
+	if written != len(modified) {
+		return 0, io.ErrShortWrite
+	}
+
+	return originalLen, nil
+}
 
 // TerminalRestoringWriter wraps an io.Writer to restore terminal state on fatal logs
 type TerminalRestoringWriter struct {
@@ -80,7 +116,7 @@ func RestoreTerminalState() {
 
 // InitLogger initializes the zerolog logger with the configured options
 func InitLogger(cmd *cobra.Command) {
-	defaultOut := os.Stdout
+	defaultOut := &CustomWriter{Writer: os.Stdout}
 	colorEnabled := LogColor
 
 	if LogFile != "" {
@@ -88,12 +124,12 @@ func InitLogger(cmd *cobra.Command) {
 		runLogFile, err := os.OpenFile(
 			LogFile,
 			os.O_APPEND|os.O_CREATE|os.O_WRONLY,
-			0600,
+			format.FileUserReadWrite,
 		)
 		if err != nil {
 			panic(err)
 		}
-		defaultOut = runLogFile
+		defaultOut = &CustomWriter{Writer: runLogFile}
 
 		rootFlags := cmd.Root().PersistentFlags()
 		if !rootFlags.Changed("color") {
@@ -104,20 +140,66 @@ func InitLogger(cmd *cobra.Command) {
 	fatalHook := FatalHook{}
 
 	if JsonLogoutput {
+		// For JSON output, wrap with HitLevelWriter to transform level field
 		hitWriter := &logging.HitLevelWriter{}
 		hitWriter.SetOutput(defaultOut)
 		logging.SetGlobalHitWriter(hitWriter)
 		log.Logger = zerolog.New(hitWriter).With().Timestamp().Logger().Hook(fatalHook)
 	} else {
+		// For console output, use custom FormatLevel to color the hit level
 		output := zerolog.ConsoleWriter{
-			Out:        defaultOut,
-			TimeFormat: "2006-01-02T15:04:05Z07:00",
-			NoColor:    !colorEnabled,
+			Out:         defaultOut,
+			TimeFormat:  time.RFC3339,
+			NoColor:     !colorEnabled,
+			FormatLevel: formatLevelWithHitColor(colorEnabled),
 		}
+		// Wrap with HitLevelWriter to transform JSON before ConsoleWriter processes it
 		hitWriter := &logging.HitLevelWriter{}
 		hitWriter.SetOutput(&output)
 		logging.SetGlobalHitWriter(hitWriter)
 		log.Logger = zerolog.New(hitWriter).With().Timestamp().Logger().Hook(fatalHook)
+	}
+}
+
+// formatLevelWithHitColor returns a custom level formatter that adds a distinct color for the "hit" level.
+// The hit level uses magenta (color 35) to distinguish it from other log levels.
+func formatLevelWithHitColor(colorEnabled bool) zerolog.Formatter {
+	return func(i interface{}) string {
+		var level string
+		if ll, ok := i.(string); ok {
+			level = ll
+		} else {
+			return ""
+		}
+
+		if !colorEnabled {
+			return level
+		}
+
+		// Custom color for hit level - using bright magenta (35) to stand out
+		if level == "hit" {
+			return "\x1b[35m" + level + "\x1b[0m"
+		}
+
+		// Use zerolog's default colors for other levels
+		switch level {
+		case "trace":
+			return "\x1b[90m" + level + "\x1b[0m"
+		case "debug":
+			return level
+		case "info":
+			return "\x1b[32m" + level + "\x1b[0m"
+		case "warn":
+			return "\x1b[33m" + level + "\x1b[0m"
+		case "error":
+			return "\x1b[31m" + level + "\x1b[0m"
+		case "fatal":
+			return "\x1b[31m" + level + "\x1b[0m"
+		case "panic":
+			return "\x1b[31m" + level + "\x1b[0m"
+		default:
+			return level
+		}
 	}
 }
 
