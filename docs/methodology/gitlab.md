@@ -13,7 +13,7 @@ keywords:
 
 Many companies use (self-hosted) GitLab instances to manage their source codes, often exposing sensitive data through CI/CD pipelines. In times when a lot of infrastructure is deployed as code (IaC) these configurations must be source-controlled as well, putting a lot of responsibility on the source code platform used.
 
-# Anonymous Access
+## Anonymous Access
 
 If you do not have credentials for the GitLab instance you might want to look at the public repositories and test if you can sign up for an account.
 
@@ -25,7 +25,7 @@ See if you can already identify potentially sensitive data e.g. credentials in s
 The next step would be to try to create an account. Head to `https://leakycompany.com/users/sign_up` and try to register a new account.
 Sometimes you can only create an account with an email address managed by the customer, some instances require the admins to accept the register request, and others completely disable it.
 
-# Authenticated Access
+## Authenticated Access
 
 Sweet now you have access to the GitLab instance with an account.
 The first thing to look out for: What projects do I have access to? Is it more than unauthenticated?
@@ -48,8 +48,6 @@ pipeleek gl vuln -g https://leakycompany.com -t glpat-[redacted]
 2024-11-14T14:29:05+01:00 info GitLab version=17.5.1-ee
 2024-11-14T14:29:05+01:00 info Fetching CVEs for this version version=17.5.1-ee
 ```
-
-# Misconfigurations And Mishandling
 
 ## Enumerating CI/CD Variables And Secure Files
 
@@ -168,7 +166,7 @@ Review the findings manually and tweak the flags according to your needs.
 
 If you found any valid credentials, e.g. personal access tokens, cloud credentials, and so on, check if you can move laterally or escalate privileges.
 
-**An example of privilege escalation:**
+### An example of privilege escalation
 
 Pipeleek identified the following based64 encode secret in the environment variable `CI_REPO_TOKEN`:
 
