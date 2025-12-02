@@ -11,9 +11,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/CompassSecurity/pipeleak/pkg/format"
-	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
-	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
+	"github.com/CompassSecurity/pipeleek/pkg/format"
+	"github.com/CompassSecurity/pipeleek/pkg/gitlab/util"
+	"github.com/CompassSecurity/pipeleek/pkg/httpclient"
 	"github.com/rs/zerolog/log"
 	"github.com/yosuke-furukawa/json5/encoding/json5"
 
@@ -308,7 +308,7 @@ func fetchCurrentSelfHostedOptions(opts EnumOptions) []string {
 
 	log.Debug().Msg("Fetching current self-hosted configuration from GitHub")
 
-	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
+	client := httpclient.GetPipeleekHTTPClient("", nil, nil)
 	res, err := client.Get("https://raw.githubusercontent.com/renovatebot/renovate/refs/heads/main/docs/usage/self-hosted-configuration.md")
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed fetching self-hosted configuration documentation")
@@ -353,7 +353,7 @@ func isSelfHostedConfig(config string, opts EnumOptions) bool {
 }
 
 func extendRenovateConfig(renovateConfig string, project *gitlab.Project, opts EnumOptions) string {
-	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
+	client := httpclient.GetPipeleekHTTPClient("", nil, nil)
 
 	u, err := url.Parse(opts.ExtendRenovateConfigService)
 	if err != nil {
@@ -386,7 +386,7 @@ func extendRenovateConfig(renovateConfig string, project *gitlab.Project, opts E
 }
 
 func validateRenovateConfigService(serviceUrl string) error {
-	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
+	client := httpclient.GetPipeleekHTTPClient("", nil, nil)
 
 	u, err := url.Parse(serviceUrl)
 	if err != nil {

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/CompassSecurity/pipeleak/internal/cmd/bitbucket"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/common"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/bitbucket"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/common"
 	"github.com/spf13/cobra"
 )
 
@@ -12,9 +12,9 @@ func main() {
 
 func newRootCmd() *cobra.Command {
 	bbCmd := bitbucket.NewBitBucketRootCmd()
-	bbCmd.Use = "pipeleak-bitbucket"
+	bbCmd.Use = "pipeleek-bitbucket"
 	bbCmd.Short = "Scan BitBucket Pipelines logs and artifacts for secrets"
-	bbCmd.Long = `Pipeleak-BitBucket scans CI/CD logs and artifacts to detect leaked secrets and pivot from them.`
+	bbCmd.Long = `Pipeleek-BitBucket scans CI/CD logs and artifacts to detect leaked secrets and pivot from them.`
 	bbCmd.Version = common.Version
 	bbCmd.GroupID = ""
 

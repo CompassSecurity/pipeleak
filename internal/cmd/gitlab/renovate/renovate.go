@@ -1,9 +1,9 @@
 package renovate
 
 import (
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitlab/renovate/autodiscovery"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitlab/renovate/enum"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitlab/renovate/privesc"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab/renovate/autodiscovery"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab/renovate/enum"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab/renovate/privesc"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )

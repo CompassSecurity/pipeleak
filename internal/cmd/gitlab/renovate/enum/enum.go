@@ -1,7 +1,7 @@
 package enum
 
 import (
-	pkgrenovate "github.com/CompassSecurity/pipeleak/pkg/gitlab/renovate/enum"
+	pkgrenovate "github.com/CompassSecurity/pipeleek/pkg/gitlab/renovate/enum"
 	"github.com/spf13/cobra"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 )

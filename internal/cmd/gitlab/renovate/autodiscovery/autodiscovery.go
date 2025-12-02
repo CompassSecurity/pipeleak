@@ -1,7 +1,7 @@
 package autodiscovery
 
 import (
-	pkgrenovate "github.com/CompassSecurity/pipeleak/pkg/gitlab/renovate/autodiscovery"
+	pkgrenovate "github.com/CompassSecurity/pipeleek/pkg/gitlab/renovate/autodiscovery"
 	"github.com/spf13/cobra"
 )
 
@@ -18,10 +18,10 @@ func NewAutodiscoveryCmd() *cobra.Command {
 		Long:  "Create a project with a Renovate Bot configuration that will be picked up by an existing Renovate Bot user. The Renovate Bot will execute the malicious Gradle wrapper script during dependency updates, which you can customize in exploit.sh.",
 		Example: `
 # Create a project and invite the victim Renovate Bot user to it. Uses Gradle wrapper to execute arbitrary code during dependency updates.
-pipeleak gl renovate autodiscovery --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com --repo-name my-exploit-repo --username renovate-bot-user
+pipeleek gl renovate autodiscovery --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com --repo-name my-exploit-repo --username renovate-bot-user
 
 # Create a project with a CI/CD pipeline for local testing (requires setting RENOVATE_TOKEN as CI/CD variable)
-pipeleak gl renovate autodiscovery --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com --repo-name my-exploit-repo --add-renovate-cicd-for-debugging
+pipeleek gl renovate autodiscovery --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com --repo-name my-exploit-repo --add-renovate-cicd-for-debugging
     `,
 		Run: func(cmd *cobra.Command, args []string) {
 			parent := cmd.Parent()

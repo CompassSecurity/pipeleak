@@ -1,8 +1,8 @@
 package result
 
 import (
-	"github.com/CompassSecurity/pipeleak/pkg/logging"
-	"github.com/CompassSecurity/pipeleak/pkg/scanner"
+	"github.com/CompassSecurity/pipeleek/pkg/logging"
+	"github.com/CompassSecurity/pipeleek/pkg/scanner"
 )
 
 type ReportOptions struct {

@@ -5,12 +5,12 @@ import (
 	"strconv"
 	"time"
 
-	bburl "github.com/CompassSecurity/pipeleak/pkg/bitbucket/url"
-	"github.com/CompassSecurity/pipeleak/pkg/format"
-	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
-	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
-	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
-	pkgscanner "github.com/CompassSecurity/pipeleak/pkg/scanner"
+	bburl "github.com/CompassSecurity/pipeleek/pkg/bitbucket/url"
+	"github.com/CompassSecurity/pipeleek/pkg/format"
+	"github.com/CompassSecurity/pipeleek/pkg/scan/logline"
+	"github.com/CompassSecurity/pipeleek/pkg/scan/result"
+	"github.com/CompassSecurity/pipeleek/pkg/scan/runner"
+	pkgscanner "github.com/CompassSecurity/pipeleek/pkg/scanner"
 	"github.com/h2non/filetype"
 	"github.com/rs/zerolog/log"
 )

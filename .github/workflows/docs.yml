@@ -28,7 +28,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.x'
+          python-version: "3.x"
 
       - name: Install MkDocs
         run: |
@@ -38,7 +38,7 @@ jobs:
             mkdocs-minify-plugin
 
       - name: Generate Docs
-        run: go run ./cmd/pipeleak docs --github-pages
+        run: go run ./cmd/pipeleek docs --github-pages
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -46,7 +46,7 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: 'cli-docs/site/'
+          path: "cli-docs/site/"
 
       - name: Deploy to GitHub Pages
         id: deployment

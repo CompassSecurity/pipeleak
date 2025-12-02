@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/CompassSecurity/pipeleak/internal/cmd/common"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/devops"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/common"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/devops"
 	"github.com/spf13/cobra"
 )
 
@@ -12,9 +12,9 @@ func main() {
 
 func newRootCmd() *cobra.Command {
 	adCmd := devops.NewAzureDevOpsRootCmd()
-	adCmd.Use = "pipeleak-devops"
+	adCmd.Use = "pipeleek-devops"
 	adCmd.Short = "Scan Azure DevOps Pipelines logs and artifacts for secrets"
-	adCmd.Long = `Pipeleak-DevOps scans CI/CD logs and artifacts to detect leaked secrets and pivot from them.`
+	adCmd.Long = `Pipeleek-DevOps scans CI/CD logs and artifacts to detect leaked secrets and pivot from them.`
 	adCmd.Version = common.Version
 	adCmd.GroupID = ""
 

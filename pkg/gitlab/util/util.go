@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
+	"github.com/CompassSecurity/pipeleek/pkg/httpclient"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/headzoo/surf"
 	"github.com/rs/zerolog/log"
@@ -70,13 +70,13 @@ func IterateGroupProjects(client *gitlab.Client, groupID interface{}, opts *gitl
 }
 
 func GetGitlabClient(token string, url string) (*gitlab.Client, error) {
-	return gitlab.NewClient(token, gitlab.WithBaseURL(url), gitlab.WithHTTPClient(httpclient.GetPipeleakHTTPClient("", nil, nil).StandardClient()))
+	return gitlab.NewClient(token, gitlab.WithBaseURL(url), gitlab.WithHTTPClient(httpclient.GetPipeleekHTTPClient("", nil, nil).StandardClient()))
 }
 
 func CookieSessionValid(gitlabUrl string, cookieVal string) {
 	gitlabSessionsUrl, _ := url.JoinPath(gitlabUrl, "-/user_settings/active_sessions")
 
-	client := httpclient.GetPipeleakHTTPClient(gitlabUrl, []*http.Cookie{{Name: "_gitlab_session", Value: cookieVal}}, nil)
+	client := httpclient.GetPipeleekHTTPClient(gitlabUrl, []*http.Cookie{{Name: "_gitlab_session", Value: cookieVal}}, nil)
 	resp, err := client.Get(gitlabSessionsUrl)
 	if err != nil {
 		log.Fatal().Stack().Err(err).Msg("Failed GitLab session test")
@@ -111,7 +111,7 @@ func DetermineVersion(gitlabUrl string, apiToken string) *gitlab.Metadata {
 		}
 		u.Path = path.Join(u.Path, "/help")
 
-		client := httpclient.GetPipeleakHTTPClient("", nil, nil)
+		client := httpclient.GetPipeleekHTTPClient("", nil, nil)
 		response, err := client.Get(u.String())
 
 		if err != nil {
@@ -161,8 +161,8 @@ func RegisterNewAccount(targetUrl string, username string, password string, emai
 		log.Fatal().Stack().Err(err).Msg("Failed parsing sign-up form")
 	}
 
-	_ = fm.Input("new_user[name]", "Pipeleak Full Name")
-	_ = fm.Input("new_user[first_name]", "Pipeleak First Name")
+	_ = fm.Input("new_user[name]", "Pipeleek Full Name")
+	_ = fm.Input("new_user[first_name]", "Pipeleek First Name")
 	_ = fm.Input("new_user[last_name]", "Automated Signup")
 	_ = fm.Input("new_user[username]", username)
 	_ = fm.Input("new_user[email]", email)

@@ -1,4 +1,4 @@
-// Package httpclient provides a centralized HTTP client configuration for pipeleak.
+// Package httpclient provides a centralized HTTP client configuration for pipeleek.
 // It offers a retryable HTTP client with cookie support, custom headers, and proxy configuration.
 package httpclient
 
@@ -39,7 +39,7 @@ func (hrt *HeaderRoundTripper) RoundTrip(req *http.Request) (*http.Response, err
 	return hrt.Next.RoundTrip(req)
 }
 
-// GetPipeleakHTTPClient creates and configures a retryable HTTP client for pipeleak operations.
+// GetPipeleekHTTPClient creates and configures a retryable HTTP client for pipeleek operations.
 // It supports:
 //   - Cookie jar configuration for session management
 //   - Custom default headers
@@ -53,7 +53,7 @@ func (hrt *HeaderRoundTripper) RoundTrip(req *http.Request) (*http.Response, err
 //   - defaultHeaders: Optional headers to add to all requests
 //
 // Returns a configured *retryablehttp.Client ready for use.
-func GetPipeleakHTTPClient(cookieUrl string, cookies []*http.Cookie, defaultHeaders map[string]string) *retryablehttp.Client {
+func GetPipeleekHTTPClient(cookieUrl string, cookies []*http.Cookie, defaultHeaders map[string]string) *retryablehttp.Client {
 	var jar http.CookieJar
 
 	if len(cookies) > 0 {

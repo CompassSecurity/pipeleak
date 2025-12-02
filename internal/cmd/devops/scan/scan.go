@@ -1,9 +1,9 @@
 package scan
 
 import (
-	"github.com/CompassSecurity/pipeleak/internal/cmd/flags"
-	"github.com/CompassSecurity/pipeleak/pkg/config"
-	pkgscan "github.com/CompassSecurity/pipeleak/pkg/devops/scan"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/flags"
+	"github.com/CompassSecurity/pipeleek/pkg/config"
+	pkgscan "github.com/CompassSecurity/pipeleek/pkg/devops/scan"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -39,13 +39,13 @@ Create your personal access token here: https://dev.azure.com/{yourproject}/_use
 		`,
 		Example: `
 # Scan all pipelines the current user has access to
-pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts
+pipeleek ad scan --token xxxxxxxxxxx --username auser --artifacts
 
 # Scan all pipelines of an organization
-pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization myOrganization
+pipeleek ad scan --token xxxxxxxxxxx --username auser --artifacts --organization myOrganization
 
 # Scan all pipelines of a project e.g. https://dev.azure.com/PowerShell/PowerShell
-pipeleak ad scan --token xxxxxxxxxxx --username auser --artifacts --organization powershell --project PowerShell
+pipeleek ad scan --token xxxxxxxxxxx --username auser --artifacts --organization powershell --project PowerShell
 		`,
 		Run: Scan,
 	}

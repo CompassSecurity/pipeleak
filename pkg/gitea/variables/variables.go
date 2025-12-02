@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"code.gitea.io/sdk/gitea"
-	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
+	"github.com/CompassSecurity/pipeleek/pkg/httpclient"
 	"github.com/rs/zerolog/log"
 )
 
@@ -197,7 +197,7 @@ func listRepoActionVariables(ctx *clientContext, owner, repo string, page, pageS
 	url := fmt.Sprintf("%s/api/v1/repos/%s/%s/actions/variables?page=%d&limit=%d", ctx.url, owner, repo, page, pageSize)
 
 	authHeaders := map[string]string{"Authorization": "token " + ctx.token}
-	httpClient := httpclient.GetPipeleakHTTPClient("", nil, authHeaders)
+	httpClient := httpclient.GetPipeleekHTTPClient("", nil, authHeaders)
 
 	resp, err := httpClient.Get(url)
 	if err != nil {

@@ -1,7 +1,7 @@
 package enum
 
 import (
-	pkgenum "github.com/CompassSecurity/pipeleak/pkg/gitlab/enum"
+	pkgenum "github.com/CompassSecurity/pipeleek/pkg/gitlab/enum"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
@@ -18,7 +18,7 @@ func NewEnumCmd() *cobra.Command {
 		Use:     "enum",
 		Short:   "Enumerate access rights of a GitLab access token",
 		Long:    "Enumerate access rights of a GitLab access token by listing projects, groups and users the token has access to.",
-		Example: `pipeleak gl enum --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com --level 20`,
+		Example: `pipeleek gl enum --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com --level 20`,
 		Run:     Enum,
 	}
 	enumCmd.Flags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")

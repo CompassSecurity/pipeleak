@@ -1,7 +1,7 @@
 package schedule
 
 import (
-	pkgschedule "github.com/CompassSecurity/pipeleak/pkg/gitlab/schedule"
+	pkgschedule "github.com/CompassSecurity/pipeleek/pkg/gitlab/schedule"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -16,7 +16,7 @@ func NewScheduleCmd() *cobra.Command {
 		Use:     "schedule",
 		Short:   "Enumerate scheduled pipelines and dump their variables",
 		Long:    "Fetch and print all scheduled pipelines and their variables for projects your token has access to.",
-		Example: `pipeleak gl schedule --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com`,
+		Example: `pipeleek gl schedule --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com`,
 		Run:     FetchSchedules,
 	}
 	scheduleCmd.Flags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")

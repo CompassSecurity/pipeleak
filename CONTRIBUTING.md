@@ -1,6 +1,6 @@
-# Contributing to Pipeleak
+# Contributing to Pipeleek
 
-Thank you for your interest in contributing to Pipeleak! This guide will help you get started with the development environment and provide guidelines for contributing.
+Thank you for your interest in contributing to Pipeleek! This guide will help you get started with the development environment and provide guidelines for contributing.
 
 ## Getting Started with GitHub Codespaces
 
@@ -16,7 +16,7 @@ The codespace will automatically:
 - Install golangci-lint for code linting
 - Install Python and MkDocs for documentation
 - Download all Go dependencies
-- Build the pipeleak binary
+- Build the pipeleek binary
 
 Once the codespace is ready, you can start working immediately since the Go module is at the repository root.
 
@@ -35,8 +35,8 @@ If you prefer local development:
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/CompassSecurity/pipeleak.git
-   cd pipeleak
+   git clone https://github.com/CompassSecurity/pipeleek.git
+   cd pipeleek
    ```
 
 2. Install golangci-lint:
@@ -54,7 +54,7 @@ If you prefer local development:
 4. Run it:
 
    ```bash
-   go run cmd/pipeleak/main.go
+   go run cmd/pipeleek/main.go
    ```
 
 5. Optional: Build the binary:
@@ -116,8 +116,8 @@ make serve-docs
 ## Project Structure
 
 ```
-pipeleak/
-├── cmd/pipeleak/           # CLI entry point (main.go)
+pipeleek/
+├── cmd/pipeleek/           # CLI entry point (main.go)
 ├── internal/cmd/           # CLI commands (Cobra) - internal package
 │   ├── bitbucket/          # BitBucket commands
 │   ├── devops/             # Azure DevOps commands

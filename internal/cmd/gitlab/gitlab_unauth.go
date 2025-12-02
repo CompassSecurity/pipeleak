@@ -1,8 +1,8 @@
 package gitlab
 
 import (
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitlab/register"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitlab/shodan"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab/register"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab/shodan"
 	"github.com/spf13/cobra"
 )
 

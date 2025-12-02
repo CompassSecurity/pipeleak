@@ -3,11 +3,11 @@ package gitlab
 import (
 	"testing"
 
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitlab/enum"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitlab/register"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitlab/shodan"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitlab/variables"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitlab/vuln"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab/enum"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab/register"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab/shodan"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab/variables"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab/vuln"
 )
 
 func TestNewGitLabRootCmd(t *testing.T) {

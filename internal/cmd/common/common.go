@@ -1,4 +1,4 @@
-// Package common provides shared functionality for pipeleak platform-specific binaries.
+// Package common provides shared functionality for pipeleek platform-specific binaries.
 package common
 
 import (
@@ -9,8 +9,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/pkg/format"
-	"github.com/CompassSecurity/pipeleak/pkg/logging"
+	"github.com/CompassSecurity/pipeleek/pkg/format"
+	"github.com/CompassSecurity/pipeleek/pkg/logging"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"

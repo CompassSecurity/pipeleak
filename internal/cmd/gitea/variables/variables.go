@@ -1,7 +1,7 @@
 package variables
 
 import (
-	"github.com/CompassSecurity/pipeleak/pkg/gitea/variables"
+	"github.com/CompassSecurity/pipeleek/pkg/gitea/variables"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )

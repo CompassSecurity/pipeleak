@@ -33,7 +33,7 @@ func TestDisplayName(t *testing.T) {
 // buildNav should create index.md for commands with children and .md file for leaves.
 // It should also filter out 'completion' and 'docs' commands.
 func TestBuildNav(t *testing.T) {
-	root := &cobra.Command{Use: "pipeleak"}
+	root := &cobra.Command{Use: "pipeleek"}
 	parent := &cobra.Command{Use: "alpha"}
 	leaf := &cobra.Command{Use: "scan", Run: func(cmd *cobra.Command, args []string) {}}
 	completion := &cobra.Command{Use: "completion", Run: func(cmd *cobra.Command, args []string) {}}
@@ -44,23 +44,23 @@ func TestBuildNav(t *testing.T) {
 	root.AddCommand(parent)
 
 	entry := buildNav(root, 0, "")
-	assert.Equal(t, "Pipeleak", entry.Label)
+	assert.Equal(t, "Pipeleek", entry.Label)
 	assert.Len(t, entry.Children, 1)
 	child := entry.Children[0]
 	assert.Equal(t, "Alpha", child.Label)
-	assert.Equal(t, filepath.ToSlash("pipeleak/alpha/index.md"), child.FilePath)
+	assert.Equal(t, filepath.ToSlash("pipeleek/alpha/index.md"), child.FilePath)
 	// Should only have 1 child (scan), completion and docs should be filtered
 	assert.Len(t, child.Children, 1)
 	grand := child.Children[0]
 	assert.Equal(t, "Scan", grand.Label)
-	assert.Equal(t, filepath.ToSlash("pipeleak/alpha/scan.md"), grand.FilePath)
+	assert.Equal(t, filepath.ToSlash("pipeleek/alpha/scan.md"), grand.FilePath)
 }
 
-// convertNavToYaml should trim pipeleak/ prefix and .md suffix.
+// convertNavToYaml should trim pipeleek/ prefix and .md suffix.
 func TestConvertNavToYaml(t *testing.T) {
 	entries := []*NavEntry{
-		{Label: "Alpha", FilePath: filepath.ToSlash("pipeleak/alpha/index.md"), Children: []*NavEntry{}},
-		{Label: "Beta", FilePath: filepath.ToSlash("pipeleak/beta/leaf.md"), Children: []*NavEntry{}},
+		{Label: "Alpha", FilePath: filepath.ToSlash("pipeleek/alpha/index.md"), Children: []*NavEntry{}},
+		{Label: "Beta", FilePath: filepath.ToSlash("pipeleek/beta/leaf.md"), Children: []*NavEntry{}},
 	}
 	yamlList := convertNavToYaml(entries)
 	// Entries become maps with label key
@@ -74,7 +74,7 @@ func TestConvertNavToYaml(t *testing.T) {
 
 // writeMkdocsYaml should create mkdocs.yml with expected keys and nav entries.
 func TestWriteMkdocsYaml(t *testing.T) {
-	root := &cobra.Command{Use: "pipeleak"}
+	root := &cobra.Command{Use: "pipeleek"}
 	alpha := &cobra.Command{Use: "alpha", Run: func(cmd *cobra.Command, args []string) {}}
 	deepParent := &cobra.Command{Use: "beta"}
 	deepChild := &cobra.Command{Use: "deep", Run: func(cmd *cobra.Command, args []string) {}}
@@ -104,8 +104,8 @@ func TestWriteMkdocsYaml(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Basic keys exist
-	assert.Equal(t, "Pipeleak - Pipeline Secrets Scanner", parsed["site_name"])
-	assert.Equal(t, "pipeleak", parsed["docs_dir"])
+	assert.Equal(t, "Pipeleek - Pipeline Secrets Scanner", parsed["site_name"])
+	assert.Equal(t, "pipeleek", parsed["docs_dir"])
 
 	// Nav structure assertions
 	navAny, ok := parsed["nav"].([]interface{})
@@ -142,7 +142,7 @@ func TestWriteMkdocsYaml(t *testing.T) {
 
 // writeMkdocsYaml with GithubPages should prefix nav paths.
 func TestWriteMkdocsYaml_GithubPagesPrefix(t *testing.T) {
-	root := &cobra.Command{Use: "pipeleak"}
+	root := &cobra.Command{Use: "pipeleek"}
 	root.AddCommand(&cobra.Command{Use: "alpha", Run: func(cmd *cobra.Command, args []string) {}})
 
 	tmpDir := t.TempDir()
@@ -163,5 +163,5 @@ func TestWriteMkdocsYaml_GithubPagesPrefix(t *testing.T) {
 	assert.NoError(t, err)
 	navAny := parsed["nav"].([]interface{})
 	introMap := navAny[0].(map[string]interface{})
-	assert.Equal(t, "/pipeleak/introduction/getting_started/", introMap["Introduction"])
+	assert.Equal(t, "/pipeleek/introduction/getting_started/", introMap["Introduction"])
 }

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
+	"github.com/CompassSecurity/pipeleek/pkg/gitlab/util"
 	"github.com/rs/zerolog/log"
 
 	"resty.dev/v3"

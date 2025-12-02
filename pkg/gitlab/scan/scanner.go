@@ -4,9 +4,9 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/pkg/format"
-	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
-	"github.com/CompassSecurity/pipeleak/pkg/scanner"
+	"github.com/CompassSecurity/pipeleek/pkg/format"
+	"github.com/CompassSecurity/pipeleek/pkg/gitlab/util"
+	"github.com/CompassSecurity/pipeleek/pkg/scanner"
 	"github.com/rs/zerolog/log"
 )
 

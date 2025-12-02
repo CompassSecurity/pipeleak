@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
-	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
-	"github.com/CompassSecurity/pipeleak/pkg/system"
+	"github.com/CompassSecurity/pipeleek/pkg/gitlab/util"
+	"github.com/CompassSecurity/pipeleek/pkg/scan/runner"
+	"github.com/CompassSecurity/pipeleek/pkg/system"
 	"github.com/nsqio/go-diskqueue"
 	"github.com/rs/zerolog/log"
 	gitlab "gitlab.com/gitlab-org/api/client-go"

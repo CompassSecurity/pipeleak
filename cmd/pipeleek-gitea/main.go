@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/CompassSecurity/pipeleak/internal/cmd/common"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitea"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/common"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitea"
 	"github.com/spf13/cobra"
 )
 
@@ -12,9 +12,9 @@ func main() {
 
 func newRootCmd() *cobra.Command {
 	giteaCmd := gitea.NewGiteaRootCmd()
-	giteaCmd.Use = "pipeleak-gitea"
+	giteaCmd.Use = "pipeleek-gitea"
 	giteaCmd.Short = "Scan Gitea Actions logs and artifacts for secrets"
-	giteaCmd.Long = `Pipeleak-Gitea scans CI/CD logs and artifacts to detect leaked secrets and pivot from them.`
+	giteaCmd.Long = `Pipeleek-Gitea scans CI/CD logs and artifacts to detect leaked secrets and pivot from them.`
 	giteaCmd.Version = common.Version
 	giteaCmd.GroupID = ""
 

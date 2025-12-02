@@ -4,11 +4,11 @@ import (
 	"fmt"
 
 	"code.gitea.io/sdk/gitea"
-	"github.com/CompassSecurity/pipeleak/pkg/logging"
-	artifactproc "github.com/CompassSecurity/pipeleak/pkg/scan/artifact"
-	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
-	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
-	"github.com/CompassSecurity/pipeleak/pkg/scanner"
+	"github.com/CompassSecurity/pipeleek/pkg/logging"
+	artifactproc "github.com/CompassSecurity/pipeleek/pkg/scan/artifact"
+	"github.com/CompassSecurity/pipeleek/pkg/scan/logline"
+	"github.com/CompassSecurity/pipeleek/pkg/scan/result"
+	"github.com/CompassSecurity/pipeleek/pkg/scanner"
 	"github.com/h2non/filetype"
 	"github.com/rs/zerolog/log"
 )

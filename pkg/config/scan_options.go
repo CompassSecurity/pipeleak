@@ -1,4 +1,4 @@
-// Package config provides shared configuration types and validation helpers for pipeleak.
+// Package config provides shared configuration types and validation helpers for pipeleek.
 // This package centralizes common configuration patterns across all platform scanners.
 package config
 

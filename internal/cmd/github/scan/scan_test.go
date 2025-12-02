@@ -3,7 +3,7 @@ package scan
 import (
 	"testing"
 
-	pkggithub "github.com/CompassSecurity/pipeleak/pkg/github/scan"
+	pkggithub "github.com/CompassSecurity/pipeleek/pkg/github/scan"
 	"github.com/stretchr/testify/assert"
 )
 

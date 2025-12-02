@@ -1,10 +1,10 @@
 package scanner
 
 import (
-	"github.com/CompassSecurity/pipeleak/pkg/scanner/artifact"
-	"github.com/CompassSecurity/pipeleak/pkg/scanner/engine"
-	"github.com/CompassSecurity/pipeleak/pkg/scanner/rules"
-	"github.com/CompassSecurity/pipeleak/pkg/scanner/types"
+	"github.com/CompassSecurity/pipeleek/pkg/scanner/artifact"
+	"github.com/CompassSecurity/pipeleek/pkg/scanner/engine"
+	"github.com/CompassSecurity/pipeleek/pkg/scanner/rules"
+	"github.com/CompassSecurity/pipeleek/pkg/scanner/types"
 )
 
 type Finding = types.Finding
@@ -15,7 +15,7 @@ type DetectionResult = types.DetectionResult
 
 var InitRules = rules.InitRules
 var DownloadRules = rules.DownloadRules
-var AppendPipeleakRules = rules.AppendPipeleakRules
+var AppendPipeleekRules = rules.AppendPipeleekRules
 
 var DetectHits = engine.DetectHits
 

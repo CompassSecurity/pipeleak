@@ -7,8 +7,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
-	"github.com/CompassSecurity/pipeleak/pkg/scanner/types"
+	"github.com/CompassSecurity/pipeleek/pkg/httpclient"
+	"github.com/CompassSecurity/pipeleek/pkg/scanner/types"
 	"github.com/rs/zerolog/log"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/detectors"
 	"github.com/trufflesecurity/trufflehog/v3/pkg/engine/defaults"
@@ -40,7 +40,7 @@ func downloadFile(url string, filepath string) error {
 	}
 	defer func() { _ = out.Close() }()
 
-	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
+	client := httpclient.GetPipeleekHTTPClient("", nil, nil)
 	resp, err := client.Get(url)
 	if err != nil {
 		return err
@@ -69,7 +69,7 @@ func InitRules(confidenceFilter []string) {
 			log.Fatal().Stack().Err(err).Msg("Failed unmarshalling rules file")
 		}
 
-		patterns := AppendPipeleakRules(secretsPatterns.Patterns)
+		patterns := AppendPipeleekRules(secretsPatterns.Patterns)
 
 		if len(confidenceFilter) > 0 {
 			log.Debug().Str("filter", strings.Join(confidenceFilter, ",")).Msg("Applying confidence filter")
@@ -101,7 +101,7 @@ func InitRules(confidenceFilter []string) {
 	}
 }
 
-func AppendPipeleakRules(rules []types.PatternElement) []types.PatternElement {
+func AppendPipeleekRules(rules []types.PatternElement) []types.PatternElement {
 	customRules := []types.PatternElement{}
 	customRules = append(customRules, types.PatternElement{Pattern: types.PatternPattern{Name: "Gitlab - Predefined Environment Variable", Regex: `(GITLAB_USER_ID|KUBECONFIG|CI_SERVER_TLS_KEY_FILE|CI_REPOSITORY_URL|CI_REGISTRY_PASSWORD|DOCKER_AUTH_CONFIG)=.*`, Confidence: "medium"}})
 	return slices.Concat(rules, customRules)

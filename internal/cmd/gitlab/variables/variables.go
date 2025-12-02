@@ -1,7 +1,7 @@
 package variables
 
 import (
-	pkgvariables "github.com/CompassSecurity/pipeleak/pkg/gitlab/variables"
+	pkgvariables "github.com/CompassSecurity/pipeleek/pkg/gitlab/variables"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -16,7 +16,7 @@ func NewVariablesCmd() *cobra.Command {
 		Use:     "variables",
 		Short:   "Print configured CI/CD variables",
 		Long:    "Fetch and print all configured CI/CD variables for projects, groups and instance (if admin) your token has access to.",
-		Example: `pipeleak gl variables --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com`,
+		Example: `pipeleek gl variables --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com`,
 		Run:     FetchVariables,
 	}
 	variablesCmd.Flags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")

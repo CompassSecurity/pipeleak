@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "=== Pipeleak Development Environment Setup ==="
+echo "=== Pipeleek Development Environment Setup ==="
 
 # Verify Docker is available
 echo "Checking Docker availability..."
@@ -42,10 +42,10 @@ go mod download
 
 # Setup bash aliases
 echo "Setting up bash aliases..."
-if ! grep -q "# Pipeleak custom aliases" ~/.bashrc; then
+if ! grep -q "# Pipeleek custom aliases" ~/.bashrc; then
     cat >> ~/.bashrc << 'EOF'
 
-# Pipeleak custom aliases
+# Pipeleek custom aliases
 alias ll='ls -alh'
 alias la='ls -A'
 alias l='ls -CF'

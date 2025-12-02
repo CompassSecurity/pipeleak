@@ -1,7 +1,7 @@
 package devops
 
 import (
-	"github.com/CompassSecurity/pipeleak/internal/cmd/devops/scan"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/devops/scan"
 	"github.com/spf13/cobra"
 )
 

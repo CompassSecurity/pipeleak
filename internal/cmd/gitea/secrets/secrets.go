@@ -1,7 +1,7 @@
 package secrets
 
 import (
-	"github.com/CompassSecurity/pipeleak/pkg/gitea/secrets"
+	"github.com/CompassSecurity/pipeleek/pkg/gitea/secrets"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )

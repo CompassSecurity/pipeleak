@@ -1,9 +1,9 @@
 package scan
 
 import (
-	"github.com/CompassSecurity/pipeleak/internal/cmd/flags"
-	"github.com/CompassSecurity/pipeleak/pkg/config"
-	giteascan "github.com/CompassSecurity/pipeleak/pkg/gitea/scan"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/flags"
+	"github.com/CompassSecurity/pipeleek/pkg/config"
+	giteascan "github.com/CompassSecurity/pipeleek/pkg/gitea/scan"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -45,22 +45,22 @@ To obtain the cookie:
 `,
 		Example: `
 # Scan all accessible repositories (including public) and their artifacts
-pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com --artifacts --cookie your_cookie_value
+pipeleek gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com --artifacts --cookie your_cookie_value
 
 # Scan without downloading artifacts
-pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com --cookie your_cookie_value
+pipeleek gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com --cookie your_cookie_value
 
 # Scan only repositories owned by the user
-pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com --owned --cookie your_cookie_value
+pipeleek gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com --owned --cookie your_cookie_value
 
 # Scan all repositories of a specific organization
-pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com --organization my-org --cookie your_cookie_value
+pipeleek gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com --organization my-org --cookie your_cookie_value
 
 # Scan a specific repository
-pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com --repository owner/repo-name --cookie your_cookie_value
+pipeleek gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com --repository owner/repo-name --cookie your_cookie_value
 
 # Scan a specific repository but limit the number of workflow runs to scan
-pipeleak gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com --repository owner/repo-name --runs-limit 20 --cookie your_cookie_value
+pipeleek gitea scan --token gitea_token_xxxxx --gitea https://gitea.example.com --repository owner/repo-name --runs-limit 20 --cookie your_cookie_value
 		`,
 		Run: Scan,
 	}

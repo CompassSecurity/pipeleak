@@ -8,13 +8,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/pkg/format"
-	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
-	artifactproc "github.com/CompassSecurity/pipeleak/pkg/scan/artifact"
-	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
-	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
-	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
-	pkgscanner "github.com/CompassSecurity/pipeleak/pkg/scanner"
+	"github.com/CompassSecurity/pipeleek/pkg/format"
+	"github.com/CompassSecurity/pipeleek/pkg/httpclient"
+	artifactproc "github.com/CompassSecurity/pipeleek/pkg/scan/artifact"
+	"github.com/CompassSecurity/pipeleek/pkg/scan/logline"
+	"github.com/CompassSecurity/pipeleek/pkg/scan/result"
+	"github.com/CompassSecurity/pipeleek/pkg/scan/runner"
+	pkgscanner "github.com/CompassSecurity/pipeleek/pkg/scanner"
 	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit"
 	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit/github_primary_ratelimit"
 	"github.com/gofri/go-github-ratelimit/v2/github_ratelimit/github_secondary_ratelimit"
@@ -572,7 +572,7 @@ func InitializeOptions(accessToken, gitHubURL, repo, organization, user, searchQ
 
 	ctx := context.WithValue(context.Background(), github.BypassRateLimitCheck, true)
 	client := SetupClient(accessToken, gitHubURL)
-	httpClient := httpclient.GetPipeleakHTTPClient("", nil, nil)
+	httpClient := httpclient.GetPipeleekHTTPClient("", nil, nil)
 
 	return ScanOptions{
 		AccessToken:            accessToken,

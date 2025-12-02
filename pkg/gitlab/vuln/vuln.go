@@ -3,9 +3,9 @@ package vuln
 import (
 	"os"
 
-	"github.com/CompassSecurity/pipeleak/pkg/gitlab/nist"
-	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
-	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
+	"github.com/CompassSecurity/pipeleek/pkg/gitlab/nist"
+	"github.com/CompassSecurity/pipeleek/pkg/gitlab/util"
+	"github.com/CompassSecurity/pipeleek/pkg/httpclient"
 	"github.com/rs/zerolog/log"
 	"github.com/tidwall/gjson"
 )
@@ -16,11 +16,11 @@ func RunCheckVulns(gitlabUrl, gitlabApiToken string) {
 	log.Info().Str("version", installedVersion.Version).Msg("GitLab")
 
 	log.Info().Str("version", installedVersion.Version).Msg("Fetching CVEs for this version")
-	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
+	client := httpclient.GetPipeleekHTTPClient("", nil, nil)
 	baseURL := "https://services.nvd.nist.gov/rest/json/cves/2.0"
 
 	// Allow overriding NIST base URL via environment variable (primarily for testing)
-	if envURL := os.Getenv("PIPELEAK_NIST_BASE_URL"); envURL != "" {
+	if envURL := os.Getenv("PIPELEEK_NIST_BASE_URL"); envURL != "" {
 		baseURL = envURL
 	}
 

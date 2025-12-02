@@ -1,7 +1,7 @@
 package github
 
 import (
-	"github.com/CompassSecurity/pipeleak/internal/cmd/github/scan"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/github/scan"
 	"github.com/spf13/cobra"
 )
 

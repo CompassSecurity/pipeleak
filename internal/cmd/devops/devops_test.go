@@ -3,7 +3,7 @@ package devops
 import (
 	"testing"
 
-	"github.com/CompassSecurity/pipeleak/internal/cmd/devops/scan"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/devops/scan"
 )
 
 func TestNewAzureDevOpsRootCmd(t *testing.T) {

@@ -1,5 +1,5 @@
 {
-  "name": "Pipeleak Development",
+  "name": "Pipeleek Development",
   "image": "mcr.microsoft.com/devcontainers/go:1-bookworm",
   "features": {
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},

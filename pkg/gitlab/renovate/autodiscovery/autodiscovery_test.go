@@ -110,7 +110,7 @@ func TestExploitScript(t *testing.T) {
 	})
 
 	t.Run("creates proof file in /tmp", func(t *testing.T) {
-		assert.Contains(t, exploitScript, "/tmp/pipeleak-exploit-executed.txt")
+		assert.Contains(t, exploitScript, "/tmp/pipeleek-exploit-executed.txt")
 	})
 
 	t.Run("records execution timestamp", func(t *testing.T) {
@@ -157,16 +157,16 @@ func TestGitlabCiYml(t *testing.T) {
 
 	t.Run("checks for exploit execution", func(t *testing.T) {
 		assert.Contains(t, gitlabCiYml, "Checking if exploit executed")
-		assert.Contains(t, gitlabCiYml, "/tmp/pipeleak-exploit-executed.txt")
+		assert.Contains(t, gitlabCiYml, "/tmp/pipeleek-exploit-executed.txt")
 	})
 
 	t.Run("displays success message", func(t *testing.T) {
 		assert.Contains(t, gitlabCiYml, "SUCCESS: Exploit was executed!")
-		assert.Contains(t, gitlabCiYml, "cat /tmp/pipeleak-exploit-executed.txt")
+		assert.Contains(t, gitlabCiYml, "cat /tmp/pipeleek-exploit-executed.txt")
 	})
 
 	t.Run("copies proof file for artifact collection", func(t *testing.T) {
-		assert.Contains(t, gitlabCiYml, "cp /tmp/pipeleak-exploit-executed.txt exploit-proof.txt")
+		assert.Contains(t, gitlabCiYml, "cp /tmp/pipeleek-exploit-executed.txt exploit-proof.txt")
 	})
 
 	t.Run("configures debug logging", func(t *testing.T) {
@@ -188,7 +188,7 @@ func TestGitlabCiYml(t *testing.T) {
 	})
 
 	t.Run("provides helpful failure messages", func(t *testing.T) {
-		assert.Contains(t, gitlabCiYml, "FAILED: /tmp/pipeleak-exploit-executed.txt not found")
+		assert.Contains(t, gitlabCiYml, "FAILED: /tmp/pipeleek-exploit-executed.txt not found")
 		assert.Contains(t, gitlabCiYml, "Checking /tmp for any proof files")
 	})
 }
@@ -376,10 +376,10 @@ func TestExploitMechanism(t *testing.T) {
 		assert.Contains(t, gradlewScript, "sh exploit.sh")
 
 		// 4. exploit.sh creates proof file
-		assert.Contains(t, exploitScript, "/tmp/pipeleak-exploit-executed.txt")
+		assert.Contains(t, exploitScript, "/tmp/pipeleek-exploit-executed.txt")
 
 		// 5. CI verification finds the proof file
-		assert.Contains(t, gitlabCiYml, "/tmp/pipeleak-exploit-executed.txt")
+		assert.Contains(t, gitlabCiYml, "/tmp/pipeleek-exploit-executed.txt")
 	})
 }
 

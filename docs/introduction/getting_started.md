@@ -1,6 +1,6 @@
 ---
-title: Getting Started with Pipeleak
-description: Learn how to install and use Pipeleak to scan your CI/CD pipelines for secrets.
+title: Getting Started with Pipeleek
+description: Learn how to install and use Pipeleek to scan your CI/CD pipelines for secrets.
 keywords:
   - pipeline secrets scanner
   - CI/CD secrets detection
@@ -11,15 +11,15 @@ keywords:
 ---
 
 <p align="center">
-  <img style="max-height: 10rem" src="https://github.com/CompassSecurity/pipeleak/blob/main/docs/logo.png?raw=true" alt="Pipeleak Logo - CI/CD Pipeline Secrets Scanner">
+  <img style="max-height: 10rem" src="https://github.com/CompassSecurity/pipeleek/blob/main/docs/logo.png?raw=true" alt="Pipeleek Logo - CI/CD Pipeline Secrets Scanner">
 </p>
 
-# Why Pipeleak? {#why}
+# Why Pipeleek? {#why}
 
 Scanning for credentials in CI/CD pipelines is interesting because secrets often end up in pipeline logs or build artifacts that traditional Git scanners won’t check.
 This means you can catch leaked secrets that are injected or generated at runtime, not just those committed to Git.
 
-Once secrets are discovered, further exploitation often requires additional tooling. Pipeleak provides several helper commands to assist with this process.
+Once secrets are discovered, further exploitation often requires additional tooling. Pipeleek provides several helper commands to assist with this process.
 
 # Getting Started
 
@@ -27,95 +27,95 @@ Once secrets are discovered, further exploitation often requires additional tool
 
 ### Install with Go
 
-The recommended way to install Pipeleak is using Go:
+The recommended way to install Pipeleek is using Go:
 
 ```bash
-go install github.com/CompassSecurity/pipeleak/cmd/pipeleak@latest
+go install github.com/CompassSecurity/pipeleek/cmd/pipeleek@latest
 ```
 
 ### Linux
 
-1. Visit the [Pipeleak GitHub Releases](https://github.com/CompassSecurity/pipeleak/releases) page.
+1. Visit the [Pipeleek GitHub Releases](https://github.com/CompassSecurity/pipeleek/releases) page.
 
 2. Download the binary for your architecture:
 
-   - For Linux amd64: `pipeleak_<version>_linux_amd64`
-   - For Linux arm64: `pipeleak_<version>_linux_arm64`
+   - For Linux amd64: `pipeleek_<version>_linux_amd64`
+   - For Linux arm64: `pipeleek_<version>_linux_arm64`
 
 3. Make it executable and run it:
 
    ```bash
-   chmod +x pipeleak_<version>_linux_amd64
-   ./pipeleak_<version>_linux_amd64 --version
+   chmod +x pipeleek_<version>_linux_amd64
+   ./pipeleek_<version>_linux_amd64 --version
    ```
 
    You can rename or move it to a directory in your PATH:
 
    ```bash
-   sudo mv pipeleak_<version>_linux_amd64 /usr/local/bin/pipeleak
-   pipeleak --version
+   sudo mv pipeleek_<version>_linux_amd64 /usr/local/bin/pipeleek
+   pipeleek --version
    ```
 
 ### macOS
 
-1. Visit the [Pipeleak GitHub Releases](https://github.com/CompassSecurity/pipeleak/releases) page.
+1. Visit the [Pipeleek GitHub Releases](https://github.com/CompassSecurity/pipeleek/releases) page.
 
 2. Download the binary for your Mac architecture:
 
-   - For Intel Macs (amd64): `pipeleak_<version>_darwin_amd64`
-   - For Apple Silicon Macs (arm64): `pipeleak_<version>_darwin_arm64`
+   - For Intel Macs (amd64): `pipeleek_<version>_darwin_amd64`
+   - For Apple Silicon Macs (arm64): `pipeleek_<version>_darwin_arm64`
 
 3. Make it executable and run it:
 
    ```bash
-   chmod +x pipeleak_<version>_darwin_arm64
-   ./pipeleak_<version>_darwin_arm64 --version
+   chmod +x pipeleek_<version>_darwin_arm64
+   ./pipeleek_<version>_darwin_arm64 --version
    ```
 
    You can move it to a directory in your PATH:
 
    ```bash
-   sudo mv pipeleak_<version>_darwin_arm64 /usr/local/bin/pipeleak
-   pipeleak --version
+   sudo mv pipeleek_<version>_darwin_arm64 /usr/local/bin/pipeleek
+   pipeleek --version
    ```
 
    **Note:** On first run, macOS may block the binary. You can allow it in System Settings → Privacy & Security, or run:
 
    ```bash
-   xattr -d com.apple.quarantine pipeleak
+   xattr -d com.apple.quarantine pipeleek
    ```
 
 ### Windows
 
-1. Visit the [Pipeleak GitHub Releases](https://github.com/CompassSecurity/pipeleak/releases) page.
+1. Visit the [Pipeleek GitHub Releases](https://github.com/CompassSecurity/pipeleek/releases) page.
 
 2. Download the Windows binary for your architecture:
 
-   - For Windows amd64: `pipeleak_<version>_windows_amd64.exe`
-   - For Windows arm64: `pipeleak_<version>_windows_arm64.exe`
+   - For Windows amd64: `pipeleek_<version>_windows_amd64.exe`
+   - For Windows arm64: `pipeleek_<version>_windows_arm64.exe`
 
 3. Open PowerShell or Command Prompt and verify installation:
 
    ```powershell
-   .\pipeleak_<version>_windows_amd64.exe --version
+   .\pipeleek_<version>_windows_amd64.exe --version
    ```
 
    You can rename it for convenience:
 
    ```powershell
-   Rename-Item pipeleak_<version>_windows_amd64.exe pipeleak.exe
-   .\pipeleak.exe --version
+   Rename-Item pipeleek_<version>_windows_amd64.exe pipeleek.exe
+   .\pipeleek.exe --version
    ```
 
 ### Platform-Specific Binaries
 
-Pipeleak also provides platform-specific binaries that include only the commands for a specific CI/CD platform. These are smaller and more focused:
+Pipeleek also provides platform-specific binaries that include only the commands for a specific CI/CD platform. These are smaller and more focused:
 
-- `pipeleak-gitlab_<version>_<os>_<arch>` - GitLab commands only
-- `pipeleak-github_<version>_<os>_<arch>` - GitHub commands only
-- `pipeleak-bitbucket_<version>_<os>_<arch>` - BitBucket commands only
-- `pipeleak-devops_<version>_<os>_<arch>` - Azure DevOps commands only
-- `pipeleak-gitea_<version>_<os>_<arch>` - Gitea commands only
+- `pipeleek-gitlab_<version>_<os>_<arch>` - GitLab commands only
+- `pipeleek-github_<version>_<os>_<arch>` - GitHub commands only
+- `pipeleek-bitbucket_<version>_<os>_<arch>` - BitBucket commands only
+- `pipeleek-devops_<version>_<os>_<arch>` - Azure DevOps commands only
+- `pipeleek-gitea_<version>_<os>_<arch>` - Gitea commands only
 
 These binaries are available for:
 
@@ -130,17 +130,17 @@ These binaries are available for:
 The most basic example to scan e.g. GitLab pipeline logs for secrets. Check the docs for other platforms and more options.
 
 ```bash
-pipeleak gl scan --token glpat-[redacted] --gitlab https://gitlab.example.com
+pipeleek gl scan --token glpat-[redacted] --gitlab https://gitlab.example.com
 ```
 
 ### Scanning Artifacts
 
-In addition to logs, Pipeleak can also scan artifacts generated by pipelines.
+In addition to logs, Pipeleek can also scan artifacts generated by pipelines.
 
 Note that the `scan` commands must be configured to scan artifacts. This feature is disabled by default.
 
 ```bash
-pipeleak gl scan --token glpat-[redacted] --gitlab https://gitlab.example.com -a
+pipeleek gl scan --token glpat-[redacted] --gitlab https://gitlab.example.com -a
 ```
 
 ### Result Confidence
@@ -162,11 +162,11 @@ Note: `high-verified` cannot be removed, but verification can be disabled using 
 
 ### Customizing Scan Rules
 
-When you run Pipeleak for the first time, it generates a `rules.yml` file based on [this repository](https://github.com/mazen160/secrets-patterns-db/blob/master/db/rules-stable.yml). You can customize your scan rules by modifying this file as needed.
+When you run Pipeleek for the first time, it generates a `rules.yml` file based on [this repository](https://github.com/mazen160/secrets-patterns-db/blob/master/db/rules-stable.yml). You can customize your scan rules by modifying this file as needed.
 
 ### Log Levels
 
-Pipeleak supports different log levels to control output verbosity:
+Pipeleek supports different log levels to control output verbosity:
 
 - **info** (default) - Standard informational messages
 - **debug** - Detailed diagnostic information
@@ -180,13 +180,13 @@ You can set the log level in two ways:
 
 ```bash
 # Short form - sets debug level
-pipeleak gl scan --token glpat-xxx --gitlab https://gitlab.com -v
+pipeleek gl scan --token glpat-xxx --gitlab https://gitlab.com -v
 
 # Long form with specific level
-pipeleak gl scan --token glpat-xxx --gitlab https://gitlab.com --log-level debug
-pipeleak gl scan --token glpat-xxx --gitlab https://gitlab.com --log-level trace
-pipeleak gl scan --token glpat-xxx --gitlab https://gitlab.com --log-level warn
-pipeleak gl scan --token glpat-xxx --gitlab https://gitlab.com --log-level error
+pipeleek gl scan --token glpat-xxx --gitlab https://gitlab.com --log-level debug
+pipeleek gl scan --token glpat-xxx --gitlab https://gitlab.com --log-level trace
+pipeleek gl scan --token glpat-xxx --gitlab https://gitlab.com --log-level warn
+pipeleek gl scan --token glpat-xxx --gitlab https://gitlab.com --log-level error
 ```
 
 **Interactive keybindings:**

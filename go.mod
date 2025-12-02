@@ -1,4 +1,4 @@
-module github.com/CompassSecurity/pipeleak
+module github.com/CompassSecurity/pipeleek
 
 go 1.24.0
 

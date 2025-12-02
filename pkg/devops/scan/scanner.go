@@ -5,12 +5,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/pkg/format"
-	artifactproc "github.com/CompassSecurity/pipeleak/pkg/scan/artifact"
-	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
-	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
-	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
-	pkgscanner "github.com/CompassSecurity/pipeleak/pkg/scanner"
+	"github.com/CompassSecurity/pipeleek/pkg/format"
+	artifactproc "github.com/CompassSecurity/pipeleek/pkg/scan/artifact"
+	"github.com/CompassSecurity/pipeleek/pkg/scan/logline"
+	"github.com/CompassSecurity/pipeleek/pkg/scan/result"
+	"github.com/CompassSecurity/pipeleek/pkg/scan/runner"
+	pkgscanner "github.com/CompassSecurity/pipeleek/pkg/scanner"
 	"github.com/rs/zerolog/log"
 )
 
