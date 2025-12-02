@@ -26,9 +26,9 @@ builds:
       - arm64
     ldflags:
       - -s -w
-      - -X main.Version={{.Version}}
-      - -X main.Commit={{.Commit}}
-      - -X main.Date={{.Date}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Version={{.Version}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Commit={{.Commit}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Date={{.Date}}
   - id: "pipeleak-github"
     main: ./cmd/pipeleak-github
     binary: pipeleak-github
@@ -40,9 +40,9 @@ builds:
       - arm64
     ldflags:
       - -s -w
-      - -X main.Version={{.Version}}
-      - -X main.Commit={{.Commit}}
-      - -X main.Date={{.Date}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Version={{.Version}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Commit={{.Commit}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Date={{.Date}}
   - id: "pipeleak-bitbucket"
     main: ./cmd/pipeleak-bitbucket
     binary: pipeleak-bitbucket
@@ -54,9 +54,9 @@ builds:
       - arm64
     ldflags:
       - -s -w
-      - -X main.Version={{.Version}}
-      - -X main.Commit={{.Commit}}
-      - -X main.Date={{.Date}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Version={{.Version}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Commit={{.Commit}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Date={{.Date}}
   - id: "pipeleak-devops"
     main: ./cmd/pipeleak-devops
     binary: pipeleak-devops
@@ -68,9 +68,9 @@ builds:
       - arm64
     ldflags:
       - -s -w
-      - -X main.Version={{.Version}}
-      - -X main.Commit={{.Commit}}
-      - -X main.Date={{.Date}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Version={{.Version}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Commit={{.Commit}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Date={{.Date}}
   - id: "pipeleak-gitea"
     main: ./cmd/pipeleak-gitea
     binary: pipeleak-gitea
@@ -82,6 +82,6 @@ builds:
       - arm64
     ldflags:
       - -s -w
-      - -X main.Version={{.Version}}
-      - -X main.Commit={{.Commit}}
-      - -X main.Date={{.Date}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Version={{.Version}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Commit={{.Commit}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Date={{.Date}}
