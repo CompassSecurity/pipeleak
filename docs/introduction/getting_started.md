@@ -33,37 +33,95 @@ The recommended way to install Pipeleak is using Go:
 go install github.com/CompassSecurity/pipeleak/cmd/pipeleak@latest
 ```
 
-### Linux / macOS
+### Linux
 
 1. Visit the [Pipeleak GitHub Releases](https://github.com/CompassSecurity/pipeleak/releases) page.
 
-2. Download the binary for your operating system and architecture:
+2. Download the binary for your architecture:
 
-   - For Linux: `pipeleak-<version>-linux-<arch>.tar.gz`
-   - For macOS: `pipeleak-<version>-darwin-<arch>.tar.gz`
+   - For Linux amd64: `pipeleak_<version>_linux_amd64`
+   - For Linux arm64: `pipeleak_<version>_linux_arm64`
 
-3. Extract the archive, make it executable and run it:
+3. Make it executable and run it:
 
    ```bash
-   tar -xzf pipeleak-<version>-<os>-<arch>.tar.gz
-   chmod +x pipeleak
-   ./pipeleak --version
+   chmod +x pipeleak_<version>_linux_amd64
+   ./pipeleak_<version>_linux_amd64 --version
+   ```
+
+   You can rename or move it to a directory in your PATH:
+
+   ```bash
+   sudo mv pipeleak_<version>_linux_amd64 /usr/local/bin/pipeleak
+   pipeleak --version
+   ```
+
+### macOS
+
+1. Visit the [Pipeleak GitHub Releases](https://github.com/CompassSecurity/pipeleak/releases) page.
+
+2. Download the binary for your Mac architecture:
+
+   - For Intel Macs (amd64): `pipeleak_<version>_darwin_amd64`
+   - For Apple Silicon Macs (arm64): `pipeleak_<version>_darwin_arm64`
+
+3. Make it executable and run it:
+
+   ```bash
+   chmod +x pipeleak_<version>_darwin_arm64
+   ./pipeleak_<version>_darwin_arm64 --version
+   ```
+
+   You can move it to a directory in your PATH:
+
+   ```bash
+   sudo mv pipeleak_<version>_darwin_arm64 /usr/local/bin/pipeleak
+   pipeleak --version
+   ```
+
+   **Note:** On first run, macOS may block the binary. You can allow it in System Settings → Privacy & Security, or run:
+
+   ```bash
+   xattr -d com.apple.quarantine pipeleak
    ```
 
 ### Windows
 
 1. Visit the [Pipeleak GitHub Releases](https://github.com/CompassSecurity/pipeleak/releases) page.
 
-2. Download the Windows binary:
+2. Download the Windows binary for your architecture:
 
-   - For 64-bit Windows: `pipeleak-<version>-windows-<arch>.zip`
+   - For Windows amd64: `pipeleak_<version>_windows_amd64.exe`
+   - For Windows arm64: `pipeleak_<version>_windows_arm64.exe`
 
-3. Extract the ZIP archive to a folder of your choice (e.g., `C:\Tools\pipeleak\`).
+3. Open PowerShell or Command Prompt and verify installation:
 
-4. Open PowerShell or Command Prompt and verify installation:
    ```powershell
+   .\pipeleak_<version>_windows_amd64.exe --version
+   ```
+
+   You can rename it for convenience:
+
+   ```powershell
+   Rename-Item pipeleak_<version>_windows_amd64.exe pipeleak.exe
    .\pipeleak.exe --version
    ```
+
+### Platform-Specific Binaries
+
+Pipeleak also provides platform-specific binaries that include only the commands for a specific CI/CD platform. These are smaller and more focused:
+
+- `pipeleak-gitlab_<version>_<os>_<arch>` - GitLab commands only
+- `pipeleak-github_<version>_<os>_<arch>` - GitHub commands only
+- `pipeleak-bitbucket_<version>_<os>_<arch>` - BitBucket commands only
+- `pipeleak-devops_<version>_<os>_<arch>` - Azure DevOps commands only
+- `pipeleak-gitea_<version>_<os>_<arch>` - Gitea commands only
+
+These binaries are available for:
+
+- Linux: amd64, arm64
+- Windows: amd64, arm64
+- macOS: amd64 (Intel), arm64 (Apple Silicon)
 
 ## Usage Examples
 
