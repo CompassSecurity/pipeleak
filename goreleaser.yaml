@@ -91,3 +91,52 @@ builds:
       - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Version={{.Version}}
       - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Commit={{.Commit}}
       - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Date={{.Date}}
+
+archives:
+  - id: pipeleak-archive
+    builds:
+      - pipeleak
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+  - id: pipeleak-gitlab-archive
+    builds:
+      - pipeleak-gitlab
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+  - id: pipeleak-github-archive
+    builds:
+      - pipeleak-github
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+  - id: pipeleak-bitbucket-archive
+    builds:
+      - pipeleak-bitbucket
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+  - id: pipeleak-devops-archive
+    builds:
+      - pipeleak-devops
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+  - id: pipeleak-gitea-archive
+    builds:
+      - pipeleak-gitea
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+
+release:
+  github:
+    owner: CompassSecurity
+    name: pipeleak
