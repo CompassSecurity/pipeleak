@@ -1,7 +1,7 @@
 package cicd
 
 import (
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitlab/cicd/yaml"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab/cicd/yaml"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )

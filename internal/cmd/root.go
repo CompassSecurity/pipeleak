@@ -7,14 +7,14 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/internal/cmd/bitbucket"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/devops"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/docs"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitea"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/github"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitlab"
-	"github.com/CompassSecurity/pipeleak/pkg/format"
-	"github.com/CompassSecurity/pipeleak/pkg/logging"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/bitbucket"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/devops"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/docs"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitea"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/github"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab"
+	"github.com/CompassSecurity/pipeleek/pkg/format"
+	"github.com/CompassSecurity/pipeleek/pkg/logging"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -32,10 +32,10 @@ var (
 
 var (
 	rootCmd = &cobra.Command{
-		Use:     "pipeleak",
+		Use:     "pipeleek",
 		Short:   "Scan job logs and artifacts for secrets",
-		Long:    "Pipeleak is a tool designed to scan CI/CD job output logs and artifacts for potential secrets.",
-		Example: "pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com",
+		Long:    "Pipeleek is a tool designed to scan CI/CD job output logs and artifacts for potential secrets.",
+		Example: "pipeleek gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com",
 		Version: getVersion(),
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			initLogger(cmd)

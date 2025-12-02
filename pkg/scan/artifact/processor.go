@@ -7,7 +7,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/pkg/scanner"
+	"github.com/CompassSecurity/pipeleek/pkg/scanner"
 	"github.com/h2non/filetype"
 	"github.com/rs/zerolog/log"
 	"github.com/wandb/parallel"

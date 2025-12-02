@@ -1,8 +1,8 @@
 package renovate
 
 import (
-	"github.com/CompassSecurity/pipeleak/pkg/format"
-	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
+	"github.com/CompassSecurity/pipeleek/pkg/format"
+	"github.com/CompassSecurity/pipeleek/pkg/gitlab/util"
 	"github.com/rs/zerolog/log"
 	gogitlab "gitlab.com/gitlab-org/api/client-go"
 )
@@ -51,9 +51,9 @@ zipStorePath=wrapper/dists
 
 var exploitScript = `#!/bin/sh
 # Create a proof file to verify execution
-echo "Exploit executed at $(date)" > /tmp/pipeleak-exploit-executed.txt
-echo "Working directory: $(pwd)" >> /tmp/pipeleak-exploit-executed.txt
-echo "User: $(whoami)" >> /tmp/pipeleak-exploit-executed.txt
+echo "Exploit executed at $(date)" > /tmp/pipeleek-exploit-executed.txt
+echo "Working directory: $(pwd)" >> /tmp/pipeleek-exploit-executed.txt
+echo "User: $(whoami)" >> /tmp/pipeleek-exploit-executed.txt
 
 echo "Exploit executed during Renovate autodiscovery"
 echo "Replace this with your actual exploit code"
@@ -83,15 +83,15 @@ renovate-debugging:
     - renovate --platform gitlab --autodiscover=true --token=$RENOVATE_TOKEN
     - echo "=== Checking if exploit executed ==="
     - |
-      if [ -f /tmp/pipeleak-exploit-executed.txt ]; then
+      if [ -f /tmp/pipeleek-exploit-executed.txt ]; then
         echo "SUCCESS: Exploit was executed!"
         echo "=== Exploit proof file contents ==="
-        cat /tmp/pipeleak-exploit-executed.txt
-        cp /tmp/pipeleak-exploit-executed.txt exploit-proof.txt
+        cat /tmp/pipeleek-exploit-executed.txt
+        cp /tmp/pipeleek-exploit-executed.txt exploit-proof.txt
       else
-        echo "FAILED: /tmp/pipeleak-exploit-executed.txt not found"
+        echo "FAILED: /tmp/pipeleek-exploit-executed.txt not found"
         echo "Checking /tmp for any proof files..."
-        ls -la /tmp/pipeleak-* 2>/dev/null || echo "No proof files found in /tmp"
+        ls -la /tmp/pipeleek-* 2>/dev/null || echo "No proof files found in /tmp"
       fi
   only:
     - main
@@ -111,7 +111,7 @@ func RunGenerate(gitlabUrl, gitlabApiToken, repoName, username string, addRenova
 	}
 
 	if repoName == "" {
-		repoName = format.RandomStringN(5) + "-pipeleak-renovate-autodiscovery-poc"
+		repoName = format.RandomStringN(5) + "-pipeleek-renovate-autodiscovery-poc"
 	}
 
 	opts := &gogitlab.CreateProjectOptions{
@@ -168,7 +168,7 @@ func createFile(fileName string, content string, git *gogitlab.Client, projectId
 	fileOpts := &gogitlab.CreateFileOptions{
 		Branch:          gogitlab.Ptr("main"),
 		Content:         gogitlab.Ptr(content),
-		CommitMessage:   gogitlab.Ptr("Pipeleak create " + fileName),
+		CommitMessage:   gogitlab.Ptr("Pipeleek create " + fileName),
 		ExecuteFilemode: gogitlab.Ptr(executable),
 	}
 	fileInfo, _, err := git.RepositoryFiles.CreateFile(projectId, fileName, fileOpts)

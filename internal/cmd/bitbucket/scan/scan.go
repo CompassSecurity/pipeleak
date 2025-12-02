@@ -1,9 +1,9 @@
 package scan
 
 import (
-	"github.com/CompassSecurity/pipeleak/internal/cmd/flags"
-	pkgscan "github.com/CompassSecurity/pipeleak/pkg/bitbucket/scan"
-	"github.com/CompassSecurity/pipeleak/pkg/config"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/flags"
+	pkgscan "github.com/CompassSecurity/pipeleek/pkg/bitbucket/scan"
+	"github.com/CompassSecurity/pipeleek/pkg/config"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -36,14 +36,14 @@ A note on artifacts: Bitbucket artifacts are only stored for a limited time and 
 		  `,
 		Example: `
 # Scan a workspace (find public ones here: https://bitbucket.org/repo/all/) without artifacts
-pipeleak bb scan --token ATATTxxxxxx --email auser@example.com --workspace bitbucketpipelines
+pipeleek bb scan --token ATATTxxxxxx --email auser@example.com --workspace bitbucketpipelines
 
 # Scan your owned repositories and their artifacts
-pipeleak bb scan -t ATATTxxxxxx -c eyJxxxxxxxxxxx --artifacts -e auser@example.com --owned
+pipeleek bb scan -t ATATTxxxxxx -c eyJxxxxxxxxxxx --artifacts -e auser@example.com --owned
 
 # Scan all public repositories without their artifacts
 > If using --after, the API becomes quite unreliable 👀
-pipeleak bb scan --token ATATTxxxxxx --email auser@example.com --public --maxPipelines 5 --after 2025-03-01T15:00:00+00:00
+pipeleek bb scan --token ATATTxxxxxx --email auser@example.com --public --maxPipelines 5 --after 2025-03-01T15:00:00+00:00
 		`,
 		Run: Scan,
 	}

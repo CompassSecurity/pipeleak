@@ -1,7 +1,7 @@
 package docs
 
 import (
-	pkgdocs "github.com/CompassSecurity/pipeleak/pkg/docs"
+	pkgdocs "github.com/CompassSecurity/pipeleek/pkg/docs"
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +15,7 @@ func NewDocsCmd(root *cobra.Command) *cobra.Command {
 		Long:  "Generates documentation for all commands. Must be run in an environment where 'mkdocs' is installed.",
 		Example: `
 # Generate docs and serve them at http://localhost:8000
-pipeleak docs --serve
+pipeleek docs --serve
 		`,
 		Run: func(cmd *cobra.Command, args []string) {
 			pkgdocs.Generate(pkgdocs.GenerateOptions{

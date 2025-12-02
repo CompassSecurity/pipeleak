@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/tests/e2e/internal/testutil"
+	"github.com/CompassSecurity/pipeleek/tests/e2e/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +21,7 @@ func TestRootCommand_Help(t *testing.T) {
 
 	// Verify expected help content
 	testutil.AssertLogContains(t, stdout, []string{
-		"pipeleak",
+		"pipeleek",
 		"Usage:",
 	})
 

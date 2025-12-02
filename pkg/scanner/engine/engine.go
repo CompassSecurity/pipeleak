@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/pkg/scanner/rules"
-	"github.com/CompassSecurity/pipeleak/pkg/scanner/types"
+	"github.com/CompassSecurity/pipeleek/pkg/scanner/rules"
+	"github.com/CompassSecurity/pipeleek/pkg/scanner/types"
 	"github.com/acarl005/stripansi"
 	"github.com/rs/zerolog/log"
 	"github.com/rxwycdh/rxhash"

@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"code.gitea.io/sdk/gitea"
-	"github.com/CompassSecurity/pipeleak/pkg/format"
-	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
-	"github.com/CompassSecurity/pipeleak/pkg/scan/runner"
-	pkgscanner "github.com/CompassSecurity/pipeleak/pkg/scanner"
+	"github.com/CompassSecurity/pipeleek/pkg/format"
+	"github.com/CompassSecurity/pipeleek/pkg/httpclient"
+	"github.com/CompassSecurity/pipeleek/pkg/scan/runner"
+	pkgscanner "github.com/CompassSecurity/pipeleek/pkg/scanner"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog/log"
 )
@@ -272,7 +272,7 @@ func InitializeOptions(token, giteaURL, repository, organization, cookie, maxArt
 
 	var httpClient *retryablehttp.Client
 	if cookie != "" {
-		httpClient = httpclient.GetPipeleakHTTPClient(
+		httpClient = httpclient.GetPipeleekHTTPClient(
 			giteaURL,
 			[]*http.Cookie{
 				{
@@ -285,7 +285,7 @@ func InitializeOptions(token, giteaURL, repository, organization, cookie, maxArt
 			authHeaders,
 		)
 	} else {
-		httpClient = httpclient.GetPipeleakHTTPClient("", nil, authHeaders)
+		httpClient = httpclient.GetPipeleekHTTPClient("", nil, authHeaders)
 
 		standardHTTPClient := &http.Client{
 			Transport: &AuthTransport{

@@ -1,7 +1,7 @@
 package bitbucket
 
 import (
-	"github.com/CompassSecurity/pipeleak/internal/cmd/bitbucket/scan"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/bitbucket/scan"
 	"github.com/spf13/cobra"
 )
 

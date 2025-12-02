@@ -15,12 +15,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/pkg/format"
-	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
-	"github.com/CompassSecurity/pipeleak/pkg/logging"
-	artifactproc "github.com/CompassSecurity/pipeleak/pkg/scan/artifact"
-	"github.com/CompassSecurity/pipeleak/pkg/scan/logline"
-	"github.com/CompassSecurity/pipeleak/pkg/scan/result"
+	"github.com/CompassSecurity/pipeleek/pkg/format"
+	"github.com/CompassSecurity/pipeleek/pkg/httpclient"
+	"github.com/CompassSecurity/pipeleek/pkg/logging"
+	artifactproc "github.com/CompassSecurity/pipeleek/pkg/scan/artifact"
+	"github.com/CompassSecurity/pipeleek/pkg/scan/logline"
+	"github.com/CompassSecurity/pipeleek/pkg/scan/result"
 	"github.com/h2non/filetype"
 	"github.com/nsqio/go-diskqueue"
 	"github.com/rs/zerolog/log"
@@ -68,7 +68,7 @@ func setupQueue(options *ScanOptions) (diskqueue.Interface, string) {
 		log.Fatal().Err(err).Msg("Failed to create queue directory")
 	}
 
-	tmpfile, err := os.CreateTemp(queueDirectory, "pipeleak-queue-db-")
+	tmpfile, err := os.CreateTemp(queueDirectory, "pipeleek-queue-db-")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Creating temp DB file failed")
 	}
@@ -296,7 +296,7 @@ func DownloadEnvArtifact(cookieVal string, gitlabUrl string, prjectPath string, 
 	reqUrl.RawQuery = q.Encode()
 	dotenvUrl = reqUrl.String()
 
-	client := httpclient.GetPipeleakHTTPClient(gitlabUrl, []*http.Cookie{{Name: "_gitlab_session", Value: cookieVal}}, nil)
+	client := httpclient.GetPipeleekHTTPClient(gitlabUrl, []*http.Cookie{{Name: "_gitlab_session", Value: cookieVal}}, nil)
 	resp, err := client.Get(dotenvUrl)
 	if err != nil {
 		log.Debug().Stack().Err(err).Msg("Failed requesting dotenv artifact")

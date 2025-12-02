@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/CompassSecurity/pipeleak/pkg/logging"
-	"github.com/CompassSecurity/pipeleak/pkg/scanner"
+	"github.com/CompassSecurity/pipeleek/pkg/logging"
+	"github.com/CompassSecurity/pipeleek/pkg/scanner"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/tests/e2e/internal/testutil"
+	"github.com/CompassSecurity/pipeleek/tests/e2e/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -129,7 +129,7 @@ func TestLogging_ConsoleWithExplicitColorDisabled(t *testing.T) {
 // TestLogging_LogFileCreatedSuccessfully verifies log file creation
 func TestLogging_LogFileCreatedSuccessfully(t *testing.T) {
 	tmpDir := t.TempDir()
-	logFile := filepath.Join(tmpDir, "pipeleak.log")
+	logFile := filepath.Join(tmpDir, "pipeleek.log")
 
 	_, err := os.Stat(logFile)
 	assert.True(t, os.IsNotExist(err), "Log file should not exist before command")

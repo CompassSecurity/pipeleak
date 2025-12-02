@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/pkg/scanner/rules"
-	"github.com/CompassSecurity/pipeleak/pkg/scanner/types"
+	"github.com/CompassSecurity/pipeleek/pkg/scanner/rules"
+	"github.com/CompassSecurity/pipeleek/pkg/scanner/types"
 )
 
 func init() {

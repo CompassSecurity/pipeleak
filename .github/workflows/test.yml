@@ -18,34 +18,34 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v6
-      
+
       - uses: actions/setup-go@v6
         with:
           go-version: stable
           cache: true
-      
+
       - name: Run unit tests (Linux)
         if: runner.os == 'Linux'
         run: make test-unit
-      
+
       - name: Generate coverage report (Linux)
         if: runner.os == 'Linux'
         run: go test $(go list ./... | grep -v /tests/e2e) -coverprofile=coverage.out -covermode=atomic
-      
+
       - name: Run unit tests (Windows)
         if: runner.os == 'Windows'
         run: |
           $packages = go list ./... | Where-Object { $_ -notmatch '/tests/e2e' }
           go test $packages -v -race
         shell: pwsh
-      
+
       - name: Upload coverage artifact (Linux)
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v5
         with:
           name: coverage-linux
           path: ./coverage.out
-  
+
   e2e-tests:
     name: E2E Tests
     runs-on: ${{ matrix.os }}
@@ -54,23 +54,23 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     steps:
       - uses: actions/checkout@v6
-      
+
       - uses: actions/setup-go@v6
         with:
           go-version: stable
           cache: true
-      
-      - name: Build pipeleak binary for e2e tests (Windows)
+
+      - name: Build pipeleek binary for e2e tests (Windows)
         if: runner.os == 'Windows'
-        run: go build -o pipeleak.exe ./cmd/pipeleak
-      
+        run: go build -o pipeleek.exe ./cmd/pipeleek
+
       - name: Run e2e tests (Linux)
         if: runner.os == 'Linux'
         run: make test-e2e
-      
+
       - name: Run e2e tests (Windows)
         if: runner.os == 'Windows'
         run: |
-          $env:PIPELEAK_BINARY = "$(Get-Location)\pipeleak.exe"
+          $env:PIPELEAK_BINARY = "$(Get-Location)\pipeleek.exe"
           go test ./tests/e2e/... -tags=e2e -v -timeout 10m
         shell: pwsh

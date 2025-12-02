@@ -3,7 +3,7 @@ package scan
 import (
 	"testing"
 
-	"github.com/CompassSecurity/pipeleak/pkg/config"
+	"github.com/CompassSecurity/pipeleek/pkg/config"
 )
 
 func TestNewScanCmd(t *testing.T) {

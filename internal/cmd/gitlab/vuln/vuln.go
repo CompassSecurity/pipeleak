@@ -1,7 +1,7 @@
 package vuln
 
 import (
-	pkgvuln "github.com/CompassSecurity/pipeleak/pkg/gitlab/vuln"
+	pkgvuln "github.com/CompassSecurity/pipeleek/pkg/gitlab/vuln"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -16,7 +16,7 @@ func NewVulnCmd() *cobra.Command {
 		Use:     "vuln",
 		Short:   "Check if the installed GitLab version is vulnerable",
 		Long:    "Check the installed GitLab instance version against the NIST vulnerability database to see if it is affected by any vulnerabilities.",
-		Example: `pipeleak gl vuln --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com`,
+		Example: `pipeleek gl vuln --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com`,
 		Run:     CheckVulns,
 	}
 	vulnCmd.Flags().StringVarP(&gitlabUrl, "gitlab", "g", "", "GitLab instance URL")

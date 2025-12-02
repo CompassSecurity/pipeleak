@@ -1,7 +1,7 @@
 package yaml
 
 import (
-	pkgcicd "github.com/CompassSecurity/pipeleak/pkg/gitlab/cicd/yaml"
+	pkgcicd "github.com/CompassSecurity/pipeleek/pkg/gitlab/cicd/yaml"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -13,7 +13,7 @@ func NewYamlCmd() *cobra.Command {
 		Use:     "yaml",
 		Short:   "Dump the CI/CD yaml configuration of a project",
 		Long:    "Dump the CI/CD yaml configuration of a project, useful for analyzing the configuration and identifying potential security issues.",
-		Example: `pipeleak gl cicd yaml --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com --project mygroup/myproject`,
+		Example: `pipeleek gl cicd yaml --token glpat-xxxxxxxxxxx --gitlab https://gitlab.mydomain.com --project mygroup/myproject`,
 		Run: func(cmd *cobra.Command, args []string) {
 			gitlabUrl, _ := cmd.Flags().GetString("gitlab")
 			gitlabApiToken, _ := cmd.Flags().GetString("token")

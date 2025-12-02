@@ -1,10 +1,10 @@
 package scan
 
 import (
-	"github.com/CompassSecurity/pipeleak/internal/cmd/flags"
-	"github.com/CompassSecurity/pipeleak/pkg/config"
-	"github.com/CompassSecurity/pipeleak/pkg/gitlab/scan"
-	"github.com/CompassSecurity/pipeleak/pkg/logging"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/flags"
+	"github.com/CompassSecurity/pipeleek/pkg/config"
+	"github.com/CompassSecurity/pipeleek/pkg/gitlab/scan"
+	"github.com/CompassSecurity/pipeleek/pkg/logging"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -41,25 +41,25 @@ You can tweak --threads, --max-artifact-size and --job-limit to obtain a customi
 `,
 		Example: `
 # Scan all accessible projects pipelines and their artifacts and dotenv artifacts on gitlab.com
-pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com -a -c [value-of-valid-_gitlab_session]
+pipeleek gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com -a -c [value-of-valid-_gitlab_session]
 
 # Scan all projects matching the search query kubernetes
-pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com --search kubernetes
+pipeleek gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com --search kubernetes
 
 # Scan all pipelines of projects you own
-pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com --owned
+pipeleek gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com --owned
 
 # Scan all pipelines of projects you are a member of
-pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com --member
+pipeleek gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com --member
 
 # Scan all accessible projects pipelines but limit the number of jobs scanned per project to 10, only scan artifacts smaller than 200MB and use 8 threads
-pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com --job-limit 10 -a --max-artifact-size 200Mb --threads 8
+pipeleek gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com --job-limit 10 -a --max-artifact-size 200Mb --threads 8
 
 # Scan a single repository
-pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com --repo mygroup/myproject
+pipeleek gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com --repo mygroup/myproject
 
 # Scan all repositories in a namespace
-pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com --namespace mygroup
+pipeleek gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.example.com --namespace mygroup
 		`,
 		Run: Scan,
 	}

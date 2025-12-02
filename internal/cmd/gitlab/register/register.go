@@ -1,7 +1,7 @@
 package register
 
 import (
-	"github.com/CompassSecurity/pipeleak/pkg/gitlab/util"
+	"github.com/CompassSecurity/pipeleek/pkg/gitlab/util"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -18,7 +18,7 @@ func NewRegisterCmd() *cobra.Command {
 		Use:     "register",
 		Short:   "Register a new user to a Gitlab instance",
 		Long:    "Register a new user to a Gitlab instance that allows self-registration. This command is best effort and might not work.",
-		Example: `pipeleak gl register --gitlab https://gitlab.mydomain.com --username newuser --password newpassword --email newuser@example.com`,
+		Example: `pipeleek gl register --gitlab https://gitlab.mydomain.com --username newuser --password newpassword --email newuser@example.com`,
 		Run: func(cmd *cobra.Command, args []string) {
 			util.RegisterNewAccount(gitlabUrl, username, password, email)
 		},

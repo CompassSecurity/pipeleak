@@ -1,75 +1,76 @@
-{% extends "base.html" %}
-{% block extrahead %}
-  {% set title = config.site_name %}
-  {% if page and page.meta and page.meta.title %}
-    {% set title = title ~ " - " ~ page.meta.title %}
-  {% elif page and page.title and not page.is_homepage %}
-    {% set title = title ~ " - " ~ page.title | striptags %}
-  {% endif %}
-  <meta property="og:type" content="website" />
-  <meta property="og:title" content="{{ title }}" />
-  <meta property="og:description" content="{{ config.site_description }}" />
-  <meta property="og:url" content="{{ page.canonical_url }}" />
-  <meta property="og:image" content="https://raw.githubusercontent.com/CompassSecurity/pipeleak/refs/heads/main/docs/social.png" />
-  <meta property="og:image:type" content="image/png" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:site" content="@compassSecurity" />
-  <meta name="twitter:creator" content="compassSecurity" />
-  <meta name="twitter:title" content="{{ title }}" />
-  <meta name="twitter:description" content="{{ config.site_description }}" />
-  <meta name="twitter:image" content="https://raw.githubusercontent.com/CompassSecurity/pipeleak/refs/heads/main/docs/social.png" />
-{% endblock %}
+{% extends "base.html" %} {% block extrahead %} {% set title = config.site_name
+%} {% if page and page.meta and page.meta.title %} {% set title = title ~ " - "
+~ page.meta.title %} {% elif page and page.title and not page.is_homepage %} {%
+set title = title ~ " - " ~ page.title | striptags %} {% endif %}
+<meta property="og:type" content="website" />
+<meta property="og:title" content="{{ title }}" />
+<meta property="og:description" content="{{ config.site_description }}" />
+<meta property="og:url" content="{{ page.canonical_url }}" />
+<meta
+  property="og:image"
+  content="https://raw.githubusercontent.com/CompassSecurity/pipeleek/refs/heads/main/docs/social.png"
+/>
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:site" content="@compassSecurity" />
+<meta name="twitter:creator" content="compassSecurity" />
+<meta name="twitter:title" content="{{ title }}" />
+<meta name="twitter:description" content="{{ config.site_description }}" />
+<meta
+  name="twitter:image"
+  content="https://raw.githubusercontent.com/CompassSecurity/pipeleek/refs/heads/main/docs/social.png"
+/>
+{% endblock %} {% block scripts %} {{ super() }}
+<script>
+  // Mark current nav item as active after page load
+  document.addEventListener("DOMContentLoaded", function () {
+    var currentPath = window.location.pathname;
 
-{% block scripts %}
-  {{ super() }}
-  <script>
-    // Mark current nav item as active after page load
-    document.addEventListener('DOMContentLoaded', function() {
-      var currentPath = window.location.pathname;
-      
-      // Normalize paths - remove trailing slash unless it's root
-      var normalizePath = function(path) {
-        if (path === '/') return path;
-        return path.replace(/\/$/, '');
-      };
-      
-      // Resolve relative path to absolute based on current page location
-      var resolveRelativePath = function(href) {
-        if (href.startsWith('/') || href.startsWith('http')) {
-          return href;
+    // Normalize paths - remove trailing slash unless it's root
+    var normalizePath = function (path) {
+      if (path === "/") return path;
+      return path.replace(/\/$/, "");
+    };
+
+    // Resolve relative path to absolute based on current page location
+    var resolveRelativePath = function (href) {
+      if (href.startsWith("/") || href.startsWith("http")) {
+        return href;
+      }
+
+      // Create a temporary anchor element to resolve the relative path
+      var a = document.createElement("a");
+      a.href = href;
+      return a.pathname;
+    };
+
+    var normalizedCurrent = normalizePath(currentPath);
+
+    // Find all nav links in the primary sidebar
+    var navLinks = document.querySelectorAll(
+      ".md-sidebar--primary .md-nav__link"
+    );
+
+    navLinks.forEach(function (link) {
+      var href = link.getAttribute("href");
+      if (!href || href.startsWith("#")) return;
+
+      // Resolve relative paths to absolute
+      var resolvedHref = resolveRelativePath(href);
+      var normalizedHref = normalizePath(resolvedHref);
+
+      // Check if this link matches the current page
+      if (normalizedCurrent === normalizedHref) {
+        link.classList.add("md-nav__link--current");
+
+        var parentItem = link.closest(".md-nav__item");
+        if (parentItem) {
+          parentItem.classList.add("md-nav__item--current");
         }
-        
-        // Create a temporary anchor element to resolve the relative path
-        var a = document.createElement('a');
-        a.href = href;
-        return a.pathname;
-      };
-      
-      var normalizedCurrent = normalizePath(currentPath);
-      
-      // Find all nav links in the primary sidebar
-      var navLinks = document.querySelectorAll('.md-sidebar--primary .md-nav__link');
-      
-      navLinks.forEach(function(link) {
-        var href = link.getAttribute('href');
-        if (!href || href.startsWith('#')) return;
-        
-        // Resolve relative paths to absolute
-        var resolvedHref = resolveRelativePath(href);
-        var normalizedHref = normalizePath(resolvedHref);
-        
-        // Check if this link matches the current page
-        if (normalizedCurrent === normalizedHref) {
-          link.classList.add('md-nav__link--current');
-          
-          var parentItem = link.closest('.md-nav__item');
-          if (parentItem) {
-            parentItem.classList.add('md-nav__item--current');
-          }
-        }
-      });
+      }
     });
-  </script>
+  });
+</script>
 {% endblock %}

@@ -1,8 +1,8 @@
-# GitHub Copilot Instructions for Pipeleak
+# GitHub Copilot Instructions for Pipeleek
 
 ## Project Overview
 
-Pipeleak is a CLI tool designed to scan CI/CD logs and artifacts for secrets across multiple platforms including GitLab, GitHub, BitBucket, Azure DevOps, and Gitea. The tool uses TruffleHog for secret detection and provides additional helper commands for exploitation workflows.
+Pipeleek is a CLI tool designed to scan CI/CD logs and artifacts for secrets across multiple platforms including GitLab, GitHub, BitBucket, Azure DevOps, and Gitea. The tool uses TruffleHog for secret detection and provides additional helper commands for exploitation workflows.
 
 ## Technology Stack
 
@@ -17,8 +17,8 @@ Pipeleak is a CLI tool designed to scan CI/CD logs and artifacts for secrets acr
 ## Project Structure
 
 ```
-pipeleak/
-├── cmd/pipeleak/           # CLI entry point (main.go)
+pipeleek/
+├── cmd/pipeleek/           # CLI entry point (main.go)
 ├── internal/cmd/           # CLI commands (using Cobra) - internal package
 │   ├── bitbucket/          # BitBucket-specific commands
 │   ├── devops/             # Azure DevOps commands
@@ -61,12 +61,13 @@ pipeleak/
 ```bash
 make build
 # Or directly:
-go build -o pipeleak ./cmd/pipeleak
+go build -o pipeleek ./cmd/pipeleek
 ```
 
 ### Running Tests
 
 **Using Makefile (recommended):**
+
 ```bash
 make test           # Run all tests (unit + e2e)
 make test-unit      # Run unit tests only
@@ -74,6 +75,7 @@ make test-e2e       # Run all e2e tests
 ```
 
 **Unit tests (excluding e2e):**
+
 ```bash
 make test-unit
 # Or directly:
@@ -83,6 +85,7 @@ go test $(go list ./... | grep -v /tests/e2e) -v -race
 **End-to-end tests:**
 
 E2E tests are organized by platform in a structured folder hierarchy:
+
 ```
 tests/e2e/
 ├── gitlab/          # GitLab-specific tests
@@ -104,6 +107,7 @@ tests/e2e/
 ```
 
 **Using Makefile (recommended):**
+
 ```bash
 make test-e2e              # Run all e2e tests
 make test-e2e-gitlab       # Run only GitLab e2e tests
@@ -115,18 +119,20 @@ make test-e2e-gitea        # Run only Gitea e2e tests
 
 **Manual execution:**
 To run e2e tests manually, first build the binary and set `PIPELEAK_BINARY`:
+
 ```bash
-go build -o pipeleak ./cmd/pipeleak
-PIPELEAK_BINARY=$(pwd)/pipeleak go test ./tests/e2e/... -tags=e2e -v -timeout 10m
+go build -o pipeleek ./cmd/pipeleek
+PIPELEAK_BINARY=$(pwd)/pipeleek go test ./tests/e2e/... -tags=e2e -v -timeout 10m
 ```
 
 Run tests for a specific platform:
+
 ```bash
 # GitLab tests only
-PIPELEAK_BINARY=$(pwd)/pipeleak go test ./tests/e2e/gitlab/... -tags=e2e -v
+PIPELEAK_BINARY=$(pwd)/pipeleek go test ./tests/e2e/gitlab/... -tags=e2e -v
 
 # Specific command tests
-PIPELEAK_BINARY=$(pwd)/pipeleak go test ./tests/e2e/gitlab/scan -tags=e2e -v
+PIPELEAK_BINARY=$(pwd)/pipeleek go test ./tests/e2e/gitlab/scan -tags=e2e -v
 ```
 
 **Important:** E2E tests require the `PIPELEAK_BINARY` environment variable to point to the compiled binary (absolute or relative to module root). Tests use this binary to run commands in isolated subprocesses to avoid Cobra state conflicts.
@@ -148,6 +154,7 @@ Coverage reports are stored as workflow artifacts on CI runs (Linux job). Retrie
 ### Linting
 
 The project uses golangci-lint:
+
 ```bash
 make lint
 # Or directly:
@@ -157,6 +164,7 @@ golangci-lint run --timeout=10m
 ### Documentation
 
 Generate and serve CLI documentation locally:
+
 ```bash
 make serve-docs  # Installs dependencies if needed, generates and serves docs
 ```
@@ -212,11 +220,13 @@ make serve-docs  # Installs dependencies if needed, generates and serves docs
 ### Adding New Dependencies
 
 1. Use `go get` to add dependencies:
+
    ```bash
    go get github.com/example/package@version
    ```
 
 2. Run `go mod tidy` to clean up:
+
    ```bash
    go mod tidy
    ```
@@ -272,17 +282,17 @@ The project uses GitHub Actions for CI/CD:
 ## Important Notes
 
 1. **Working Directory**: The Go module is at the repository root with `go.mod`
-2. **CLI Entry Point**: The main entry point is at `cmd/pipeleak/main.go`
+2. **CLI Entry Point**: The main entry point is at `cmd/pipeleek/main.go`
 3. **CLI Commands**: Commands are in `internal/cmd/` (internal package)
-4. **Binary Names**: 
-   - Linux/macOS: `pipeleak`
-   - Windows: `pipeleak.exe`
+4. **Binary Names**:
+   - Linux/macOS: `pipeleek`
+   - Windows: `pipeleek.exe`
 5. **Test Exclusions**: E2E tests are excluded from regular test runs
 6. **Terminal State**: The application manages terminal state for interactive features
 7. **Cross-Platform**: Code should work on Linux, macOS, and Windows
 
 ## Additional Resources
 
-- [Getting Started Guide](https://compasssecurity.github.io/pipeleak/introduction/getting_started/)
-- [GitHub Repository](https://github.com/CompassSecurity/pipeleak)
+- [Getting Started Guide](https://compasssecurity.github.io/pipeleek/introduction/getting_started/)
+- [GitHub Repository](https://github.com/CompassSecurity/pipeleek)
 - [TruffleHog Documentation](https://github.com/trufflesecurity/trufflehog)

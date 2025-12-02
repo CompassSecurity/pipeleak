@@ -1,8 +1,8 @@
 package runners
 
 import (
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitlab/runners/exploit"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitlab/runners/list"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab/runners/exploit"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab/runners/list"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )

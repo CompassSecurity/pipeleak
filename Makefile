@@ -2,10 +2,10 @@
 
 # Default target
 help:
-	@echo "Pipeleak Makefile"
+	@echo "Pipeleek Makefile"
 	@echo ""
 	@echo "Available targets:"
-	@echo "  make build            - Build the main pipeleak binary"
+	@echo "  make build            - Build the main pipeleek binary"
 	@echo "  make build-all        - Build all binaries (main + platform-specific)"
 	@echo "  make build-gitlab     - Build GitLab-specific binary"
 	@echo "  make build-github     - Build GitHub-specific binary"
@@ -21,35 +21,35 @@ help:
 	@echo "  make serve-docs       - Generate and serve CLI documentation"
 	@echo "  make clean            - Remove built artifacts"
 
-# Build the main pipeleak binary
+# Build the main pipeleek binary
 build:
-	@echo "Building pipeleak..."
-	go build -o pipeleak ./cmd/pipeleak
+	@echo "Building pipeleek..."
+	go build -o pipeleek ./cmd/pipeleek
 
 # Build GitLab-specific binary
 build-gitlab:
-	@echo "Building pipeleak-gitlab..."
-	go build -o pipeleak-gitlab ./cmd/pipeleak-gitlab
+	@echo "Building pipeleek-gitlab..."
+	go build -o pipeleek-gitlab ./cmd/pipeleek-gitlab
 
 # Build GitHub-specific binary
 build-github:
-	@echo "Building pipeleak-github..."
-	go build -o pipeleak-github ./cmd/pipeleak-github
+	@echo "Building pipeleek-github..."
+	go build -o pipeleek-github ./cmd/pipeleek-github
 
 # Build BitBucket-specific binary
 build-bitbucket:
-	@echo "Building pipeleak-bitbucket..."
-	go build -o pipeleak-bitbucket ./cmd/pipeleak-bitbucket
+	@echo "Building pipeleek-bitbucket..."
+	go build -o pipeleek-bitbucket ./cmd/pipeleek-bitbucket
 
 # Build Azure DevOps-specific binary
 build-devops:
-	@echo "Building pipeleak-devops..."
-	go build -o pipeleak-devops ./cmd/pipeleak-devops
+	@echo "Building pipeleek-devops..."
+	go build -o pipeleek-devops ./cmd/pipeleek-devops
 
 # Build Gitea-specific binary
 build-gitea:
-	@echo "Building pipeleak-gitea..."
-	go build -o pipeleak-gitea ./cmd/pipeleak-gitea
+	@echo "Building pipeleek-gitea..."
+	go build -o pipeleek-gitea ./cmd/pipeleek-gitea
 
 # Build all binaries
 build-all: build build-gitlab build-github build-bitbucket build-devops build-gitea
@@ -66,28 +66,28 @@ test-unit:
 # Run e2e tests (builds binary first)
 test-e2e: build
 	@echo "Running e2e tests..."
-	PIPELEAK_BINARY=$$(pwd)/pipeleak go test ./tests/e2e/... -tags=e2e -v -timeout 10m
+	PIPELEAK_BINARY=$$(pwd)/pipeleek go test ./tests/e2e/... -tags=e2e -v -timeout 10m
 
 # Run e2e tests for specific platform
 test-e2e-gitlab: build
 	@echo "Running GitLab e2e tests..."
-	PIPELEAK_BINARY=$$(pwd)/pipeleak go test ./tests/e2e/gitlab/... -tags=e2e -v
+	PIPELEAK_BINARY=$$(pwd)/pipeleek go test ./tests/e2e/gitlab/... -tags=e2e -v
 
 test-e2e-github: build
 	@echo "Running GitHub e2e tests..."
-	PIPELEAK_BINARY=$$(pwd)/pipeleak go test ./tests/e2e/github/... -tags=e2e -v
+	PIPELEAK_BINARY=$$(pwd)/pipeleek go test ./tests/e2e/github/... -tags=e2e -v
 
 test-e2e-bitbucket: build
 	@echo "Running BitBucket e2e tests..."
-	PIPELEAK_BINARY=$$(pwd)/pipeleak go test ./tests/e2e/bitbucket/... -tags=e2e -v
+	PIPELEAK_BINARY=$$(pwd)/pipeleek go test ./tests/e2e/bitbucket/... -tags=e2e -v
 
 test-e2e-devops: build
 	@echo "Running Azure DevOps e2e tests..."
-	PIPELEAK_BINARY=$$(pwd)/pipeleak go test ./tests/e2e/devops/... -tags=e2e -v
+	PIPELEAK_BINARY=$$(pwd)/pipeleek go test ./tests/e2e/devops/... -tags=e2e -v
 
 test-e2e-gitea: build
 	@echo "Running Gitea e2e tests..."
-	PIPELEAK_BINARY=$$(pwd)/pipeleak go test ./tests/e2e/gitea/... -tags=e2e -v
+	PIPELEAK_BINARY=$$(pwd)/pipeleek go test ./tests/e2e/gitea/... -tags=e2e -v
 
 # Generate test coverage report
 coverage:
@@ -125,15 +125,15 @@ serve-docs: build
 		echo "MkDocs not found. Installing MkDocs and dependencies..."; \
 		pip install mkdocs mkdocs-material mkdocs-minify-plugin; \
 	fi
-	./pipeleak docs -s
+	./pipeleek docs -s
 
 # Clean up built artifacts
 clean:
 	@echo "Cleaning up..."
-	rm -f pipeleak pipeleak.exe coverage.out coverage.html
-	rm -f pipeleak-gitlab pipeleak-gitlab.exe
-	rm -f pipeleak-github pipeleak-github.exe
-	rm -f pipeleak-bitbucket pipeleak-bitbucket.exe
-	rm -f pipeleak-devops pipeleak-devops.exe
-	rm -f pipeleak-gitea pipeleak-gitea.exe
+	rm -f pipeleek pipeleek.exe coverage.out coverage.html
+	rm -f pipeleek-gitlab pipeleek-gitlab.exe
+	rm -f pipeleek-github pipeleek-github.exe
+	rm -f pipeleek-bitbucket pipeleek-bitbucket.exe
+	rm -f pipeleek-devops pipeleek-devops.exe
+	rm -f pipeleek-gitea pipeleek-gitea.exe
 	go clean -cache -testcache

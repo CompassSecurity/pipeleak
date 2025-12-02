@@ -13,7 +13,7 @@ import (
 	"golang.org/x/text/language"
 	"gopkg.in/yaml.v3"
 
-	"github.com/CompassSecurity/pipeleak/pkg/format"
+	"github.com/CompassSecurity/pipeleek/pkg/format"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
@@ -72,17 +72,17 @@ func generateDocs(cmd *cobra.Command, dir string, level int, githubPages bool) e
 	defer func() { _ = f.Close() }()
 
 	customLinkHandler := func(s string) string {
-		if s == "pipeleak.md" {
+		if s == "pipeleek.md" {
 			return "/"
 		}
 
-		s = strings.TrimPrefix(s, "pipeleak_")
+		s = strings.TrimPrefix(s, "pipeleek_")
 		s = strings.TrimSuffix(s, ".md")
 		s = strings.ReplaceAll(s, "_", "/")
 
-		// For GitHub Pages, all links need to be prefixed with "pipeleak"
+		// For GitHub Pages, all links need to be prefixed with "pipeleek"
 		if githubPages {
-			return "/pipeleak/" + s
+			return "/pipeleek/" + s
 		}
 
 		return "/" + s
@@ -140,7 +140,7 @@ func convertNavToYaml(entries []*NavEntry) []map[string]interface{} {
 	yamlList := []map[string]interface{}{}
 	for _, e := range entries {
 		navPath := e.FilePath
-		if len(navPath) >= 9 && navPath[:9] == "pipeleak/" {
+		if len(navPath) >= 9 && navPath[:9] == "pipeleek/" {
 			navPath = navPath[9:]
 		}
 		if len(e.Children) == 0 {
@@ -164,7 +164,7 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string, githubPages bool)
 	nav := convertNavToYaml(rootEntry.Children)
 	prefix := ""
 	if githubPages {
-		prefix = "/pipeleak"
+		prefix = "/pipeleek"
 	}
 	introEntry := map[string]interface{}{"Introduction": prefix + "/introduction/getting_started/"}
 	methodologyEntry := map[string]interface{}{
@@ -177,7 +177,7 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string, githubPages bool)
 	}
 	nav = append([]map[string]interface{}{introEntry, methodologyEntry}, nav...)
 
-	assetsDir := filepath.Join(outputDir, "pipeleak", "assets")
+	assetsDir := filepath.Join(outputDir, "pipeleek", "assets")
 	if err := os.MkdirAll(assetsDir, format.DirUserGroupRead); err != nil {
 		return err
 	}
@@ -198,18 +198,18 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string, githubPages bool)
 	}
 
 	mkdocs := map[string]interface{}{
-		"site_name":        "Pipeleak - Pipeline Secrets Scanner",
-		"site_description": "Pipeleak scans CI/CD logs and artifacts to detect leaked secrets and pivot from them",
+		"site_name":        "Pipeleek - Pipeline Secrets Scanner",
+		"site_description": "Pipeleek scans CI/CD logs and artifacts to detect leaked secrets and pivot from them",
 		"site_author":      "FRJ @ Compass Security",
-		"site_url":         "https://compasssecurity.github.io/pipeleak/",
-		"docs_dir":         "pipeleak",
+		"site_url":         "https://compasssecurity.github.io/pipeleek/",
+		"docs_dir":         "pipeleek",
 		"site_dir":         "site",
-		"repo_url":         "https://github.com/CompassSecurity/pipeleak",
-		"repo_name":        "CompassSecurity/pipeleak",
+		"repo_url":         "https://github.com/CompassSecurity/pipeleek",
+		"repo_name":        "CompassSecurity/pipeleek",
 		"extra_css":        []string{"assets/custom.css"},
 		"theme": map[string]interface{}{
 			"name":       "material",
-			"custom_dir": "pipeleak/overrides",
+			"custom_dir": "pipeleek/overrides",
 			"logo":       "assets/logo.png",
 			"favicon":    "assets/favicon.ico",
 			"palette": []map[string]interface{}{
@@ -251,8 +251,8 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string, githubPages bool)
 			"social": []map[string]interface{}{
 				{
 					"icon": "fontawesome/brands/github",
-					"link": "https://github.com/CompassSecurity/pipeleak",
-					"name": "Pipeleak on GitHub",
+					"link": "https://github.com/CompassSecurity/pipeleek",
+					"name": "Pipeleek on GitHub",
 				},
 			},
 			"generator": false,
@@ -362,7 +362,7 @@ func copyFile(src, dst string) error {
 
 // Generate generates the CLI documentation
 func Generate(opts GenerateOptions) {
-	if _, err := os.Stat("cmd/pipeleak/main.go"); os.IsNotExist(err) {
+	if _, err := os.Stat("cmd/pipeleek/main.go"); os.IsNotExist(err) {
 		log.Fatal().Msg("Run this command from the project root directory.")
 	}
 
@@ -380,10 +380,10 @@ func Generate(opts GenerateOptions) {
 	}
 
 	if err := os.MkdirAll(outputDir, format.DirUserGroupRead); err != nil {
-		log.Fatal().Err(err).Msg("Failed to create pipeleak directory")
+		log.Fatal().Err(err).Msg("Failed to create pipeleek directory")
 	}
 
-	if err := copySubfolders("docs", filepath.Join(outputDir, "pipeleak")); err != nil {
+	if err := copySubfolders("docs", filepath.Join(outputDir, "pipeleek")); err != nil {
 		log.Fatal().Err(err).Msg("Failed to copy docs subfolders")
 	}
 

@@ -6,7 +6,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/pkg/scanner"
+	"github.com/CompassSecurity/pipeleek/pkg/scanner"
 	"github.com/rs/zerolog/log"
 )
 

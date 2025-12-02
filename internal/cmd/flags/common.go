@@ -3,7 +3,7 @@ package flags
 import (
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/pkg/config"
+	"github.com/CompassSecurity/pipeleek/pkg/config"
 	"github.com/spf13/cobra"
 )
 

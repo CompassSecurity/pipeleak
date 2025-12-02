@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/CompassSecurity/pipeleak/internal/cmd"
+	"github.com/CompassSecurity/pipeleek/internal/cmd"
 	"golang.org/x/term"
 )
 

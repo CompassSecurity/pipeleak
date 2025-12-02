@@ -81,9 +81,9 @@ func TestHeaderRoundTripper_RoundTrip(t *testing.T) {
 	}
 }
 
-func TestGetPipeleakHTTPClient(t *testing.T) {
+func TestGetPipeleekHTTPClient(t *testing.T) {
 	t.Run("client without cookies", func(t *testing.T) {
-		client := GetPipeleakHTTPClient("", nil, nil)
+		client := GetPipeleekHTTPClient("", nil, nil)
 		if client == nil {
 			t.Fatal("Expected non-nil client")
 			return
@@ -97,7 +97,7 @@ func TestGetPipeleakHTTPClient(t *testing.T) {
 		headers := map[string]string{
 			"User-Agent": "test-agent",
 		}
-		client := GetPipeleakHTTPClient("", nil, headers)
+		client := GetPipeleekHTTPClient("", nil, headers)
 		if client == nil {
 			t.Fatal("Expected non-nil client")
 			return
@@ -117,7 +117,7 @@ func TestGetPipeleakHTTPClient(t *testing.T) {
 		cookies := []*http.Cookie{
 			{Name: "session", Value: "abc123"},
 		}
-		client := GetPipeleakHTTPClient("http://example.com", cookies, nil)
+		client := GetPipeleekHTTPClient("http://example.com", cookies, nil)
 		if client == nil {
 			t.Fatal("Expected non-nil client")
 			return
@@ -128,7 +128,7 @@ func TestGetPipeleakHTTPClient(t *testing.T) {
 	})
 
 	t.Run("check retry function", func(t *testing.T) {
-		client := GetPipeleakHTTPClient("", nil, nil)
+		client := GetPipeleekHTTPClient("", nil, nil)
 
 		shouldRetry, _ := client.CheckRetry(nil, &http.Response{StatusCode: 429}, nil)
 		if !shouldRetry {

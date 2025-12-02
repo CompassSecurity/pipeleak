@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/CompassSecurity/pipeleak/pkg/httpclient"
+	"github.com/CompassSecurity/pipeleek/pkg/httpclient"
 	"github.com/perimeterx/marshmallow"
 	"github.com/rs/zerolog/log"
 	"github.com/wandb/parallel"
@@ -103,7 +103,7 @@ func isRegistrationEnabled(base string) (bool, error) {
 	u.Path = path.Join(u.Path, "/users/somenotexistigusr/exists")
 	s := u.String()
 
-	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
+	client := httpclient.GetPipeleekHTTPClient("", nil, nil)
 	res, err := client.Get(s)
 
 	if err != nil {
@@ -135,7 +135,7 @@ func checkNrPublicRepos(base string) (int, error) {
 		return 0, err
 	}
 
-	client := httpclient.GetPipeleakHTTPClient("", nil, nil)
+	client := httpclient.GetPipeleekHTTPClient("", nil, nil)
 	u.Path = "/api/v4/projects"
 	s := u.String()
 	res, err := client.Get(s + "?per_page=100")

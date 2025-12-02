@@ -1,30 +1,32 @@
 <p align="center">
-  <img height="200" src="https://github.com/CompassSecurity/pipeleak/blob/main/docs/logo.png?raw=true">
+  <img height="200" src="https://github.com/CompassSecurity/pipeleek/blob/main/docs/logo.png?raw=true">
 </p>
 
-![GitHub Release](https://img.shields.io/github/v/release/CompassSecurity/pipeleak)
-![GitHub commits since latest release](https://img.shields.io/github/commits-since/CompassSecurity/pipeleak/latest)
+![GitHub Release](https://img.shields.io/github/v/release/CompassSecurity/pipeleek)
+![GitHub commits since latest release](https://img.shields.io/github/commits-since/CompassSecurity/pipeleek/latest)
 
-# Pipeleak
+# Pipeleek
 
-Pipeleak is a tool designed to scan CI/CD logs and artifacts for secrets.
+Pipeleek is a tool designed to scan CI/CD logs and artifacts for secrets.
 
 It supports the following platforms:
-* GitLab
-* GitHub
-* BitBucket
-* Azure DevOps
-* Gitea
 
-Once secrets are discovered, further exploitation often requires additional tooling. Pipeleak provides several helper commands to assist with this process.
+- GitLab
+- GitHub
+- BitBucket
+- Azure DevOps
+- Gitea
+
+Once secrets are discovered, further exploitation often requires additional tooling. Pipeleek provides several helper commands to assist with this process.
 
 ## Getting Started
 
-To begin using Pipeleak, download the latest binary from the [Releases](https://github.com/CompassSecurity/pipeleak/releases) page.
+To begin using Pipeleek, download the latest binary from the [Releases](https://github.com/CompassSecurity/pipeleek/releases) page.
 
 Alternatively, install using Go:
+
 ```bash
-go install github.com/CompassSecurity/pipeleak/cmd/pipeleak@latest
+go install github.com/CompassSecurity/pipeleek/cmd/pipeleek@latest
 ```
 
-Detailed command documentation can be found in the [documentation](https://compasssecurity.github.io/pipeleak/introduction/getting_started/).
+Detailed command documentation can be found in the [documentation](https://compasssecurity.github.io/pipeleek/introduction/getting_started/).

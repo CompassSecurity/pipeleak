@@ -1,10 +1,10 @@
 package scan
 
 import (
-	"github.com/CompassSecurity/pipeleak/internal/cmd/flags"
-	"github.com/CompassSecurity/pipeleak/pkg/config"
-	pkgscan "github.com/CompassSecurity/pipeleak/pkg/github/scan"
-	"github.com/CompassSecurity/pipeleak/pkg/logging"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/flags"
+	"github.com/CompassSecurity/pipeleek/pkg/config"
+	pkgscan "github.com/CompassSecurity/pipeleek/pkg/github/scan"
+	"github.com/CompassSecurity/pipeleek/pkg/logging"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -34,22 +34,22 @@ func NewScanCmd() *cobra.Command {
 		Long:  `Scan GitHub Actions workflow runs and artifacts for secrets`,
 		Example: `
 # Scan owned repositories including their artifacts
-pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --owned
+pipeleek gh scan --token github_pat_xxxxxxxxxxx --artifacts --owned
 
 # Scan repositories of an organization
-pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --maxWorkflows 10 --org apache
+pipeleek gh scan --token github_pat_xxxxxxxxxxx --artifacts --maxWorkflows 10 --org apache
 
 # Scan public repositories
-pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --maxWorkflows 10 --public
+pipeleek gh scan --token github_pat_xxxxxxxxxxx --artifacts --maxWorkflows 10 --public
 
 # Scan by search term
-pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --maxWorkflows 10 --search iac
+pipeleek gh scan --token github_pat_xxxxxxxxxxx --artifacts --maxWorkflows 10 --search iac
 
 # Scan repositories of a user
-pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --user firefart
+pipeleek gh scan --token github_pat_xxxxxxxxxxx --artifacts --user firefart
 
 # Scan a single repository
-pipeleak gh scan --token github_pat_xxxxxxxxxxx --artifacts --repo owner/repo
+pipeleek gh scan --token github_pat_xxxxxxxxxxx --artifacts --repo owner/repo
 		`,
 		Run: Scan,
 	}

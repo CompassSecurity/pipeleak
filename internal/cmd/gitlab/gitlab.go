@@ -1,15 +1,15 @@
 package gitlab
 
 import (
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitlab/cicd"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitlab/enum"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitlab/renovate"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitlab/runners"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitlab/scan"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitlab/schedule"
-	securefiles "github.com/CompassSecurity/pipeleak/internal/cmd/gitlab/secureFiles"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitlab/variables"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitlab/vuln"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab/cicd"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab/enum"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab/renovate"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab/runners"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab/scan"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab/schedule"
+	securefiles "github.com/CompassSecurity/pipeleek/internal/cmd/gitlab/secureFiles"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab/variables"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab/vuln"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
@@ -31,10 +31,10 @@ func NewGitLabRootCmd() *cobra.Command {
 Since Go binaries aren't compatible with Proxychains, you can set a proxy using the HTTP_PROXY environment variable.
 
 For HTTP proxy (e.g., Burp Suite):
-<code>HTTP_PROXY=http://127.0.0.1:8080 pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com</code>
+<code>HTTP_PROXY=http://127.0.0.1:8080 pipeleek gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com</code>
 
 For SOCKS5 proxy:
-<code>HTTP_PROXY=socks5://127.0.0.1:8080 pipeleak gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com</code>
+<code>HTTP_PROXY=socks5://127.0.0.1:8080 pipeleek gl scan --token glpat-xxxxxxxxxxx --gitlab https://gitlab.com</code>
 		`,
 		GroupID: "GitLab",
 	}

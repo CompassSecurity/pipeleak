@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/tests/e2e/internal/testutil"
+	"github.com/CompassSecurity/pipeleek/tests/e2e/internal/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +19,7 @@ func setupMockGitLabRunnersAPI(t *testing.T) string {
 	mux.HandleFunc("/api/v4/projects", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			w.WriteHeader(http.StatusCreated)
-			w.Write([]byte(`{"id":999,"name":"pipeleak-runner-test","web_url":"https://gitlab.com/pipeleak-runner-test"}`))
+			w.Write([]byte(`{"id":999,"name":"pipeleek-runner-test","web_url":"https://gitlab.com/pipeleek-runner-test"}`))
 			return
 		}
 		w.WriteHeader(http.StatusOK)

@@ -86,7 +86,7 @@ func AssertLogContains(t *testing.T, output string, expected []string) {
 	}
 }
 
-// RunCLI executes the Pipeleak CLI binary with args, capturing stdout/stderr, with timeout
+// RunCLI executes the Pipeleek CLI binary with args, capturing stdout/stderr, with timeout
 func RunCLI(t *testing.T, args []string, env []string, timeout time.Duration) (stdout, stderr string, exitErr error) {
 	t.Helper()
 
@@ -151,18 +151,18 @@ func RunCLI(t *testing.T, args []string, env []string, timeout time.Duration) (s
 
 var (
 	cliMutex               sync.Mutex
-	pipeleakBinaryResolved string
+	pipeleekBinaryResolved string
 	buildOnce              sync.Once
 )
 
 func buildBinary(moduleDir, outputPath string) error {
-	cmd := exec.Command("go", "build", "-o", outputPath, "./cmd/pipeleak")
+	cmd := exec.Command("go", "build", "-o", outputPath, "./cmd/pipeleek")
 	cmd.Dir = moduleDir
 	cmd.Env = os.Environ()
 	return cmd.Run()
 }
 
-// findModuleRoot searches upwards for a directory containing go.mod and cmd/pipeleak/main.go (the CLI entry)
+// findModuleRoot searches upwards for a directory containing go.mod and cmd/pipeleek/main.go (the CLI entry)
 func findModuleRoot() (string, error) {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -170,11 +170,11 @@ func findModuleRoot() (string, error) {
 	}
 	for dir := wd; dir != "/" && dir != "."; dir = filepath.Dir(dir) {
 		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-			// Prefer a module that has cmd/pipeleak/main.go (our CLI entry point)
-			if _, err := os.Stat(filepath.Join(dir, "cmd", "pipeleak", "main.go")); err == nil {
+			// Prefer a module that has cmd/pipeleek/main.go (our CLI entry point)
+			if _, err := os.Stat(filepath.Join(dir, "cmd", "pipeleek", "main.go")); err == nil {
 				return dir, nil
 			}
-			// If no cmd/pipeleak/main.go here, this is still the module root
+			// If no cmd/pipeleek/main.go here, this is still the module root
 			return dir, nil
 		}
 		if filepath.Dir(dir) == dir {
@@ -210,42 +210,42 @@ func executeCLIWithContext(ctx context.Context, args []string) error {
 	}
 
 	// Otherwise, build binary once
-	if pipeleakBinaryResolved != "" {
-		if _, err := os.Stat(pipeleakBinaryResolved); err != nil {
-			pipeleakBinaryResolved = ""
+	if pipeleekBinaryResolved != "" {
+		if _, err := os.Stat(pipeleekBinaryResolved); err != nil {
+			pipeleekBinaryResolved = ""
 		}
 	}
 
 	buildOnce.Do(func() {
-		tmpDir, err := os.MkdirTemp("", "pipeleak-e2e-")
+		tmpDir, err := os.MkdirTemp("", "pipeleek-e2e-")
 		if err != nil {
-			pipeleakBinaryResolved = ""
+			pipeleekBinaryResolved = ""
 			return
 		}
-		tmpBin := filepath.Join(tmpDir, "pipeleak")
+		tmpBin := filepath.Join(tmpDir, "pipeleek")
 		if runtime.GOOS == "windows" {
 			tmpBin += ".exe"
 		}
 
 		moduleDir, err := findModuleRoot()
 		if err != nil {
-			pipeleakBinaryResolved = ""
+			pipeleekBinaryResolved = ""
 			return
 		}
 
 		if err := buildBinary(moduleDir, tmpBin); err != nil {
-			pipeleakBinaryResolved = ""
+			pipeleekBinaryResolved = ""
 			return
 		}
-		pipeleakBinaryResolved = tmpBin
+		pipeleekBinaryResolved = tmpBin
 	})
 
-	if pipeleakBinaryResolved == "" {
-		return fmt.Errorf("failed to build pipeleak test binary")
+	if pipeleekBinaryResolved == "" {
+		return fmt.Errorf("failed to build pipeleek test binary")
 	}
 
-	// #nosec G204 -- pipeleakBinaryResolved is the test binary path, intentionally variable for testing
-	cmd := exec.CommandContext(ctx, pipeleakBinaryResolved, args...)
+	// #nosec G204 -- pipeleekBinaryResolved is the test binary path, intentionally variable for testing
+	cmd := exec.CommandContext(ctx, pipeleekBinaryResolved, args...)
 	cmd.Env = os.Environ()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

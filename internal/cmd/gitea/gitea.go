@@ -1,10 +1,10 @@
 package gitea
 
 import (
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitea/enum"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitea/scan"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitea/secrets"
-	"github.com/CompassSecurity/pipeleak/internal/cmd/gitea/variables"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitea/enum"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitea/scan"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitea/secrets"
+	"github.com/CompassSecurity/pipeleek/internal/cmd/gitea/variables"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )

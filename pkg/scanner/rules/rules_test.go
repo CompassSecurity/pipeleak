@@ -4,10 +4,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/CompassSecurity/pipeleak/pkg/scanner/types"
+	"github.com/CompassSecurity/pipeleek/pkg/scanner/types"
 )
 
-func TestAppendPipeleakRules(t *testing.T) {
+func TestAppendPipeleekRules(t *testing.T) {
 	tests := []struct {
 		name          string
 		inputRules    []types.PatternElement
@@ -29,7 +29,7 @@ func TestAppendPipeleakRules(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := AppendPipeleakRules(tt.inputRules)
+			result := AppendPipeleekRules(tt.inputRules)
 			if len(result) != tt.expectedCount {
 				t.Errorf("Expected %d rules, got %d", tt.expectedCount, len(result))
 			}

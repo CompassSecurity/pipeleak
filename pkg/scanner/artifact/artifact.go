@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CompassSecurity/pipeleak/pkg/format"
-	"github.com/CompassSecurity/pipeleak/pkg/logging"
-	"github.com/CompassSecurity/pipeleak/pkg/scanner/engine"
-	"github.com/CompassSecurity/pipeleak/pkg/scanner/types"
+	"github.com/CompassSecurity/pipeleek/pkg/format"
+	"github.com/CompassSecurity/pipeleek/pkg/logging"
+	"github.com/CompassSecurity/pipeleek/pkg/scanner/engine"
+	"github.com/CompassSecurity/pipeleek/pkg/scanner/types"
 	"github.com/h2non/filetype"
 	"github.com/rs/zerolog/log"
 	"golift.io/xtractr"
@@ -51,7 +51,7 @@ func HandleArchiveArtifactWithDepth(archivefileName string, content []byte, jobW
 		return
 	}
 
-	tmpArchiveFile, err := os.CreateTemp("", "pipeleak-artifact-archive-*."+fileType.Extension)
+	tmpArchiveFile, err := os.CreateTemp("", "pipeleek-artifact-archive-*."+fileType.Extension)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("Cannot create artifact archive temp file")
 		return
@@ -64,7 +64,7 @@ func HandleArchiveArtifactWithDepth(archivefileName string, content []byte, jobW
 	}
 	defer func() { _ = os.Remove(tmpArchiveFile.Name()) }()
 
-	tmpArchiveFilesDirectory, err := os.MkdirTemp("", "pipeleak-artifact-archive-out-")
+	tmpArchiveFilesDirectory, err := os.MkdirTemp("", "pipeleek-artifact-archive-out-")
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("Cannot create artifact archive temp directory")
 		return
