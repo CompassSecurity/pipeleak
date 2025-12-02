@@ -30,3 +30,7 @@ go install github.com/CompassSecurity/pipeleek/cmd/pipeleek@latest
 ```
 
 Detailed command documentation can be found in the [documentation](https://compasssecurity.github.io/pipeleek/introduction/getting_started/).
+
+<hr>
+
+<sub>Formerly known as Pipeleak. Name and design idea credits to @sploutchy.</sub>
