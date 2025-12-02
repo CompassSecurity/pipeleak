@@ -11,6 +11,7 @@ The fastest way to start contributing is using GitHub Codespaces:
 3. Click "Create codespace on main" (or your branch)
 
 The codespace will automatically:
+
 - Set up Go 1.24+ environment
 - Install golangci-lint for code linting
 - Install Python and MkDocs for documentation
@@ -32,22 +33,31 @@ If you prefer local development:
 ### Setup Steps
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/CompassSecurity/pipeleak.git
    cd pipeleak
    ```
 
 2. Install golangci-lint:
+
    ```bash
    go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
    ```
 
 3. Download dependencies:
+
    ```bash
    go mod download
    ```
 
-4. Build the binary:
+4. Run it:
+
+   ```bash
+   go run cmd/pipeleak/main.go
+   ```
+
+5. Optional: Build the binary:
    ```bash
    make build
    ```
