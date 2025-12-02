@@ -7,6 +7,7 @@ builds:
     goos:
       - linux
       - windows
+      - darwin
     goarch:
       - amd64
       - arm64
@@ -23,6 +24,7 @@ builds:
     goos:
       - linux
       - windows
+      - darwin
     goarch:
       - amd64
       - arm64
@@ -38,6 +40,7 @@ builds:
     goos:
       - linux
       - windows
+      - darwin
     goarch:
       - amd64
       - arm64
@@ -53,6 +56,7 @@ builds:
     goos:
       - linux
       - windows
+      - darwin
     goarch:
       - amd64
       - arm64
@@ -68,6 +72,7 @@ builds:
     goos:
       - linux
       - windows
+      - darwin
     goarch:
       - amd64
       - arm64
@@ -83,6 +88,7 @@ builds:
     goos:
       - linux
       - windows
+      - darwin
     goarch:
       - amd64
       - arm64
@@ -93,29 +99,7 @@ builds:
       - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Date={{.Date}}
 
 archives:
-  - id: pipeleak-archive
-    builds:
-      - pipeleak
-    name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-  - id: pipeleak-gitlab-archive
-    builds:
-      - pipeleak-gitlab
-    name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-  - id: pipeleak-github-archive
-    builds:
-      - pipeleak-github
-    name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-  - id: pipeleak-bitbucket-archive
-    builds:
-      - pipeleak-bitbucket
-    name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-  - id: pipeleak-devops-archive
-    builds:
-      - pipeleak-devops
-    name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-  - id: pipeleak-gitea-archive
-    builds:
-      - pipeleak-gitea
+  - formats: binary
     name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
 release:
