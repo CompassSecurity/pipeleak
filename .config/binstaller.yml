@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/binary-install/binstaller/main/schema/InstallSpec.json
+schema: v1
+name: pipeleek
+repo: CompassSecurity/pipeleek
+asset:
+  template: ${NAME}_${VERSION}_${OS}_${ARCH}
+  rules:
+    - when:
+        os: windows
+      ext: .exe
+supported_platforms:
+  - os: linux
+    arch: amd64
+  - os: linux
+    arch: arm64
+  - os: darwin
+    arch: amd64
+  - os: darwin
+    arch: arm64
+  - os: windows
+    arch: amd64
+  - os: windows
+    arch: arm64

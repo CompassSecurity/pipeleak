@@ -40,6 +40,12 @@ jobs:
       - name: Generate Docs
         run: go run ./cmd/pipeleek docs --github-pages
 
+      - name: Install binstaller
+        run: go install github.com/binary-install/binstaller/cmd/binst@latest
+
+      - name: Generate Installer Script
+        run: binst gen --config .config/binstaller.yml -o cli-docs/site/install.sh
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 

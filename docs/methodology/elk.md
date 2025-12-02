@@ -9,7 +9,7 @@ keywords:
   - log analysis
 ---
 
-# ELK Integration for Pipeline Secrets Analysis
+## ELK Integration for Pipeline Secrets Analysis
 
 To easily analyze the results you can [redirect the pipeleek](https://github.com/deviantony/docker-elk?tab=readme-ov-file#injecting-data) output using `nc` into Logstash.
 
