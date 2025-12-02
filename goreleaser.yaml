@@ -15,7 +15,9 @@ builds:
       - -X github.com/CompassSecurity/pipeleak/internal/cmd.Version={{.Version}}
       - -X github.com/CompassSecurity/pipeleak/internal/cmd.Commit={{.Commit}}
       - -X github.com/CompassSecurity/pipeleak/internal/cmd.Date={{.Date}}
+  # Platform-specific builds - only built on release (tagged builds)
   - id: "pipeleak-gitlab"
+    skip: '{{ not .IsRelease }}'
     main: ./cmd/pipeleak-gitlab
     binary: pipeleak-gitlab
     goos:
@@ -30,6 +32,7 @@ builds:
       - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Commit={{.Commit}}
       - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Date={{.Date}}
   - id: "pipeleak-github"
+    skip: '{{ not .IsRelease }}'
     main: ./cmd/pipeleak-github
     binary: pipeleak-github
     goos:
@@ -44,6 +47,7 @@ builds:
       - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Commit={{.Commit}}
       - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Date={{.Date}}
   - id: "pipeleak-bitbucket"
+    skip: '{{ not .IsRelease }}'
     main: ./cmd/pipeleak-bitbucket
     binary: pipeleak-bitbucket
     goos:
@@ -58,6 +62,7 @@ builds:
       - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Commit={{.Commit}}
       - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Date={{.Date}}
   - id: "pipeleak-devops"
+    skip: '{{ not .IsRelease }}'
     main: ./cmd/pipeleak-devops
     binary: pipeleak-devops
     goos:
@@ -72,6 +77,7 @@ builds:
       - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Commit={{.Commit}}
       - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Date={{.Date}}
   - id: "pipeleak-gitea"
+    skip: '{{ not .IsRelease }}'
     main: ./cmd/pipeleak-gitea
     binary: pipeleak-gitea
     goos:
