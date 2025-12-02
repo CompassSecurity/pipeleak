@@ -189,8 +189,8 @@ func executeCLIWithContext(ctx context.Context, args []string) error {
 	cliMutex.Lock()
 	defer cliMutex.Unlock()
 
-	// Use PIPELEAK_BINARY if set (resolve to absolute path if relative)
-	if binPath := os.Getenv("PIPELEAK_BINARY"); binPath != "" {
+	// Use PIPELEEK_BINARY if set (resolve to absolute path if relative)
+	if binPath := os.Getenv("PIPELEEK_BINARY"); binPath != "" {
 		if !filepath.IsAbs(binPath) {
 			// If relative, try to resolve from module root
 			if moduleDir, err := findModuleRoot(); err == nil {

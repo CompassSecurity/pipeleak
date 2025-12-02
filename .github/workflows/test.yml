@@ -71,6 +71,6 @@ jobs:
       - name: Run e2e tests (Windows)
         if: runner.os == 'Windows'
         run: |
-          $env:PIPELEAK_BINARY = "$(Get-Location)\pipeleek.exe"
+          $env:PIPELEEK_BINARY = "$(Get-Location)\pipeleek.exe"
           go test ./tests/e2e/... -tags=e2e -v -timeout 10m
         shell: pwsh

@@ -69,7 +69,7 @@ For example, a custom rule:
 patterns:
   - pattern:
       name: Pipeleek Custom Rule
-      regex: PIPELEAK_.*
+      regex: PIPELEEK_.*
       confidence: custom-confidence
 ```
 
@@ -77,7 +77,7 @@ When you run Pipeleek, you'll see results for your custom rule and any built-in 
 
 ```bash
 pipeleek gl scan -g https://gitlab.com -t glpat-[redacted] --truffle-hog-verification=false --verbose
-2025-09-30T11:39:08Z hit SECRET confidence=custom-confidence type=log jobName=build-job-hidden ruleName="Pipeleek Custom Rule" url=gitlab.com/testgroup/project/-/jobs/11547853360 value="PIPELEAK_HIT=secret"
+2025-09-30T11:39:08Z hit SECRET confidence=custom-confidence type=log jobName=build-job-hidden ruleName="Pipeleek Custom Rule" url=gitlab.com/testgroup/project/-/jobs/11547853360 value="PIPELEEK_HIT=secret"
 ```
 
 ## Log Levels

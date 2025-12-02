@@ -20,7 +20,7 @@ func RunCheckVulns(gitlabUrl, gitlabApiToken string) {
 	baseURL := "https://services.nvd.nist.gov/rest/json/cves/2.0"
 
 	// Allow overriding NIST base URL via environment variable (primarily for testing)
-	if envURL := os.Getenv("PIPELEAK_NIST_BASE_URL"); envURL != "" {
+	if envURL := os.Getenv("PIPELEEK_NIST_BASE_URL"); envURL != "" {
 		baseURL = envURL
 	}
 

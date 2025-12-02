@@ -85,7 +85,7 @@ func TestGLVuln(t *testing.T) {
 	nistURL := setupMockNISTAPI(t)
 
 	env := []string{
-		"PIPELEAK_NIST_BASE_URL=" + nistURL,
+		"PIPELEEK_NIST_BASE_URL=" + nistURL,
 	}
 
 	stdout, stderr, exitErr := testutil.RunCLI(t, []string{
@@ -133,7 +133,7 @@ func TestGLVuln_Unauthorized(t *testing.T) {
 
 	nistURL := setupMockNISTAPI(t)
 	env := []string{
-		"PIPELEAK_NIST_BASE_URL=" + nistURL,
+		"PIPELEEK_NIST_BASE_URL=" + nistURL,
 	}
 
 	stdout, _, _ := testutil.RunCLI(t, []string{

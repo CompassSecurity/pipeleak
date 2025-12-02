@@ -350,7 +350,7 @@ func TestRootCommand_EnvironmentVariables(t *testing.T) {
 		"--gitlab", server.URL,
 		"--token", "test",
 	}, []string{
-		"PIPELEAK_DEBUG=true",
+		"PIPELEEK_DEBUG=true",
 		"CI=true",
 	}, 10*time.Second)
 

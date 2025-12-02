@@ -118,24 +118,24 @@ make test-e2e-gitea        # Run only Gitea e2e tests
 ```
 
 **Manual execution:**
-To run e2e tests manually, first build the binary and set `PIPELEAK_BINARY`:
+To run e2e tests manually, first build the binary and set `PIPELEEK_BINARY`:
 
 ```bash
 go build -o pipeleek ./cmd/pipeleek
-PIPELEAK_BINARY=$(pwd)/pipeleek go test ./tests/e2e/... -tags=e2e -v -timeout 10m
+PIPELEEK_BINARY=$(pwd)/pipeleek go test ./tests/e2e/... -tags=e2e -v -timeout 10m
 ```
 
 Run tests for a specific platform:
 
 ```bash
 # GitLab tests only
-PIPELEAK_BINARY=$(pwd)/pipeleek go test ./tests/e2e/gitlab/... -tags=e2e -v
+PIPELEEK_BINARY=$(pwd)/pipeleek go test ./tests/e2e/gitlab/... -tags=e2e -v
 
 # Specific command tests
-PIPELEAK_BINARY=$(pwd)/pipeleek go test ./tests/e2e/gitlab/scan -tags=e2e -v
+PIPELEEK_BINARY=$(pwd)/pipeleek go test ./tests/e2e/gitlab/scan -tags=e2e -v
 ```
 
-**Important:** E2E tests require the `PIPELEAK_BINARY` environment variable to point to the compiled binary (absolute or relative to module root). Tests use this binary to run commands in isolated subprocesses to avoid Cobra state conflicts.
+**Important:** E2E tests require the `PIPELEEK_BINARY` environment variable to point to the compiled binary (absolute or relative to module root). Tests use this binary to run commands in isolated subprocesses to avoid Cobra state conflicts.
 
 ### Test Coverage
 

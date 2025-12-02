@@ -66,28 +66,28 @@ test-unit:
 # Run e2e tests (builds binary first)
 test-e2e: build
 	@echo "Running e2e tests..."
-	PIPELEAK_BINARY=$$(pwd)/pipeleek go test ./tests/e2e/... -tags=e2e -v -timeout 10m
+	PIPELEEK_BINARY=$$(pwd)/pipeleek go test ./tests/e2e/... -tags=e2e -v -timeout 10m
 
 # Run e2e tests for specific platform
 test-e2e-gitlab: build
 	@echo "Running GitLab e2e tests..."
-	PIPELEAK_BINARY=$$(pwd)/pipeleek go test ./tests/e2e/gitlab/... -tags=e2e -v
+	PIPELEEK_BINARY=$$(pwd)/pipeleek go test ./tests/e2e/gitlab/... -tags=e2e -v
 
 test-e2e-github: build
 	@echo "Running GitHub e2e tests..."
-	PIPELEAK_BINARY=$$(pwd)/pipeleek go test ./tests/e2e/github/... -tags=e2e -v
+	PIPELEEK_BINARY=$$(pwd)/pipeleek go test ./tests/e2e/github/... -tags=e2e -v
 
 test-e2e-bitbucket: build
 	@echo "Running BitBucket e2e tests..."
-	PIPELEAK_BINARY=$$(pwd)/pipeleek go test ./tests/e2e/bitbucket/... -tags=e2e -v
+	PIPELEEK_BINARY=$$(pwd)/pipeleek go test ./tests/e2e/bitbucket/... -tags=e2e -v
 
 test-e2e-devops: build
 	@echo "Running Azure DevOps e2e tests..."
-	PIPELEAK_BINARY=$$(pwd)/pipeleek go test ./tests/e2e/devops/... -tags=e2e -v
+	PIPELEEK_BINARY=$$(pwd)/pipeleek go test ./tests/e2e/devops/... -tags=e2e -v
 
 test-e2e-gitea: build
 	@echo "Running Gitea e2e tests..."
-	PIPELEAK_BINARY=$$(pwd)/pipeleek go test ./tests/e2e/gitea/... -tags=e2e -v
+	PIPELEEK_BINARY=$$(pwd)/pipeleek go test ./tests/e2e/gitea/... -tags=e2e -v
 
 # Generate test coverage report
 coverage:
