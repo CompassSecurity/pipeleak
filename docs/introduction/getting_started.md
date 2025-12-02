@@ -10,18 +10,73 @@ keywords:
   - secrets scanning tutorial
 ---
 
+<style>
+  @keyframes slide {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+  }
+  .secret-stream {
+    display: flex;
+    gap: 30px;
+    animation: slide 20s linear infinite;
+    font-size: 2em;
+    margin: 20px 0;
+    min-width: 200%;
+  }
+  .stream-container {
+    overflow: hidden;
+    width: 100%;
+    display: flex;
+  }
+</style>
+
 <p align="center">
   <img style="max-height: 10rem" src="https://github.com/CompassSecurity/pipeleek/blob/main/docs/logo.png?raw=true" alt="Pipeleek Logo - CI/CD Pipeline Secrets Scanner">
 </p>
 
-# Why Pipeleek? {#why}
+<div class="stream-container">
+  <div class="secret-stream">
+    <span>💎</span>
+    <span>🗝️</span>
+    <span>🔐</span>
+    <span>💳</span>
+    <span>🎫</span>
+    <span>🪙</span>
+    <span>💰</span>
+    <span>🔑</span>
+    <span>💎</span>
+    <span>🗝️</span>
+    <span>🔐</span>
+    <span>💳</span>
+    <span>🎫</span>
+    <span>🪙</span>
+    <span>💰</span>
+    <span>🔑</span>
+    <span>💎</span>
+    <span>🗝️</span>
+    <span>🔐</span>
+    <span>💳</span>
+    <span>🎫</span>
+    <span>🪙</span>
+    <span>💰</span>
+    <span>🔑</span>
+    <span>💎</span>
+    <span>🗝️</span>
+    <span>🔐</span>
+    <span>💳</span>
+    <span>🎫</span>
+    <span>🪙</span>
+    <span>💰</span>
+    <span>🔑</span>
+  </div>
+</div>
+
+## Why Pipeleek? {#why}
 
 Scanning for credentials in CI/CD pipelines is interesting because secrets often end up in pipeline logs or build artifacts that traditional Git scanners won’t check.
 This means you can catch leaked secrets that are injected or generated at runtime, not just those committed to Git.
 
 Once secrets are discovered, further exploitation often requires additional tooling. Pipeleek provides several helper commands to assist with this process.
-
-# Getting Started
 
 ## Installation
 
@@ -33,19 +88,7 @@ Install the latest version with a single command:
 curl -sL https://compasssecurity.github.io/pipeleek/install.sh | sh
 ```
 
-This automatically detects your OS and architecture, then installs the appropriate binary to `~/.local/bin`.
-
-To install to a specific directory:
-
-```bash
-curl -sL https://compasssecurity.github.io/pipeleek/install.sh | sh -s -- -b /usr/local/bin
-```
-
-To install a specific version:
-
-```bash
-curl -sL https://compasssecurity.github.io/pipeleek/install.sh | sh -s -- v0.45.0
-```
+> **⚠️ Security Warning:** Piping scripts directly to `sh` can be dangerous. Always review the script contents first at [https://compasssecurity.github.io/pipeleek/install.sh](https://compasssecurity.github.io/pipeleek/install.sh) before executing.
 
 ### Install with Go
 

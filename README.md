@@ -31,6 +31,8 @@ Install the latest version with a single command:
 curl -sL https://compasssecurity.github.io/pipeleek/install.sh | sh
 ```
 
+> **⚠️ Security Warning:** Piping scripts directly to `sh` can be dangerous. Always review the script contents first at [https://compasssecurity.github.io/pipeleek/install.sh](https://compasssecurity.github.io/pipeleek/install.sh) before executing.
+
 ### Install with Go
 
 Alternatively, install using Go:
