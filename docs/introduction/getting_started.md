@@ -25,9 +25,31 @@ Once secrets are discovered, further exploitation often requires additional tool
 
 ## Installation
 
+### Quick Install (Linux/macOS)
+
+Install the latest version with a single command:
+
+```bash
+curl -sL https://compasssecurity.github.io/pipeleek/install.sh | sh
+```
+
+This automatically detects your OS and architecture, then installs the appropriate binary to `~/.local/bin`.
+
+To install to a specific directory:
+
+```bash
+curl -sL https://compasssecurity.github.io/pipeleek/install.sh | sh -s -- -b /usr/local/bin
+```
+
+To install a specific version:
+
+```bash
+curl -sL https://compasssecurity.github.io/pipeleek/install.sh | sh -s -- v0.45.0
+```
+
 ### Install with Go
 
-The recommended way to install Pipeleek is using Go:
+Alternatively, install using Go:
 
 ```bash
 go install github.com/CompassSecurity/pipeleek/cmd/pipeleek@latest
