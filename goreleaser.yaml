@@ -99,7 +99,7 @@ builds:
       - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Date={{.Date}}
 
 archives:
-  - format: binary
+  - formats: binary
     name_template: "{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
 
 release:
