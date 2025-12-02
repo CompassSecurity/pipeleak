@@ -1,8 +1,7 @@
 version: 2
 project_name: pipeleak
 builds:
-  -
-    id: "pipeleak"
+  - id: "pipeleak"
     main: ./cmd/pipeleak
     binary: pipeleak
     goos:
@@ -16,3 +15,79 @@ builds:
       - -X github.com/CompassSecurity/pipeleak/internal/cmd.Version={{.Version}}
       - -X github.com/CompassSecurity/pipeleak/internal/cmd.Commit={{.Commit}}
       - -X github.com/CompassSecurity/pipeleak/internal/cmd.Date={{.Date}}
+  # Platform-specific builds - only built on release (tagged builds)
+  - id: "pipeleak-gitlab"
+    skip: "{{ .IsSnapshot }}"
+    main: ./cmd/pipeleak-gitlab
+    binary: pipeleak-gitlab
+    goos:
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Version={{.Version}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Commit={{.Commit}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Date={{.Date}}
+  - id: "pipeleak-github"
+    skip: "{{ .IsSnapshot }}"
+    main: ./cmd/pipeleak-github
+    binary: pipeleak-github
+    goos:
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Version={{.Version}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Commit={{.Commit}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Date={{.Date}}
+  - id: "pipeleak-bitbucket"
+    skip: "{{ .IsSnapshot }}"
+    main: ./cmd/pipeleak-bitbucket
+    binary: pipeleak-bitbucket
+    goos:
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Version={{.Version}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Commit={{.Commit}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Date={{.Date}}
+  - id: "pipeleak-devops"
+    skip: "{{ .IsSnapshot }}"
+    main: ./cmd/pipeleak-devops
+    binary: pipeleak-devops
+    goos:
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Version={{.Version}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Commit={{.Commit}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Date={{.Date}}
+  - id: "pipeleak-gitea"
+    skip: "{{ .IsSnapshot }}"
+    main: ./cmd/pipeleak-gitea
+    binary: pipeleak-gitea
+    goos:
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Version={{.Version}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Commit={{.Commit}}
+      - -X github.com/CompassSecurity/pipeleak/internal/cmd/common.Date={{.Date}}

@@ -6,6 +6,16 @@ cli-docs
 site
 /pipeleak
 /pipeleak.exe
+/pipeleak-gitlab
+/pipeleak-gitlab.exe
+/pipeleak-github
+/pipeleak-github.exe
+/pipeleak-bitbucket
+/pipeleak-bitbucket.exe
+/pipeleak-devops
+/pipeleak-devops.exe
+/pipeleak-gitea
+/pipeleak-gitea.exe
 coverage.out
 coverage.html
 .vscode
