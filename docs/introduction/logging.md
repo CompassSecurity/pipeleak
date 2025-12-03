@@ -97,9 +97,7 @@ pipeleek gl scan -g https://gitlab.com -t glpat-[redacted] --truffle-hog-verific
 2025-09-30T11:42:58Z info New Log level logLevel=debug
 ```
 
-💡Tip:
-
-> Some commands like the scan commands support a status shortcut. Pressing `s` will output their current status.
+> **💡Tip:** Some commands like the scan commands support a status shortcut. Pressing `s` will output their current status.
 
 ## ELK Integration
 

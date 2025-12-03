@@ -15,7 +15,7 @@ keywords:
 
 Suppose you're conducting a penetration test and have access to a GitLab instance with a user account. Your goal is to scan the pipelines for exposed secrets and credentials.
 
-Start by creating a personal access token (Menu → Preferences → Access Tokens) and grant it read access scopes. Additionally, use your browser's developer tools to extract the session cookie (`_gitlab_session`).
+Start by creating a personal access token (`Menu` → `Preferences` → `Access Tokens`) and grant it read access scopes. Additionally, use your browser's developer tools to extract the session cookie (`_gitlab_session`).
 
 For an initial scan, target all repositories you can access, including public ones. To keep the scan fast and broad, limit it to the latest 15 jobs per project:
 
@@ -29,7 +29,7 @@ pipeleek gl scan -g https://gitlab.com -t glpat-[redacted] --cookie [redacted] -
 2025-09-30T09:53:37Z hit SECRET confidence=high type=artifact file=an_artifact.txt jobName=artifact-job ruleName="Generic - 1719" url=gitlab.com/testgroup/project/-/jobs/11484162833 value="datadog_api_key=secret_artifact_value "
 ```
 
-As shown, Pipeleek can detect secrets in job logs, dotenv files, and build artifacts. Security findings are logged at the custom `hit` level to distinguish them from regular warnings. Manually review the hits to verify if they're valid credentials. If you see `confidence=high-verified`, it's very likely a real credential, as Pipeleek has tested it against the respective service.
+As shown, Pipeleek can detect secrets in job logs and build artifacts. Security findings are logged at the custom `hit` level to distinguish them from regular warnings. Manually review the hits to verify if they're valid credentials. If you see `confidence=high-verified`, it's very likely a real credential, as Pipeleek has tested it against the respective service.
 
 If you find a repository that looks particularly interesting e.g. `secret-pipelines`, you can scan all its job logs, not just the most recent ones:
 

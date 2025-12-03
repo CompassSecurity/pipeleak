@@ -15,10 +15,12 @@ This guide explains how to use Pipeleek to discover and exploit common misconfig
 There are two key points to understand:
 
 **Code Execution by Renovated Repositories**
-   > Every project renovated by the same bot must be considered equally trusted and exposed to the same attack level. If one project is compromised, all others processed by that bot can be affected. Code execution by the renovated repository in the bot context is assumed in Renovate's threat model.
+
+> Every project renovated by the same bot must be considered equally trusted and exposed to the same attack level. If one project is compromised, all others processed by that bot can be affected. Code execution by the renovated repository in the bot context is assumed in Renovate's threat model.
 
 **GitLab Invite Auto-Acceptance**
-   > GitLab project invites are auto-accepted. You can invite any bot directly to your repository. If it is then renovated by the invited bot, you can compromise the bot user.
+
+> GitLab project invites are auto-accepted. You can invite any bot directly to your repository. If it is then renovated by the invited bot, you can compromise the bot user.
 
 ## 1. Enumerate Renovate Bot Usage
 
@@ -41,8 +43,6 @@ pipeleek gl renovate enum -g https://gitlab.com -t glpat-[redacted] --dump
 This makes the bot susceptible to autodiscovery exploits, since it will renovate any repository it can access.
 
 Even when autodiscovery filters are enabled, weak or poorly written filter regexes can still allow attackers to bypass them and exploit the bot.
-
----
 
 ## 2. Exploit Autodiscovery with a Malicious Project
 

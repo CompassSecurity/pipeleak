@@ -18,7 +18,7 @@ Pipeleek integrates [TruffleHog v3](https://github.com/trufflesecurity/truffleho
 
 When Pipeleek scans logs or artifacts, it uses two detection engines in parallel:
 
-1. **Pattern-based detection**: Custom YAML rules from `rules.yml` (regex patterns)
+1. **Pattern-based detection**: Custom YAML rules from `rules.yml` collected by [Secrets Patterns Database](https://github.com/mazen160/secrets-patterns-db)
 2. **TruffleHog detectors**: Specialized detectors with active verification
 
 The TruffleHog engine:
@@ -27,15 +27,6 @@ The TruffleHog engine:
 2. **Extracts** potential credentials (API keys, tokens, passwords)
 3. **Verifies** credentials by attempting authentication with the target service
 4. **Reports** only verified secrets (by default)
-
-### Verification Process
-
-When verification is **enabled** (default), TruffleHog:
-
-- Makes **live authentication attempts** to validate credentials
-- Tests against the actual service (GitHub, AWS, GitLab, etc.)
-- Marks secrets as `high-verified` only if authentication succeeds
-- Filters out false positives automatically
 
 ### Confidence Levels
 
@@ -49,25 +40,6 @@ Pipeleek assigns confidence levels to all detected secrets:
 | **medium**                | rules.yml  | Medium confidence pattern match                   | ❌ No    |
 | **low**                   | rules.yml  | Low confidence pattern match                      | ❌ No    |
 | **custom**                | rules.yml  | User-defined confidence level                     | ❌ No    |
-
-By default, TruffleHog verification is **enabled**. This means:
-
-- Creates **live authentication attempts** against target services
-- May trigger security alerts or rate limits
-- Authentication attempts are logged by target services
-- **Not stealthy** - visible in service audit logs
-
-**Example output with verification enabled:**
-
-```bash
-pipeleek gl scan -g https://gitlab.com -t glpat-xxxxx --verbose
-
-2025-12-03T10:15:32Z hit SECRET confidence=high-verified type=log \
-  jobName=build-job \
-  ruleName="GitLab Personal Access Token" \
-  url=gitlab.com/myorg/myproject/-/jobs/123456 \
-  value="glpat-xxxxxxxxxxxxxxxxxxxx"
-```
 
 ### Disabling Verification
 
@@ -89,7 +61,9 @@ pipeleek gl scan -g https://gitlab.com -t glpat-xxxxx --confidence=high-verified
 
 ## Custom Rules
 
-To scan for a specific pattern, edit the `rules.yml` file Pipeleek creates on the first run. It looks like:
+To scan for a specific pattern, edit the `rules.yml` file Pipeleek creates on the first run. You can remove/add/alter rules as you like.
+
+By default the rules look something like this:
 
 ```yaml
 patterns:
@@ -103,9 +77,13 @@ patterns:
       confidence: high
 ```
 
-You can add custom rules, remove unnecessary ones, and set your own confidence levels. Test your regexes at [regex101.com](https://regex101.com/) (select Golang flavor).
+You can create additional custom rules.
 
-For example, a custom rule:
+
+
+> **💡Tip:** Test your regexes at [regex101.com](https://regex101.com/) (select Golang flavor).
+
+A simple example that detects strings that follow the Regex pattern `PIPELEEK_.*` and that are logged with a custom confidence:
 
 ```yaml
 patterns:

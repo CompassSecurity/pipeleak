@@ -19,7 +19,7 @@ Pipeleek supports routing all HTTP/HTTPS traffic through a proxy server. This is
 
 ## Proxy Configuration
 
-Pipeleek uses the standard `HTTP_PROXY` environment variable for proxy configuration. This approach works across all platforms and commands.
+Pipeleek uses the standard `HTTP_PROXY` environment variable for proxy configuration.
 
 ```bash
 HTTP_PROXY=http://127.0.0.1:8080 pipeleek gl scan -g https://gitlab.com -t glpat-xxxxx

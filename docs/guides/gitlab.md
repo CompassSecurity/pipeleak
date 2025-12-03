@@ -79,7 +79,7 @@ Use Trufflehog to find hardcoded secrets in the source code:
 trufflehog gitlab --token=glpat-[redacted]
 ```
 
-Note this only scanned repository you have access to. You can specify single repositories as well.
+Note: this only scanned repository you have access to. You can specify single repositories as well.
 
 ## Secret Detection in Pipelines And Artifacts
 
@@ -89,7 +89,7 @@ Many problems can arise when misconfiguring these.
 
 - People print sensitive environment variables in the (sometimes public) job logs
 - Debug logs contain sensitive information e.g. private keys or personal access tokens
-- Created Artifacts contain sensitive stuff
+- Created artifacts contain sensitive stuff
 
 **A few job output logs examples found in the wild:**
 
@@ -209,7 +209,7 @@ pipeleek gl enum -g https://gitlab.com -t glpat-[redacted]
 2025-09-29T12:25:52Z info Done
 ```
 
-Abusing this access token grants you access to the repository, thus escalating your privileges to this repository.
+Abusing this access token grants you access to the `another-project` repository, thus you escalated privileges to this repository.
 
 ## Attacking Runners
 
