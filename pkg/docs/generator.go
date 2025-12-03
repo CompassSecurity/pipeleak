@@ -166,16 +166,22 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string, githubPages bool)
 	if githubPages {
 		prefix = "/pipeleek"
 	}
-	introEntry := map[string]interface{}{"Introduction": prefix + "/introduction/getting_started/"}
-	methodologyEntry := map[string]interface{}{
-		"Methodology": []map[string]interface{}{
-			{"Secret Scanning": prefix + "/methodology/scanning/"},
-			{"GitLab Pentest": prefix + "/methodology/gitlab/"},
-			{"Renovate Pentest (GitLab)": prefix + "/methodology/renovate/"},
-			{"ELK Logging": prefix + "/methodology/elk/"},
+	introEntry := map[string]interface{}{
+		"Introduction": []map[string]interface{}{
+			{"Getting Started": prefix + "/introduction/getting_started/"},
+			{"Logging": prefix + "/introduction/logging/"},
+			{"Secrets Verification": prefix + "/introduction/secrets_verification/"},
+			{"Proxying": prefix + "/introduction/proxying/"},
 		},
 	}
-	nav = append([]map[string]interface{}{introEntry, methodologyEntry}, nav...)
+	guidesEntry := map[string]interface{}{
+		"Guides": []map[string]interface{}{
+			{"Secret Scanning": prefix + "/guides/scanning/"},
+			{"GitLab Pentest": prefix + "/guides/gitlab/"},
+			{"Renovate Bot Pentest": prefix + "/guides/renovate/"},
+		},
+	}
+	nav = append([]map[string]interface{}{introEntry, guidesEntry}, nav...)
 
 	assetsDir := filepath.Join(outputDir, "pipeleek", "assets")
 	if err := os.MkdirAll(assetsDir, format.DirUserGroupRead); err != nil {
@@ -198,7 +204,7 @@ func writeMkdocsYaml(rootCmd *cobra.Command, outputDir string, githubPages bool)
 	}
 
 	mkdocs := map[string]interface{}{
-		"site_name":        "Pipeleek - Pipeline Secrets Scanner",
+		"site_name":        "Pipeleek",
 		"site_description": "Pipeleek scans CI/CD logs and artifacts to detect leaked secrets and pivot from them",
 		"site_author":      "FRJ @ Compass Security",
 		"site_url":         "https://compasssecurity.github.io/pipeleek/",
