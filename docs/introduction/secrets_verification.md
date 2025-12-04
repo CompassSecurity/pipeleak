@@ -56,7 +56,7 @@ pipeleek gl scan -g https://gitlab.com -t glpat-xxxxx --truffle-hog-verification
 Results can be filtered by confidence, using the `--confidence` flag.
 
 ```bash
-pipeleek gl scan -g https://gitlab.com -t glpat-xxxxx --confidence=high-verified,highj
+pipeleek gl scan -g https://gitlab.com -t glpat-xxxxx --confidence=high-verified,high
 ```
 
 ## Custom Rules
