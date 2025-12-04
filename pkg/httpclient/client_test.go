@@ -4,7 +4,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 )
 
@@ -165,33 +164,25 @@ func TestGetPipeleekHTTPClient(t *testing.T) {
 
 func TestSetIgnoreProxy(t *testing.T) {
 	// Save original value
-	originalIgnoreProxy := ignoreProxy
+	originalIgnoreProxy := ignoreProxy.Load()
 	defer func() {
-		ignoreProxy = originalIgnoreProxy
+		ignoreProxy.Store(originalIgnoreProxy)
 	}()
 
 	t.Run("SetIgnoreProxy sets the flag", func(t *testing.T) {
 		SetIgnoreProxy(true)
-		if !ignoreProxy {
+		if !ignoreProxy.Load() {
 			t.Error("Expected ignoreProxy to be true")
 		}
 		SetIgnoreProxy(false)
-		if ignoreProxy {
+		if ignoreProxy.Load() {
 			t.Error("Expected ignoreProxy to be false")
 		}
 	})
 
 	t.Run("proxy is ignored when SetIgnoreProxy is true", func(t *testing.T) {
-		// Set HTTP_PROXY
-		originalHTTPProxy := os.Getenv("HTTP_PROXY")
-		os.Setenv("HTTP_PROXY", "http://127.0.0.1:8888")
-		defer func() {
-			if originalHTTPProxy == "" {
-				os.Unsetenv("HTTP_PROXY")
-			} else {
-				os.Setenv("HTTP_PROXY", originalHTTPProxy)
-			}
-		}()
+		// Set HTTP_PROXY using t.Setenv for automatic cleanup
+		t.Setenv("HTTP_PROXY", "http://127.0.0.1:8888")
 
 		// Set ignoreProxy to true
 		SetIgnoreProxy(true)
@@ -219,16 +210,8 @@ func TestSetIgnoreProxy(t *testing.T) {
 	})
 
 	t.Run("proxy is used when SetIgnoreProxy is false", func(t *testing.T) {
-		// Set HTTP_PROXY
-		originalHTTPProxy := os.Getenv("HTTP_PROXY")
-		os.Setenv("HTTP_PROXY", "http://127.0.0.1:8888")
-		defer func() {
-			if originalHTTPProxy == "" {
-				os.Unsetenv("HTTP_PROXY")
-			} else {
-				os.Setenv("HTTP_PROXY", originalHTTPProxy)
-			}
-		}()
+		// Set HTTP_PROXY using t.Setenv for automatic cleanup
+		t.Setenv("HTTP_PROXY", "http://127.0.0.1:8888")
 
 		// Set ignoreProxy to false
 		SetIgnoreProxy(false)

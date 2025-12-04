@@ -9,6 +9,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
+	"sync/atomic"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/rs/zerolog/log"
@@ -16,12 +17,13 @@ import (
 
 // ignoreProxy controls whether the HTTP_PROXY environment variable should be ignored.
 // When set to true, no proxy will be configured even if HTTP_PROXY is set.
-var ignoreProxy bool
+// Uses atomic operations for thread-safe access.
+var ignoreProxy atomic.Bool
 
 // SetIgnoreProxy sets whether to ignore the HTTP_PROXY environment variable.
 // This is useful in environments where HTTP_PROXY is set but should not be used.
 func SetIgnoreProxy(ignore bool) {
-	ignoreProxy = ignore
+	ignoreProxy.Store(ignore)
 }
 
 // HeaderRoundTripper is an http.RoundTripper that adds default headers to requests.
@@ -111,7 +113,7 @@ func GetPipeleekHTTPClient(cookieUrl string, cookies []*http.Cookie, defaultHead
 	// #nosec G402 - InsecureSkipVerify required for security scanning tool to connect to untrusted targets
 	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 
-	if !ignoreProxy {
+	if !ignoreProxy.Load() {
 		proxyServer, useHttpProxy := os.LookupEnv("HTTP_PROXY")
 		if useHttpProxy {
 			proxyUrl, err := url.Parse(proxyServer)
