@@ -104,26 +104,28 @@ func TestWriteMkdocsYaml(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Basic keys exist
-	assert.Equal(t, "Pipeleek - Pipeline Secrets Scanner", parsed["site_name"])
+	assert.Equal(t, "Pipeleek", parsed["site_name"])
 	assert.Equal(t, "pipeleek", parsed["docs_dir"])
 
 	// Nav structure assertions
 	navAny, ok := parsed["nav"].([]interface{})
 	assert.True(t, ok)
-	assert.Equal(t, 4, len(navAny)) // intro, methodology, alpha, beta
+	assert.Equal(t, 4, len(navAny)) // intro, guides, alpha, beta
 
-	// Introduction entry first
+	// Introduction entry first (now a list of sub-items)
 	introMap, ok := navAny[0].(map[string]interface{})
 	assert.True(t, ok)
 	assert.Contains(t, introMap, "Introduction")
-	assert.Equal(t, "/introduction/getting_started/", introMap["Introduction"])
-
-	// Methodology second
-	methMap, ok := navAny[1].(map[string]interface{})
+	introItems, ok := introMap["Introduction"].([]interface{})
 	assert.True(t, ok)
-	assert.Contains(t, methMap, "Methodology")
+	assert.Equal(t, 4, len(introItems)) // Getting Started, Logging, Secrets Verification, Proxying
 
-	// Command entries appear after methodology
+	// Guides second (was Methodology)
+	guidesMap, ok := navAny[1].(map[string]interface{})
+	assert.True(t, ok)
+	assert.Contains(t, guidesMap, "Guides")
+
+	// Command entries appear after guides
 	foundAlpha := false
 	foundBeta := false
 	for _, item := range navAny[2:] {
@@ -163,5 +165,11 @@ func TestWriteMkdocsYaml_GithubPagesPrefix(t *testing.T) {
 	assert.NoError(t, err)
 	navAny := parsed["nav"].([]interface{})
 	introMap := navAny[0].(map[string]interface{})
-	assert.Equal(t, "/pipeleek/introduction/getting_started/", introMap["Introduction"])
+	// Introduction is now a list of sub-items with prefixed paths
+	introItems, ok := introMap["Introduction"].([]interface{})
+	assert.True(t, ok)
+	assert.GreaterOrEqual(t, len(introItems), 1)
+	// First item should be Getting Started with GitHub Pages prefix
+	firstItem := introItems[0].(map[string]interface{})
+	assert.Equal(t, "/pipeleek/introduction/getting_started/", firstItem["Getting Started"])
 }
