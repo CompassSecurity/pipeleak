@@ -14,6 +14,7 @@ import (
 	"github.com/CompassSecurity/pipeleek/internal/cmd/github"
 	"github.com/CompassSecurity/pipeleek/internal/cmd/gitlab"
 	"github.com/CompassSecurity/pipeleek/pkg/format"
+	"github.com/CompassSecurity/pipeleek/pkg/httpclient"
 	"github.com/CompassSecurity/pipeleek/pkg/logging"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -40,6 +41,7 @@ var (
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			initLogger(cmd)
 			setGlobalLogLevel(cmd)
+			httpclient.SetIgnoreProxy(IgnoreProxy)
 			go logging.ShortcutListeners(nil)
 		},
 	}
@@ -48,6 +50,7 @@ var (
 	LogColor      bool
 	LogDebug      bool
 	LogLevel      string
+	IgnoreProxy   bool
 )
 
 func Execute() error {
@@ -72,6 +75,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&LogDebug, "verbose", "v", false, "Enable debug logging (shortcut for --log-level=debug)")
 	rootCmd.PersistentFlags().StringVar(&LogLevel, "log-level", "", "Set log level globally (debug, info, warn, error). Example: --log-level=warn")
 	rootCmd.PersistentFlags().BoolVar(&LogColor, "color", true, "Enable colored log output (auto-disabled when using --logfile)")
+	rootCmd.PersistentFlags().BoolVar(&IgnoreProxy, "ignore-proxy", false, "Ignore HTTP_PROXY environment variable")
 
 	// Set custom version template to show detailed version info
 	rootCmd.SetVersionTemplate(`{{.Version}}

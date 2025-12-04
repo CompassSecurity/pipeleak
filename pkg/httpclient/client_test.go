@@ -161,3 +161,80 @@ func TestGetPipeleekHTTPClient(t *testing.T) {
 		}
 	})
 }
+
+func TestSetIgnoreProxy(t *testing.T) {
+	// Save original value
+	originalIgnoreProxy := ignoreProxy.Load()
+	defer func() {
+		ignoreProxy.Store(originalIgnoreProxy)
+	}()
+
+	t.Run("SetIgnoreProxy sets the flag", func(t *testing.T) {
+		SetIgnoreProxy(true)
+		if !ignoreProxy.Load() {
+			t.Error("Expected ignoreProxy to be true")
+		}
+		SetIgnoreProxy(false)
+		if ignoreProxy.Load() {
+			t.Error("Expected ignoreProxy to be false")
+		}
+	})
+
+	t.Run("proxy is ignored when SetIgnoreProxy is true", func(t *testing.T) {
+		// Set HTTP_PROXY using t.Setenv for automatic cleanup
+		t.Setenv("HTTP_PROXY", "http://127.0.0.1:8888")
+
+		// Set ignoreProxy to true
+		SetIgnoreProxy(true)
+
+		client := GetPipeleekHTTPClient("", nil, nil)
+		if client == nil {
+			t.Fatal("Expected non-nil client")
+		}
+
+		// Get the transport
+		hrt, ok := client.HTTPClient.Transport.(*HeaderRoundTripper)
+		if !ok {
+			t.Fatal("Expected HeaderRoundTripper transport")
+		}
+
+		tr, ok := hrt.Next.(*http.Transport)
+		if !ok {
+			t.Fatal("Expected http.Transport as next transport")
+		}
+
+		// When ignoreProxy is true, Proxy should not be set
+		if tr.Proxy != nil {
+			t.Error("Expected Proxy to be nil when ignoreProxy is true")
+		}
+	})
+
+	t.Run("proxy is used when SetIgnoreProxy is false", func(t *testing.T) {
+		// Set HTTP_PROXY using t.Setenv for automatic cleanup
+		t.Setenv("HTTP_PROXY", "http://127.0.0.1:8888")
+
+		// Set ignoreProxy to false
+		SetIgnoreProxy(false)
+
+		client := GetPipeleekHTTPClient("", nil, nil)
+		if client == nil {
+			t.Fatal("Expected non-nil client")
+		}
+
+		// Get the transport
+		hrt, ok := client.HTTPClient.Transport.(*HeaderRoundTripper)
+		if !ok {
+			t.Fatal("Expected HeaderRoundTripper transport")
+		}
+
+		tr, ok := hrt.Next.(*http.Transport)
+		if !ok {
+			t.Fatal("Expected http.Transport as next transport")
+		}
+
+		// When ignoreProxy is false and HTTP_PROXY is set, Proxy should be set
+		if tr.Proxy == nil {
+			t.Error("Expected Proxy to be set when ignoreProxy is false and HTTP_PROXY is set")
+		}
+	})
+}
