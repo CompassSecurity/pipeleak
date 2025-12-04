@@ -10,6 +10,7 @@ keywords:
   - proxy configuration
   - HTTP_PROXY
   - network proxy
+  - ignore proxy
 ---
 
 Pipeleek supports routing all HTTP/HTTPS traffic through a proxy server. This is useful for:
@@ -30,6 +31,20 @@ SOCKS5 can be used as well.
 ```bash
 HTTP_PROXY=socks5://127.0.0.1:1080 pipeleek gl scan -g https://gitlab.internal.company.com -t glpat-xxxxx
 ```
+
+## Ignoring Proxy Configuration
+
+In some environments, `HTTP_PROXY` may be set system-wide but you don't want Pipeleek to use it. Use the `--ignore-proxy` flag to bypass proxy detection:
+
+```bash
+HTTP_PROXY=http://127.0.0.1:8080 pipeleek --ignore-proxy gl scan -g https://gitlab.com -t glpat-xxxxx
+```
+
+This is useful when:
+
+- Running in corporate environments with mandatory proxy settings
+- The proxy is not compatible with Pipeleek's traffic
+- You want to connect directly to an accessible target
 
 ## TLS/SSL
 
