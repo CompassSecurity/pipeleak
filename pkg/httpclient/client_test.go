@@ -186,6 +186,7 @@ func TestSetIgnoreProxy(t *testing.T) {
 
 		// Set ignoreProxy to true
 		SetIgnoreProxy(true)
+		defer SetIgnoreProxy(false) // Reset at end of test
 
 		client := GetPipeleekHTTPClient("", nil, nil)
 		if client == nil {
@@ -215,6 +216,7 @@ func TestSetIgnoreProxy(t *testing.T) {
 
 		// Set ignoreProxy to false
 		SetIgnoreProxy(false)
+		defer SetIgnoreProxy(false) // Reset at end of test
 
 		client := GetPipeleekHTTPClient("", nil, nil)
 		if client == nil {

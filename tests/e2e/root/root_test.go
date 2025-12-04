@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -358,6 +359,61 @@ func TestRootCommand_EnvironmentVariables(t *testing.T) {
 	t.Logf("Exit error: %v", exitErr)
 	t.Logf("STDOUT:\n%s", stdout)
 	t.Logf("STDERR:\n%s", stderr)
+}
+
+// TestRootCommand_IgnoreProxy tests --ignore-proxy flag
+func TestRootCommand_IgnoreProxy(t *testing.T) {
+
+	server, _, cleanup := testutil.StartMockServerWithRecording(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`[]`))
+	})
+	defer cleanup()
+
+	t.Run("without ignore-proxy flag proxy message appears", func(t *testing.T) {
+		stdout, stderr, exitErr := testutil.RunCLI(t, []string{
+			"gl", "scan",
+			"--gitlab", server.URL,
+			"--token", "test",
+		}, []string{
+			"HTTP_PROXY=http://127.0.0.1:9999",
+		}, 10*time.Second)
+
+		output := stdout + stderr
+		t.Logf("Exit error: %v", exitErr)
+		t.Logf("Output:\n%s", output)
+
+		// Should show "Using HTTP_PROXY" message when proxy is set
+		testutil.AssertLogContains(t, output, []string{"Using HTTP_PROXY"})
+	})
+
+	t.Run("with ignore-proxy flag proxy message does not appear", func(t *testing.T) {
+		stdout, stderr, exitErr := testutil.RunCLI(t, []string{
+			"--ignore-proxy",
+			"gl", "scan",
+			"--gitlab", server.URL,
+			"--token", "test",
+		}, []string{
+			"HTTP_PROXY=http://127.0.0.1:9999",
+		}, 10*time.Second)
+
+		output := stdout + stderr
+		t.Logf("Exit error: %v", exitErr)
+		t.Logf("Output:\n%s", output)
+
+		// Should NOT show "Using HTTP_PROXY" message when --ignore-proxy is used
+		if strings.Contains(output, "Using HTTP_PROXY") {
+			t.Error("Expected 'Using HTTP_PROXY' to NOT appear when --ignore-proxy flag is set")
+		}
+	})
+
+	t.Run("ignore-proxy flag appears in help", func(t *testing.T) {
+		stdout, _, exitErr := testutil.RunCLI(t, []string{"--help"}, nil, 5*time.Second)
+
+		assert.Nil(t, exitErr, "Help command should succeed")
+		testutil.AssertLogContains(t, stdout, []string{"--ignore-proxy"})
+	})
 }
 
 // TestRootCommand_MultipleCommands tests that commands can be distinguished
