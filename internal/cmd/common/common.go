@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/CompassSecurity/pipeleek/pkg/format"
+	"github.com/CompassSecurity/pipeleek/pkg/httpclient"
 	"github.com/CompassSecurity/pipeleek/pkg/logging"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -32,6 +33,7 @@ var (
 	LogColor          bool
 	LogDebug          bool
 	LogLevel          string
+	IgnoreProxy       bool
 )
 
 // TerminalRestorer is a function that can be called to restore terminal state
@@ -246,6 +248,7 @@ func AddCommonFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().BoolVarP(&LogDebug, "verbose", "v", false, "Enable debug logging (shortcut for --log-level=debug)")
 	cmd.PersistentFlags().StringVar(&LogLevel, "log-level", "", "Set log level globally (debug, info, warn, error). Example: --log-level=warn")
 	cmd.PersistentFlags().BoolVar(&LogColor, "color", true, "Enable colored log output (auto-disabled when using --logfile)")
+	cmd.PersistentFlags().BoolVar(&IgnoreProxy, "ignore-proxy", false, "Ignore HTTP_PROXY environment variable")
 }
 
 // SetupPersistentPreRun sets up the PersistentPreRun handler for logging initialization
@@ -253,6 +256,7 @@ func SetupPersistentPreRun(cmd *cobra.Command) {
 	cmd.PersistentPreRun = func(c *cobra.Command, args []string) {
 		InitLogger(c)
 		SetGlobalLogLevel(c)
+		httpclient.SetIgnoreProxy(IgnoreProxy)
 		go logging.ShortcutListeners(nil)
 	}
 }

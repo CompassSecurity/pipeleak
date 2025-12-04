@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 )
 
@@ -158,6 +159,99 @@ func TestGetPipeleekHTTPClient(t *testing.T) {
 		shouldRetry, _ = client.CheckRetry(nil, nil, http.ErrServerClosed)
 		if !shouldRetry {
 			t.Error("Expected to retry on error")
+		}
+	})
+}
+
+func TestSetIgnoreProxy(t *testing.T) {
+	// Save original value
+	originalIgnoreProxy := ignoreProxy
+	defer func() {
+		ignoreProxy = originalIgnoreProxy
+	}()
+
+	t.Run("SetIgnoreProxy sets the flag", func(t *testing.T) {
+		SetIgnoreProxy(true)
+		if !ignoreProxy {
+			t.Error("Expected ignoreProxy to be true")
+		}
+		SetIgnoreProxy(false)
+		if ignoreProxy {
+			t.Error("Expected ignoreProxy to be false")
+		}
+	})
+
+	t.Run("proxy is ignored when SetIgnoreProxy is true", func(t *testing.T) {
+		// Set HTTP_PROXY
+		originalHTTPProxy := os.Getenv("HTTP_PROXY")
+		os.Setenv("HTTP_PROXY", "http://127.0.0.1:8888")
+		defer func() {
+			if originalHTTPProxy == "" {
+				os.Unsetenv("HTTP_PROXY")
+			} else {
+				os.Setenv("HTTP_PROXY", originalHTTPProxy)
+			}
+		}()
+
+		// Set ignoreProxy to true
+		SetIgnoreProxy(true)
+
+		client := GetPipeleekHTTPClient("", nil, nil)
+		if client == nil {
+			t.Fatal("Expected non-nil client")
+		}
+
+		// Get the transport
+		hrt, ok := client.HTTPClient.Transport.(*HeaderRoundTripper)
+		if !ok {
+			t.Fatal("Expected HeaderRoundTripper transport")
+		}
+
+		tr, ok := hrt.Next.(*http.Transport)
+		if !ok {
+			t.Fatal("Expected http.Transport as next transport")
+		}
+
+		// When ignoreProxy is true, Proxy should not be set
+		if tr.Proxy != nil {
+			t.Error("Expected Proxy to be nil when ignoreProxy is true")
+		}
+	})
+
+	t.Run("proxy is used when SetIgnoreProxy is false", func(t *testing.T) {
+		// Set HTTP_PROXY
+		originalHTTPProxy := os.Getenv("HTTP_PROXY")
+		os.Setenv("HTTP_PROXY", "http://127.0.0.1:8888")
+		defer func() {
+			if originalHTTPProxy == "" {
+				os.Unsetenv("HTTP_PROXY")
+			} else {
+				os.Setenv("HTTP_PROXY", originalHTTPProxy)
+			}
+		}()
+
+		// Set ignoreProxy to false
+		SetIgnoreProxy(false)
+
+		client := GetPipeleekHTTPClient("", nil, nil)
+		if client == nil {
+			t.Fatal("Expected non-nil client")
+		}
+
+		// Get the transport
+		hrt, ok := client.HTTPClient.Transport.(*HeaderRoundTripper)
+		if !ok {
+			t.Fatal("Expected HeaderRoundTripper transport")
+		}
+
+		tr, ok := hrt.Next.(*http.Transport)
+		if !ok {
+			t.Fatal("Expected http.Transport as next transport")
+		}
+
+		// When ignoreProxy is false and HTTP_PROXY is set, Proxy should be set
+		if tr.Proxy == nil {
+			t.Error("Expected Proxy to be set when ignoreProxy is false and HTTP_PROXY is set")
 		}
 	})
 }

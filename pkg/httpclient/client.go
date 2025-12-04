@@ -14,6 +14,16 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// ignoreProxy controls whether the HTTP_PROXY environment variable should be ignored.
+// When set to true, no proxy will be configured even if HTTP_PROXY is set.
+var ignoreProxy bool
+
+// SetIgnoreProxy sets whether to ignore the HTTP_PROXY environment variable.
+// This is useful in environments where HTTP_PROXY is set but should not be used.
+func SetIgnoreProxy(ignore bool) {
+	ignoreProxy = ignore
+}
+
 // HeaderRoundTripper is an http.RoundTripper that adds default headers to requests.
 // Headers are only added if they're not already present in the request.
 type HeaderRoundTripper struct {
@@ -44,7 +54,7 @@ func (hrt *HeaderRoundTripper) RoundTrip(req *http.Request) (*http.Response, err
 //   - Cookie jar configuration for session management
 //   - Custom default headers
 //   - Automatic retry logic for 429 and 5xx errors (except 501)
-//   - HTTP proxy support via HTTP_PROXY environment variable
+//   - HTTP proxy support via HTTP_PROXY environment variable (unless SetIgnoreProxy(true) is called)
 //   - TLS certificate verification bypass (InsecureSkipVerify)
 //
 // Parameters:
@@ -101,14 +111,16 @@ func GetPipeleekHTTPClient(cookieUrl string, cookies []*http.Cookie, defaultHead
 	// #nosec G402 - InsecureSkipVerify required for security scanning tool to connect to untrusted targets
 	tr := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 
-	proxyServer, useHttpProxy := os.LookupEnv("HTTP_PROXY")
-	if useHttpProxy {
-		proxyUrl, err := url.Parse(proxyServer)
-		if err != nil {
-			log.Fatal().Err(err).Str("HTTP_PROXY", proxyServer).Msg("Invalid Proxy URL in HTTP_PROXY environment variable")
+	if !ignoreProxy {
+		proxyServer, useHttpProxy := os.LookupEnv("HTTP_PROXY")
+		if useHttpProxy {
+			proxyUrl, err := url.Parse(proxyServer)
+			if err != nil {
+				log.Fatal().Err(err).Str("HTTP_PROXY", proxyServer).Msg("Invalid Proxy URL in HTTP_PROXY environment variable")
+			}
+			log.Info().Str("proxy", proxyUrl.String()).Msg("Using HTTP_PROXY")
+			tr.Proxy = http.ProxyURL(proxyUrl)
 		}
-		log.Info().Str("proxy", proxyUrl.String()).Msg("Using HTTP_PROXY")
-		tr.Proxy = http.ProxyURL(proxyUrl)
 	}
 
 	client.HTTPClient.Transport = &HeaderRoundTripper{Headers: defaultHeaders, Next: tr}
